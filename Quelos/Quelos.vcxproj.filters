@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Quelos">
+      <UniqueIdentifier>{1E4F4FCD-0AF1-79A3-F3AB-8DF7DFEC00F4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelos\Assets">
+      <UniqueIdentifier>{40A8C9A0-AC68-45D7-75A3-8E54E1228AB3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelos\Core">
+      <UniqueIdentifier>{3696AC07-A24B-25FD-2B40-1FD497F41B01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelos\ImGUI">
+      <UniqueIdentifier>{881EAAFD-7481-39A2-1D07-725809490525}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelos\Renderer">
+      <UniqueIdentifier>{8474C068-F0FF-2D2D-F910-B121651B8A2D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelos\Scenes">
+      <UniqueIdentifier>{8E729DC9-FA32-1900-C36D-627D2FED5DDC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\EntryPoint.h" />
+    <ClInclude Include="src\Quelos\Assets\Mesh.h">
+      <Filter>Quelos\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Application.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Assert.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Base.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Event.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Layer.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Log.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Ref.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Core\Window.h">
+      <Filter>Quelos\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\ImGUI\ImGuiLayer.h">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\ImGUI\fs_ocornut_imgui.bin.h">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\ImGUI\imgui_impl_bgfx.h">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\ImGUI\imgui_impl_glfw.h">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\ImGUI\vs_ocornut_imgui.bin.h">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Renderer\IndexBuffer.h">
+      <Filter>Quelos\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Renderer\Renderer.h">
+      <Filter>Quelos\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Renderer\VertexBuffer.h">
+      <Filter>Quelos\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Scenes\Components.h">
+      <Filter>Quelos\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Scenes\Entity.h">
+      <Filter>Quelos\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Quelos\Scenes\Scene.h">
+      <Filter>Quelos\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\qspch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Quelos\Assets\Mesh.cpp">
+      <Filter>Quelos\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Application.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Event.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Layer.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Log.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Ref.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Core\Window.cpp">
+      <Filter>Quelos\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\ImGUI\ImGuiLayer.cpp">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\ImGUI\imgui_impl_bgfx.cpp">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\ImGUI\imgui_impl_glfw.cpp">
+      <Filter>Quelos\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Renderer\IndexBuffer.cpp">
+      <Filter>Quelos\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Renderer\Renderer.cpp">
+      <Filter>Quelos\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Renderer\VertexBuffer.cpp">
+      <Filter>Quelos\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Scenes\Entity.cpp">
+      <Filter>Quelos\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Quelos\Scenes\Scene.cpp">
+      <Filter>Quelos\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\qspch.cpp" />
+  </ItemGroup>
+</Project>
