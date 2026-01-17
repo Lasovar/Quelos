@@ -9,7 +9,9 @@
 namespace Quelos {
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(ApplicationSpecification appSpecs) {
+	Application::Application(ApplicationSpecification appSpecs)
+		: m_Specifications(appSpecs)
+	{
 		s_Instance = this;
 		Log::Init();
 

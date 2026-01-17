@@ -19,6 +19,7 @@ public:
 Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	Quelos::ApplicationSpecification specs;
 	specs.Name = "Quelos-Editor";
+	specs.Executable = argv[0];
 	specs.WindowSpec.Width = 1920;
 	specs.WindowSpec.Height = 1080;
 	specs.WindowSpec.Title = "Quelos Editor";

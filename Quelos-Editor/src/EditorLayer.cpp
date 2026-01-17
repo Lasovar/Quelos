@@ -20,10 +20,13 @@ namespace Quelos {
 
 	void EditorLayer::Tick(float deltaTime) {
 		m_DefaultScene.Tick(deltaTime);
+
+		m_DefaultScene.Render();
 	}
 
 	void EditorLayer::ImGuiRender() {
 		static bool open = true;
+		/*
 
 		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -51,6 +54,7 @@ namespace Quelos {
 
 		ImGui::End();
 
+		*/
 		ImGui::Begin("Trial Main Space");
 		ImGui::End();
 

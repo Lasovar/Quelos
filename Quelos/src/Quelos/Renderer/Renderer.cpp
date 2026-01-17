@@ -15,6 +15,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "Quelos/Core/Application.h"
 
 namespace Quelos {
 
@@ -68,7 +69,10 @@ namespace Quelos {
 		case bgfx::RendererType::Vulkan:     shaderPath = "Assets/shaders/spirv/"; break;
 		}
 
-		std::filesystem::path filePath = shaderPath + fileName;
+		std::string executable = Application::Get().GetApplicationSpecification().Executable;
+		std::filesystem::path exeDir = std::filesystem::canonical(executable).parent_path();
+
+		std::filesystem::path filePath = exeDir / (shaderPath + fileName);
 
 		std::ifstream file(filePath, std::ios::binary);
 		if (!file.is_open()) {
@@ -121,6 +125,7 @@ namespace Quelos {
 		vbh = bgfx::createVertexBuffer(bgfx::makeRef(cubeVertices, sizeof(cubeVertices)), pvcLayout);
 		ibh = bgfx::createIndexBuffer(bgfx::makeRef(cubeTriList, sizeof(cubeTriList)));
 
+		QS_CORE_INFO("{}", std::filesystem::current_path().string());
 		bgfx::ShaderHandle vsh = loadShader("vs_cubes.bin");
 		bgfx::ShaderHandle fsh = loadShader("fs_cubes.bin");
 
@@ -150,7 +155,7 @@ namespace Quelos {
 		glm::mat4 view = glm::translate(glm::mat4(1.0f), CameraTransform.Position) * glm::toMat4(CameraTransform.Rotation);
 		view = glm::inverse(view);
 
-		//bx::mtxLookAt(glm::value_ptr(view), bx::Vec3(0, 0, -5), bx::Vec3(0));
+		bx::mtxLookAt(glm::value_ptr(view), bx::Vec3(0, 0, -5), bx::Vec3(0));
 		glm::mat4 proj;
 		bx::mtxProj(
 			glm::value_ptr(proj),
@@ -173,7 +178,6 @@ namespace Quelos {
 
 		bgfx::submit(0, program);
 		counter++;
-
 	}
 
 	void Renderer::EndFrame()
