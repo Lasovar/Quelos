@@ -13,6 +13,7 @@ namespace Quelos {
 
 	struct ApplicationSpecification {
 		std::string Name;
+		std::string Executable;
 		WindowSpecification WindowSpec;
 	};
 
@@ -24,6 +25,7 @@ namespace Quelos {
 		void Stop();
 
 		Ref<Window> GetWindow() { return m_Window; }
+		ApplicationSpecification GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
@@ -39,6 +41,7 @@ namespace Quelos {
 		std::shared_ptr<ImGuiLayer> m_ImGuiLayer;
 
 		Ref<Window> m_Window;
+		ApplicationSpecification m_Specifications;
 		bool m_IsRunning;
 	};
 
