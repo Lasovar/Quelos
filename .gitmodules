@@ -3,7 +3,7 @@
 	url = https://Lasovar@github.com/Lasovar/bgfx.git
 [submodule "Quelos/vendor/bimg"]
 	path = Quelos/vendor/bimg
-	url = https://github.com/Lasovar/bimg
+	url = https://Lasovar@github.com/Lasovar/bimg
 [submodule "Quelos/vendor/bx"]
 	path = Quelos/vendor/bx
 	url = https://Lasovar@github.com/Lasovar/bx
