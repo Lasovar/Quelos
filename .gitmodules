@@ -1,11 +1,11 @@
 [submodule "Quelos/vendor/bgfx"]
-	path = Quelos/vendor/bgfx
+	path = Quelos/vendor/bgfx.cmake/bgfx
 	url = https://github.com/Lasovar/bgfx.git
 [submodule "Quelos/vendor/bimg"]
-	path = Quelos/vendor/bimg
+	path = Quelos/vendor/bgfx.cmake/bimg
 	url = https://github.com/Lasovar/bimg
 [submodule "Quelos/vendor/bx"]
-	path = Quelos/vendor/bx
+	path = Quelos/vendor/bgfx.cmake/bx
 	url = https://github.com/Lasovar/bx
 [submodule "Quelos/vendor/GLFW"]
 	path = Quelos/vendor/GLFW

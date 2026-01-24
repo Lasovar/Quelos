@@ -29,9 +29,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Dependencies
-add_subdirectory(Quelos/vendor/bx)
-add_subdirectory(Quelos/vendor/bimg)
-add_subdirectory(Quelos/vendor/bgfx)
+add_subdirectory(Quelos/vendor/bgfx.cmake)
 
 add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/imgui)
