@@ -4,7 +4,6 @@
 #include <imgui.h>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_bgfx.h"
-#include "bgfx/bgfx.h"
 #include <Quelos/Core/Application.h>
 
 namespace Quelos {
@@ -51,4 +50,3 @@ namespace Quelos {
 	}
 
 }
-

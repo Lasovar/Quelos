@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Quelos LANGUAGES CXX)
 
-add_library(Quelos STATIC)
+add_library(Quelos STATIC
+        src/Quelos/Core/Events/WindowEvents.h
+        src/Quelos/Core/Timer.h)
 
 file(GLOB_RECURSE QUELOS_SRC
     src/*.cpp
@@ -42,3 +44,11 @@ set_target_properties(Quelos PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
 )
+
+if (WIN32)
+    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_WINDOWS)
+elseif (APPLE)
+    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_MACOS)
+elseif (UNIX)
+    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_LINUX)
+endif()
