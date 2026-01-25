@@ -3,9 +3,9 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/GLFW" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bgfx" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bimg" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bgfx.cmake/bgfx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bgfx.cmake/bimg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quelos/vendor/bgfx.cmake/bx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/flecs" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/imgui" vcs="Git" />
