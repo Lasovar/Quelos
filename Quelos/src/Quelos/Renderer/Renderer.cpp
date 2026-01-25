@@ -130,7 +130,8 @@ namespace Quelos {
         bgfxInit.resolution.height = window->GetHeight();
         bgfxInit.resolution.reset = BGFX_RESET_NONE;
 #if QUELOS_PLATFORM_WINDOWS
-        bgfxInit.type = bgfx::RendererType::Direct3D12;
+        // TODO: Try to get Direct3D12 to work
+        bgfxInit.type = bgfx::RendererType::Direct3D11;
         platformData.type = bgfx::NativeWindowHandleType::Default;
 #elif QUELOS_PLATFORM_LINUX
         // TODO: SETUP VULKAN PROPERLY ON WAYLAND
