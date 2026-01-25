@@ -14,7 +14,7 @@ namespace Quelos {
 
 	class Window : public RefCounted {
 	public:
-		Window(const WindowSpecification& windowSpecs);
+		Window(WindowSpecification  windowSpecs);
 
 		void Init();
 
@@ -25,14 +25,16 @@ namespace Quelos {
 
 		void* GetWindowHandle() const { return m_GLFWWindow; }
 		void* GetNativeWindow() const { return m_WindowHandle; }
+		void* GetNativeDisplay() const { return m_DisplayHandle; }
 
-		bool SholdClose() const;
+		bool ShouldClose() const;
 	public:
 		static Ref<Window> Create(const WindowSpecification& windowSpecification);
 	private:
 		WindowSpecification m_Sepcifications;
 		GLFWwindow* m_GLFWWindow;
 		void* m_WindowHandle = nullptr;
+		void* m_DisplayHandle = nullptr;
 	};
 }
 
