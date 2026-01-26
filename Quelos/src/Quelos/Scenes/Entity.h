@@ -5,17 +5,22 @@
 namespace Quelos {
 	class Entity {
 	public:
-		Entity() {}
-		Entity(flecs::entity id)
+		Entity() = default;
+		Entity(const flecs::entity id)
 			: m_ID(id) { }
 
-		bool IsAlive() const;
+		[[nodiscard]] bool IsAlive() const;
 
 		void Destruct();
 
 		template <typename T>
 		const flecs::entity& Add() const {
 			return m_ID.add<T>();
+		}
+
+		template <typename T>
+		const flecs::entity& Set(T&& component) const {
+			return m_ID.set<T>(component);
 		}
 
 		template <typename T>
@@ -27,4 +32,3 @@ namespace Quelos {
 		flecs::entity m_ID;
 	};
 }
-

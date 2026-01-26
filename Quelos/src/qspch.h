@@ -34,4 +34,5 @@
 #include <Quelos/Core/Assert.h>
 #include <Quelos/Core/Ref.h>
 #include <Quelos/Core/Log.h>
+#include <Quelos/Core/GUID.h>
 

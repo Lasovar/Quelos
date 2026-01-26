@@ -6,7 +6,7 @@
 namespace Quelos {
 	class Mesh : public RefCounted {
 	public:
-		Mesh(std::vector<glm::vec3> verticies, std::vector<uint16_t> indicies);
+		Mesh(std::vector<PosColorVertex> verticies, std::vector<uint16_t> indicies);
 
 		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
 		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }

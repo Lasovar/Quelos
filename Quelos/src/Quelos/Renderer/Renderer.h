@@ -17,8 +17,7 @@ namespace Quelos {
 		static void StartSceneRender(const CameraComponent& Camera, const TransformComponent& CameraTransform);
 		static void EndFrame();
 
-		static void SubmitMesh();
-	private:
+		static void SubmitMesh(const MeshComponent& mesh, const TransformComponent& transform);
 	};
 }
 

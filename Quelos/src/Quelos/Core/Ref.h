@@ -2,9 +2,9 @@
 
 #include <atomic>
 #include <cstddef>
+#include <memory>
 #include <type_traits>
 
-// Referenced from Quelos
 namespace Quelos {
 	class RefCounted {
 	public:
@@ -29,6 +29,18 @@ namespace Quelos {
 		bool IsLive(void* instance);
 	}
 
+	template<typename T>
+	using Ref = std::shared_ptr<T>;
+
+	template<typename T, typename ... Args>
+	constexpr Ref<T> CreateRef(Args&& ... args) {
+		return std::make_shared<T>(std::forward<Args>(args)...);
+	}
+
+	template<class T1, class T2>
+	[[nodiscard]] Ref<T1> RefAs(const Ref<T2>& ref) noexcept { return std::static_pointer_cast<T1>(ref); }
+
+	/*
 	template<typename T>
 	class Ref {
 	public:
@@ -197,6 +209,6 @@ namespace Quelos {
 		}
 	private:
 		T* m_Instance = nullptr;
-	};
+	};*/
 }
 

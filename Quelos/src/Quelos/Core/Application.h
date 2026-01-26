@@ -3,11 +3,15 @@
 #include <string>
 #include <vector>
 
-#include "Quelos/Core/Base.h"
 #include "Quelos/Core/Timer.h"
 #include "Quelos/Core/Window.h"
 #include "Quelos/Core/Layer.h"
+
 #include "Quelos/ImGUI/ImGuiLayer.h"
+
+#include "Quelos/AssetManager/AssetManagerBase.h"
+#include "Quelos/AssetManager/EditorAssetManager.h"
+#include "Quelos/AssetManager/RuntimeAssetManager.h"
 
 namespace Quelos {
 	class ImGuiLayer;
@@ -25,13 +29,16 @@ namespace Quelos {
 		void Run();
 		void Stop();
 
-		Ref<Window> GetWindow() { return m_Window; }
-		Ref<Time> GetTime() { return m_Time;}
-		ApplicationSpecification GetApplicationSpecification() const { return m_Specifications; }
+		[[nodiscard]] Ref<Window> GetWindow() const { return m_Window; }
+		[[nodiscard]] Ref<Time> GetTime() const { return m_Time;}
+		[[nodiscard]] Ref<AssetManagerBase> GetAssetManager() const { return m_AssetManager; }
+		[[nodiscard]] Ref<RuntimeAssetManager> GetRuntimeAssetManager() const { return RefAs<RuntimeAssetManager>(m_AssetManager); }
+		[[nodiscard]] Ref<EditorAssetManager> GetEditorAssetManager() const { return RefAs<EditorAssetManager>(m_AssetManager); }
+		[[nodiscard]] ApplicationSpecification GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
-		std::shared_ptr<TLayer> PushLayer();
+		Ref<TLayer> PushLayer();
 
 		void RaiseEvent(Event& event);
 
@@ -41,10 +48,11 @@ namespace Quelos {
 	private:
 		static Application* s_Instance;
 	private:
-		std::vector<std::shared_ptr<Layer>> m_LayerStack;
-		std::shared_ptr<ImGuiLayer> m_ImGuiLayer;
+		std::vector<Ref<Layer>> m_LayerStack;
+		Ref<ImGuiLayer> m_ImGuiLayer;
 
 		Ref<Time> m_Time;
+		Ref<AssetManagerBase> m_AssetManager;
 
 		Ref<Window> m_Window;
 		ApplicationSpecification m_Specifications;
@@ -55,8 +63,8 @@ namespace Quelos {
 
 	template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
-	std::shared_ptr<TLayer> Application::PushLayer() {
-		std::shared_ptr<TLayer> newLayer = std::make_shared<TLayer>();
+	Ref<TLayer> Application::PushLayer() {
+		Ref<TLayer> newLayer = CreateRef<TLayer>();
 		m_LayerStack.push_back(newLayer);
 		newLayer->OnAttach();
 		return newLayer;

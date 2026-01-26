@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Quelos LANGUAGES CXX)
 
-add_library(Quelos STATIC
-        src/Quelos/Core/Events/WindowEvents.h
-        src/Quelos/Core/Timer.h)
+add_library(Quelos STATIC)
 
 file(GLOB_RECURSE QUELOS_SRC
     src/*.cpp
@@ -38,6 +36,7 @@ target_link_libraries(Quelos
         flecs
         glm
         spdlog
+        stduuid
 )
 
 set_target_properties(Quelos PROPERTIES

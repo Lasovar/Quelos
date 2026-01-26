@@ -18,6 +18,7 @@ namespace Quelos {
 		{ "Mesh",              TagDetails{  true, Level::Warn  } },
 		{ "Physics",           TagDetails{  true, Level::Warn  } },
 		{ "Project",           TagDetails{  true, Level::Warn  } },
+		{ "AssetManager",      TagDetails{  true, Level::Warn  } },
 		{ "Renderer",          TagDetails{  true, Level::Info  } },
 		{ "Scene",             TagDetails{  true, Level::Info  } },
 		{ "Scripting",         TagDetails{  true, Level::Warn  } },
