@@ -8,10 +8,10 @@ namespace Quelos {
 	public:
 		Scene();
 
-		void Tick(float deltaTime);
-		void Render();
+		void Tick(float deltaTime) const;
+		void Render() const;
 
-		Entity CreateEntity(const std::string& entityName);
+		Entity CreateEntity(const std::string& entityName) const;
 		flecs::world GetWorld() const { return m_World; }
 	private:
 		flecs::world m_World;

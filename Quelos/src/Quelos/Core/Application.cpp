@@ -3,6 +3,7 @@
 
 #include <imgui.h>
 
+#include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/Renderer/Renderer.h"
 #include "Log.h"
 #include "Events/WindowEvents.h"
@@ -16,7 +17,7 @@ namespace Quelos {
 		s_Instance = this;
 		Log::Init();
 
-		m_Time = Ref<Time>::Create();
+		m_Time = CreateRef<Time>();
 		m_Time->Init();
 
 		QS_CORE_INFO_TAG("Core", "Application {} initialized!", appSpecs.Name);

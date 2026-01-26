@@ -38,6 +38,7 @@ add_subdirectory(Quelos/vendor/flecs)
 # Header-only libraries
 add_subdirectory(Quelos/vendor/glm)
 add_subdirectory(Quelos/vendor/spdlog)
+add_subdirectory(Quelos/vendor/stduuid)
 
 # Main projects
 add_subdirectory(Quelos)

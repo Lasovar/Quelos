@@ -89,7 +89,7 @@ namespace Quelos {
     }
 
     Ref<Window> Window::Create(const WindowSpecification& windowSpecification) {
-        return Ref<Window>::Create(windowSpecification);
+        return CreateRef<Window>(windowSpecification);
     }
 
     bool Window::ShouldClose() const {

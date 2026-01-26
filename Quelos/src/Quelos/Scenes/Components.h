@@ -4,6 +4,10 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace Quelos {
+	class Material;
+	class IndexBuffer;
+	class VertexBuffer;
+
 	struct TransformComponent {
 		glm::vec3 Position;
 		glm::quat Rotation;
@@ -17,7 +21,9 @@ namespace Quelos {
 	};
 
 	struct MeshComponent {
-
+		Ref<VertexBuffer> VertexBuffer;
+		Ref<IndexBuffer> IndexBuffer;
+		Ref<Material> Material;
 	};
 }
 

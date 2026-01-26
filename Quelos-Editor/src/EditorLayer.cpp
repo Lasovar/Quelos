@@ -6,12 +6,7 @@
 
 namespace Quelos {
 
-	static Entity s_Player;
-
 	EditorLayer::EditorLayer() {
-		s_Player = m_DefaultScene.CreateEntity("Player");
-
-		s_Player.Add<TransformComponent>();
 	}
 
 	void EditorLayer::OnAttach() {
@@ -55,11 +50,10 @@ namespace Quelos {
 		ImGui::End();
 
 		*/
-		ImGui::Begin("Trial Main Space");
-		ImGui::End();
+		//ImGui::Begin("Trial Main Space");
+		//ImGui::End();
 
 		ImGui::ShowDemoWindow();
-		//ImGui::ShowExampleDockSpace();	
 	}
 
 }
