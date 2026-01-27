@@ -11,7 +11,7 @@ namespace Quelos {
 		bgfx::IndexBufferHandle GetHandle() const { return m_Handle; }
 
 	private:
-		bgfx::IndexBufferHandle m_Handle{};
+		bgfx::IndexBufferHandle m_Handle = BGFX_INVALID_HANDLE;
 	};
 }
 

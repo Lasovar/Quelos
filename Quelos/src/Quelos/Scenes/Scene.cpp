@@ -64,6 +64,11 @@ namespace Quelos {
         cube2.Set(TransformComponent{glm::vec3(2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube2.Set(cubeMesh);
         cube2.Set(CubePlayer { -2 });
+
+        const Entity cube3 = m_World.entity();
+        cube3.Set(TransformComponent{glm::vec3(0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube3.Set(cubeMesh);
+        cube3.Set(CubePlayer { -10 });
     }
 
     void Scene::Tick(float deltaTime) const {
@@ -72,7 +77,7 @@ namespace Quelos {
             transform.Rotation = glm::quat({
                 player.Timer * player.Speed,
                 player.Timer * player.Speed,
-                player.Timer * player.Speed
+                0
             });
         });
     }

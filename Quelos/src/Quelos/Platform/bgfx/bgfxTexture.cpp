@@ -9,9 +9,9 @@
 #include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
-    static void imageReleaseCb(void* _ptr, void* _userData) {
-        BX_UNUSED(_ptr);
-        const auto imageContainer = static_cast<bimg::ImageContainer*>(_userData);
+    static void ImageReleaseCb(void* pointer, void* userData) {
+        BX_UNUSED(pointer);
+        const auto imageContainer = static_cast<bimg::ImageContainer*>(userData);
         bimg::imageFree(imageContainer);
     }
 
@@ -30,7 +30,7 @@ namespace Quelos {
                 const bgfx::Memory* mem = bgfx::makeRef(
                     imageContainer->m_data,
                     imageContainer->m_size,
-                    imageReleaseCb,
+                    ImageReleaseCb,
                     &imageContainer
                 );
 

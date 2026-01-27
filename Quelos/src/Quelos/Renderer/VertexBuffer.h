@@ -20,7 +20,7 @@ namespace Quelos {
 		bgfx::VertexBufferHandle GetHandle() const { return m_Handle; }
 
 	private:
-		bgfx::VertexBufferHandle m_Handle{};
+		bgfx::VertexBufferHandle m_Handle = BGFX_INVALID_HANDLE;
 	};
 }
 

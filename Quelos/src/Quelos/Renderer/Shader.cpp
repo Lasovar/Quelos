@@ -33,7 +33,7 @@ namespace Quelos {
             return handle;
         }
 
-        return {};
+        return BGFX_INVALID_HANDLE;
     }
 
     Shader::Shader(const std::string& filePathVertex, const std::string& filePathFragment) {

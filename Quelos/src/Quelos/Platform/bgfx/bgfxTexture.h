@@ -30,6 +30,6 @@ namespace Quelos {
         TextureSpecification m_Specification;
         std::filesystem::path m_Path;
 
-        bgfx::TextureHandle m_Handle{};
+        bgfx::TextureHandle m_Handle = BGFX_INVALID_HANDLE;
     };
 }
