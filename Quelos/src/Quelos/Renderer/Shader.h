@@ -9,6 +9,6 @@ namespace Quelos {
 
         bgfx::ProgramHandle GetHandle() const { return m_ProgramHandle; }
     private:
-        bgfx::ProgramHandle m_ProgramHandle{};
+        bgfx::ProgramHandle m_ProgramHandle = BGFX_INVALID_HANDLE;
     };
 }
