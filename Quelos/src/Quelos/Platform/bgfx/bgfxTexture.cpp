@@ -6,112 +6,83 @@
 #include <bimg/decode.h>
 #include <bgfx/bgfx.h>
 
+#include "Quelos/Utility/QuelosUtil.h"
+
 namespace Quelos {
-    void* load(bx::FileReaderI* _reader, bx::AllocatorI* _allocator, const bx::FilePath& _filePath, uint32_t* _size) {
-        if (bx::open(_reader, _filePath)) {
-            uint32_t size = (uint32_t)bx::getSize(_reader);
-            void* data = bx::alloc(_allocator, size);
-            bx::read(_reader, data, size, bx::ErrorAssert{});
-            bx::close(_reader);
-            if (NULL != _size) {
-                *_size = size;
-            }
-            return data;
-        }
-        else {
-            DBG("Failed to open: %s.", _filePath.getCPtr());
-        }
-
-        if (NULL != _size) {
-            *_size = 0;
-        }
-
-        return NULL;
-    }
-
-    void unload(void* _ptr, bx::AllocatorI* _allocator) {
-        bx::free(_allocator, _ptr);
-    }
-
     static void imageReleaseCb(void* _ptr, void* _userData) {
         BX_UNUSED(_ptr);
-        bimg::ImageContainer* imageContainer = static_cast<bimg::ImageContainer*>(_userData);
+        const auto imageContainer = static_cast<bimg::ImageContainer*>(_userData);
         bimg::imageFree(imageContainer);
     }
 
-    bgfx::TextureHandle loadTexture(bx::FileReaderI* _reader, const bx::FilePath& _filePath, uint64_t _flags,
-                                    uint8_t _skip, bgfx::TextureInfo* _info, bimg::Orientation::Enum* _orientation) {
-        BX_UNUSED(_skip);
+    bgfx::TextureHandle LoadTexture(const std::filesystem::path& filePath, const uint64_t flags,
+        bgfx::TextureInfo* info, bimg::Orientation::Enum* orientation) {
         bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
 
         bx::DefaultAllocator allocator;
-        uint32_t size;
-        void* data = load(_reader, &allocator, _filePath, &size);
-        if (data != nullptr) {
-            bimg::ImageContainer imageContainer;
-            if (bimg::imageParse(imageContainer, data, size)) {
-                if (_orientation != nullptr) {
-                    *_orientation = imageContainer.m_orientation;
+        if (const std::vector<byte> data = Utility::ReadBinaryFile(filePath); !data.empty()) {
+            bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.data(), data.size());
+            if (imageContainer != nullptr) {
+                if (orientation != nullptr) {
+                    *orientation = imageContainer->m_orientation;
                 }
 
                 const bgfx::Memory* mem = bgfx::makeRef(
-                    imageContainer.m_data
-                    , imageContainer.m_size
-                    , imageReleaseCb
-                    , &imageContainer
+                    imageContainer->m_data,
+                    imageContainer->m_size,
+                    imageReleaseCb,
+                    &imageContainer
                 );
 
-                unload(data, &allocator);
-
-                if (_info != nullptr) {
+                if (info != nullptr) {
                     bgfx::calcTextureSize(
-                        *_info,
-                        static_cast<uint16_t>(imageContainer.m_width),
-                        static_cast<uint16_t>(imageContainer.m_height),
-                        static_cast<uint16_t>(imageContainer.m_depth),
-                        imageContainer.m_cubeMap,
-                        1 < imageContainer.m_numMips,
-                        imageContainer.m_numLayers,
-                        static_cast<bgfx::TextureFormat::Enum>(imageContainer.m_format)
+                        *info,
+                        static_cast<uint16_t>(imageContainer->m_width),
+                        static_cast<uint16_t>(imageContainer->m_height),
+                        static_cast<uint16_t>(imageContainer->m_depth),
+                        imageContainer->m_cubeMap,
+                        imageContainer->m_numMips > 1,
+                        imageContainer->m_numLayers,
+                        static_cast<bgfx::TextureFormat::Enum>(imageContainer->m_format)
                     );
                 }
 
-                if (imageContainer.m_cubeMap) {
+                if (imageContainer->m_cubeMap) {
                     handle = bgfx::createTextureCube(
-                        static_cast<uint16_t>(imageContainer.m_width),
-                        1 < imageContainer.m_numMips,
-                        imageContainer.m_numLayers,
-                        static_cast<bgfx::TextureFormat::Enum>(imageContainer.m_format),
-                        _flags,
+                        static_cast<uint16_t>(imageContainer->m_width),
+                        1 < imageContainer->m_numMips,
+                        imageContainer->m_numLayers,
+                        static_cast<bgfx::TextureFormat::Enum>(imageContainer->m_format),
+                        flags,
                         mem
                     );
                 }
-                else if (1 < imageContainer.m_depth) {
+                else if (imageContainer->m_depth > 1) {
                     handle = bgfx::createTexture3D(
-                        static_cast<uint16_t>(imageContainer.m_width),
-                        static_cast<uint16_t>(imageContainer.m_height),
-                        static_cast<uint16_t>(imageContainer.m_depth),
-                        1 < imageContainer.m_numMips,
-                        static_cast<bgfx::TextureFormat::Enum>(imageContainer.m_format),
-                        _flags,
+                        static_cast<uint16_t>(imageContainer->m_width),
+                        static_cast<uint16_t>(imageContainer->m_height),
+                        static_cast<uint16_t>(imageContainer->m_depth),
+                        1 < imageContainer->m_numMips,
+                        static_cast<bgfx::TextureFormat::Enum>(imageContainer->m_format),
+                        flags,
                         mem
                     );
                 }
-                else if (bgfx::isTextureValid(0, false, imageContainer.m_numLayers,
-                                              static_cast<bgfx::TextureFormat::Enum>(imageContainer.m_format), _flags)) {
+                else if (bgfx::isTextureValid(0, false, imageContainer->m_numLayers,
+                                              static_cast<bgfx::TextureFormat::Enum>(imageContainer->m_format), flags)) {
                     handle = bgfx::createTexture2D(
-                        static_cast<uint16_t>(imageContainer.m_width),
-                        static_cast<uint16_t>(imageContainer.m_height),
-                        1 < imageContainer.m_numMips,
-                        imageContainer.m_numLayers,
-                        static_cast<bgfx::TextureFormat::Enum>(imageContainer.m_format),
-                        _flags,
+                        static_cast<uint16_t>(imageContainer->m_width),
+                        static_cast<uint16_t>(imageContainer->m_height),
+                        1 < imageContainer->m_numMips,
+                        imageContainer->m_numLayers,
+                        static_cast<bgfx::TextureFormat::Enum>(imageContainer->m_format),
+                        flags,
                         mem
                     );
                 }
 
                 if (bgfx::isValid(handle)) {
-                    const bx::StringView name(_filePath);
+                    const bx::StringView name(filePath.filename().string().c_str());
                     bgfx::setName(handle, name.getPtr(), name.getLength());
                 }
             }
@@ -121,5 +92,32 @@ namespace Quelos {
     }
 
     bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path) {
+        m_Specification = spec;
+        m_Path = path;
+
+        bgfx::TextureInfo info{};
+        bimg::Orientation::Enum orientation;
+
+        m_Handle = LoadTexture(
+            path,
+            BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT,
+            &info,
+            &orientation
+        );
+    }
+
+    void bgfxTexture2D::Bind(uint32_t slot) const {
+    }
+
+    ImageFormat bgfxTexture2D::GetFormat() const { return ImageFormat::RGBA; }
+
+    void bgfxTexture2D::CreateFromFile(const TextureSpecification& specification,
+        const std::filesystem::path& filepath) {
+    }
+
+    void bgfxTexture2D::Resize(const glm::uvec2& size) {
+    }
+
+    void bgfxTexture2D::Resize(uint32_t width, uint32_t height) {
     }
 }

@@ -1,6 +1,7 @@
 #include "Shader.h"
 
 #include "Quelos/Core/Application.h"
+#include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
 
@@ -23,28 +24,16 @@ namespace Quelos {
             break;
         }
 
-        std::string executable = Application::Get().GetApplicationSpecification().Executable;
-        std::filesystem::path exeDir = std::filesystem::canonical(executable).parent_path();
+        if (const std::vector<byte> data = Utility::ReadBinaryFile(shaderPath + fileName); !data.empty()) {
+            const bgfx::Memory* mem = bgfx::copy(data.data(), data.size());
 
-        std::filesystem::path filePath = exeDir / (shaderPath + fileName);
+            const bgfx::ShaderHandle handle = bgfx::createShader(mem);
+            bgfx::setName(handle, fileName.c_str(), static_cast<int32_t>(fileName.length()));
 
-        std::ifstream file(filePath, std::ios::binary);
-        if (!file.is_open()) {
-            QS_CORE_ERROR("Couldn't open file '{}'", filePath.string());
-            return BGFX_INVALID_HANDLE;
+            return handle;
         }
 
-        uintmax_t fileSize = std::filesystem::file_size(filePath);
-
-        const bgfx::Memory* mem = bgfx::alloc(fileSize + 1);
-        file.read(reinterpret_cast<char*>(mem->data), fileSize);
-
-        mem->data[fileSize] = '\0';
-
-        bgfx::ShaderHandle handle = bgfx::createShader(mem);
-        bgfx::setName(handle, fileName.c_str(), fileName.length());
-
-        return handle;
+        return {};
     }
 
     Shader::Shader(const std::string& filePathVertex, const std::string& filePathFragment) {
