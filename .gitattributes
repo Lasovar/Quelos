@@ -1,1 +1,2 @@
+*.png filter=lfs diff=lfs merge=lfs -text
 Quelos-Editor/SandboxProject/Assets/Textures/HDRIs/qwantani_dusk_2_puresky_4k.hdr filter=lfs diff=lfs merge=lfs -text
