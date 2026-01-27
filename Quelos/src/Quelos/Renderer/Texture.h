@@ -63,6 +63,11 @@ namespace Quelos {
     };
 
     class Texture : Asset {
+    public:
+        virtual ~Texture() {}
+
+        virtual void Bind(uint32_t slot = 0) const = 0;
+
         virtual ImageFormat GetFormat() const = 0;
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;
@@ -73,18 +78,18 @@ namespace Quelos {
         static AssetType GetStaticType() { return AssetType::Texture; }
         AssetType GetAssetType() const override { return GetStaticType(); }
 
-        virtual void* GetNativeHandle() const = 0;
+        virtual const void* GetNativeHandle() const = 0;
     };
 
     class Texture2D : public Texture {
     public:
         static Ref<Texture2D> Create(const TextureSpecification& spec);
-        static Ref<Texture2D> Create(const std::filesystem::path& texturePath);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, const std::filesystem::path& texturePath);
 
         virtual void CreateFromFile(const TextureSpecification& specification, const std::filesystem::path& filepath) = 0;
 
         virtual void Resize(const glm::uvec2& size) = 0;
-        virtual void Resize(const uint32_t width, const uint32_t height) = 0;
+        virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual const std::filesystem::path& GetPath() const = 0;
 
