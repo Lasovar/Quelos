@@ -11,3 +11,6 @@
 [submodule "Quelos/vendor/flecs"]
 	path = Quelos/vendor/flecs
 	url = https://github.com/Lasovar/flecs.git
+[submodule "Quelos/vendor/bgfx.cmake"]
+	path = Quelos/vendor/bgfx.cmake
+	url = https://github.com/Lasovar/bgfx.cmake.git
