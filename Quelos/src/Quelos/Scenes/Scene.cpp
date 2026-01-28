@@ -53,9 +53,9 @@ namespace Quelos {
         cube.Set(TransformComponent{glm::vec3(-2.5f, -2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
 
         MeshComponent cubeMesh;
-        cubeMesh.VertexBuffer = CreateRef<VertexBuffer>(cubeVertices);
-        cubeMesh.IndexBuffer = CreateRef<IndexBuffer>(cubeTriList);
-        cubeMesh.Material = CreateRef<Material>(CreateRef<Shader>("vs_cubes.bin", "fs_cubes.bin"));
+        cubeMesh.VertexData = CreateRef<VertexBuffer>(cubeVertices);
+        cubeMesh.IndexData = CreateRef<IndexBuffer>(cubeTriList);
+        cubeMesh.MaterialData = CreateRef<Material>(CreateRef<Shader>("vs_cubes.bin", "fs_cubes.bin"));
         cube.Set(cubeMesh);
 
         cube.Set(CubePlayer());
