@@ -21,9 +21,8 @@ namespace Quelos {
 	};
 
 	struct MeshComponent {
-		Ref<VertexBuffer> VertexBuffer;
-		Ref<IndexBuffer> IndexBuffer;
-		Ref<Material> Material;
+		Ref<VertexBuffer> VertexData; // MinGW complaining about using 'VertexBuffer' here
+		Ref<IndexBuffer> IndexData; // MinGW complaining about using 'IndexBuffer' here
+		Ref<Material> MaterialData; // MinGW complaining about using 'Material' here
 	};
 }
-

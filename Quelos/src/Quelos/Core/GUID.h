@@ -1,7 +1,5 @@
 #pragma once
 
-#define UUID_SYSTEM_GENERATOR
-
 #include <stduuid/uuid.h>
 
 namespace Quelos {

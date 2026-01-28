@@ -118,10 +118,10 @@ namespace Quelos {
 
         bgfx::setTransform(glm::value_ptr(mat));
 
-        bgfx::setVertexBuffer(0, mesh.VertexBuffer->GetHandle());
-        bgfx::setIndexBuffer(mesh.IndexBuffer->GetHandle());
+        bgfx::setVertexBuffer(0, mesh.VertexData->GetHandle());
+        bgfx::setIndexBuffer(mesh.IndexData->GetHandle());
 
-        bgfx::submit(0, mesh.Material->GetShader()->GetHandle());
+        bgfx::submit(0, mesh.MaterialData->GetShader()->GetHandle());
     }
 
     void Renderer::Shutdown() {
