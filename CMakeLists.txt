@@ -34,6 +34,7 @@ add_subdirectory(Quelos/vendor/bgfx.cmake)
 add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/imgui)
 add_subdirectory(Quelos/vendor/flecs)
+add_subdirectory(Quelos/vendor/SDL)
 
 # Header-only libraries
 add_subdirectory(Quelos/vendor/glm)

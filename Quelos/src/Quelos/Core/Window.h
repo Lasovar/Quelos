@@ -5,8 +5,7 @@
 class GLFWwindow;
 
 namespace Quelos {
-	struct WindowSpecification
-	{
+	struct WindowSpecification {
 		std::string Title;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
@@ -14,27 +13,27 @@ namespace Quelos {
 
 	class Window : public RefCounted {
 	public:
-		Window(WindowSpecification  windowSpecs);
+		~Window() override = default;
 
-		void Init();
+		virtual void Init() = 0;
+		virtual void Shutdown() = 0;
 
-		void Update();
+		virtual void PollEvents() = 0;
 
-		uint32_t GetWidth() const { return m_Sepcifications.Width; }
-		uint32_t GetHeight() const { return m_Sepcifications.Height; }
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
 
-		void* GetWindowHandle() const { return m_GLFWWindow; }
-		void* GetNativeWindow() const { return m_WindowHandle; }
-		void* GetNativeDisplay() const { return m_DisplayHandle; }
+		virtual bool IsWayland() const = 0;
 
-		bool ShouldClose() const;
+		virtual void* GetWindowHandle() const = 0;
+		virtual void* GetNativeWindow() const = 0;
+		virtual void* GetNativeDisplay() const = 0;
+
+		virtual bool ShouldClose() const = 0;
 	public:
 		static Ref<Window> Create(const WindowSpecification& windowSpecification);
-	private:
-		WindowSpecification m_Sepcifications;
-		GLFWwindow* m_GLFWWindow;
-		void* m_WindowHandle = nullptr;
-		void* m_DisplayHandle = nullptr;
+	protected:
+		static void OnResize(uint32_t width, uint32_t height);
 	};
 }
 
