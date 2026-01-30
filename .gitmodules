@@ -14,3 +14,6 @@
 [submodule "Quelos/vendor/bgfx.cmake"]
 	path = Quelos/vendor/bgfx.cmake
 	url = https://github.com/Lasovar/bgfx.cmake.git
+[submodule "Quelos/vendor/SDL"]
+	path = Quelos/vendor/SDL
+	url = https://github.com/libsdl-org/SDL.git

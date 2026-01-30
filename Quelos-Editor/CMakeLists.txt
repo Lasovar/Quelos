@@ -26,3 +26,20 @@ target_link_libraries(Quelos-Editor
     PRIVATE
         Quelos
 )
+
+if (WIN32)
+    target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_WINDOWS)
+elseif (APPLE)
+    target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_MACOS)
+elseif (UNIX)
+    target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_LINUX)
+
+#[[
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GTK4 REQUIRED gtk4)
+
+    target_include_directories(Quelos-Editor PRIVATE ${GTK4_INCLUDE_DIRS})
+    target_link_libraries(Quelos-Editor PRIVATE ${GTK4_LIBRARIES})
+    target_compile_options(Quelos-Editor PRIVATE ${GTK4_CFLAGS_OTHER})
+]]
+endif ()

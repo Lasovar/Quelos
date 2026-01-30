@@ -20,9 +20,17 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	Quelos::ApplicationSpecification specs;
 	specs.Name = "Quelos-Editor";
 	specs.Executable = argv[0];
+
 	specs.WindowSpec.Width = 1920;
 	specs.WindowSpec.Height = 1080;
 	specs.WindowSpec.Title = "Quelos Editor";
+
+#if QUELOS_PLATFORM_WINDOWS
+	// Try to switch to Direct3D12 later
+	specs.RendererAPI = RendererAPI::Direct3D11;
+#elif QUELOS_PLATFORM_LINUX
+	specs.RendererAPI = RendererAPI::Vulkan;
+#endif
 
 	auto app = new QuelosEditorApp(specs);
 	app->PushLayer<EditorLayer>();

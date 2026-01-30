@@ -2,13 +2,15 @@
 #include <Quelos/Scenes/Components.h>
 
 #include "Quelos/Core/Event.h"
+#include "Quelos/Renderer/RendererAPI.h"
 
 namespace Quelos {
 	class Window;
 
 	class Renderer {
 	public:
-		static void Init(const Ref<Window>& window);
+		static bool IsInitialized();
+		static void Init(const Ref<Window>& window, RendererAPI api);
 		static void Shutdown();
 
 		static void OnEvent(Event& event);

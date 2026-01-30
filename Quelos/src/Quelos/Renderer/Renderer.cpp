@@ -27,8 +27,25 @@ namespace Quelos {
     static Ref<Time> s_Time;
 
     static bool s_NeedReset = false;
+    static bool s_IsInitialized = false;
 
-    void Renderer::Init(const Ref<Window>& window) {
+    static bgfx::RendererType::Enum GetRendererType(const RendererAPI api) {
+        switch (api) {
+            case RendererAPI::None:        return bgfx::RendererType::Noop;
+            case RendererAPI::OpenGL:      return bgfx::RendererType::OpenGL;
+            case RendererAPI::Vulkan:      return bgfx::RendererType::Vulkan;
+            case RendererAPI::Direct3D11:  return bgfx::RendererType::Direct3D11;
+            case RendererAPI::Direct3D12:  return bgfx::RendererType::Direct3D12;
+            case RendererAPI::Metal:       return bgfx::RendererType::Metal;
+        }
+
+        QS_CORE_ASSERT(false, "Unknown RendererAPI");
+        return bgfx::RendererType::Noop;
+    }
+
+    bool Renderer::IsInitialized() { return s_IsInitialized; }
+
+    void Renderer::Init(const Ref<Window>& window, const RendererAPI api) {
         s_Window = window;
         s_Time = Application::Get().GetTime();
 
@@ -37,24 +54,26 @@ namespace Quelos {
         platformData.ndt = window->GetNativeDisplay();
 
         bgfx::Init bgfxInit;
-        bgfxInit.type = bgfx::RendererType::Count;
+        bgfxInit.type = GetRendererType(api);
         bgfxInit.resolution.width = window->GetWidth();
         bgfxInit.resolution.height = window->GetHeight();
         bgfxInit.resolution.reset = BGFX_RESET_NONE;
 #if QUELOS_PLATFORM_WINDOWS
         // TODO: Try to get Direct3D12 to work
-        bgfxInit.type = bgfx::RendererType::Direct3D11;
         platformData.type = bgfx::NativeWindowHandleType::Default;
 #elif QUELOS_PLATFORM_LINUX
         // TODO: SETUP VULKAN PROPERLY ON WAYLAND
-        bgfxInit.type = bgfx::RendererType::OpenGL;
-        platformData.type = bgfx::NativeWindowHandleType::Wayland;
+        platformData.type = s_Window->IsWayland()
+                                ? bgfx::NativeWindowHandleType::Wayland
+                                : bgfx::NativeWindowHandleType::Default;
 #endif
 
         bgfxInit.platformData = platformData;
         bgfx::init(bgfxInit);
 
         bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
+
+        s_IsInitialized = true;
     }
 
     void Renderer::StartFrame() {

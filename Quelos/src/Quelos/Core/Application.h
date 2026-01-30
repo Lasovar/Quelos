@@ -12,6 +12,7 @@
 #include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/AssetManager/EditorAssetManager.h"
 #include "Quelos/AssetManager/RuntimeAssetManager.h"
+#include "Quelos/Renderer/RendererAPI.h"
 
 namespace Quelos {
 	class ImGuiLayer;
@@ -20,6 +21,7 @@ namespace Quelos {
 		std::string Name;
 		std::string Executable;
 		WindowSpecification WindowSpec;
+		RendererAPI RendererAPI;
 	};
 
 	class Application {
@@ -42,9 +44,9 @@ namespace Quelos {
 
 		void RaiseEvent(Event& event);
 
+		void Tick() const;
 	public:
 		static Application& Get() { return *s_Instance; }
-
 	private:
 		static Application* s_Instance;
 	private:

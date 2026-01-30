@@ -27,16 +27,18 @@ target_compile_definitions(Quelos
 )
 
 target_link_libraries(Quelos
-    PUBLIC
+    PRIVATE
         bgfx
         bimg
         bx
         glfw
+        SDL3::SDL3-static
+    PUBLIC
         imgui
+        stduuid
         flecs
         glm
         spdlog
-        stduuid
 )
 
 set_target_properties(Quelos PROPERTIES
@@ -45,9 +47,11 @@ set_target_properties(Quelos PROPERTIES
 )
 
 if (WIN32)
-    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_WINDOWS)
+    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_WINDOWS)
 elseif (APPLE)
-    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_MACOS)
+    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_MACOS)
 elseif (UNIX)
-    target_compile_definitions(Quelos PRIVATE QUELOS_PLATFORM_LINUX)
+    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_LINUX)
+
+    #target_include_directories(Quelos PRIVATE ${GTK4_INCLUDE_DIRS})
 endif()
