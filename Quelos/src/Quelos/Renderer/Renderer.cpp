@@ -1,12 +1,8 @@
-#include <qspch.h>
 #include "Renderer.h"
 #include <bgfx/bgfx.h>
-#include <iostream>
-#include <filesystem>
-#include <fstream>
 
-#include "Quelos/Core/Window.h"
 #include "bx/math.h"
+#include "Quelos/Core/Window.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
@@ -17,8 +13,9 @@
 #include "VertexBuffer.h"
 
 #include "glm/glm.hpp"
-#include "glm/gtx/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/quaternion.hpp"
+
 #include "Quelos/Core/Application.h"
 #include "Quelos/Core/Events/WindowEvents.h"
 
@@ -135,12 +132,13 @@ namespace Quelos {
         mat[3][1] = transform.Position.y;
         mat[3][2] = transform.Position.z;
 
+        // Move functionality to Uniform Buffers
         bgfx::setTransform(glm::value_ptr(mat));
 
-        bgfx::setVertexBuffer(0, mesh.VertexData->GetHandle());
-        bgfx::setIndexBuffer(mesh.IndexData->GetHandle());
+        mesh.VertexData->Bind(0);
+        mesh.IndexData->Bind();
 
-        bgfx::submit(0, mesh.MaterialData->GetShader()->GetHandle());
+        mesh.MaterialData->GetShader()->Submit(0);
     }
 
     void Renderer::Shutdown() {
@@ -149,7 +147,7 @@ namespace Quelos {
 
     void Renderer::OnEvent(Event& event) {
         EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<WindowResizeEvent>([](const WindowResizeEvent& e) {
+        dispatcher.Dispatch<WindowResizeEvent>([](const WindowResizeEvent& _) {
             s_NeedReset = true;
             return false;
         });

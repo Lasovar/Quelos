@@ -1,8 +1,5 @@
 #pragma once
 
-#include <bgfx/bgfx.h>
-#include <glm/glm.hpp>
-
 namespace Quelos {
 	struct PosColorVertex {
 		float x;
@@ -11,16 +8,12 @@ namespace Quelos {
 		uint32_t abgr;
 	};
 
-
 	class VertexBuffer : public RefCounted {
 	public:
-		explicit VertexBuffer(const std::vector<PosColorVertex>& vertices);
-		~VertexBuffer() override;
+		virtual void Bind(uint32_t stream) const = 0;
 
-		bgfx::VertexBufferHandle GetHandle() const { return m_Handle; }
-
-	private:
-		bgfx::VertexBufferHandle m_Handle = BGFX_INVALID_HANDLE;
+	public:
+		static Ref<VertexBuffer> Create(const std::vector<PosColorVertex>& vertices);
 	};
 }
 

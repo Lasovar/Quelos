@@ -1,6 +1,9 @@
 #include "qspch.h"
 #include "SDLWindow.h"
 
+#include "Quelos/ImGUI/ImGuiLayer.h"
+#include "Quelos/ImGUI/imgui_impl_sdl3.h"
+
 namespace Quelos {
     SDLWindow::SDLWindow(WindowSpecification windowSpecs) :
         m_Specifications(std::move(windowSpecs)) {
@@ -82,6 +85,8 @@ namespace Quelos {
             default:
                 break;
             }
+
+		    ImGui_ImplSDL3_ProcessEvent(&event);
         }
     }
 }
