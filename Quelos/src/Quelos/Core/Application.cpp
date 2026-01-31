@@ -60,7 +60,7 @@ namespace Quelos {
 		m_ImGuiLayer->Begin();
 
 		for (auto& layer : m_LayerStack) {
-			//layer->ImGuiRender();
+			layer->ImGuiRender();
 		}
 
 		m_ImGuiLayer->End();

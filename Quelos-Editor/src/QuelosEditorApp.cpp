@@ -29,7 +29,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	// Try to switch to Direct3D12 later
 	specs.RendererAPI = RendererAPI::Direct3D11;
 #elif QUELOS_PLATFORM_LINUX
-	specs.RendererAPI = RendererAPI::Vulkan;
+	specs.RendererAPI = RendererAPI::OpenGL;
 #endif
 
 	auto app = new QuelosEditorApp(specs);
