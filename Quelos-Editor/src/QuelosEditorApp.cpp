@@ -25,6 +25,12 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	specs.WindowSpec.Height = 1080;
 	specs.WindowSpec.Title = "Quelos Editor";
 
+#if QUELOS_USE_SDL
+	specs.WindowSpec.Backed = Quelos::WindowingBackend::SDL;
+#elif QUELOS_USE_GLFW
+	specs.WindowSpec.Backed = Quelos::WindowingBackend::GLFW;
+#endif
+
 #if QUELOS_PLATFORM_WINDOWS
 	specs.RendererAPI = RendererAPI::Direct3D12;
 #elif QUELOS_PLATFORM_LINUX
