@@ -16,7 +16,7 @@ namespace Quelos {
             m_Specifications.Title.c_str(),
             m_Specifications.Width,
             m_Specifications.Height,
-            SDL_WINDOW_RESIZABLE
+            0
         );
 
         const SDL_PropertiesID windowProperties = SDL_GetWindowProperties(m_SDLWindow);
