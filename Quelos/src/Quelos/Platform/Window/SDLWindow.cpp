@@ -1,8 +1,10 @@
 #include "qspch.h"
 #include "SDLWindow.h"
 
-#include "Quelos/ImGUI/ImGuiLayer.h"
-#include "Quelos/ImGUI/imgui_impl_sdl3.h"
+#include "SDL3/SDL.h"
+
+#include "Quelos/ImGui/ImGuiLayer.h"
+#include "Quelos/ImGui/imgui_impl_sdl3.h"
 
 namespace Quelos {
     SDLWindow::SDLWindow(WindowSpecification windowSpecs) :

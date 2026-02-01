@@ -71,10 +71,10 @@ namespace ImGui
     }
 } // namespace
 
-#include "widgets/color_picker.inl"
-#include "widgets/color_wheel.inl"
-#include "widgets/dock.inl"
-#include "widgets/file_list.inl"
-#include "widgets/gizmo.inl"
-#include "widgets/markdown.inl"
-#include "widgets/range_slider.inl"
+#include "../../../ImGui/widgets/color_picker.inl"
+#include "../../../ImGui/widgets/color_wheel.inl"
+#include "../../../ImGui/widgets/dock.inl"
+#include "../../../ImGui/widgets/file_list.inl"
+#include "../../../ImGui/widgets/gizmo.inl"
+#include "../../../ImGui/widgets/markdown.inl"
+#include "../../../ImGui/widgets/range_slider.inl"
