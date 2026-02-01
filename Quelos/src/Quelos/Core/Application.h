@@ -7,7 +7,7 @@
 #include "Quelos/Core/Window.h"
 #include "Quelos/Core/Layer.h"
 
-#include "Quelos/ImGUI/ImGuiLayer.h"
+#include "Quelos/ImGui/ImGuiLayer.h"
 
 #include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/AssetManager/EditorAssetManager.h"
@@ -58,7 +58,7 @@ namespace Quelos {
 
 		Ref<Window> m_Window;
 		ApplicationSpecification m_Specifications;
-		bool m_IsRunning{};
+		bool m_IsRunning = false;
 	};
 
 	Application* CreateApplication(int argc, char** argv);

@@ -1,14 +1,18 @@
 #pragma once
-#include <cstdint>
 #include "Ref.h"
 
-class GLFWwindow;
-
 namespace Quelos {
+	enum class WindowingBackend {
+		None,
+		SDL,
+		GLFW,
+	};
+
 	struct WindowSpecification {
 		std::string Title;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
+		WindowingBackend Backed = WindowingBackend::SDL;
 	};
 
 	class Window : public RefCounted {
@@ -22,6 +26,8 @@ namespace Quelos {
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+
+		virtual WindowingBackend GetWindowBacked() const = 0;
 
 		virtual bool IsWayland() const = 0;
 

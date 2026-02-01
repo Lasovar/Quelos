@@ -3,6 +3,8 @@
 #include "Quelos/Core/Event.h"
 #include "Quelos/Core/Window.h"
 
+class GLFWwindow;
+
 namespace Quelos {
 
     class GLFWWindow : public Window {
@@ -18,6 +20,8 @@ namespace Quelos {
 
         uint32_t GetWidth() const override { return m_Specifications.Width; }
         uint32_t GetHeight() const override { return m_Specifications.Height; }
+
+        WindowingBackend GetWindowBacked() const override { return WindowingBackend::GLFW; }
 
         bool IsWayland() const override;
 

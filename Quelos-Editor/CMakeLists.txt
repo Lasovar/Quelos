@@ -4,6 +4,8 @@ project(Quelos-Editor LANGUAGES CXX)
 
 add_executable(Quelos-Editor)
 
+target_compile_definitions(Quelos PUBLIC QUELOS_USE_SDL)
+
 file(GLOB_RECURSE QUELOS_EDITOR_SRC
     src/*.cpp
     src/*.h

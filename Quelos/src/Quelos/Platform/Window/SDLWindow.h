@@ -2,7 +2,7 @@
 
 #include "Quelos/Core/Window.h"
 
-#include "SDL3/SDL.h"
+class SDL_Window;
 
 namespace Quelos {
     class SDLWindow : public Window {
@@ -16,6 +16,8 @@ namespace Quelos {
 
         uint32_t GetWidth() const override { return m_Specifications.Width; }
         uint32_t GetHeight() const override { return m_Specifications.Height; }
+
+        WindowingBackend GetWindowBacked() const override { return WindowingBackend::SDL; }
 
         bool IsWayland() const override { return m_IsWayland; }
 
