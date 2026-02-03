@@ -37,9 +37,13 @@ namespace Quelos {
 
 		s_ImGuiState->Init(17);
 
-		const Application& app = Application::Get();
-		const Ref<Window> window = app.GetWindow();
+		ImGuiIO& io = ImGui::GetIO();
+		(void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport
+		io.ConfigWindowsMoveFromTitleBarOnly = true;
 
+		Ref<Window> window = Application::Get().GetWindow();
 		switch (window->GetWindowBacked()) {
 		case WindowingBackend::None:
 			break;
@@ -56,6 +60,7 @@ namespace Quelos {
 #endif
 		}
 
+		ImGui::StyleColorsDark();
 		CatppuccinTheme();
 	}
 
@@ -78,9 +83,10 @@ namespace Quelos {
 	}
 
 	void ImGuiLayer::ImGuiRender() {
-		static std::vector<std::string> themes = { "Catppuccin", "Iaivy", "Supremacy" };
+		/*static std::vector<std::string> themes = { "Catppuccin", "Iaivy", "Supremacy" };
 		static int currentTheme = 0;
-		if (ImGui::Begin("Theme Selector")) {
+		static bool enableThemeSelector = false;
+		if (ImGui::Begin("Theme Selector", &enableThemeSelector)) {
 			if (ImGui::BeginCombo("Select Theme", themes[currentTheme].c_str())) {
 				for (int i = 0; i < themes.size(); i++) {
 					if (ImGui::Selectable(themes[i].c_str(), currentTheme == i)) {
@@ -103,9 +109,9 @@ namespace Quelos {
 
 				ImGui::EndCombo();
 			}
+		}
 
-			ImGui::End();
-		} else ImGui::End();
+		ImGui::End();*/
 	}
 
 	static void CatppuccinTheme() {
