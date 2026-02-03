@@ -45,7 +45,7 @@ namespace Quelos {
         None = 0,
         Linear,
         Nearest,
-        Cubic
+        Anisotropic,
     };
 
     enum class TextureType {
@@ -60,13 +60,13 @@ namespace Quelos {
         uint32_t Height = 1;
         TextureWrap SamplerWrap = TextureWrap::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
+
+        bool IsRenderTarget = false;
     };
 
     class Texture : Asset {
     public:
-        virtual ~Texture() {}
-
-        virtual void Bind(uint32_t slot = 0) const = 0;
+        ~Texture() override = default;
 
         virtual ImageFormat GetFormat() const = 0;
         virtual uint32_t GetWidth() const = 0;
@@ -78,7 +78,7 @@ namespace Quelos {
         static AssetType GetStaticType() { return AssetType::Texture; }
         AssetType GetAssetType() const override { return GetStaticType(); }
 
-        virtual const void* GetNativeHandle() const = 0;
+        virtual uint16_t GetTextureHandle() const = 0;
     };
 
     class Texture2D : public Texture {

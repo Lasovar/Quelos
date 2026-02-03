@@ -5,6 +5,7 @@
 
 #include "Components.h"
 #include "glm/gtx/quaternion.hpp"
+#include "Quelos/Renderer/FrameBuffer.h"
 
 #include "Quelos/Renderer/Renderer.h"
 #include "Quelos/Renderer/VertexBuffer.h"
@@ -82,12 +83,12 @@ namespace Quelos {
         });
     }
 
-    void Scene::Render() const {
-        m_World.each([this](const TransformComponent& renderCameraTransform, const CameraComponent& renderCamera) {
-            Renderer::StartSceneRender(renderCamera, renderCameraTransform);
+    void Scene::Render(uint32_t viewId, Ref<FrameBuffer> frameBuffer) const {
+        m_World.each([this, viewId, frameBuffer](const TransformComponent& renderCameraTransform, const CameraComponent& renderCamera) {
+            Renderer::StartSceneRender(viewId, frameBuffer, renderCamera, renderCameraTransform);
 
-            m_World.each([](const TransformComponent& transform, const MeshComponent& mesh) {
-                Renderer::SubmitMesh(mesh, transform);
+            m_World.each([viewId](const TransformComponent& transform, const MeshComponent& mesh) {
+                Renderer::SubmitMesh(viewId, mesh, transform);
             });
         });
 

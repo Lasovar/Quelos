@@ -7,6 +7,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 
+#include "FrameBuffer.h"
 #include "IndexBuffer.h"
 #include "Material.h"
 #include "Shader.h"
@@ -78,12 +79,14 @@ namespace Quelos {
             bgfx::reset(s_Window->GetWidth(), s_Window->GetHeight(), BGFX_RESET_NONE);
             s_NeedReset = false;
         }
-
-        bgfx::setViewRect(0, 0, 0, s_Window->GetWidth(), s_Window->GetHeight());
-        bgfx::touch(0);
     }
 
-    void Renderer::StartSceneRender(const CameraComponent& Camera, const TransformComponent& CameraTransform) {
+    void Renderer::StartSceneRender(const uint32_t viewId, const Ref<FrameBuffer>& frameBuffer, const CameraComponent& Camera, const TransformComponent& CameraTransform) {
+        frameBuffer->Bind(viewId);
+
+        bgfx::setViewRect(viewId, 0, 0, frameBuffer->GetWidth(), frameBuffer->GetHeight());
+        bgfx::touch(viewId);
+
         glm::mat4 view;
 
         bx::mtxFromQuaternion(glm::value_ptr(view),
@@ -104,20 +107,20 @@ namespace Quelos {
         bx::mtxProj(
             glm::value_ptr(proj),
             Camera.FOV,
-            static_cast<float>(s_Window->GetWidth()) / s_Window->GetHeight(), // NOLINT(*-narrowing-conversions)
+            static_cast<float>(frameBuffer->GetWidth()) / frameBuffer->GetHeight(), // NOLINT(*-narrowing-conversions)
             Camera.Near,
             Camera.Far,
             bgfx::getCaps()->homogeneousDepth
         );
 
-        bgfx::setViewTransform(0, glm::value_ptr(view), glm::value_ptr(proj));
+        bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(proj));
     }
 
     void Renderer::EndFrame() {
         bgfx::frame();
     }
 
-    void Renderer::SubmitMesh(const MeshComponent& mesh, const TransformComponent& transform) {
+    void Renderer::SubmitMesh(const uint32_t viewId, const MeshComponent& mesh, const TransformComponent& transform) {
         glm::mat4 mat;
         bx::mtxFromQuaternion(glm::value_ptr(mat),
                               bx::Quaternion(
@@ -138,7 +141,7 @@ namespace Quelos {
         mesh.VertexData->Bind(0);
         mesh.IndexData->Bind();
 
-        mesh.MaterialData->GetShader()->Submit(0);
+        mesh.MaterialData->GetShader()->Submit(viewId);
     }
 
     void Renderer::Shutdown() {

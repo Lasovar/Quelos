@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>bgfx</w>
+      <w>dockspace</w>
       <w>stduuid</w>
     </words>
   </dictionary>

@@ -15,7 +15,7 @@ namespace Quelos {
         bimg::imageFree(imageContainer);
     }
 
-    bgfx::TextureHandle LoadTexture(const std::filesystem::path& filePath, const uint64_t flags,
+    static bgfx::TextureHandle LoadTexture(const std::filesystem::path& filePath, const uint64_t flags,
         bgfx::TextureInfo* info, bimg::Orientation::Enum* orientation) {
         bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
 
@@ -23,7 +23,7 @@ namespace Quelos {
         if (const std::vector<byte> data = Utility::ReadBinaryFile(filePath); !data.empty()) {
             bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.data(), data.size());
             if (imageContainer != nullptr) {
-                if (orientation != nullptr) {
+                if (orientation) {
                     *orientation = imageContainer->m_orientation;
                 }
 
@@ -91,6 +91,69 @@ namespace Quelos {
         return handle;
     }
 
+    static bgfx::TextureFormat::Enum QuelosImageFormatToBgfxFormat(const ImageFormat format) {
+        switch (format) {
+            case ImageFormat::RGBA:  return bgfx::TextureFormat::RGBA8;
+            case ImageFormat::RGB:   return bgfx::TextureFormat::RGB8;
+            case ImageFormat::RED8UN:   return bgfx::TextureFormat::R8;
+            case ImageFormat::Depth: return bgfx::TextureFormat::D24S8;
+            default:
+                QS_CORE_WARN("Unsupported image format conversion to bgfx format!");
+                return bgfx::TextureFormat::Unknown;
+        }
+    }
+
+    static uint64_t ToBgfxSamplerFlags(const TextureWrap wrap) {
+        switch (wrap) {
+            case TextureWrap::Clamp:
+                return BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+            case TextureWrap::Repeat:
+                return 0;
+            default:
+                QS_CORE_WARN("Unsupported texture wrap conversion to bgfx sampler flags!");
+                return 0;
+        }
+    }
+
+    static uint64_t ToBgfxSamplerFlags(const TextureFilter filter) {
+        switch (filter) {
+            case TextureFilter::Linear:
+                return 0;
+            case TextureFilter::Nearest:
+                return BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
+            case TextureFilter::Anisotropic:
+                return BGFX_SAMPLER_MIN_ANISOTROPIC | BGFX_SAMPLER_MAG_ANISOTROPIC;
+            default:
+                QS_CORE_WARN("Unsupported texture filter conversion to bgfx sampler flags!");
+                return 0;
+        }
+    }
+
+    static uint64_t ToBgfxTextureFlags(const TextureSpecification& spec) {
+        uint64_t flags = ToBgfxSamplerFlags(spec.SamplerWrap) | ToBgfxSamplerFlags(spec.SamplerFilter);
+        if (spec.IsRenderTarget) {
+            flags |= BGFX_TEXTURE_RT;
+        }
+        return flags;
+    }
+
+    static bgfx::TextureHandle CreateTextureHandle(const TextureSpecification& spec) {
+        return bgfx::createTexture2D(
+            static_cast<uint16_t>(spec.Width),
+            static_cast<uint16_t>(spec.Height),
+            false,
+            1,
+            QuelosImageFormatToBgfxFormat(spec.Format),
+            ToBgfxTextureFlags(spec)
+        );
+    }
+
+    bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec) {
+        m_Specification = spec;
+
+        m_Handle = CreateTextureHandle(spec);
+    }
+
     bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path) {
         m_Specification = spec;
         m_Path = path;
@@ -100,24 +163,36 @@ namespace Quelos {
 
         m_Handle = LoadTexture(
             path,
-            BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT,
+            ToBgfxTextureFlags(spec),
             &info,
             &orientation
         );
     }
 
-    void bgfxTexture2D::Bind(uint32_t slot) const {
-    }
-
-    ImageFormat bgfxTexture2D::GetFormat() const { return ImageFormat::RGBA; }
+    ImageFormat bgfxTexture2D::GetFormat() const { return m_Specification.Format; }
 
     void bgfxTexture2D::CreateFromFile(const TextureSpecification& specification,
         const std::filesystem::path& filepath) {
     }
 
     void bgfxTexture2D::Resize(const glm::uvec2& size) {
+        Resize(size.x, size.y);
     }
 
-    void bgfxTexture2D::Resize(uint32_t width, uint32_t height) {
+    void bgfxTexture2D::Resize(const uint32_t width, const uint32_t height) {
+        if (bgfx::isValid(m_Handle)) {
+            bgfx::destroy(m_Handle);
+        }
+
+        m_Specification.Width = width;
+        m_Specification.Height = height;
+
+        m_Handle = CreateTextureHandle(m_Specification);
+    }
+
+    bgfxTexture2D::~bgfxTexture2D() {
+        if (bgfx::isValid(m_Handle)) {
+            bgfx::destroy(m_Handle);
+        }
     }
 }

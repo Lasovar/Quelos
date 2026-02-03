@@ -28,10 +28,11 @@ target_compile_definitions(Quelos
 
 target_link_libraries(Quelos
     PRIVATE
-        bgfx
-        bimg
-        bx
         glfw
+        bimg
+        bimg_decode
+        bgfx
+        bx
         SDL3::SDL3-static
     PUBLIC
         imgui

@@ -4,6 +4,9 @@
 #include <Quelos/Scenes/Scene.h>
 #include <Quelos/Core/Ref.h>
 
+#include "Panels/ViewportPanel.h"
+#include "Workspaces/SceneWorkspace.h"
+
 namespace Quelos {
 	class EditorLayer : public Layer {
 	public:
@@ -14,7 +17,11 @@ namespace Quelos {
 		void Tick(float deltaTime) override;
 		void ImGuiRender() override;
 	private:
-		Scene m_DefaultScene;
+		Ref<Scene> m_DefaultScene;
+
+		Ref<SceneWorkspace> m_SceneWorkspace;
+
+		std::vector<Ref<Workspace>> m_Workspaces;
 	};
 }
 

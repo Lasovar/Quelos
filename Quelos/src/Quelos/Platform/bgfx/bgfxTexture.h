@@ -7,9 +7,10 @@
 namespace Quelos {
     class bgfxTexture2D : public Texture2D {
     public:
-        bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path);
+        explicit bgfxTexture2D(const TextureSpecification& spec);
+        explicit bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path);
 
-        void Bind(uint32_t slot) const override;
+        ~bgfxTexture2D() override;
 
         ImageFormat GetFormat() const override;
 
@@ -24,7 +25,7 @@ namespace Quelos {
 
         void CreateFromFile(const TextureSpecification& specification, const std::filesystem::path& filepath) override;
 
-        const void* GetNativeHandle() const override { return &m_Handle; }
+        uint16_t GetTextureHandle() const override { return std::bit_cast<uint16_t>(m_Handle); }
 
     private:
         TextureSpecification m_Specification;

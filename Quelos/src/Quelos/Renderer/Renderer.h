@@ -1,6 +1,7 @@
 #pragma once
 #include <Quelos/Scenes/Components.h>
 
+#include "FrameBuffer.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/RendererAPI.h"
 
@@ -16,10 +17,10 @@ namespace Quelos {
 		static void OnEvent(Event& event);
 
 		static void StartFrame();
-		static void StartSceneRender(const CameraComponent& Camera, const TransformComponent& CameraTransform);
+		static void StartSceneRender(uint32_t viewId, const Ref<FrameBuffer>& frameBuffer, const CameraComponent& Camera, const TransformComponent& CameraTransform);
 		static void EndFrame();
 
-		static void SubmitMesh(const MeshComponent& mesh, const TransformComponent& transform);
+		static void SubmitMesh(uint32_t viewId, const MeshComponent& mesh, const TransformComponent& transform);
 	};
 }
 

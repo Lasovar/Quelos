@@ -32,7 +32,6 @@ namespace Quelos {
         BGFX_EMBEDDED_SHADER_END()
     };
 
-
     struct FontRangeMerge {
         const void* Data;
         size_t Size;
@@ -42,16 +41,6 @@ namespace Quelos {
     static FontRangeMerge s_FontRangeMerge[] = {
         {s_iconsKenneyTtf, sizeof(s_iconsKenneyTtf), {ICON_MIN_KI, ICON_MAX_KI, 0}},
         {s_iconsFontAwesomeTtf, sizeof(s_iconsFontAwesomeTtf), {ICON_MIN_FA, ICON_MAX_FA, 0}},
-    };
-
-#define IMGUI_FLAGS_NONE        UINT8_C(0x00)
-#define IMGUI_FLAGS_ALPHA_BLEND UINT8_C(0x01)
-
-    struct TextureBgfx {
-        bgfx::TextureHandle handle;
-        uint8_t flags;
-        uint8_t mip;
-        uint32_t unused;
     };
 
     /// Returns true if both internal transient index and vertex buffer have
@@ -77,13 +66,7 @@ namespace Quelos {
 
         ImGuiIO& io = ImGui::GetIO();
         (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport
-        io.ConfigWindowsMoveFromTitleBarOnly = true;
-
         io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
-
-        ImGui::StyleColorsDark();
 
         const bgfx::RendererType::Enum type = bgfx::getRendererType();
         m_Program = bgfx::createProgram(
@@ -148,7 +131,7 @@ namespace Quelos {
     void bgfxImGuiState::Destroy() {
         for (ImTextureData* texData : ImGui::GetPlatformIO().Textures) {
             if (1 == texData->RefCount) {
-                const auto tex = bx::bitCast<TextureBgfx>(texData->GetTexID());
+                const auto tex = bx::bitCast<ImGui::TextureBgfx>(texData->GetTexID());
                 bgfx::destroy(tex.handle);
                 texData->SetTexID(ImTextureID_Invalid);
                 texData->SetStatus(ImTextureStatus_Destroyed);
@@ -184,7 +167,7 @@ namespace Quelos {
                 switch (texData->Status) {
                 case ImTextureStatus_WantCreate:
                     {
-                        TextureBgfx tex = {
+                        ImGui::TextureBgfx tex = {
                             .handle = bgfx::createTexture2D(
                                 static_cast<uint16_t>(texData->Width),
                                 static_cast<uint16_t>(texData->Height),
@@ -214,7 +197,7 @@ namespace Quelos {
 
                 case ImTextureStatus_WantDestroy:
                     {
-                        const auto tex = bx::bitCast<TextureBgfx>(texData->GetTexID());
+                        const auto tex = bx::bitCast<ImGui::TextureBgfx>(texData->GetTexID());
                         bgfx::destroy(tex.handle);
                         texData->SetTexID(ImTextureID_Invalid);
                         texData->SetStatus(ImTextureStatus_Destroyed);
@@ -223,7 +206,7 @@ namespace Quelos {
 
                 case ImTextureStatus_WantUpdates:
                     {
-                        const auto tex = bx::bitCast<TextureBgfx>(texData->GetTexID());
+                        const auto tex = bx::bitCast<ImGui::TextureBgfx>(texData->GetTexID());
 
                         for (const ImTextureRect& rect : texData->Updates) {
                             const uint32_t bpp = texData->BytesPerPixel;
@@ -332,7 +315,7 @@ namespace Quelos {
                     const ImTextureID texId = cmd->GetTexID();
 
                     if (ImTextureID_Invalid != texId) {
-                        const auto tex = bx::bitCast<TextureBgfx>(texId);
+                        const auto tex = bx::bitCast<ImGui::TextureBgfx>(texId);
 
                         state |= 0 != (IMGUI_FLAGS_ALPHA_BLEND & tex.flags)
                                      ? BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA)
