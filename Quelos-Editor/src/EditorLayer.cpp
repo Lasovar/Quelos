@@ -17,6 +17,9 @@ namespace Quelos {
         m_SceneWorkspace->SetScene(m_DefaultScene);
 
         m_Workspaces.push_back(m_SceneWorkspace);
+
+        m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
+        m_EditorLayerClass.DockingAllowUnclassed = false;
     }
 
     void EditorLayer::Tick(const float deltaTime) {
@@ -40,10 +43,6 @@ namespace Quelos {
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove;
 
-        static ImGuiWindowClass s_MainEditorClass;
-        s_MainEditorClass.ClassId = ImHashStr("MainEditor");
-        s_MainEditorClass.DockingAllowUnclassed = false;
-
         const ImGuiViewport* vp = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(vp->Pos);
         ImGui::SetNextWindowSize(vp->Size);
@@ -52,11 +51,11 @@ namespace Quelos {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-        ImGui::Begin("MainEditor", nullptr, window_flags);
+        ImGui::Begin("##EditorDockspace", nullptr, window_flags);
         ImGui::PopStyleVar(2);
 
-        ImGuiID globalDockspaceID = ImGui::GetID("GlobalWorkspaceDockSpace");
-        ImGui::DockSpace(globalDockspaceID, ImVec2(0, 0), dockspace_flags, &s_MainEditorClass);
+        const ImGuiID globalDockspaceID = ImGui::GetID("EditorLayer_Dockspace");
+        ImGui::DockSpace(globalDockspaceID, ImVec2(0, 0), dockspace_flags, &m_EditorLayerClass);
 
         static bool opt_fullscreen = true;
         static bool opt_padding = false;

@@ -15,6 +15,8 @@ namespace Quelos {
         void ResizeIfNeeded();
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
+
+        [[nodiscard]] bool ShouldDraw() const { return m_ViewportVisible; }
     private:
         void QueueResize(float width, float height);
     private:
@@ -29,6 +31,8 @@ namespace Quelos {
 
         glm::vec2 m_ViewportNewSize{};
         glm::vec2 m_ViewportSize{};
+
+        bool m_ViewportVisible = false;
 
         Ref<Texture2D> m_ColorAttachment;
         Ref<Texture2D> m_DepthAttachment;

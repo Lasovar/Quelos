@@ -19,6 +19,7 @@ namespace Quelos {
 	private:
 		Ref<Scene> m_DefaultScene;
 
+        ImGuiWindowClass m_EditorLayerClass;
 		Ref<SceneWorkspace> m_SceneWorkspace;
 
 		std::vector<Ref<Workspace>> m_Workspaces;

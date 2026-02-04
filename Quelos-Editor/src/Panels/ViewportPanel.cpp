@@ -51,8 +51,10 @@ namespace Quelos {
 
         constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
+        m_ViewportVisible = false;
+
         if (m_IsEnabled) {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
             if (!ImGui::Begin("Viewport", &m_IsEnabled, flags)) {
                 ImGui::PopStyleVar(1);
                 ImGui::End();
@@ -69,9 +71,9 @@ namespace Quelos {
 
                 ImGui::Image(
                     m_ColorAttachment,
-                    { m_ViewportSize.x, m_ViewportSize.y },
-                    { 0.0f, 1.0f },
-                    { 1.0f, 0.0f }
+                    {m_ViewportSize.x, m_ViewportSize.y},
+                    {0.0f, 1.0f},
+                    {1.0f, 0.0f}
                 );
 
                 const auto windowSize = ImGui::GetContentRegionAvail();
@@ -79,12 +81,15 @@ namespace Quelos {
                 minBound.x += viewportOffset.x;
                 minBound.y += viewportOffset.y;
 
-                ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
-                m_ViewportBounds[0] = { minBound.x, minBound.y };
-                m_ViewportBounds[1] = { maxBound.x, maxBound.y };
+                ImVec2 maxBound = {minBound.x + windowSize.x, minBound.y + windowSize.y};
+                m_ViewportBounds[0] = {minBound.x, minBound.y};
+                m_ViewportBounds[1] = {maxBound.x, maxBound.y};
 
                 m_ViewportFocused = ImGui::IsWindowFocused();
                 m_ViewportHovered = ImGui::IsWindowHovered();
+
+                const ImGuiDockNode* node = ImGui::GetWindowDockNode();
+                m_ViewportVisible = !node /* floating window (supposedly) */ ? true : node->IsVisible;
 
                 ImGui::End();
                 ImGui::PopStyleVar();
@@ -97,7 +102,7 @@ namespace Quelos {
             return;
         }
 
-        m_ViewportNewSize = { width, height };
+        m_ViewportNewSize = {width, height};
         m_NeedResize = true;
     }
 }
