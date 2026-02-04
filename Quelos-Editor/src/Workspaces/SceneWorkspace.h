@@ -14,13 +14,13 @@ namespace Quelos {
         void Tick(float deltaTime) override;
         void OnImGuiRender(unsigned int dockspaceID) override;
 
-        void SetScene(const Ref<Scene>& scene) { m_Scene = scene; }
+        void SetScene(const Ref<Scene>& scene);
 
     private:
         Ref<Scene> m_Scene;
 
         ViewportPanel m_ViewportPanel;
-        ImGuiID m_WorkspaceDockID;
         ImGuiWindowClass m_SceneWorkspaceClass;
+        std::string m_WorkspaceID;
     };
 }

@@ -3,6 +3,8 @@
 
 #include <flecs.h>
 
+#include <utility>
+
 #include "Components.h"
 #include "glm/gtx/quaternion.hpp"
 #include "Quelos/Renderer/FrameBuffer.h"
@@ -45,7 +47,9 @@ namespace Quelos {
         float Timer = 0.0f;
     };
 
-    Scene::Scene() {
+    Scene::Scene(std::string  name)
+        : m_Name(std::move(name))
+    {
         const Entity camera = m_World.entity();
         camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
         camera.Set(CameraComponent{60.0f, 0.1f, 1000.0f});
@@ -83,7 +87,7 @@ namespace Quelos {
         });
     }
 
-    void Scene::Render(uint32_t viewId, Ref<FrameBuffer> frameBuffer) const {
+    void Scene::Render(uint32_t viewId, const Ref<FrameBuffer>& frameBuffer) const {
         m_World.each([this, viewId, frameBuffer](const TransformComponent& renderCameraTransform, const CameraComponent& renderCamera) {
             Renderer::StartSceneRender(viewId, frameBuffer, renderCamera, renderCameraTransform);
 
@@ -91,7 +95,6 @@ namespace Quelos {
                 Renderer::SubmitMesh(viewId, mesh, transform);
             });
         });
-
     }
 
     Entity Scene::CreateEntity(const std::string& entityName) const {

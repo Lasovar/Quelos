@@ -8,15 +8,18 @@
 namespace Quelos {
 	class Scene : public RefCounted {
 	public:
-		Scene();
+		explicit Scene(std::string name = "Untitled Scene");
 
 		void Tick(float deltaTime) const;
-		void Render(uint32_t viewId, Ref<FrameBuffer> frameBuffer) const;
+		void Render(uint32_t viewId, const Ref<FrameBuffer>& frameBuffer) const;
+
+		const std::string& GetName() const { return m_Name; }
 
 		Entity CreateEntity(const std::string& entityName) const;
 		flecs::world GetWorld() const { return m_World; }
 	private:
 		flecs::world m_World;
+		std::string m_Name;
 	};
 }
 
