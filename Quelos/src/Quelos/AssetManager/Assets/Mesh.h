@@ -3,8 +3,10 @@
 #include <Quelos/Renderer/VertexBuffer.h>
 #include <Quelos/Renderer/IndexBuffer.h>
 
+#include "Quelos/AssetManager/Asset.h"
+
 namespace Quelos {
-	class Mesh : public RefCounted {
+	class Mesh : public AssetHandle {
 	public:
 		Mesh(const std::vector<PosColorVertex>& vertices, const std::vector<uint16_t>& indices);
 

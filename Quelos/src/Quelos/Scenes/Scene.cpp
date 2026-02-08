@@ -6,85 +6,18 @@
 #include <utility>
 
 #include "Components.h"
-#include "glm/gtx/quaternion.hpp"
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "Quelos/Renderer/Renderer.h"
-#include "Quelos/Renderer/VertexBuffer.h"
-#include "Quelos/Renderer/IndexBuffer.h"
-#include "Quelos/Renderer/Shader.h"
-#include "Quelos/Renderer/Material.h"
 
 namespace Quelos {
-    static std::vector<PosColorVertex> cubeVertices = {
-        {-1.0f, 1.0f, 1.0f, 0xff000000},
-        {1.0f, 1.0f, 1.0f, 0xff0000ff},
-        {-1.0f, -1.0f, 1.0f, 0xff00ff00},
-        {1.0f, -1.0f, 1.0f, 0xff00ffff},
-        {-1.0f, 1.0f, -1.0f, 0xffff0000},
-        {1.0f, 1.0f, -1.0f, 0xffff00ff},
-        {-1.0f, -1.0f, -1.0f, 0xffffff00},
-        {1.0f, -1.0f, -1.0f, 0xffffffff},
-    };
-
-    static const std::vector<uint16_t> cubeTriList = {
-        0, 1, 2,
-        1, 3, 2,
-        4, 6, 5,
-        5, 6, 7,
-        0, 2, 4,
-        4, 2, 6,
-        1, 5, 3,
-        5, 7, 3,
-        0, 4, 1,
-        4, 5, 1,
-        2, 3, 6,
-        6, 3, 7,
-    };
-
-    struct CubePlayer {
-        float Speed = 2.0f;
-        float Timer = 0.0f;
-    };
-
     Scene::Scene(std::string  name)
         : m_Name(std::move(name))
     {
-        const Entity camera = m_World.entity();
-        camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
-        camera.Set(CameraComponent{60.0f, 0.1f, 1000.0f});
-
-        const Entity cube = m_World.entity();
-        cube.Set(TransformComponent{glm::vec3(-2.5f, -2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
-
-        MeshComponent cubeMesh;
-        cubeMesh.VertexData = VertexBuffer::Create(cubeVertices);
-        cubeMesh.IndexData = IndexBuffer::Create(cubeTriList);
-        cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
-        cube.Set(cubeMesh);
-
-        cube.Set(CubePlayer());
-
-        const Entity cube2 = m_World.entity();
-        cube2.Set(TransformComponent{glm::vec3(2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
-        cube2.Set(cubeMesh);
-        cube2.Set(CubePlayer { -2 });
-
-        const Entity cube3 = m_World.entity();
-        cube3.Set(TransformComponent{glm::vec3(0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
-        cube3.Set(cubeMesh);
-        cube3.Set(CubePlayer { -10 });
     }
 
-    void Scene::Tick(float deltaTime) const {
-        m_World.each([deltaTime](TransformComponent& transform, CubePlayer& player) {
-            player.Timer += deltaTime;
-            transform.Rotation = glm::quat({
-                player.Timer * player.Speed,
-                player.Timer * player.Speed,
-                0
-            });
-        });
+    void Scene::Tick(const float deltaTime) const {
+        m_World.progress(deltaTime);
     }
 
     void Scene::Render(uint32_t viewId, const Ref<FrameBuffer>& frameBuffer) const {
@@ -97,7 +30,16 @@ namespace Quelos {
         });
     }
 
-    Entity Scene::CreateEntity(const std::string& entityName) const {
-        return {m_World.entity(entityName.c_str())};
+    Entity Scene::CreateEntity(const std::string& entityName) {
+        const GUID guid = GUID::Generate();
+        return CreateEntity(guid, entityName);
+    }
+
+    Entity Scene::CreateEntity(const GUID& guid, const std::string& entityName) {
+        const auto id = m_World.make_alive(guid.Hash64()).set_name(entityName.c_str());
+        const Entity entity(id);
+        m_EntityMap[guid] = entity;
+        QS_CORE_INFO("{}", std::format("Created entity '{}' with GUID {}", entityName, guid.ToString()));
+        return entity;
     }
 }

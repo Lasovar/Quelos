@@ -28,6 +28,9 @@ namespace Quelos {
 			return m_ID.get<T>();
 		}
 
+		void SetName(const std::string& name) const { m_ID.set_name(name.c_str()); }
+		std::string_view GetName() const { return std::string_view(m_ID.name()); }
+
 	private:
 		flecs::entity m_ID;
 	};

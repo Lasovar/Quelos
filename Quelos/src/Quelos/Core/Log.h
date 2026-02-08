@@ -21,7 +21,7 @@ namespace Quelos {
 		};
 
 	public:
-		static void Init();
+		static void Init(const std::string& appName);
 
 		static void Shutdown();
 

@@ -1,5 +1,10 @@
 #include "GUID.h"
 
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_IMPLEMENTATION
+
+#include <xxhash.h>
+
 namespace Quelos {
 
     static std::random_device s_RandomDevice;
@@ -21,7 +26,12 @@ namespace Quelos {
 
     std::string GUID::ToString() const { return uuids::to_string(m_UUID); }
 
-    std::span<const std::byte, 16> GUID::AsByteArray() const { return m_UUID.as_bytes(); }
+    std::span<const std::byte, 16> GUID::AsBytes() const { return m_UUID.as_bytes(); }
+
+    uint64_t GUID::Hash64() const {
+        const auto bytes = m_UUID.as_bytes();
+        return XXH3_64bits(bytes.data(), bytes.size());
+    }
 
     GUID GUID::Generate() {
         return s_UUIDGen();

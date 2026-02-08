@@ -25,7 +25,7 @@ namespace Quelos {
 		{ "Timer",             TagDetails{ false, Level::Trace } },
 	};
 
-	void Log::Init() {
+	void Log::Init(const std::string& appName) {
 		std::string logsDirectory = "logs";
 		if (!std::filesystem::exists(logsDirectory))
 			std::filesystem::create_directories(logsDirectory);
@@ -38,7 +38,7 @@ namespace Quelos {
 		};
 
 		std::vector<spdlog::sink_ptr> appSinks = {
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/App.log", true),
+			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 #if QS_HAS_CONSOLE
 			std::make_shared<spdlog::sinks::stdout_color_sink_mt>()
 #endif
@@ -47,7 +47,7 @@ namespace Quelos {
 		
 		std::vector<spdlog::sink_ptr> editorConsoleSinks =
 		{
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/APP.log", true),
+			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 #if QS_HAS_CONSOLE
 			std::make_shared<spdlog::sinks::stdout_color_sink_mt>()
 #endif
@@ -66,7 +66,7 @@ namespace Quelos {
 		s_CoreLogger = std::make_shared<spdlog::logger>("Quelos", quelosSinks.begin(), quelosSinks.end());
 		s_CoreLogger->set_level(spdlog::level::trace);
 
-		s_ClientLogger = std::make_shared<spdlog::logger>("App", appSinks.begin(), appSinks.end());
+		s_ClientLogger = std::make_shared<spdlog::logger>(appName, appSinks.begin(), appSinks.end());
 		s_ClientLogger->set_level(spdlog::level::trace);
 
 		s_EditorConsoleLogger = std::make_shared<spdlog::logger>("Console", editorConsoleSinks.begin(), editorConsoleSinks.end());

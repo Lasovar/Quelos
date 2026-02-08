@@ -16,7 +16,8 @@ namespace Quelos {
         bool operator!=(const GUID& other) const { return m_UUID != other.m_UUID; }
 
         [[nodiscard]] std::string ToString() const;
-        [[nodiscard]] std::span<const std::byte, 16> AsByteArray() const;
+        [[nodiscard]] std::span<const std::byte, 16> AsBytes() const;
+        [[nodiscard]] uint64_t Hash64() const;
     public:
         static GUID Generate();
     private:

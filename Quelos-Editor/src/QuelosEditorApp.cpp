@@ -21,8 +21,8 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	specs.Name = "Quelos-Editor";
 	specs.Executable = argv[0];
 
-	specs.WindowSpec.Width = 1920;
-	specs.WindowSpec.Height = 1080;
+	specs.WindowSpec.Width = 1600;
+	specs.WindowSpec.Height = 900;
 	specs.WindowSpec.Title = "Quelos Editor";
 
 #if QUELOS_USE_SDL

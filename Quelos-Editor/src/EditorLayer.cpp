@@ -5,14 +5,87 @@
 #include <Quelos/Core/Log.h>
 
 #include "imgui_internal.h"
+
 #include "Quelos/Core/Base.h"
 
+#include "Quelos/Renderer/Shader.h"
+#include "Quelos/Renderer/VertexBuffer.h"
+#include "Quelos/Renderer/Material.h"
+
+#include "Quelos/Serialization/Serializer.h"
+
 namespace Quelos {
+
+    static std::vector<PosColorVertex> cubeVertices = {
+        {-1.0f, 1.0f, 1.0f, 0xff000000},
+        {1.0f, 1.0f, 1.0f, 0xff0000ff},
+        {-1.0f, -1.0f, 1.0f, 0xff00ff00},
+        {1.0f, -1.0f, 1.0f, 0xff00ffff},
+        {-1.0f, 1.0f, -1.0f, 0xffff0000},
+        {1.0f, 1.0f, -1.0f, 0xffff00ff},
+        {-1.0f, -1.0f, -1.0f, 0xffffff00},
+        {1.0f, -1.0f, -1.0f, 0xffffffff},
+    };
+
+    static const std::vector<uint16_t> cubeTriList = {
+        0, 1, 2,
+        1, 3, 2,
+        4, 6, 5,
+        5, 6, 7,
+        0, 2, 4,
+        4, 2, 6,
+        1, 5, 3,
+        5, 7, 3,
+        0, 4, 1,
+        4, 5, 1,
+        2, 3, 6,
+        6, 3, 7,
+    };
+
+    struct CubePlayer {
+        float Speed = 2.0f;
+        float Timer = 0.0f;
+    };
+
     EditorLayer::EditorLayer() {
     }
 
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
+
+        const Entity camera = m_DefaultScene->CreateEntity("Camera");
+        camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
+        camera.Set(CameraComponent{60.0f, 0.1f, 1000.0f});
+
+        const Entity cube = m_DefaultScene->CreateEntity("Cube");
+        cube.Set(TransformComponent{glm::vec3(-2.5f, -2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+
+        MeshComponent cubeMesh;
+        cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
+        cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
+        cube.Set(cubeMesh);
+
+        cube.Set(CubePlayer());
+
+        const Entity cube2 = m_DefaultScene->CreateEntity("Cube2");
+        cube2.Set(TransformComponent{glm::vec3(2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube2.Set(cubeMesh);
+        cube2.Set(CubePlayer { -2 });
+
+        const Entity cube3 = m_DefaultScene->CreateEntity("Cube3");
+        cube3.Set(TransformComponent{glm::vec3(0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube3.Set(cubeMesh);
+        cube3.Set(CubePlayer { -10 });
+
+        m_DefaultScene->System<TransformComponent, CubePlayer>([](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
+            player.Timer += it.delta_time();
+            transform.Rotation = glm::quat({
+                player.Timer * player.Speed,
+                player.Timer * player.Speed,
+                0
+            });
+        }, "RotatePlayer");
+
         m_SceneWorkspace = CreateRef<SceneWorkspace>();
         m_SceneWorkspace->SetScene(m_DefaultScene);
 
@@ -20,6 +93,49 @@ namespace Quelos {
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
+
+        std::string save = R"(
+[entity guid=GUID name="\"Player Controller\""]
+@Transform
+position = (0,0,0)
+rotation = (0,0,0,1)
+
+@Attack
+attack.force.direction = (0,1,0)
+attack.force.power = 15
+
+[entity guid=GUID name=Camera]
+parent = GUID
+
+@Transform
+position = (0,0,10)
+rotation = (0,0,0,1)
+
+@Camera
+fov = 70
+)";
+        Serialization::Parser parser;
+        auto data = parser.Parse(save);
+        if (!std::holds_alternative<Serialization::Document>(data)) {
+            auto [line, message] = std::get<Serialization::ParseError>(data);
+            QS_CORE_ERROR("line {}: '{}'", line, message);
+            return;
+        }
+
+        auto document = std::get<Serialization::Document>(data);
+        for (auto& section : document.Sections) {
+            QS_CORE_INFO("{}", section.Name);
+            for (auto& field : section.Fields) {
+                QS_CORE_INFO("{}({}) = {}", field.Path, field.ID, field.Value.Text);
+            }
+
+            for (auto& component : section.Components) {
+                QS_CORE_INFO("{}", component.Name);
+                for (auto& field : component.Fields) {
+                    QS_CORE_INFO("  {}({}) = {}", field.Path, field.ID, field.Value.Text);
+                }
+            }
+        }
     }
 
     void EditorLayer::Tick(const float deltaTime) {
@@ -74,8 +190,8 @@ namespace Quelos {
             if (ImGui::BeginMenu("Options")) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-                ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
-                ImGui::MenuItem("Padding", NULL, &opt_padding);
+                ImGui::MenuItem("Fullscreen", nullptr, &opt_fullscreen);
+                ImGui::MenuItem("Padding", nullptr, &opt_padding);
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "",
