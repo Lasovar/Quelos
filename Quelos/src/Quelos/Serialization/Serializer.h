@@ -6,8 +6,6 @@ namespace Quelos::Serialization {
     // Document
     using PathID = uint64_t;
 
-    constexpr PathID GetPathID(std::string_view path);
-
     struct Value {
         std::string Text;
     };

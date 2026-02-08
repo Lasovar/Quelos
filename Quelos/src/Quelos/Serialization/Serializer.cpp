@@ -5,6 +5,10 @@
 
 namespace Quelos::Serialization {
     namespace Utils {
+        inline PathID GetPathID(const std::string_view path) {
+            return XXH3_64bits(path.data(), path.size());
+        }
+
         inline std::string_view Trim(std::string_view stringView) {
             while (!stringView.empty() && std::isspace(static_cast<unsigned char>(stringView.front()))) {
                 stringView.remove_prefix(1);
@@ -143,14 +147,10 @@ namespace Quelos::Serialization {
                 return std::get<ParseError>(valueResult);
             }
 
-            section.Fields.emplace_back(std::string(key), GetPathID(key), std::get<std::string>(valueResult));
+            section.Fields.emplace_back(std::string(key), Utils::GetPathID(key), std::get<std::string>(valueResult));
         }
 
         return section;
-    }
-
-    constexpr PathID GetPathID(const std::string_view path) {
-        return XXH3_64bits(path.data(), path.size());
     }
 
     std::variant<Document, ParseError> Parser::Parse(std::string_view input) {
@@ -244,7 +244,7 @@ namespace Quelos::Serialization {
             return std::get<ParseError>(valueResult);
         }
 
-        Field field(std::string(key), GetPathID(key), std::get<std::string>(valueResult));
+        Field field(std::string(key), Utils::GetPathID(key), std::get<std::string>(valueResult));
 
         if (m_CurrentComponent) {
             m_CurrentComponent->Fields.push_back(std::move(field));
