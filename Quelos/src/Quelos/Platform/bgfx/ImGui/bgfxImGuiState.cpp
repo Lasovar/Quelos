@@ -23,7 +23,7 @@
 #include "Quelos/Core/Application.h"
 
 namespace Quelos {
-    static const bgfx::EmbeddedShader s_embeddedShaders[] = {
+    static const bgfx::EmbeddedShader s_EmbeddedShaders[] = {
         BGFX_EMBEDDED_SHADER(vs_ocornut_imgui),
         BGFX_EMBEDDED_SHADER(fs_ocornut_imgui),
         BGFX_EMBEDDED_SHADER(vs_imgui_image),
@@ -70,15 +70,15 @@ namespace Quelos {
 
         const bgfx::RendererType::Enum type = bgfx::getRendererType();
         m_Program = bgfx::createProgram(
-            bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_ocornut_imgui"),
-            bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_ocornut_imgui"),
+            bgfx::createEmbeddedShader(s_EmbeddedShaders, type, "vs_ocornut_imgui"),
+            bgfx::createEmbeddedShader(s_EmbeddedShaders, type, "fs_ocornut_imgui"),
             true
         );
 
         u_ImageLodEnabled = bgfx::createUniform("u_imageLodEnabled", bgfx::UniformType::Vec4);
         m_ImageProgram = bgfx::createProgram(
-            bgfx::createEmbeddedShader(s_embeddedShaders, type, "vs_imgui_image"),
-            bgfx::createEmbeddedShader(s_embeddedShaders, type, "fs_imgui_image"),
+            bgfx::createEmbeddedShader(s_EmbeddedShaders, type, "vs_imgui_image"),
+            bgfx::createEmbeddedShader(s_EmbeddedShaders, type, "fs_imgui_image"),
             true
         );
 
