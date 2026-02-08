@@ -138,8 +138,8 @@ namespace Quelos {
         // Move functionality to Uniform Buffers
         bgfx::setTransform(glm::value_ptr(mat));
 
-        mesh.VertexData->Bind(0);
-        mesh.IndexData->Bind();
+        mesh.MeshData->GetVertexBuffer()->Bind(0);
+        mesh.MeshData->GetIndexBuffer()->Bind();
 
         mesh.MaterialData->GetShader()->Submit(viewId);
     }

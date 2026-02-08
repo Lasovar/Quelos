@@ -40,6 +40,7 @@ add_subdirectory(Quelos/vendor/SDL)
 add_subdirectory(Quelos/vendor/glm)
 add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
+add_subdirectory(Quelos/vendor/xxhash)
 
 # Main projects
 add_subdirectory(Quelos)

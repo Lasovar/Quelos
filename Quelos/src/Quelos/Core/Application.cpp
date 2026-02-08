@@ -1,12 +1,10 @@
 #include "qspch.h"
 #include "Application.h"
 
-#include <imgui.h>
+#include "Quelos/Core/Log.h"
+#include "Quelos/Core/Events/WindowEvents.h"
 
-#include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/Renderer/Renderer.h"
-#include "Log.h"
-#include "Events/WindowEvents.h"
 
 namespace Quelos {
 
@@ -16,7 +14,7 @@ namespace Quelos {
 		: m_Specifications(appSpecs)
 	{
 		s_Instance = this;
-		Log::Init();
+		Log::Init(m_Specifications.Name);
 
 		m_Time = CreateRef<Time>();
 		m_Time->Init();

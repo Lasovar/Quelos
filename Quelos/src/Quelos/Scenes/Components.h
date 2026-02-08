@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "Quelos/AssetManager/Assets/Mesh.h"
+
 namespace Quelos {
 	class Material;
 	class IndexBuffer;
@@ -21,8 +23,7 @@ namespace Quelos {
 	};
 
 	struct MeshComponent {
-		Ref<VertexBuffer> VertexData; // MinGW complaining about using 'VertexBuffer' here
-		Ref<IndexBuffer> IndexData; // MinGW complaining about using 'IndexBuffer' here
+		Ref<Mesh> MeshData;
 		Ref<Material> MaterialData; // MinGW complaining about using 'Material' here
 	};
 }

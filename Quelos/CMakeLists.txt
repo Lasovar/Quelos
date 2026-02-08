@@ -34,10 +34,11 @@ target_link_libraries(Quelos
         bgfx
         bx
         SDL3::SDL3-static
+        xxhash
     PUBLIC
         imgui
         stduuid
-        flecs
+        flecs_static
         glm
         spdlog
 )
