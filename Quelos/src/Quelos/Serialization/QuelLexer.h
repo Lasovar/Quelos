@@ -9,8 +9,8 @@ namespace Quelos::Serialization {
         Comma,
         Dot,
 
-        LParen, RParen,
-        LCurly, RCurly,
+        LParen, RParen, // ( )
+        LCurly, RCurly, // { }
         LSection, RSection, // [ ]
 
         At, // @
@@ -47,9 +47,9 @@ namespace Quelos::Serialization {
         size_t Line{};
     };
 
-    class Lexer {
+    class QuelLexer {
     public:
-        explicit Lexer(const std::string_view input)
+        explicit QuelLexer(const std::string_view input)
             : m_Input(input) { }
 
         Token Next();

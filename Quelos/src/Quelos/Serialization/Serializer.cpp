@@ -25,9 +25,21 @@ namespace Quelos::Serialization {
         inline bool StartsWith(const std::string_view s, const std::string_view p) {
             return s.substr(0, p.size()) == p;
         }
+
+        static void RemoveTrailingComma(std::string& string) {
+            size_t i = string.size();
+
+            while (i > 0 && std::isspace(static_cast<unsigned char>(string[i - 1]))) {
+                i--;
+            }
+
+            if (i > 0 && string[i - 1] == ',') {
+                string.erase(i - 1, 1);
+            }
+        }
     }
 
-    Generator<ParserEvent> Parser::Parse() {
+    Generator<ParserEvent> QuelReader::Parse() {
         Token token = m_Lexer.Next();
 
         while (token.Type != TokenType::EndOfFile) {
@@ -45,6 +57,10 @@ namespace Quelos::Serialization {
                 // Inline fields
                 while (true) {
                     Token key = m_Lexer.Next();
+
+                    if (key.Type == TokenType::RCurly) {
+                        key = m_Lexer.Next();
+                    }
 
                     if (key.Type == TokenType::RSection) {
                         break;
@@ -88,9 +104,7 @@ namespace Quelos::Serialization {
             }
             // Field
             else if (token.Type == TokenType::Identifier) {
-                Token eq = m_Lexer.Next();
-
-                if (eq.Type != TokenType::Equals) {
+                if (m_Lexer.Next().Type != TokenType::Equals) {
                     co_yield ParseError{token.Line, "Expected '=' after key"};
                     co_return;
                 }
@@ -106,7 +120,7 @@ namespace Quelos::Serialization {
         }
     }
 
-    Generator<ParserEvent> Parser::ParseValue() {
+    Generator<ParserEvent> QuelReader::ParseValue() {
         Token token = m_Lexer.Next();
 
         // Tuple
@@ -160,6 +174,10 @@ namespace Quelos::Serialization {
                 if (peak.Type == TokenType::Comma) {
                     m_Lexer.Next(); // consume
                 }
+
+                if (m_Lexer.Peek().Type == TokenType::RCurly) {
+                    break;
+                }
             }
 
             co_yield ArrayEndEvent{};
@@ -173,5 +191,159 @@ namespace Quelos::Serialization {
         }
 
         co_yield ParseError{token.Line, std::format("Invalid value: {}", token.Text)};
+    }
+
+    void StringQuelWriter::WriteEscaped(const std::string_view text) const {
+        bool needsQuotes = false;
+
+        for (char c : text) {
+            if (std::isspace(static_cast<unsigned char>(c)) || c == '"' || c == '\\') {
+                needsQuotes = true;
+                break;
+            }
+        }
+
+        if (!needsQuotes) {
+            m_Out += text;
+            return;
+        }
+
+        m_Out += '"';
+
+        for (const char c : text) {
+            switch (c)
+            {
+            case '"':  m_Out += "\\\""; break;
+            case '\\': m_Out += "\\\\"; break;
+            case '\n': m_Out += "\\n";  break;
+            case '\t': m_Out += "\\t";  break;
+            default:   m_Out += c;      break;
+            }
+        }
+
+        m_Out += '"';
+    }
+
+    void StringQuelWriter::WriteIndent() {
+        if (m_Formatting == QuelFormatting::None) {
+            return;
+        }
+
+        m_Out.append(m_Indent * 2, ' ');
+        m_AtLineStart = false;
+    }
+
+    void StringQuelWriter::NewLine() {
+        if (m_Formatting == QuelFormatting::None) {
+            if (!m_InArray) {
+                m_Out.push_back(' ');
+            }
+
+            return;
+        }
+
+        m_Out.push_back('\n');
+        m_AtLineStart = true;
+    }
+
+    void StringQuelWriter::CloseSectionHeader() {
+        if (m_InSectionHeader) {
+            m_Out.push_back(']');
+            NewLine();
+            m_InSectionHeader = false;
+        }
+    }
+
+    template<class... Ts>
+    struct Overloaded : Ts... {
+        using Ts::operator()...;
+    };
+
+    template <class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+
+    void StringQuelWriter::Write(const ParserEvent& parserEvent) {
+            std::visit(Overloaded {
+            [&](const SectionEvent& e) {
+                m_Out.push_back('[');
+                m_Out.append(e.Name);
+
+                m_InSectionHeader = true;
+            },
+            [&](const ComponentEvent& e) {
+                CloseSectionHeader();
+
+                m_Out.push_back('@');
+                m_Out.append(e.Name);
+                NewLine();
+            },
+            [&](const FieldEvent& e) {
+                if (m_InSectionHeader) {
+                    m_Out.push_back(' ');
+                }
+
+                m_Out.append(e.Path);
+
+                if (m_Formatting == QuelFormatting::None || m_InSectionHeader) {
+                    m_Out.push_back('=');
+                } else {
+                    m_Out.append(" = ");
+                }
+            },
+            [&](const ValueEvent& e) {
+                if (!m_InSectionHeader && m_InArray && !m_InTuple) {
+                    WriteIndent();
+                }
+
+                WriteEscaped(e.Text);
+
+                if (m_InArray || m_InTuple) {
+                    m_Out.push_back(',');
+                }
+
+                if (!m_InSectionHeader && !m_InTuple) {
+                    NewLine();
+                }
+            },
+            [&](const TupleBeginEvent&) {
+                if (m_InArray && !m_InSectionHeader) {
+                    WriteIndent();
+                }
+
+                m_Out.push_back('(');
+                m_InTuple = true;
+            },
+            [&](const TupleEndEvent&) {
+                m_Out.back() = ')';
+                if (m_InArray) {
+                    m_Out.push_back(',');
+                }
+
+                if (!m_InSectionHeader) {
+                    NewLine();
+                }
+
+                m_InTuple = false;
+            },
+            [&](const ArrayBeginEvent&) {
+                m_Out.push_back('{');
+                m_InArray = true;
+
+                if (!m_InSectionHeader) {
+                    NewLine();
+                }
+            },
+            [&](const ArrayEndEvent&) {
+                Utils::RemoveTrailingComma(m_Out);
+                m_Out.push_back('}');
+                m_InArray = false;
+
+                if (!m_InSectionHeader) {
+                    NewLine();
+                }
+            },
+            [&](const ParseError&) { /* ignored */ }
+
+        }, parserEvent);
     }
 }

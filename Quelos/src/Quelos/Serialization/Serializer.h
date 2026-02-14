@@ -3,11 +3,10 @@
 #include <variant>
 #include <coroutine>
 
-#include "Lexer.h"
+#include "QuelLexer.h"
 #include "Quelos/Utility/Generator.h"
 
 namespace Quelos::Serialization {
-
     // Document
     using PathID = uint64_t;
 
@@ -40,11 +39,17 @@ namespace Quelos::Serialization {
         std::string Message;
     };
 
-    struct TupleBeginEvent { };
-    struct TupleEndEvent { };
+    struct TupleBeginEvent {
+    };
 
-    struct ArrayBeginEvent { };
-    struct ArrayEndEvent { };
+    struct TupleEndEvent {
+    };
+
+    struct ArrayBeginEvent {
+    };
+
+    struct ArrayEndEvent {
+    };
 
     using ParserEvent = std::variant<
         SectionEvent,
@@ -60,13 +65,12 @@ namespace Quelos::Serialization {
 
     // Core
 
-    class Parser {
+    class QuelReader {
     public:
-        Parser() = delete;
+        QuelReader() = delete;
 
-        explicit Parser(const std::string_view input)
-            : m_Lexer(input)
-        {
+        explicit QuelReader(const std::string_view input)
+            : m_Lexer(input) {
         }
 
         Generator<ParserEvent> Parse();
@@ -75,6 +79,47 @@ namespace Quelos::Serialization {
         Generator<ParserEvent> ParseValue();
 
     private:
-        Lexer m_Lexer;
+        QuelLexer m_Lexer;
+    };
+
+    enum class QuelFormatting {
+        None,
+        Indented,
+    };
+
+    class QuelWriter {
+    public:
+        virtual ~QuelWriter() = default;
+
+        virtual void Write(const ParserEvent& ev) = 0;
+        virtual void SetIndent(int indent) = 0;
+        virtual void SetFormatting(QuelFormatting formatting) = 0;
+    };
+
+    class StringQuelWriter : public QuelWriter {
+    public:
+        StringQuelWriter() = delete;
+        explicit StringQuelWriter(std::string& out) : m_Out(out) {}
+
+        void Write(const ParserEvent& parserEvent) override;
+        void SetIndent(const int indent) override { m_Indent = indent; }
+
+        void SetFormatting(const QuelFormatting formatting) override { m_Formatting = formatting; }
+    private:
+        void WriteEscaped(std::string_view text) const;
+        void WriteIndent();
+        void NewLine();
+        void CloseSectionHeader();
+
+    private:
+        std::string& m_Out;
+
+        int m_Indent = 0;
+        QuelFormatting m_Formatting = QuelFormatting::Indented;
+
+        bool m_AtLineStart = true;
+        bool m_InSectionHeader = false;
+        bool m_InArray = false;
+        bool m_InTuple = false;
     };
 }
