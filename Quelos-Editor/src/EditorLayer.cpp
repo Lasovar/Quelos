@@ -353,4 +353,8 @@ lens.fov = 70
             workspace->OnImGuiRender(globalDockspaceID);
         }
     }
+
+    void EditorLayer::OnEvent(Event& event) {
+        m_SceneWorkspace->OnEvent(event);
+    }
 }

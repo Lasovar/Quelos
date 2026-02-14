@@ -18,22 +18,28 @@ namespace Quelos {
     }
 
     void SceneWorkspace::Tick(const float deltaTime) {
+        m_EditorCamera.OnUpdate(deltaTime);
+
         m_Scene->Tick(deltaTime);
 
         if (m_SceneViewportPanel.ShouldDraw()) {
             if (m_SceneViewportPanel.ResizeIfNeeded()) {
                 const glm::vec2 size = m_SceneViewportPanel.GetViewportSize();
                 m_EditorCamera.SetViewportSize(size.x, size.y);
-                m_Scene->OnViewportResized(m_SceneViewportPanel.GetViewportSize());
             }
 
-            m_Scene->StartRender(m_SceneViewportPanel.GetFrameBuffer());
+            Renderer::StartSceneRender(
+                m_SceneViewportPanel.GetFrameBuffer(),
+                m_EditorCamera.GetViewMatrix(),
+                m_EditorCamera.GetProjection()
+            );
+
             m_Scene->Render(m_SceneViewportPanel.GetFrameBuffer()->GetViewID());
         }
 
         if (m_GameViewportPanel.ShouldDraw()) {
             if (m_GameViewportPanel.ResizeIfNeeded()) {
-                //m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
+                m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
             m_Scene->StartRender(m_GameViewportPanel.GetFrameBuffer());
@@ -66,5 +72,9 @@ namespace Quelos {
         m_Scene = scene;
         m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
         m_WorkspaceID = m_Scene->GetName() + "_Dockspace";
+    }
+
+    void SceneWorkspace::OnEvent(Event& e) {
+        m_EditorCamera.OnEvent(e);
     }
 }
