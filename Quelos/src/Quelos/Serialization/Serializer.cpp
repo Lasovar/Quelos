@@ -27,196 +27,151 @@ namespace Quelos::Serialization {
         }
     }
 
-    using Token = std::variant<std::string_view, std::string, ParseError>;
-
-    static Token ParseValueToken(const std::string_view text, size_t& position, const size_t lineNumber) {
-        if (position >= text.size()) {
-            return std::string_view{};
-        }
-
-        // Quoted
-        if (text[position] == '"') {
-            position++; // Skip opening quote
-            const size_t start = position;
-
-            bool hasEscape = false;
-            while (position < text.size() && text[position] != '"') {
-                if (text[position] == '\\' && position + 1 < text.size()) {
-                    hasEscape = true;
-                    position += 2;
-                } else {
-                    position++;
-                }
-            }
-
-            if (position >= text.size()) {
-                return ParseError{ lineNumber, "Unterminated string literal" };
-            }
-
-            std::string_view raw = text.substr(start, position - start);
-            position++; // Skip closing quote
-
-            if (!hasEscape) {
-                return raw;
-            }
-
-            std::string result;
-            result.reserve(raw.size());
-
-            for (size_t i = 0; i < raw.size(); i++) {
-                const char c = raw[i];
-
-                if (c == '\\' && i + 1 < raw.size()) {
-                    const char escaped = raw[++i];
-
-                    switch (escaped)
-                    {
-                    case '"':  result.push_back('"');  break;
-                    case '\\': result.push_back('\\'); break;
-                    case 'n':  result.push_back('\n'); break;
-                    case 't':  result.push_back('\t'); break;
-
-                    default:
-                        result.push_back('\\');
-                        result.push_back(escaped);
-                        break;
-                    }
-                }
-                else {
-                    result.push_back(c);
-                }
-            }
-
-            return result;
-        }
-
-        // Unquoted
-        const size_t start = position;
-
-        while (position < text.size() && !std::isspace(static_cast<unsigned char>(text[position]))) {
-            position++;
-        }
-
-        return text.substr(start, position - start);
-    }
-
     Generator<ParserEvent> Parser::Parse() {
-        m_LineNumber = 1;
+        Token token = m_Lexer.Next();
 
-        while (!m_Input.empty()) {
-            const size_t pos = m_Input.find('\n');
-            std::string_view line = pos == std::string_view::npos
-                ? m_Input
-                : m_Input.substr(0, pos);
-
-            m_Input.remove_prefix(
-                pos == std::string_view::npos ? m_Input.size() : pos + 1
-            );
-
-            if (line.empty() || Utils::StartsWith(line, "//")) {
-                m_LineNumber++;
-                continue;
-            }
-
-            line = Utils::Trim(line);
-
+        while (token.Type != TokenType::EndOfFile) {
             // Section
-            if (line.front() == '[')
-            {
-                if (line.size() < 2 || line.back() != ']') {
-                    co_yield ParseError{m_LineNumber, "Malformed section"};
+            if (token.Type == TokenType::LSection) {
+                Token name = m_Lexer.Next();
+
+                if (name.Type != TokenType::Identifier) {
+                    co_yield ParseError{name.Line, "Expected section name"};
                     co_return;
                 }
 
-                std::string_view inside = Utils::Trim(line.substr(1, line.size() - 2));
+                co_yield SectionEvent{name.Text};
 
-                size_t sectionPos = 0;
+                // Inline fields
+                while (true) {
+                    Token key = m_Lexer.Next();
 
-                // Section name
-                while (sectionPos < inside.size() && !std::isspace(static_cast<unsigned char>(inside[sectionPos]))) {
-                    sectionPos++;
-                }
-
-                const std::string_view sectionName = inside.substr(0, sectionPos);
-                co_yield SectionEvent{ sectionName };
-
-                // Parse inline fields
-                while (sectionPos < inside.size()) {
-                    while (sectionPos < inside.size() && std::isspace(static_cast<unsigned char>(inside[sectionPos]))) {
-                        sectionPos++;
-                    }
-
-                    if (sectionPos >= inside.size()) {
+                    if (key.Type == TokenType::RSection) {
                         break;
                     }
 
-                    // Key
-                    const size_t keyStart = sectionPos;
-                    while (sectionPos < inside.size()
-                        && inside[sectionPos] != '='
-                        && !std::isspace(static_cast<unsigned char>(inside[sectionPos]))
-                    ) {
-                        sectionPos++;
-                    }
-
-                    if (sectionPos >= inside.size() || inside[sectionPos] != '=') {
-                        co_yield ParseError{m_LineNumber, "Expected '=' in section field"};
+                    if (key.Type != TokenType::Identifier) {
+                        co_yield ParseError{key.Line, std::format("Expected key in section, found {}", TokenTypeToString(key.Type))};
                         co_return;
                     }
 
-                    std::string_view key = inside.substr(keyStart, sectionPos - keyStart);
-                    sectionPos++; // Skip '='
-
-                    // Value
-                    auto valueResult = ParseValueToken(inside, sectionPos, m_LineNumber);
-
-                    if (std::holds_alternative<ParseError>(valueResult)) {
-                        co_yield std::get<ParseError>(valueResult);
+                    if (m_Lexer.Next().Type != TokenType::Equals) {
+                        co_yield ParseError{key.Line, "Expected '=' in section"};
                         co_return;
                     }
 
-                    std::string_view value;
-                    if (std::holds_alternative<std::string_view>(valueResult)) {
-                        value = std::get<std::string_view>(valueResult);
-                    } else if (std::holds_alternative<std::string>(valueResult)) {
-                        value = std::get<std::string>(valueResult);
-                    }
-
-                    co_yield FieldEvent{
-                        key,
-                        value,
-                        Utils::GetPathID(key)
+                    co_yield FieldEvent {
+                        key.Text,
+                        Utils::GetPathID(key.Text)
                     };
+
+                    for (auto&& parseEvent : ParseValue()) {
+                        co_yield parseEvent;
+                    }
+
+                    if (m_Lexer.Peek().Type == TokenType::RSection) {
+                        m_Lexer.Next();
+                        break;
+                    }
+                }
+            }
+            // Component
+            else if (token.Type == TokenType::At) {
+                Token name = m_Lexer.Next();
+
+                if (name.Type != TokenType::Identifier) {
+                    co_yield ParseError{name.Line, "Expected component name"};
+                    co_return;
                 }
 
-                m_LineNumber++;
-                continue;
+                co_yield ComponentEvent { name.Text };
             }
-
-            // Component
-            if (line.front() == '@') {
-                co_yield ComponentEvent{ Utils::Trim(line.substr(1)) };
-                m_LineNumber++;
-                continue;
-            }
-
             // Field
-            const size_t eq = line.find('=');
-            if (eq == std::string_view::npos) {
-                co_yield ParseError{m_LineNumber, "Expected '=' in field"};
+            else if (token.Type == TokenType::Identifier) {
+                Token eq = m_Lexer.Next();
+
+                if (eq.Type != TokenType::Equals) {
+                    co_yield ParseError{token.Line, "Expected '=' after key"};
+                    co_return;
+                }
+
+                co_yield FieldEvent { token.Text, Utils::GetPathID(token.Text) };
+
+                for (auto&& parserEvent : ParseValue()) {
+                    co_yield parserEvent;
+                }
+            }
+
+            token = m_Lexer.Next();
+        }
+    }
+
+    Generator<ParserEvent> Parser::ParseValue() {
+        Token token = m_Lexer.Next();
+
+        // Tuple
+        if (token.Type == TokenType::LParen) {
+            co_yield TupleBeginEvent{};
+
+            while (true) {
+                for (auto&& parseEvent : ParseValue()) {
+                    co_yield parseEvent;
+                }
+
+                Token next = m_Lexer.Next();
+
+                if (next.Type == TokenType::RParen) {
+                    break;
+                }
+
+                if (next.Type != TokenType::Comma) {
+                    co_yield ParseError{next.Line, "Expected ',' or ')'"};
+                    co_return;
+                }
+            }
+
+            co_yield TupleEndEvent{};
+            co_return;
+        }
+
+        // Array
+        if (token.Type == TokenType::LCurly) {
+            co_yield ArrayBeginEvent{};
+
+            // Empty array
+            if (m_Lexer.Peek().Type == TokenType::RCurly) {
+                m_Lexer.Next(); // consume }
+                co_yield ArrayEndEvent{};
                 co_return;
             }
 
-            auto key   = Utils::Trim(line.substr(0, eq));
-            auto value = Utils::Trim(line.substr(eq + 1));
+            while (true) {
+                for (auto&& parserEvent : ParseValue()) {
+                    co_yield parserEvent;
+                }
 
-            co_yield FieldEvent{
-                key,
-                value,
-                Utils::GetPathID(key)
-            };
+                const Token peak = m_Lexer.Peek();
 
-            m_LineNumber++;
+                if (peak.Type == TokenType::RCurly) {
+                    break;
+                }
+
+                // Optional comma
+                if (peak.Type == TokenType::Comma) {
+                    m_Lexer.Next(); // consume
+                }
+            }
+
+            co_yield ArrayEndEvent{};
+            co_return;
         }
+
+        // Scalar
+        if (token.Type == TokenType::Identifier || token.Type == TokenType::String) {
+            co_yield ValueEvent { token.Text };
+            co_return;
+        }
+
+        co_yield ParseError{token.Line, std::format("Invalid value: {}", token.Text)};
     }
 }

@@ -3,25 +3,27 @@
 #include <variant>
 #include <coroutine>
 
+#include "Lexer.h"
 #include "Quelos/Utility/Generator.h"
 
 namespace Quelos::Serialization {
+
     // Document
     using PathID = uint64_t;
 
-    struct ValueEvent {
-        std::string_view Text;
-    };
-
     struct FieldEvent {
         std::string_view Path;
-        ValueEvent Value;
         PathID ID = 0;
 
         FieldEvent() = default;
-        FieldEvent(const std::string_view& path, const std::string_view& value, const PathID id)
-            : Path(path), Value(value), ID(id)
-        {}
+
+        FieldEvent(const std::string_view& path, const PathID id)
+            : Path(path), ID(id) {
+        }
+    };
+
+    struct ValueEvent {
+        std::string_view Text;
     };
 
     struct ComponentEvent {
@@ -38,18 +40,41 @@ namespace Quelos::Serialization {
         std::string Message;
     };
 
-    using ParserEvent = std::variant<SectionEvent, ComponentEvent, FieldEvent, ParseError>;
+    struct TupleBeginEvent { };
+    struct TupleEndEvent { };
+
+    struct ArrayBeginEvent { };
+    struct ArrayEndEvent { };
+
+    using ParserEvent = std::variant<
+        SectionEvent,
+        ComponentEvent,
+        FieldEvent,
+        ValueEvent,
+        TupleBeginEvent,
+        TupleEndEvent,
+        ArrayBeginEvent,
+        ArrayEndEvent,
+        ParseError
+    >;
 
     // Core
 
     class Parser {
     public:
         Parser() = delete;
-        explicit Parser(const std::string_view input) : m_Input(input) {}
+
+        explicit Parser(const std::string_view input)
+            : m_Lexer(input)
+        {
+        }
+
         Generator<ParserEvent> Parse();
 
     private:
-        std::string_view m_Input;
-        size_t m_LineNumber = 0;
+        Generator<ParserEvent> ParseValue();
+
+    private:
+        Lexer m_Lexer;
     };
 }
