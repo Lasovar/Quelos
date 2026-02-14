@@ -103,10 +103,17 @@ namespace Quelos {
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
         std::string save = R"(
-[entity guid=7BB49C9FCBEBA782 name="Player Controller"]
+[entity guid=7BB49C9FCBEBA782 name="\"Player Controller\""]
 @Transform
 position = (0,0,0)
 rotation = (0,0,0,1)
+
+@Waypoints
+positions = {
+  (1,0,0),
+  (0,1,0),
+  (0,0,1)
+}
 
 @Attack
 attack.force.direction = (0,1,0)
@@ -134,7 +141,22 @@ lens.fov = 70
                     QS_INFO("Component: {}", event.Name);
                 },
                 [](const Serialization::FieldEvent& event) {
-                    QS_INFO("Field: {} = {}", event.Path, event.Value.Text);
+                    QS_INFO("Field: {}({})", event.Path, event.ID);
+                },
+                [](const Serialization::ValueEvent& event) {
+                    QS_INFO("Value: {}", event.Text);
+                },
+                [](const Serialization::TupleBeginEvent& _) {
+                    QS_INFO("Tuple Begin:");
+                },
+                [](const Serialization::TupleEndEvent& _) {
+                    QS_INFO("Tuple End");
+                },
+                [](const Serialization::ArrayBeginEvent& _) {
+                    QS_INFO("Array Start:");
+                },
+                [](const Serialization::ArrayEndEvent& _) {
+                    QS_INFO("Array End");
                 },
                 [](const Serialization::ParseError& error) {
                     QS_INFO("Error Line {}: {}", error.Line, error.Message);
