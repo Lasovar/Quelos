@@ -1,8 +1,8 @@
 #include "qspch.h"
-#include "Lexer.h"
+#include "QuelLexer.h"
 
 namespace Quelos::Serialization {
-    void Lexer::SkipWhitespace() {
+    void QuelLexer::SkipWhitespace() {
         while (!m_Input.empty()) {
             char c = m_Input.front();
 
@@ -20,7 +20,7 @@ namespace Quelos::Serialization {
         }
     }
 
-    Token Lexer::ReadIdentifier() {
+    Token QuelLexer::ReadIdentifier() {
         size_t len = 0;
 
         while (len < m_Input.size()) {
@@ -44,7 +44,7 @@ namespace Quelos::Serialization {
         return token;
     }
 
-    Token Lexer::ReadString() {
+    Token QuelLexer::ReadString() {
         m_Input.remove_prefix(1); // Skip opening quote
 
         size_t i = 0;
@@ -100,12 +100,12 @@ namespace Quelos::Serialization {
         return {TokenType::String, OwnString(std::move(result)), m_Line};
     }
 
-    std::string_view Lexer::OwnString(std::string&& string) {
+    std::string_view QuelLexer::OwnString(std::string&& string) {
         m_StringPool.push_back(std::move(string));
         return m_StringPool.back();
     }
 
-    Token Lexer::Next() {
+    Token QuelLexer::Next() {
         if (m_HasPeeked) {
             m_HasPeeked = false;
             return m_Peeked;
@@ -151,7 +151,7 @@ namespace Quelos::Serialization {
         return {TokenType::Error, std::format("Unexpected character: {}", c), m_Line};
     }
 
-    Token Lexer::Peek() {
+    Token QuelLexer::Peek() {
         if (!m_HasPeeked) {
             m_Peeked = Next();
             m_HasPeeked = true;

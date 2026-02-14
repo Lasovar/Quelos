@@ -102,7 +102,11 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        std::string save = R"(
+        // Quel testing
+        {
+            using namespace Serialization;
+
+            std::string save = R"(
 [entity guid=7BB49C9FCBEBA782 name="\"Player Controller\""]
 @Transform
 position = (0,0,0)
@@ -112,7 +116,7 @@ rotation = (0,0,0,1)
 positions = {
   (1,0,0),
   (0,1,0),
-  (0,0,1)
+  (0,0,1),
 }
 
 @Attack
@@ -130,38 +134,108 @@ rotation = (0,0,0,1)
 lens.fov = 70
 )";
 
-        Serialization::Parser parser(save);
-        for (auto&& parserEvent : parser.Parse()) {
-            std::visit([](auto x) {}, parserEvent);
-            std::visit(Overloaded {
-                [](const Serialization::SectionEvent& event) {
-                    QS_INFO("Section: {}", event.Name);
-                },
-                [](const Serialization::ComponentEvent& event) {
-                    QS_INFO("Component: {}", event.Name);
-                },
-                [](const Serialization::FieldEvent& event) {
-                    QS_INFO("Field: {}({})", event.Path, event.ID);
-                },
-                [](const Serialization::ValueEvent& event) {
-                    QS_INFO("Value: {}", event.Text);
-                },
-                [](const Serialization::TupleBeginEvent& _) {
-                    QS_INFO("Tuple Begin:");
-                },
-                [](const Serialization::TupleEndEvent& _) {
-                    QS_INFO("Tuple End");
-                },
-                [](const Serialization::ArrayBeginEvent& _) {
-                    QS_INFO("Array Start:");
-                },
-                [](const Serialization::ArrayEndEvent& _) {
-                    QS_INFO("Array End");
-                },
-                [](const Serialization::ParseError& error) {
-                    QS_INFO("Error Line {}: {}", error.Line, error.Message);
-                }
-            }, parserEvent);
+            std::string out("\n");
+            StringQuelWriter writer(out);
+            writer.SetIndent(2);
+            //writer.SetFormatting(QuelFormatting::None);
+            writer.Write(SectionEvent { "entity" });
+            writer.Write(FieldEvent { "guid", 0 });
+            writer.Write(ValueEvent { "267AB7E7E5700A72" });
+            writer.Write(FieldEvent { "name", 0 });
+            writer.Write(ValueEvent { "Player" });
+            writer.Write(FieldEvent { "position", 0 });
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(FieldEvent { "positions", 0 });
+            writer.Write(ArrayBeginEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(ArrayEndEvent{});
+            writer.Write(ComponentEvent { "Transform" });
+            writer.Write(FieldEvent { "position", 0 });
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(FieldEvent { "rotation", 0 });
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(ComponentEvent { "Waypoints" });
+            writer.Write(FieldEvent { "positions", 0 });
+            writer.Write(ArrayBeginEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(TupleBeginEvent{});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent {"0.0"});
+            writer.Write(TupleEndEvent{});
+            writer.Write(ArrayEndEvent{});
+
+            QS_INFO("{}", out);
+
+            QuelReader parser(out);
+            for (auto&& parserEvent : parser.Parse()) {
+                std::visit([](auto x) {}, parserEvent);
+                std::visit(Overloaded {
+                    [](const SectionEvent& event) {
+                        QS_INFO("Section: {}", event.Name);
+                    },
+                    [](const ComponentEvent& event) {
+                        QS_INFO("Component: {}", event.Name);
+                    },
+                    [](const FieldEvent& event) {
+                        QS_INFO("Field: {}({})", event.Path, event.ID);
+                    },
+                    [](const ValueEvent& event) {
+                        QS_INFO("Value: {}", event.Text);
+                    },
+                    [](const TupleBeginEvent& _) {
+                        QS_INFO("Tuple Begin:");
+                    },
+                    [](const TupleEndEvent& _) {
+                        QS_INFO("Tuple End");
+                    },
+                    [](const ArrayBeginEvent& _) {
+                        QS_INFO("Array Start:");
+                    },
+                    [](const ArrayEndEvent& _) {
+                        QS_INFO("Array End");
+                    },
+                    [](const ParseError& error) {
+                        QS_INFO("Error Line {}: {}", error.Line, error.Message);
+                    }
+                }, parserEvent);
+            }
         }
     }
 
