@@ -31,13 +31,12 @@ namespace Quelos {
     }
 
     Entity Scene::CreateEntity(const std::string& entityName) {
-        const GUID guid = GUID::Generate();
+        const EntityID guid = EntityID::Generate();
         return CreateEntity(guid, entityName);
     }
 
-    Entity Scene::CreateEntity(const GUID& guid, const std::string& entityName) {
-        const auto id = m_World.make_alive(guid.Hash64()).set_name(entityName.c_str());
-        const Entity entity(id);
+    Entity Scene::CreateEntity(const EntityID& guid, const std::string& entityName) {
+        const Entity entity(m_World.make_alive(guid).set_name(entityName.c_str()));
         m_EntityMap[guid] = entity;
         QS_CORE_INFO("{}", std::format("Created entity '{}' with GUID {}", entityName, guid.ToString()));
         return entity;

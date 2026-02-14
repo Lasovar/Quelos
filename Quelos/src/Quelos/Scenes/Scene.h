@@ -64,11 +64,11 @@ namespace Quelos {
 		const std::string& GetName() const { return m_Name; }
 
 		Entity CreateEntity(const std::string& entityName);
-		Entity CreateEntity(const GUID& guid, const std::string& entityName);
+		Entity CreateEntity(const EntityID& guid, const std::string& entityName);
 
 		flecs::world GetWorld() const { return m_World; }
 	private:
-		std::unordered_map<GUID, Entity> m_EntityMap;
+		std::unordered_map<EntityID, Entity> m_EntityMap;
 
 		flecs::world m_World;
 		std::string m_Name;

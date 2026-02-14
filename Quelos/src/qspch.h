@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <variant>
 
 #include <glm/glm.hpp>
 
