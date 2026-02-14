@@ -42,6 +42,13 @@ add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)
 
+if (MSVC)
+    add_compile_options(
+            /std:c++20
+            /await:strict
+    )
+endif()
+
 # Main projects
 add_subdirectory(Quelos)
 add_subdirectory(Quelos-Editor)

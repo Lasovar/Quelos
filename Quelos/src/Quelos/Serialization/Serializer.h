@@ -1,63 +1,55 @@
 #pragma once
 
 #include <variant>
+#include <coroutine>
+
+#include "Quelos/Utility/Generator.h"
 
 namespace Quelos::Serialization {
     // Document
     using PathID = uint64_t;
 
-    struct Value {
-        std::string Text;
+    struct ValueEvent {
+        std::string_view Text;
     };
 
-    struct Field {
-        std::string Path;
-        PathID ID;
-        Value Value;
+    struct FieldEvent {
+        std::string_view Path;
+        ValueEvent Value;
+        PathID ID = 0;
 
-        Field() = default;
-        Field(std::string path, const PathID id, std::string value)
-            : Path(std::move(path)), ID(id), Value(std::move(value))
+        FieldEvent() = default;
+        FieldEvent(const std::string_view& path, const std::string_view& value, const PathID id)
+            : Path(path), Value(value), ID(id)
         {}
     };
 
-    struct Component {
-        std::string Name;
-        std::vector<Field> Fields;
+    struct ComponentEvent {
+        std::string_view Name;
     };
 
-    struct Section {
-        std::string Name;
-        std::vector<Field> Fields;
-        std::vector<Component> Components;
-    };
-
-    struct Document {
-        std::vector<Section> Sections;
+    struct SectionEvent {
+        std::string_view Name;
     };
 
     // Error handling
-
     struct ParseError {
         size_t Line = 0;
         std::string Message;
     };
 
+    using ParserEvent = std::variant<SectionEvent, ComponentEvent, FieldEvent, ParseError>;
+
     // Core
 
     class Parser {
     public:
-        std::variant<Document, ParseError> Parse(std::string_view input);
+        Parser() = delete;
+        explicit Parser(const std::string_view input) : m_Input(input) {}
+        Generator<ParserEvent> Parse();
 
     private:
-        std::optional<ParseError> ParseLine(std::string_view line, size_t lineNumber);
-        std::optional<ParseError> ParseSection(std::string_view line, size_t lineNumber);
-        std::optional<ParseError> ParseComponent(std::string_view line, size_t lineNumber);
-        std::optional<ParseError> ParseField(std::string_view line, size_t lineNumber) const;
-
-    private:
-        Document m_Document;
-        Section* m_CurrentSection = nullptr;
-        Component* m_CurrentComponent = nullptr;
+        std::string_view m_Input;
+        size_t m_LineNumber = 0;
     };
 }
