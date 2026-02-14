@@ -21,7 +21,9 @@ namespace Quelos {
             false
         );
     }
-    bgfxFrameBuffer::bgfxFrameBuffer(const std::vector<Ref<Texture2D>>& attachments) {
+    bgfxFrameBuffer::bgfxFrameBuffer(const uint32_t viewID, const std::vector<Ref<Texture2D>>& attachments)
+        : m_ViewId(viewID)
+    {
         if (attachments.empty()) {
             QS_CORE_ERROR("Creating a FrameBuffer with no attachments!");
             return;
@@ -38,9 +40,8 @@ namespace Quelos {
         QS_CORE_ASSERT(bgfx::isValid(m_FrameBufferHandle), "Failed to create bgfx FrameBuffer!");
     }
 
-    void bgfxFrameBuffer::Bind(const uint32_t viewId) {
-        m_ViewId = viewId;
-        bgfx::setViewFrameBuffer(viewId, m_FrameBufferHandle);
+    void bgfxFrameBuffer::Bind() {
+        bgfx::setViewFrameBuffer(m_ViewId, m_FrameBufferHandle);
     }
 
     void bgfxFrameBuffer::Resize(const uint32_t width, const uint32_t height) {

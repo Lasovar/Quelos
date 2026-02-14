@@ -7,13 +7,14 @@
 namespace Quelos {
     class bgfxFrameBuffer : public FrameBuffer {
     public:
-        explicit bgfxFrameBuffer(const std::vector<Ref<Texture2D>>& attachments);
+        explicit bgfxFrameBuffer(uint32_t viewID, const std::vector<Ref<Texture2D>>& attachments);
 
-        void Bind(uint32_t viewId) override;
+        void Bind() override;
 
         uint32_t GetWidth() const override { return m_Width; }
         uint32_t GetHeight() const override { return m_Height; }
 
+        void SetViewID(const uint32_t viewID) override { m_ViewId = viewID; }
         uint32_t GetViewID() const override { return m_ViewId; }
 
         void Resize(uint32_t width, uint32_t height) override;

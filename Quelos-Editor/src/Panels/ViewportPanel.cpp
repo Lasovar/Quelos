@@ -6,7 +6,9 @@
 #include "imgui_internal.h"
 
 namespace Quelos {
-    ViewportPanel::ViewportPanel(const uint32_t width, const uint32_t height) {
+    ViewportPanel::ViewportPanel(const std::string& name, const uint32_t viewId, const uint32_t width, const uint32_t height)
+        : m_Name(name)
+    {
         auto colorSpec = TextureSpecification{};
         colorSpec.Width = width;
         colorSpec.Height = height;
@@ -29,12 +31,12 @@ namespace Quelos {
 
         m_DepthAttachment = Texture2D::Create(depthSpec);
 
-        m_FrameBuffer = FrameBuffer::CreateFrameBuffer({m_ColorAttachment, m_DepthAttachment});
+        m_FrameBuffer = FrameBuffer::CreateFrameBuffer(viewId, {m_ColorAttachment, m_DepthAttachment});
     }
 
-    void ViewportPanel::ResizeIfNeeded() {
+    bool ViewportPanel::ResizeIfNeeded() {
         if (!m_NeedResize) {
-            return;
+            return false;
         }
 
         m_ViewportSize = m_ViewportNewSize;
@@ -43,6 +45,7 @@ namespace Quelos {
         m_NeedResize = false;
 
         QS_INFO("Viewport resized to: {}x{}", m_ViewportNewSize.x, m_ViewportNewSize.y);
+        return true;
     }
 
     void ViewportPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
@@ -55,7 +58,7 @@ namespace Quelos {
 
         if (m_IsEnabled) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-            if (!ImGui::Begin("Viewport", &m_IsEnabled, flags)) {
+            if (!ImGui::Begin(m_Name.c_str(), &m_IsEnabled, flags)) {
                 ImGui::PopStyleVar(1);
                 ImGui::End();
             }

@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include <Quelos/Core/Ref.h>
 
+#include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/FrameBuffer.h"
 
 namespace Quelos {
@@ -59,12 +60,15 @@ namespace Quelos {
 		}
 
 		void Tick(float deltaTime) const;
-		void Render(uint32_t viewId, const Ref<FrameBuffer>& frameBuffer) const;
+		void StartRender(const Ref<FrameBuffer>& frameBuffer) const;
+		void Render(uint32_t viewId) const;
+		void EndRender() const;
 
 		const std::string& GetName() const { return m_Name; }
 
 		Entity CreateEntity(const std::string& entityName);
 		Entity CreateEntity(const EntityID& guid, const std::string& entityName);
+		void OnViewportResized(glm::vec2 viewportSize) const;
 
 		flecs::world GetWorld() const { return m_World; }
 	private:
