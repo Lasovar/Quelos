@@ -8,11 +8,13 @@ namespace Quelos {
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(uint32_t width, uint32_t height);
+        ViewportPanel(const std::string& name, uint32_t viewId, uint32_t width, uint32_t height);
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
-        void ResizeIfNeeded();
+        bool ResizeIfNeeded();
+
+        glm::vec2 GetViewportSize() const { return m_ViewportSize; }
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
@@ -20,6 +22,7 @@ namespace Quelos {
     private:
         void QueueResize(float width, float height);
     private:
+        std::string m_Name;
         bool m_IsEnabled = true;
 
         bool m_ViewportFocused = false;

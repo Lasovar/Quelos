@@ -62,7 +62,7 @@ namespace Quelos {
 
         const Entity camera = m_DefaultScene->CreateEntity("Camera");
         camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
-        camera.Set(CameraComponent{60.0f, 0.1f, 1000.0f});
+        camera.Set(CameraComponent{SceneCamera()});
 
         const Entity cube = m_DefaultScene->CreateEntity("Cube");
         cube.Set(TransformComponent{glm::vec3(-2.5f, -2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});

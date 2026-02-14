@@ -3,25 +3,42 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
     SceneWorkspace::SceneWorkspace() {
-        m_ViewportPanel = ViewportPanel(1, 1);
+        m_GameViewportPanel = ViewportPanel("Game View", 0, 1, 1);
+        m_SceneViewportPanel = ViewportPanel("Scene View", 1, 1, 1);
 
         m_SceneWorkspaceClass.ClassId = ImHashStr("SceneWorkspace");
         m_SceneWorkspaceClass.DockingAllowUnclassed = false;
 
         m_WorkspaceID = "SceneWorkspace_Dockspace";
+        m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
     }
 
     void SceneWorkspace::Tick(const float deltaTime) {
-        if (!m_ViewportPanel.ShouldDraw()) {
-            return;
+        m_Scene->Tick(deltaTime);
+
+        if (m_SceneViewportPanel.ShouldDraw()) {
+            if (m_SceneViewportPanel.ResizeIfNeeded()) {
+                const glm::vec2 size = m_SceneViewportPanel.GetViewportSize();
+                m_EditorCamera.SetViewportSize(size.x, size.y);
+                m_Scene->OnViewportResized(m_SceneViewportPanel.GetViewportSize());
+            }
+
+            m_Scene->StartRender(m_SceneViewportPanel.GetFrameBuffer());
+            m_Scene->Render(m_SceneViewportPanel.GetFrameBuffer()->GetViewID());
         }
 
-        m_ViewportPanel.ResizeIfNeeded();
-        m_Scene->Tick(deltaTime);
-        m_Scene->Render(0, m_ViewportPanel.GetFrameBuffer());
+        if (m_GameViewportPanel.ShouldDraw()) {
+            if (m_GameViewportPanel.ResizeIfNeeded()) {
+                //m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
+            }
+
+            m_Scene->StartRender(m_GameViewportPanel.GetFrameBuffer());
+            m_Scene->Render(m_GameViewportPanel.GetFrameBuffer()->GetViewID());
+        }
     }
 
     void SceneWorkspace::OnImGuiRender(const ImGuiID dockspaceID) {
@@ -38,7 +55,9 @@ namespace Quelos {
         const ImGuiID workspaceDockId = ImGui::GetID(m_WorkspaceID.c_str());
         ImGui::DockSpace(workspaceDockId, ImVec2(0, 0), ImGuiDockNodeFlags_None, &m_SceneWorkspaceClass);
 
-        m_ViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+        m_GameViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+
+        m_SceneViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
 
         ImGui::End();
     }

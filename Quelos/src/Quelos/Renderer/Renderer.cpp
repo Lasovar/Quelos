@@ -25,6 +25,7 @@ namespace Quelos {
     static Ref<Time> s_Time;
 
     static bool s_NeedReset = false;
+    static uint32_t s_CurrentViewID = BGFX_INVALID_HANDLE;
     static bool s_IsInitialized = false;
 
     static bgfx::RendererType::Enum GetRendererType(const RendererAPI api) {
@@ -39,6 +40,26 @@ namespace Quelos {
 
         QS_CORE_ASSERT(false, "Unknown RendererAPI");
         return bgfx::RendererType::Noop;
+    }
+
+    namespace Utils {
+        static glm::mat4 ViewMatFromTransform(const TransformComponent& transform) {
+            glm::mat4 mat;
+            bx::mtxFromQuaternion(glm::value_ptr(mat),
+                                  bx::Quaternion(
+                                      transform.Rotation.x,
+                                      transform.Rotation.y,
+                                      transform.Rotation.z,
+                                      transform.Rotation.w
+                                  )
+            );
+
+            mat[3][0] = transform.Position.x;
+            mat[3][1] = transform.Position.y;
+            mat[3][2] = transform.Position.z;
+
+            return mat;
+        }
     }
 
     bool Renderer::IsInitialized() { return s_IsInitialized; }
@@ -69,8 +90,6 @@ namespace Quelos {
         bgfxInit.platformData = platformData;
         bgfx::init(bgfxInit);
 
-        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
-
         s_IsInitialized = true;
     }
 
@@ -81,46 +100,11 @@ namespace Quelos {
         }
     }
 
-    void Renderer::StartSceneRender(const uint32_t viewId, const Ref<FrameBuffer>& frameBuffer, const CameraComponent& Camera, const TransformComponent& CameraTransform) {
-        frameBuffer->Bind(viewId);
-
-        bgfx::setViewRect(viewId, 0, 0, frameBuffer->GetWidth(), frameBuffer->GetHeight());
-        bgfx::touch(viewId);
-
-        glm::mat4 view;
-
-        bx::mtxFromQuaternion(glm::value_ptr(view),
-                              bx::Quaternion(
-                                  CameraTransform.Rotation.x,
-                                  CameraTransform.Rotation.y,
-                                  CameraTransform.Rotation.z,
-                                  CameraTransform.Rotation.w
-                              ),
-                              bx::Vec3(
-                                  CameraTransform.Position.x,
-                                  CameraTransform.Position.y,
-                                  CameraTransform.Position.z
-                              )
-        );
-
-        glm::mat4 proj;
-        bx::mtxProj(
-            glm::value_ptr(proj),
-            Camera.FOV,
-            static_cast<float>(frameBuffer->GetWidth()) / frameBuffer->GetHeight(), // NOLINT(*-narrowing-conversions)
-            Camera.Near,
-            Camera.Far,
-            bgfx::getCaps()->homogeneousDepth
-        );
-
-        bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(proj));
-    }
-
-    void Renderer::EndFrame() {
-        bgfx::frame();
-    }
-
-    void Renderer::SubmitMesh(const uint32_t viewId, const MeshComponent& mesh, const TransformComponent& transform) {
+    void Renderer::StartSceneRender(
+        const Ref<FrameBuffer>& frameBuffer,
+        const TransformComponent& transform,
+        const glm::mat4& projection
+    ) {
         glm::mat4 mat;
         bx::mtxFromQuaternion(glm::value_ptr(mat),
                               bx::Quaternion(
@@ -128,12 +112,34 @@ namespace Quelos {
                                   transform.Rotation.y,
                                   transform.Rotation.z,
                                   transform.Rotation.w
-                              )
+                              ), bx::Vec3(
+                                  transform.Position.x,
+                                  transform.Position.y,
+                                  transform.Position.z
+                                )
         );
 
-        mat[3][0] = transform.Position.x;
-        mat[3][1] = transform.Position.y;
-        mat[3][2] = transform.Position.z;
+        StartSceneRender(frameBuffer, mat, projection);
+    }
+
+    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view, const glm::mat4& projection) {
+        const uint32_t viewId = frameBuffer->GetViewID();
+        frameBuffer->Bind();
+
+        bgfx::setViewClear(viewId, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
+
+        bgfx::setViewRect(viewId, 0, 0, frameBuffer->GetWidth(), frameBuffer->GetHeight());
+        bgfx::touch(viewId);
+
+        bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
+    }
+
+    void Renderer::EndFrame() {
+        bgfx::frame();
+    }
+
+    void Renderer::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const TransformComponent& transform) {
+        glm::mat4 mat = Utils::ViewMatFromTransform(transform);
 
         // Move functionality to Uniform Buffers
         bgfx::setTransform(glm::value_ptr(mat));
@@ -141,7 +147,7 @@ namespace Quelos {
         mesh.MeshData->GetVertexBuffer()->Bind(0);
         mesh.MeshData->GetIndexBuffer()->Bind();
 
-        mesh.MaterialData->GetShader()->Submit(viewId);
+        mesh.MaterialData->GetShader()->Submit(viewID);
     }
 
     void Renderer::Shutdown() {

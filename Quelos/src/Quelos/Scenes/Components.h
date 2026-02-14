@@ -4,6 +4,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "Quelos/AssetManager/Assets/Mesh.h"
+#include "Quelos/Renderer/SceneCamera.h"
 
 namespace Quelos {
 	class Material;
@@ -17,9 +18,7 @@ namespace Quelos {
 	};
 
 	struct CameraComponent {
-		float FOV;
-		float Near;
-		float Far;
+		SceneCamera Camera;
 	};
 
 	struct MeshComponent {

@@ -4,7 +4,7 @@
 #include "Quelos/Platform/bgfx/bgfxFrameBuffer.h"
 
 namespace Quelos {
-    Ref<FrameBuffer> FrameBuffer::CreateFrameBuffer(const std::vector<Ref<Texture2D>>& attachments) {
-        return CreateRef<bgfxFrameBuffer>(attachments);
+    Ref<FrameBuffer> FrameBuffer::CreateFrameBuffer(uint32_t viewID, const std::vector<Ref<Texture2D>>& attachments) {
+        return CreateRef<bgfxFrameBuffer>(viewID, attachments);
     }
 }
