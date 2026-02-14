@@ -1,8 +1,12 @@
 #pragma once
 
+#include "Quelos/Core/GUID.h"
+
 #include "flecs.h"
 
 namespace Quelos {
+	using EntityID = GUID64;
+
 	class Entity {
 	public:
 		Entity() = default;
@@ -29,7 +33,7 @@ namespace Quelos {
 		}
 
 		void SetName(const std::string& name) const { m_ID.set_name(name.c_str()); }
-		std::string_view GetName() const { return std::string_view(m_ID.name()); }
+		[[nodiscard]] std::string_view GetName() const { return m_ID.name().c_str(); }
 
 	private:
 		flecs::entity m_ID;

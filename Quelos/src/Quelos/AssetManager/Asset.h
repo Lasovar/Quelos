@@ -4,7 +4,7 @@
 
 namespace Quelos {
 
-    using AssetHandle = GUID;
+    using AssetHandle = GUID128;
 
     enum class AssetType {
         None = 0,
