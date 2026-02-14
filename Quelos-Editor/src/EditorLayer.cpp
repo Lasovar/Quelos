@@ -15,7 +15,6 @@
 #include "Quelos/Serialization/Serializer.h"
 
 namespace Quelos {
-
     static std::vector<PosColorVertex> cubeVertices = {
         {-1.0f, 1.0f, 1.0f, 0xff000000},
         {1.0f, 1.0f, 1.0f, 0xff0000ff},
@@ -50,6 +49,14 @@ namespace Quelos {
     EditorLayer::EditorLayer() {
     }
 
+    template<class... Ts>
+    struct Overloaded : Ts... {
+        using Ts::operator()...;
+    };
+
+    template <class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
@@ -70,21 +77,22 @@ namespace Quelos {
         const Entity cube2 = m_DefaultScene->CreateEntity("Cube2");
         cube2.Set(TransformComponent{glm::vec3(2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube2.Set(cubeMesh);
-        cube2.Set(CubePlayer { -2 });
+        cube2.Set(CubePlayer{-2});
 
         const Entity cube3 = m_DefaultScene->CreateEntity("Cube3");
         cube3.Set(TransformComponent{glm::vec3(0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube3.Set(cubeMesh);
-        cube3.Set(CubePlayer { -10 });
+        cube3.Set(CubePlayer{-10});
 
-        m_DefaultScene->System<TransformComponent, CubePlayer>([](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
-            player.Timer += it.delta_time();
-            transform.Rotation = glm::quat({
-                player.Timer * player.Speed,
-                player.Timer * player.Speed,
-                0
-            });
-        }, "RotatePlayer");
+        m_DefaultScene->System<TransformComponent, CubePlayer>(
+            [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
+                player.Timer += it.delta_time();
+                transform.Rotation = glm::quat({
+                    player.Timer * player.Speed,
+                    player.Timer * player.Speed,
+                    0
+                });
+            }, "RotatePlayer");
 
         m_SceneWorkspace = CreateRef<SceneWorkspace>();
         m_SceneWorkspace->SetScene(m_DefaultScene);
@@ -95,7 +103,7 @@ namespace Quelos {
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
         std::string save = R"(
-[entity guid=GUID name="\"Player Controller\""]
+[entity guid=7BB49C9FCBEBA782 name="Player Controller"]
 @Transform
 position = (0,0,0)
 rotation = (0,0,0,1)
@@ -104,37 +112,34 @@ rotation = (0,0,0,1)
 attack.force.direction = (0,1,0)
 attack.force.power = 15
 
-[entity guid=GUID name=Camera]
-parent = GUID
+[entity guid=267AB7E7E5700A72 name=Camera]
+parent = 7BB49C9FCBEBA782
 
 @Transform
 position = (0,0,10)
 rotation = (0,0,0,1)
 
 @Camera
-fov = 70
+lens.fov = 70
 )";
-        Serialization::Parser parser;
-        auto data = parser.Parse(save);
-        if (!std::holds_alternative<Serialization::Document>(data)) {
-            auto [line, message] = std::get<Serialization::ParseError>(data);
-            QS_CORE_ERROR("line {}: '{}'", line, message);
-            return;
-        }
 
-        auto document = std::get<Serialization::Document>(data);
-        for (auto& section : document.Sections) {
-            QS_CORE_INFO("{}", section.Name);
-            for (auto& field : section.Fields) {
-                QS_CORE_INFO("{}({}) = {}", field.Path, field.ID, field.Value.Text);
-            }
-
-            for (auto& component : section.Components) {
-                QS_CORE_INFO("{}", component.Name);
-                for (auto& field : component.Fields) {
-                    QS_CORE_INFO("  {}({}) = {}", field.Path, field.ID, field.Value.Text);
+        Serialization::Parser parser(save);
+        for (auto&& parserEvent : parser.Parse()) {
+            std::visit([](auto x) {}, parserEvent);
+            std::visit(Overloaded {
+                [](const Serialization::SectionEvent& event) {
+                    QS_INFO("Section: {}", event.Name);
+                },
+                [](const Serialization::ComponentEvent& event) {
+                    QS_INFO("Component: {}", event.Name);
+                },
+                [](const Serialization::FieldEvent& event) {
+                    QS_INFO("Field: {} = {}", event.Path, event.Value.Text);
+                },
+                [](const Serialization::ParseError& error) {
+                    QS_INFO("Error Line {}: {}", error.Line, error.Message);
                 }
-            }
+            }, parserEvent);
         }
     }
 
@@ -180,7 +185,8 @@ fov = 70
             // If the only one window... no undocking
             if (node->Windows.Size == 1) {
                 node->LocalFlags |= ImGuiDockNodeFlags_NoUndocking;
-            } else {
+            }
+            else {
                 node->LocalFlags &= ~ImGuiDockNodeFlags_NoUndocking;
             }
         }

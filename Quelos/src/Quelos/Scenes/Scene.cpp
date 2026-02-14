@@ -38,7 +38,6 @@ namespace Quelos {
     Entity Scene::CreateEntity(const EntityID& guid, const std::string& entityName) {
         const Entity entity(m_World.make_alive(guid).set_name(entityName.c_str()));
         m_EntityMap[guid] = entity;
-        QS_CORE_INFO("{}", std::format("Created entity '{}' with GUID {}", entityName, guid.ToString()));
         return entity;
     }
 }

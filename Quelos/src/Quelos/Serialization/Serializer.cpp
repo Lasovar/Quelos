@@ -25,21 +25,60 @@ namespace Quelos::Serialization {
         inline bool StartsWith(const std::string_view s, const std::string_view p) {
             return s.substr(0, p.size()) == p;
         }
+    }
 
-        static std::string UnescapeString(const std::string_view input) {
+    using Token = std::variant<std::string_view, std::string, ParseError>;
+
+    static Token ParseValueToken(const std::string_view text, size_t& position, const size_t lineNumber) {
+        if (position >= text.size()) {
+            return std::string_view{};
+        }
+
+        // Quoted
+        if (text[position] == '"') {
+            position++; // Skip opening quote
+            const size_t start = position;
+
+            bool hasEscape = false;
+            while (position < text.size() && text[position] != '"') {
+                if (text[position] == '\\' && position + 1 < text.size()) {
+                    hasEscape = true;
+                    position += 2;
+                } else {
+                    position++;
+                }
+            }
+
+            if (position >= text.size()) {
+                return ParseError{ lineNumber, "Unterminated string literal" };
+            }
+
+            std::string_view raw = text.substr(start, position - start);
+            position++; // Skip closing quote
+
+            if (!hasEscape) {
+                return raw;
+            }
+
             std::string result;
-            result.reserve(input.size());
+            result.reserve(raw.size());
 
-            for (size_t i = 0; i < input.size(); ++i) {
-                if (const char c = input[i]; c == '\\' && i + 1 < input.size()) {
-                    switch (const char next = input[++i]) {
+            for (size_t i = 0; i < raw.size(); i++) {
+                const char c = raw[i];
+
+                if (c == '\\' && i + 1 < raw.size()) {
+                    const char escaped = raw[++i];
+
+                    switch (escaped)
+                    {
                     case '"':  result.push_back('"');  break;
                     case '\\': result.push_back('\\'); break;
                     case 'n':  result.push_back('\n'); break;
                     case 't':  result.push_back('\t'); break;
+
                     default:
                         result.push_back('\\');
-                        result.push_back(next);
+                        result.push_back(escaped);
                         break;
                     }
                 }
@@ -50,209 +89,134 @@ namespace Quelos::Serialization {
 
             return result;
         }
-    }
 
-    static std::variant<std::string, ParseError>
-    ParseValueToken(const std::string_view text, size_t& position, const size_t lineNumber) {
-        if (position >= text.size()) {
-            return std::string();
-        }
-
-        // Quoted text
-        if (text[position] == '"') {
-            position++;
-            const size_t start = position;
-
-            // Parsing special characters
-            while (position < text.size() && text[position] != '"') {
-                if (text[position] == '\\' && position + 1 < text.size()) {
-                    position += 2;
-                }
-                else {
-                    position++;
-                }
-            }
-
-            if (position >= text.size()) {
-                return ParseError{lineNumber, "Unterminated string literal"};
-            }
-
-            const std::string_view raw = text.substr(start, position - start);
-            position++; // skip closing quote
-
-            return Utils::UnescapeString(raw);
-        }
-
-        // Unquoted value
+        // Unquoted
         const size_t start = position;
 
         while (position < text.size() && !std::isspace(static_cast<unsigned char>(text[position]))) {
             position++;
         }
 
-        return std::string(text.substr(start, position - start));
+        return text.substr(start, position - start);
     }
 
-    static std::variant<Section, ParseError> ParseBracketSection(const std::string_view line, const size_t lineNumber) {
-        if (line.size() < 2 || line.front() != '[' || line.back() != ']') {
-            return ParseError{lineNumber, "Malformed header: missing '[' or ']'"};
-        }
+    Generator<ParserEvent> Parser::Parse() {
+        m_LineNumber = 1;
 
-        // Remove brackets
-        const std::string_view inside = Utils::Trim(line.substr(1, line.size() - 2));
+        while (!m_Input.empty()) {
+            const size_t pos = m_Input.find('\n');
+            std::string_view line = pos == std::string_view::npos
+                ? m_Input
+                : m_Input.substr(0, pos);
 
-        if (inside.empty()) {
-            return ParseError{lineNumber, "Empty header"};
-        }
+            m_Input.remove_prefix(
+                pos == std::string_view::npos ? m_Input.size() : pos + 1
+            );
 
-        Section section;
-
-        size_t position = 0;
-        while (position < inside.size() && !std::isspace(static_cast<unsigned char>(inside[position]))) {
-            position++;
-        }
-
-        section.Name = std::string(inside.substr(0, position));
-
-        while (position < inside.size()) {
-            // Skip whitespace
-            while (position < inside.size() && std::isspace(static_cast<unsigned char>(inside[position]))) {
-                position++;
-            }
-
-            if (position >= inside.size()) {
-                break;
-            }
-
-            // Read key
-            const size_t keyStart = position;
-            while (
-                position < inside.size()
-                && inside[position] != '='
-                && !std::isspace(static_cast<unsigned char>(inside[position]))
-            ) {
-                position++;
-            }
-
-            if (position >= inside.size() || inside[position] != '=') {
-                return ParseError{lineNumber, "Expected '=' after key in header"};
-            }
-
-            std::string_view key = inside.substr(keyStart, position - keyStart);
-            position++; // skip '='
-
-            std::variant<std::string, ParseError> valueResult = ParseValueToken(inside, position, lineNumber);
-
-            if (std::holds_alternative<ParseError>(valueResult)) {
-                return std::get<ParseError>(valueResult);
-            }
-
-            section.Fields.emplace_back(std::string(key), Utils::GetPathID(key), std::get<std::string>(valueResult));
-        }
-
-        return section;
-    }
-
-    std::variant<Document, ParseError> Parser::Parse(std::string_view input) {
-        m_Document = {};
-        m_CurrentSection = nullptr;
-
-        size_t lineNumber = 1;
-
-        while (!input.empty()) {
-            const std::size_t position = input.find('\n');
-            const std::string_view line = position == std::string_view::npos ? input : input.substr(0, position);
-            if (line.empty()) {
-                input.remove_prefix(position + 1);
-                lineNumber++;
+            if (line.empty() || Utils::StartsWith(line, "//")) {
+                m_LineNumber++;
                 continue;
             }
 
-            if (std::optional<ParseError> error = ParseLine(Utils::Trim(line), lineNumber)) {
-                return error.value();
+            line = Utils::Trim(line);
+
+            // Section
+            if (line.front() == '[')
+            {
+                if (line.size() < 2 || line.back() != ']') {
+                    co_yield ParseError{m_LineNumber, "Malformed section"};
+                    co_return;
+                }
+
+                std::string_view inside = Utils::Trim(line.substr(1, line.size() - 2));
+
+                size_t sectionPos = 0;
+
+                // Section name
+                while (sectionPos < inside.size() && !std::isspace(static_cast<unsigned char>(inside[sectionPos]))) {
+                    sectionPos++;
+                }
+
+                const std::string_view sectionName = inside.substr(0, sectionPos);
+                co_yield SectionEvent{ sectionName };
+
+                // Parse inline fields
+                while (sectionPos < inside.size()) {
+                    while (sectionPos < inside.size() && std::isspace(static_cast<unsigned char>(inside[sectionPos]))) {
+                        sectionPos++;
+                    }
+
+                    if (sectionPos >= inside.size()) {
+                        break;
+                    }
+
+                    // Key
+                    const size_t keyStart = sectionPos;
+                    while (sectionPos < inside.size()
+                        && inside[sectionPos] != '='
+                        && !std::isspace(static_cast<unsigned char>(inside[sectionPos]))
+                    ) {
+                        sectionPos++;
+                    }
+
+                    if (sectionPos >= inside.size() || inside[sectionPos] != '=') {
+                        co_yield ParseError{m_LineNumber, "Expected '=' in section field"};
+                        co_return;
+                    }
+
+                    std::string_view key = inside.substr(keyStart, sectionPos - keyStart);
+                    sectionPos++; // Skip '='
+
+                    // Value
+                    auto valueResult = ParseValueToken(inside, sectionPos, m_LineNumber);
+
+                    if (std::holds_alternative<ParseError>(valueResult)) {
+                        co_yield std::get<ParseError>(valueResult);
+                        co_return;
+                    }
+
+                    std::string_view value;
+                    if (std::holds_alternative<std::string_view>(valueResult)) {
+                        value = std::get<std::string_view>(valueResult);
+                    } else if (std::holds_alternative<std::string>(valueResult)) {
+                        value = std::get<std::string>(valueResult);
+                    }
+
+                    co_yield FieldEvent{
+                        key,
+                        value,
+                        Utils::GetPathID(key)
+                    };
+                }
+
+                m_LineNumber++;
+                continue;
             }
 
-            if (position == std::string_view::npos) {
-                break;
+            // Component
+            if (line.front() == '@') {
+                co_yield ComponentEvent{ Utils::Trim(line.substr(1)) };
+                m_LineNumber++;
+                continue;
             }
 
-            input.remove_prefix(position + 1);
-            lineNumber++;
+            // Field
+            const size_t eq = line.find('=');
+            if (eq == std::string_view::npos) {
+                co_yield ParseError{m_LineNumber, "Expected '=' in field"};
+                co_return;
+            }
+
+            auto key   = Utils::Trim(line.substr(0, eq));
+            auto value = Utils::Trim(line.substr(eq + 1));
+
+            co_yield FieldEvent{
+                key,
+                value,
+                Utils::GetPathID(key)
+            };
+
+            m_LineNumber++;
         }
-
-        return m_Document;
-    }
-
-    std::optional<ParseError> Parser::ParseLine(const std::string_view line, const size_t lineNumber) {
-        if (line.empty() || Utils::StartsWith(line, "//")) {
-            return std::nullopt;
-        }
-
-        if (line.front() == '[') {
-            return ParseSection(line, lineNumber);
-        }
-
-        if (line.front() == '@') {
-            return ParseComponent(line, lineNumber);
-        }
-
-        return ParseField(line, lineNumber);
-    }
-
-    std::optional<ParseError> Parser::ParseSection(const std::string_view line, const size_t lineNumber) {
-        const std::variant<Section, ParseError> result = ParseBracketSection(line, lineNumber);
-        if (std::holds_alternative<ParseError>(result)) {
-            return std::get<ParseError>(result);
-        }
-
-        m_Document.Sections.push_back(std::get<Section>(result));
-        m_CurrentComponent = nullptr;
-        m_CurrentSection = &m_Document.Sections.back();
-
-        return std::nullopt;
-    }
-
-    std::optional<ParseError> Parser::ParseComponent(const std::string_view line, const size_t lineNumber) {
-        if (!m_CurrentSection) {
-            return ParseError{lineNumber, "Component outside of section"};
-        }
-
-        m_CurrentSection->Components.push_back({});
-        m_CurrentComponent = &m_CurrentSection->Components.back();
-        m_CurrentComponent->Name = Utils::Trim(line.substr(1, line.size() - 1));
-
-        return std::nullopt;
-    }
-
-    std::optional<ParseError> Parser::ParseField(std::string_view line, const size_t lineNumber) const {
-        if (!m_CurrentSection) {
-            return ParseError{lineNumber, "Field outside of section"};
-        }
-
-        const std::size_t eq = line.find('=');
-        if (eq == std::string_view::npos) {
-            return ParseError{lineNumber, "Expected '=' in field"};
-        }
-
-        const std::string_view key = Utils::Trim(line.substr(0, eq));
-        const std::string_view rest = Utils::Trim(line.substr(eq + 1));
-
-        size_t position = 0;
-
-        std::variant<std::string, ParseError> valueResult = ParseValueToken(rest, position, lineNumber);
-        if (std::holds_alternative<ParseError>(valueResult)) {
-            return std::get<ParseError>(valueResult);
-        }
-
-        Field field(std::string(key), Utils::GetPathID(key), std::get<std::string>(valueResult));
-
-        if (m_CurrentComponent) {
-            m_CurrentComponent->Fields.push_back(std::move(field));
-        }
-        else {
-            m_CurrentSection->Fields.push_back(std::move(field));
-        }
-
-        return std::nullopt;
     }
 }
