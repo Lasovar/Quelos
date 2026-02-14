@@ -42,18 +42,26 @@ namespace Quelos
 
 		const glm::quat orientation = GetOrientation();
 
+		glm::mat4 world;
 		bx::mtxFromQuaternion(glm::value_ptr(m_ViewMatrix),
 							  bx::Quaternion(
-								  orientation.x,
-								  orientation.y,
-								  orientation.z,
-								  orientation.w
-							  ), bx::Vec3(
-								  m_Position.x,
-								  m_Position.y,
-								  m_Position.z
-								)
-		);
+								  0,
+								  0,
+								  0,
+								  1
+							  ),
+							  bx::Vec3(
+							  	m_Position.x,
+							  	m_Position.y,
+							  	m_Position.z));
+
+		/*
+		world[3][0] = m_Position.x;
+		world[3][1] = m_Position.y;
+		world[3][2] = m_Position.z;
+		*/
+
+		//bx::mtxInverse(glm::value_ptr(m_ViewMatrix), glm::value_ptr(world));
 	}
 
 	glm::vec2 EditorCamera::PanSpeed() const {
@@ -193,7 +201,7 @@ namespace Quelos
 
 	glm::vec3 EditorCamera::CalculatePosition() const
 	{
-		return m_FocalPoint - GetForwardDirection() * m_Distance;
+		return m_FocalPoint - GetForwardDirection() * -m_Distance;
 	}
 
 	glm::quat EditorCamera::GetOrientation() const

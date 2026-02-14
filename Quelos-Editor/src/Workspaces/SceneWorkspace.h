@@ -17,6 +17,8 @@ namespace Quelos {
 
         void SetScene(const Ref<Scene>& scene);
 
+        void OnEvent(Event& e);
+
     private:
         Ref<Scene> m_Scene;
 

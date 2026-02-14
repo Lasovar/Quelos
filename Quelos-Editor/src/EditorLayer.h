@@ -16,6 +16,7 @@ namespace Quelos {
 
 		void Tick(float deltaTime) override;
 		void ImGuiRender() override;
+		void OnEvent(Event& event) override;
 	private:
 		Ref<Scene> m_DefaultScene;
 
