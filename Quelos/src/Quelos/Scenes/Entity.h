@@ -27,6 +27,11 @@ namespace Quelos {
 			return m_ID.set<T>(component);
 		}
 
+		template <typename T, flecs::if_t<flecs::is_actual<T>::value > = 0>
+		flecs::ref<T> GetRef() {
+			return m_ID.get_ref<T>();
+		}
+
 		template <typename T>
 		const T& Get() const {
 			return m_ID.get<T>();

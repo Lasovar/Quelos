@@ -1,6 +1,6 @@
 #pragma once
+
 #include "Camera.h"
-#include "glm/gtc/constants.hpp"
 
 namespace Quelos {
     class SceneCamera : public Camera {
