@@ -175,6 +175,10 @@ namespace Quelos {
         const std::filesystem::path& filepath) {
     }
 
+    bool bgfxTexture2D::IsVFlipped() const {
+        return bgfx::getCaps()->originBottomLeft;
+    }
+
     void bgfxTexture2D::Resize(const glm::uvec2& size) {
         Resize(size.x, size.y);
     }

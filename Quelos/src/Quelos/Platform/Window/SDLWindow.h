@@ -14,6 +14,8 @@ namespace Quelos {
 
         void PollEvents() override;
 
+        void SetCursorMode(CursorMode cursorMode) override;
+
         uint32_t GetWidth() const override { return m_Specifications.Width; }
         uint32_t GetHeight() const override { return m_Specifications.Height; }
 

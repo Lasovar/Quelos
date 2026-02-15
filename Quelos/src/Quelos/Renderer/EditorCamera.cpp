@@ -3,13 +3,11 @@
 
 #include "Quelos/Core/Events/InputEvents.h"
 
+#include "Quelos/Math/Math.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "bgfx/bgfx.h"
-#include "bx/math.h"
-#include "glm/gtc/type_ptr.hpp"
-#include "Quelos/Math/Math.h"
+#include "Quelos/Core/Application.h"
 
 namespace Quelos {
     EditorCamera::EditorCamera(const float fov, const float aspectRatio, const float nearClip, const float farClip)
@@ -22,13 +20,11 @@ namespace Quelos {
     void EditorCamera::UpdateProjection() {
         m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
 
-        bx::mtxProj(
-            glm::value_ptr(m_Projection),
-            m_FOV,
+        m_Projection = Math::PerspectiveMatrix(
+            glm::radians(m_FOV),
             m_AspectRatio,
             m_NearClip,
-            m_FarClip,
-            bgfx::getCaps()->homogeneousDepth
+            m_FarClip
         );
     }
 
@@ -37,13 +33,17 @@ namespace Quelos {
             m_Yaw = m_Pitch = 0.0f; // Lock the camera's rotation
         }
 
-        const glm::quat qPitch = glm::angleAxis(m_Pitch, glm::vec3(1,0,0));
-        const glm::quat qYaw   = glm::angleAxis(m_Yaw,   glm::vec3(0,1,0));
+        const glm::vec3 forward = {
+            glm::cos(m_Pitch) * glm::sin(m_Yaw),
+            glm::sin(m_Pitch),
+            glm::cos(m_Pitch) * glm::cos(m_Yaw)
+        };
 
-        const glm::quat orientation = qYaw * qPitch;
-
-        m_ViewMatrix = Math::ViewMatrix(orientation, m_Position);
-        QS_CORE_INFO("{}, {}, {}", m_Position.x, m_Position.y, m_Position.z);
+        m_ViewMatrix = glm::lookAtLH(
+            m_Position,
+            m_Position + forward,
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
     }
 
     glm::vec2 EditorCamera::PanSpeed() const {
@@ -73,37 +73,34 @@ namespace Quelos {
         glm::vec2 smoothed = m_MouseDelta;
         m_MouseDelta = glm::vec2(0.0f);
 
-        if (!m_RMB) {
-            return;
-        }
-
-        m_Yaw   -= smoothed.x * m_MouseSensitivity;
-        m_Pitch -= smoothed.y * m_MouseSensitivity;
-
-        m_Pitch = glm::clamp(m_Pitch, -glm::radians(89.0f), glm::radians(89.0f));
-
-        // Direction vectors
-        glm::vec3 forwardDir{
-            glm::cos(m_Pitch) * glm::sin(m_Yaw),
-            glm::sin(m_Pitch),
-           -glm::cos(m_Pitch) * glm::cos(m_Yaw)
-        };
-
-        glm::vec3 rightDir = glm::normalize(glm::cross(forwardDir, glm::vec3(0,1,0)));
-        glm::vec3 upDir    = glm::cross(rightDir, forwardDir);
-
-        // Desired movement
         glm::vec3 input{0.0f};
 
-        if (m_Forward)      input -= forwardDir;
-        if (m_Backwards)    input += forwardDir;
-        if (m_Right)        input += rightDir;
-        if (m_Left)         input -= rightDir;
-        if (m_Up)           input += upDir;
-        if (m_Down)         input -= upDir;
+        if (m_RMB) {
+            m_Yaw += smoothed.x * m_MouseSensitivity;
+            m_Pitch += smoothed.y * m_MouseSensitivity;
 
-        if (glm::length(input) > 0.0f) {
-            input = glm::normalize(input);
+            m_Pitch = glm::clamp(m_Pitch, -glm::radians(89.0f), glm::radians(89.0f));
+
+            // Direction vectors
+            glm::vec3 forwardDir{
+                glm::cos(m_Pitch) * glm::sin(m_Yaw),
+                glm::sin(m_Pitch),
+                glm::cos(m_Pitch) * glm::cos(m_Yaw)
+            };
+
+            glm::vec3 rightDir = glm::normalize(glm::cross(glm::vec3(0, 1, 0), forwardDir));
+            glm::vec3 upDir = glm::normalize(glm::cross(rightDir, forwardDir));
+
+            if (m_Forward) input += forwardDir;
+            if (m_Backwards) input -= forwardDir;
+            if (m_Right) input += rightDir;
+            if (m_Left) input -= rightDir;
+            if (m_Up) input += upDir;
+            if (m_Down) input -= upDir;
+
+            if (glm::length(input) > 0.0f) {
+                input = glm::normalize(input);
+            }
         }
 
         // Acceleration + damping
@@ -129,6 +126,7 @@ namespace Quelos {
                 break;
             case MouseButton::Right:
                 m_RMB = true;
+                Application::Get().GetWindow()->SetCursorMode(CursorMode::Locked);
                 break;
             default:
                 break;
@@ -144,6 +142,7 @@ namespace Quelos {
                 break;
             case MouseButton::Right:
                 m_RMB = false;
+                Application::Get().GetWindow()->SetCursorMode(CursorMode::Normal);
                 break;
             default:
                 break;
@@ -249,9 +248,7 @@ namespace Quelos {
     }
 
     glm::mat4 EditorCamera::GetViewProjection() const {
-        glm::mat4 result;
-        bx::mtxMul(glm::value_ptr(result), glm::value_ptr(m_ViewMatrix), glm::value_ptr(m_Projection));
-        return result;
+        return m_ViewMatrix * m_Projection;
     }
 
     glm::vec3 EditorCamera::GetUpDirection() const {

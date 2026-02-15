@@ -27,12 +27,12 @@ namespace Quelos {
 
     static bgfx::RendererType::Enum GetRendererType(const RendererAPI api) {
         switch (api) {
-            case RendererAPI::None:        return bgfx::RendererType::Noop;
-            case RendererAPI::OpenGL:      return bgfx::RendererType::OpenGL;
-            case RendererAPI::Vulkan:      return bgfx::RendererType::Vulkan;
-            case RendererAPI::Direct3D11:  return bgfx::RendererType::Direct3D11;
-            case RendererAPI::Direct3D12:  return bgfx::RendererType::Direct3D12;
-            case RendererAPI::Metal:       return bgfx::RendererType::Metal;
+        case RendererAPI::None: return bgfx::RendererType::Noop;
+        case RendererAPI::OpenGL: return bgfx::RendererType::OpenGL;
+        case RendererAPI::Vulkan: return bgfx::RendererType::Vulkan;
+        case RendererAPI::Direct3D11: return bgfx::RendererType::Direct3D11;
+        case RendererAPI::Direct3D12: return bgfx::RendererType::Direct3D12;
+        case RendererAPI::Metal: return bgfx::RendererType::Metal;
         }
 
         QS_CORE_ASSERT(false, "Unknown RendererAPI");
@@ -67,6 +67,18 @@ namespace Quelos {
         bgfxInit.platformData = platformData;
         bgfx::init(bgfxInit);
 
+       uint64_t cullState = bgfx::getCaps()->originBottomLeft
+                    ? BGFX_STATE_CULL_CW   // OpenGL
+                    : BGFX_STATE_CULL_CCW; // DX/Vulkan/Metal
+
+        bgfx::setState(
+            BGFX_STATE_WRITE_RGB |
+            BGFX_STATE_WRITE_A |
+            BGFX_STATE_WRITE_Z |
+            BGFX_STATE_DEPTH_TEST_LESS |
+            BGFX_STATE_CULL_CCW
+        );
+
         s_IsInitialized = true;
     }
 
@@ -85,7 +97,8 @@ namespace Quelos {
         StartSceneRender(frameBuffer, Math::ViewMatrix(transform.Rotation, transform.Position), projection);
     }
 
-    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view, const glm::mat4& projection) {
+    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view,
+                                    const glm::mat4& projection) {
         const uint32_t viewId = frameBuffer->GetViewID();
         frameBuffer->Bind();
 

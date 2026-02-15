@@ -15,6 +15,11 @@ namespace Quelos {
 		WindowingBackend Backed = WindowingBackend::SDL;
 	};
 
+	enum class CursorMode : uint8_t {
+		Normal,
+		Locked
+	};
+
 	class Window : public RefCounted {
 	public:
 		~Window() override = default;
@@ -23,6 +28,8 @@ namespace Quelos {
 		virtual void Shutdown() = 0;
 
 		virtual void PollEvents() = 0;
+
+		virtual void SetCursorMode(CursorMode cursorMode) = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;

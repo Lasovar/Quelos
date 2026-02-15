@@ -37,4 +37,5 @@
 #include <Quelos/Core/Ref.h>
 #include <Quelos/Core/Log.h>
 #include <Quelos/Core/GUID.h>
+#include <Quelos/Math/Math.h>
 
