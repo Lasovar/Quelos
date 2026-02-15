@@ -5,6 +5,7 @@
 #include <Quelos/Core/Log.h>
 
 #include "imgui_internal.h"
+#include "glm/gtc/type_ptr.inl"
 
 #include "Quelos/Core/Base.h"
 
@@ -57,15 +58,17 @@ namespace Quelos {
     template <class... Ts>
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
+    static Entity s_Camera;
+
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
-        const Entity camera = m_DefaultScene->CreateEntity("Camera");
-        camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
-        camera.Set(CameraComponent{SceneCamera()});
+        s_Camera = m_DefaultScene->CreateEntity("Camera");
+        s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
+        s_Camera.Set(CameraComponent{SceneCamera()});
 
         const Entity cube = m_DefaultScene->CreateEntity("Cube");
-        cube.Set(TransformComponent{glm::vec3(-2.5f, -2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube.Set(TransformComponent{glm::vec3(-2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
@@ -80,10 +83,15 @@ namespace Quelos {
         cube2.Set(CubePlayer{-2});
 
         const Entity cube3 = m_DefaultScene->CreateEntity("Cube3");
-        cube3.Set(TransformComponent{glm::vec3(0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube3.Set(TransformComponent{glm::vec3(0, 5, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube3.Set(cubeMesh);
         cube3.Set(CubePlayer{-10});
 
+        const Entity floor = m_DefaultScene->CreateEntity("Floor");
+        floor.Set(TransformComponent{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
+        floor.Set(cubeMesh);
+
+        /*
         m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
                 player.Timer += it.delta_time();
@@ -92,7 +100,7 @@ namespace Quelos {
                     player.Timer * player.Speed,
                     0
                 });
-            }, "RotatePlayer");
+            }, "RotatePlayer");*/
 
         m_SceneWorkspace = CreateRef<SceneWorkspace>();
         m_SceneWorkspace->SetScene(m_DefaultScene);
@@ -246,6 +254,17 @@ lens.fov = 70
     }
 
     void EditorLayer::ImGuiRender() {
+        if (ImGui::Begin("Camera")) {
+            flecs::ref<TransformComponent> transform = s_Camera.GetRef<TransformComponent>();
+            flecs::ref<CameraComponent> camera = s_Camera.GetRef<CameraComponent>();
+            ImGui::DragFloat3("Position", glm::value_ptr(transform.get()->Position));
+            glm::vec3 currentRot = glm::eulerAngles(transform.get()->Rotation);
+            if (ImGui::DragFloat3("Rotation", glm::value_ptr(currentRot))) {
+                transform.get()->Rotation = currentRot;
+            }
+        }
+        ImGui::End();
+
         static ImGuiDockNodeFlags dockspace_flags =
             ImGuiDockNodeFlags_NoSplit |
             ImGuiDockNodeFlags_NoResize |

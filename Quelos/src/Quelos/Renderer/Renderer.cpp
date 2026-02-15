@@ -1,11 +1,7 @@
 #include "Renderer.h"
 #include <bgfx/bgfx.h>
 
-#include "bx/math.h"
 #include "Quelos/Core/Window.h"
-
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_LEFT_HANDED
 
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
@@ -19,6 +15,7 @@
 
 #include "Quelos/Core/Application.h"
 #include "Quelos/Core/Events/WindowEvents.h"
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     static Ref<Window> s_Window;
@@ -40,26 +37,6 @@ namespace Quelos {
 
         QS_CORE_ASSERT(false, "Unknown RendererAPI");
         return bgfx::RendererType::Noop;
-    }
-
-    namespace Utils {
-        static glm::mat4 ViewMatFromTransform(const TransformComponent& transform) {
-            glm::mat4 mat;
-            bx::mtxFromQuaternion(glm::value_ptr(mat),
-                                  bx::Quaternion(
-                                      transform.Rotation.x,
-                                      transform.Rotation.y,
-                                      transform.Rotation.z,
-                                      transform.Rotation.w
-                                  )
-            );
-
-            mat[3][0] = transform.Position.x;
-            mat[3][1] = transform.Position.y;
-            mat[3][2] = transform.Position.z;
-
-            return mat;
-        }
     }
 
     bool Renderer::IsInitialized() { return s_IsInitialized; }
@@ -105,21 +82,7 @@ namespace Quelos {
         const TransformComponent& transform,
         const glm::mat4& projection
     ) {
-        glm::mat4 mat;
-        bx::mtxFromQuaternion(glm::value_ptr(mat),
-                              bx::Quaternion(
-                                  transform.Rotation.x,
-                                  transform.Rotation.y,
-                                  transform.Rotation.z,
-                                  transform.Rotation.w
-                              ), bx::Vec3(
-                                  transform.Position.x,
-                                  transform.Position.y,
-                                  transform.Position.z
-                                )
-        );
-
-        StartSceneRender(frameBuffer, mat, projection);
+        StartSceneRender(frameBuffer, Math::ViewMatrix(transform.Rotation, transform.Position), projection);
     }
 
     void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view, const glm::mat4& projection) {
@@ -139,7 +102,7 @@ namespace Quelos {
     }
 
     void Renderer::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const TransformComponent& transform) {
-        glm::mat4 mat = Utils::ViewMatFromTransform(transform);
+        glm::mat4 mat = Math::SRTMatrix(transform.Scale, transform.Rotation, transform.Position);
 
         // Move functionality to Uniform Buffers
         bgfx::setTransform(glm::value_ptr(mat));

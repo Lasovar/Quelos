@@ -54,13 +54,22 @@ namespace Quelos {
 		[[nodiscard]] float ZoomSpeed() const;
 		[[nodiscard]] static float RotationSpeed();
 	private:
-		float m_FOV = 45.0f, m_AspectRatio = 1.778f, m_NearClip = 0.1f, m_FarClip = 1000.0f;
+		float m_FOV = 60.0f, m_AspectRatio = 1.778f, m_NearClip = 0.1f, m_FarClip = 1000.0f;
 
 		glm::mat4 m_ViewMatrix;
 		glm::vec3 m_Position = { 0.0f, 0.0f, -15.0f };
 		glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
-		glm::vec2 m_DeltaMouse = { 0.0f, 0.0f };
+		float m_MoveSpeed = 100.0f;
+
+		glm::vec3 m_Velocity = { 0.0f, 0.0f, 0.0f };
+
+		float m_Acceleration = 40.0f;
+		float m_Damping = 8.0f;
+
+		float m_MouseSensitivity = 0.025f;
+
+		glm::vec2 m_MouseDelta = { 0.0f, 0.0f };
 		glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
 
 		float m_Distance = 10.0f;
@@ -69,6 +78,16 @@ namespace Quelos {
 		float m_ViewportWidth = 1280, m_ViewportHeight = 720;
 		bool m_PlayerMode = false, m_LockRotation = false;
 
-		bool m_LControl = false;
+		// Input
+		bool m_LControl: 1 = false;
+		bool m_LShift: 1 = false;
+		bool m_RMB: 1 = false, m_LMB: 1 = false;
+
+		bool m_Up: 1;
+		bool m_Down: 1;
+		bool m_Forward: 1;
+		bool m_Backwards: 1;
+		bool m_Left: 1;
+		bool m_Right: 1;
 	};
 }
