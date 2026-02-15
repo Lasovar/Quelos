@@ -72,11 +72,15 @@ namespace Quelos {
                     //m_ActiveScene->OnViewportResize(static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y));
                 }
 
+                glm::vec4 uv = m_ColorAttachment->IsVFlipped()
+                                    ? glm::vec4(0.0f, 1.0f, 1.0f, 0.0f)
+                                    : glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
                 ImGui::Image(
                     m_ColorAttachment,
                     {m_ViewportSize.x, m_ViewportSize.y},
-                    {0.0f, 1.0f},
-                    {1.0f, 0.0f}
+                    {uv.x, uv.y},
+                    {uv.z, uv.w}
                 );
 
                 const auto windowSize = ImGui::GetContentRegionAvail();

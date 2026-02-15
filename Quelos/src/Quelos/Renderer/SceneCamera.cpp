@@ -1,8 +1,6 @@
 #include "SceneCamera.h"
 
 #include "bgfx/bgfx.h"
-#include "bx/math.h"
-#include "glm/gtc/type_ptr.hpp"
 
 namespace Quelos {
     SceneCamera::SceneCamera() { RecalculateProjection(); }
@@ -37,32 +35,26 @@ namespace Quelos {
 
     void SceneCamera::RecalculateProjection() {
         if (m_ProjectionType == ProjectionType::Perspective) {
-            bx::mtxProj(
-                glm::value_ptr(m_Projection),
-                m_PerspectiveFOV,
+            m_Projection = Math::PerspectiveMatrix(
+                glm::radians(m_PerspectiveFOV),
                 m_AspectRatio,
                 m_PerspectiveNear,
-                m_PerspectiveFar,
-                bgfx::getCaps()->homogeneousDepth
+                m_PerspectiveFar
             );
         }
-        else
-        {
+        else {
             const float orthoLeft = -m_OrthographicSize * m_AspectRatio * 0.5f;
             const float orthoRight = m_OrthographicSize * m_AspectRatio * 0.5f;
             const float orthoBottom = -m_OrthographicSize * 0.5f;
             const float orthoTop = m_OrthographicSize * 0.5f;
 
-            bx::mtxOrtho(
-                glm::value_ptr(m_Projection),
+            m_Projection = Math::OrthographicMatrix(
                 orthoLeft,
                 orthoRight,
                 orthoBottom,
                 orthoTop,
                 m_OrthographicNear,
-                m_OrthographicFar,
-                0.0f,
-                bgfx::getCaps()->homogeneousDepth
+                m_OrthographicFar
             );
         }
     }

@@ -18,6 +18,8 @@ namespace Quelos {
 
         void PollEvents() override;
 
+        void SetCursorMode(CursorMode cursorMode) override;
+
         uint32_t GetWidth() const override { return m_Specifications.Width; }
         uint32_t GetHeight() const override { return m_Specifications.Height; }
 
@@ -31,6 +33,9 @@ namespace Quelos {
 
         bool ShouldClose() const override;
     private:
+        bool m_MouseMoveFirst = true;
+        float m_LastX = 0.0f, m_LastY = 0.0f;
+
         WindowSpecification m_Specifications;
         GLFWwindow* m_GLFWWindow;
         void* m_WindowHandle = nullptr;

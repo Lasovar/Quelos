@@ -17,6 +17,7 @@ namespace Quelos {
         uint32_t GetWidth() const override { return m_Specification.Width; }
         uint32_t GetHeight() const override { return m_Specification.Height; }
         glm::uvec2 GetSize() const override { return { GetWidth(), GetHeight() }; }
+        bool IsVFlipped() const override;
 
         const std::filesystem::path& GetPath() const override { return m_Path; }
 

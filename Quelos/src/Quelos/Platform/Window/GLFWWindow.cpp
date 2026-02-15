@@ -2,6 +2,7 @@
 #include "GLFWWindow.h"
 
 #include "Quelos/Core/Application.h"
+#include "Quelos/Core/Events/InputEvents.h"
 #include "Quelos/Core/Events/WindowEvents.h"
 
 #ifdef QUELOS_PLATFORM_WINDOWS
@@ -26,8 +27,7 @@ namespace Quelos {
     }
 
     GLFWWindow::GLFWWindow(WindowSpecification windowSpecs)
-        : m_Specifications(std::move(windowSpecs)), m_GLFWWindow(nullptr)
-    {
+        : m_Specifications(std::move(windowSpecs)), m_GLFWWindow(nullptr) {
     }
 
     void GLFWWindow::Init() {
@@ -80,6 +80,80 @@ namespace Quelos {
 
             OnResize(width, height);
         });
+
+        glfwSetKeyCallback(m_GLFWWindow, [](GLFWwindow* window, int key, int scancodes, int action, int mods) {
+            auto& app = Application::Get();
+
+            switch (action) {
+            case GLFW_PRESS: {
+                KeyPressedEvent e(static_cast<KeyCode>(key), false);
+                app.RaiseEvent(e);
+                break;
+            }
+            case GLFW_RELEASE: {
+                KeyReleasedEvent e(static_cast<KeyCode>(key));
+                app.RaiseEvent(e);
+                break;
+            }
+            case GLFW_REPEAT: {
+                KeyPressedEvent e(static_cast<KeyCode>(key), true);
+                app.RaiseEvent(e);
+                break;
+            }
+            default:
+                break;
+            }
+        });
+
+        glfwSetMouseButtonCallback(m_GLFWWindow, [](GLFWwindow* window, int button, int action, int mods) {
+            auto& app = Application::Get();
+
+            switch (action) {
+            case GLFW_PRESS: {
+                MouseButtonPressedEvent e(static_cast<MouseButton>(button));
+                app.RaiseEvent(e);
+                break;
+            }
+            case GLFW_RELEASE: {
+                MouseButtonReleasedEvent e(static_cast<MouseButton>(button));
+                app.RaiseEvent(e);
+                break;
+            }
+            default:
+                break;
+            }
+        });
+
+        glfwSetScrollCallback(m_GLFWWindow, [](GLFWwindow* window, double xOffset, double yOffset) {
+            auto& app = Application::Get();
+
+            MouseScrolledEvent e(static_cast<float>(xOffset), static_cast<float>(yOffset));
+            app.RaiseEvent(e);
+        });
+
+        glfwSetCursorPosCallback(m_GLFWWindow, [](GLFWwindow* handle, double x, double y) {
+            auto& app = Application::Get();
+            GLFWWindow& window = *static_cast<GLFWWindow*>(glfwGetWindowUserPointer(handle));
+
+            if (window.m_MouseMoveFirst) {
+                window.m_LastX = x;
+                window.m_LastY = y;
+                window.m_MouseMoveFirst = false;
+
+                MouseMovedEvent e(static_cast<float>(x), static_cast<float>(y), 0, 0);
+                app.RaiseEvent(e);
+                return;
+            }
+
+            const float dx = static_cast<float>(x - window.m_LastX);
+            const float dy = static_cast<float>(y - window.m_LastY);
+
+            window.m_LastX = x;
+            window.m_LastY = y;
+
+            MouseMovedEvent e(static_cast<float>(x), static_cast<float>(y), dx, dy);
+            app.RaiseEvent(e);
+        });
     }
 
     void GLFWWindow::Shutdown() {
@@ -88,6 +162,18 @@ namespace Quelos {
 
     void GLFWWindow::PollEvents() {
         glfwPollEvents();
+    }
+
+    void GLFWWindow::SetCursorMode(const CursorMode cursorMode) {
+        switch (cursorMode) {
+        case CursorMode::Normal:
+            glfwSetInputMode(m_GLFWWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            break;
+        case CursorMode::Locked:
+            glfwSetInputMode(m_GLFWWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            m_MouseMoveFirst = true;
+            break;
+        }
     }
 
     bool GLFWWindow::IsWayland() const { return glfwGetPlatform() == GLFW_PLATFORM_WAYLAND; }

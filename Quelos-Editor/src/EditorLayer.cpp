@@ -7,8 +7,6 @@
 #include "imgui_internal.h"
 #include "glm/gtc/type_ptr.inl"
 
-#include "Quelos/Core/Base.h"
-
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
 #include "Quelos/Renderer/Material.h"
@@ -78,7 +76,7 @@ namespace Quelos {
         cube.Set(CubePlayer());
 
         const Entity cube2 = m_DefaultScene->CreateEntity("Cube2");
-        cube2.Set(TransformComponent{glm::vec3(2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube2.Set(TransformComponent{glm::vec3(5.f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube2.Set(cubeMesh);
         cube2.Set(CubePlayer{-2});
 

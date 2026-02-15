@@ -73,6 +73,8 @@ namespace Quelos {
         virtual uint32_t GetHeight() const = 0;
         virtual glm::uvec2 GetSize() const = 0;
 
+        virtual bool IsVFlipped() const = 0;
+
         virtual TextureType GetType() const = 0;
 
         static AssetType GetStaticType() { return AssetType::Texture; }

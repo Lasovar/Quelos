@@ -1,31 +1,71 @@
 #include "qspch.h"
 #include "Math.h"
 
+#include "bgfx/bgfx.h"
 #include "bx/math.h"
-#include "glm/gtc/type_ptr.hpp"
 
 namespace Quelos::Math {
+    glm::mat4 OrthographicMatrix(
+        const float left,
+        const float right,
+        const float bottom,
+        const float top,
+        const float zNear,
+        const float zFar
+    ) {
+        glm::mat4 projection;
+        if (bgfx::getCaps()->homogeneousDepth) {
+            projection = glm::orthoLH_NO(
+                left,
+                right,
+                bottom,
+                top,
+                zNear,
+                zFar
+            );
+        } else {
+            projection = glm::orthoLH_ZO(
+                left,
+                right,
+                bottom,
+                top,
+                zNear,
+                zFar
+            );
+        }
+
+        return projection;
+    }
+
+    glm::mat4 PerspectiveMatrix(const float fov, const float aspectRatio, const float nearClip, const float farClip) {
+        glm::mat4 projection;
+        if (bgfx::getCaps()->homogeneousDepth) {
+            // OpenGL style: Z = -1..1
+            projection = glm::perspectiveLH_NO(
+                fov,
+                aspectRatio,
+                nearClip,
+                farClip
+            );
+        }
+        else {
+            // DX/Vulkan/Metal: Z = 0..1
+            projection = glm::perspectiveLH_ZO(
+                fov,
+                aspectRatio,
+                nearClip,
+                farClip
+            );
+        }
+
+        return projection;
+    }
+
     glm::mat4 ViewMatrix(const glm::quat& rotation, const glm::vec3& position) {
-        const bx::Quaternion quat(
-            rotation.x,
-            rotation.y,
-            rotation.z,
-            rotation.w
+        return glm::inverse(
+            glm::translate(glm::mat4(1.0f), position) *
+            glm::mat4_cast(rotation)
         );
-
-        glm::mat4 rot;
-        bx::mtxFromQuaternion(glm::value_ptr(rot), quat);
-
-        glm::mat4 translation;
-        bx::mtxTranslate(glm::value_ptr(translation), position.x, position.y, position.z);
-
-        glm::mat4 world;
-        bx::mtxMul(glm::value_ptr(world), glm::value_ptr(translation), glm::value_ptr(rot));
-
-        glm::mat4 result;
-        bx::mtxInverse(glm::value_ptr(result), glm::value_ptr(world));
-
-        return result;
     }
 
     glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::vec3& eulerAngles, const glm::vec3& position) {
@@ -41,23 +81,8 @@ namespace Quelos::Math {
     }
 
     glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::quat& rotation, const glm::vec3& position) {
-        // rotation
-        const glm::quat normalizedRot = glm::normalize(rotation);;
-        const bx::Quaternion quat(normalizedRot.x, normalizedRot.y, normalizedRot.z, normalizedRot.w);
-
-        glm::mat4 result;
-        bx::mtxFromQuaternion(glm::value_ptr(result), quat);
-
-        // scale
-        result[0] *= scale.x;
-        result[1] *= scale.y;
-        result[2] *= scale.z;
-
-        // translation
-        result[3][0] = position.x;
-        result[3][1] = position.y;
-        result[3][2] = position.z;
-
-        return result;
+        return glm::translate(glm::mat4(1.0f), position) *
+            glm::mat4_cast(glm::normalize(rotation)) *
+            glm::scale(glm::mat4(1.0f), scale);
     }
 }

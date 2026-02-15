@@ -293,4 +293,17 @@ namespace Quelos {
             ImGui_ImplSDL3_ProcessEvent(&event);
         }
     }
+
+    void SDLWindow::SetCursorMode(const CursorMode cursorMode) {
+        switch (cursorMode) {
+        case CursorMode::Normal:
+            SDL_SetWindowRelativeMouseMode(m_SDLWindow, false);
+            SDL_ShowCursor();
+            break;
+        case CursorMode::Locked:
+            SDL_SetWindowRelativeMouseMode(m_SDLWindow, true);
+            SDL_HideCursor();
+            break;
+        }
+    }
 }
