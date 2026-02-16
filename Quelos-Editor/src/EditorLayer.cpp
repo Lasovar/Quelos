@@ -253,12 +253,12 @@ lens.fov = 70
 
     void EditorLayer::ImGuiRender() {
         if (ImGui::Begin("Camera")) {
-            flecs::ref<TransformComponent> transform = s_Camera.GetRef<TransformComponent>();
-            flecs::ref<CameraComponent> camera = s_Camera.GetRef<CameraComponent>();
-            ImGui::DragFloat3("Position", glm::value_ptr(transform.get()->Position));
-            glm::vec3 currentRot = glm::eulerAngles(transform.get()->Rotation);
+            CRef<TransformComponent> transform = s_Camera.GetRef<TransformComponent>();
+            CRef<CameraComponent> camera = s_Camera.GetRef<CameraComponent>();
+            ImGui::DragFloat3("Position", glm::value_ptr(transform->Position));
+            glm::vec3 currentRot = glm::degrees(glm::eulerAngles(transform->Rotation));
             if (ImGui::DragFloat3("Rotation", glm::value_ptr(currentRot))) {
-                transform.get()->Rotation = currentRot;
+                transform->Rotation = glm::radians(currentRot);
             }
         }
         ImGui::End();

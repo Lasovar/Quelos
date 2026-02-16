@@ -1,13 +1,15 @@
 #include "qspch.h"
 #include "ViewportPanel.h"
 
+#include <utility>
+
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
 namespace Quelos {
-    ViewportPanel::ViewportPanel(const std::string& name, const uint32_t viewId, const uint32_t width, const uint32_t height)
-        : m_Name(name)
+    ViewportPanel::ViewportPanel(std::string  name, const uint32_t viewId, const uint32_t width, const uint32_t height)
+        : m_Name(std::move(name))
     {
         auto colorSpec = TextureSpecification{};
         colorSpec.Width = width;

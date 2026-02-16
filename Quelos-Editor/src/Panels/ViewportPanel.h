@@ -8,7 +8,7 @@ namespace Quelos {
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(const std::string& name, uint32_t viewId, uint32_t width, uint32_t height);
+        ViewportPanel(std::string  name, uint32_t viewId, uint32_t width, uint32_t height);
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
