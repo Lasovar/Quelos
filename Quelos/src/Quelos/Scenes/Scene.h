@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include <Quelos/Core/Ref.h>
 
+#include "ComponentRegistery.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/FrameBuffer.h"
 
@@ -68,14 +69,20 @@ namespace Quelos {
 
 		Entity CreateEntity(const std::string& entityName);
 		Entity CreateEntity(const EntityID& guid, const std::string& entityName);
+
 		void OnViewportResized(glm::vec2 viewportSize) const;
 
-		flecs::world GetWorld() const { return m_World; }
+		flecs::world& GetWorld() { return m_World; }
+		ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
+	public:
+		static Ref<Scene> Copy(const Ref<Scene>& scene);
+
+		friend class SceneBinarySerializer;
 	private:
 		std::unordered_map<EntityID, Entity> m_EntityMap;
+		ComponentRegistry m_ComponentRegistry;
 
 		flecs::world m_World;
 		std::string m_Name;
 	};
 }
-

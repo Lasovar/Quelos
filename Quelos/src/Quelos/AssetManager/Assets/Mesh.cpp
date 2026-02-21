@@ -2,9 +2,11 @@
 #include "Mesh.h"
 
 namespace Quelos {
-	Mesh::Mesh(const std::vector<PosColorVertex>& vertices, const std::vector<uint16_t>& indices) {
-		m_VertexBuffer = VertexBuffer::Create(vertices);
-		m_IndexBuffer = IndexBuffer::Create(indices);
-	}
+	Mesh::Mesh(std::vector<PosColorVertex> vertices, std::vector<uint16_t> indices) {
+		m_Vertices = std::move(vertices);
+		m_Indices = std::move(indices);
 
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices);
+		m_IndexBuffer = IndexBuffer::Create(m_Indices);
+	}
 }

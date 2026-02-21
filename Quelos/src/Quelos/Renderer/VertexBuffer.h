@@ -6,6 +6,14 @@ namespace Quelos {
 		float y;
 		float z;
 		uint32_t abgr;
+
+		template <typename TArchive>
+		static void Serialize(TArchive& archive, PosColorVertex& data) {
+			archive.Value(data.x);
+			archive.Value(data.y);
+			archive.Value(data.z);
+			archive.Value(data.abgr);
+		}
 	};
 
 	class VertexBuffer : public RefCounted {
