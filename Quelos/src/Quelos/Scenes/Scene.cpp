@@ -14,9 +14,10 @@
 namespace Quelos {
     class WindowResizeEvent;
 
-    Scene::Scene(std::string  name)
-        : m_Name(std::move(name))
-    {
+    Scene::Scene(std::string name)
+        : m_Name(std::move(name)
+    ) {
+        m_ComponentRegistry.RegisterBuiltinTypes(m_World);
     }
 
     void Scene::Tick(const float deltaTime) const {
@@ -36,12 +37,18 @@ namespace Quelos {
     }
 
     void Scene::Render(uint32_t viewId) const {
-        m_World.each([viewId](const TransformComponent& transform, const MeshComponent& mesh) {
+        uint32_t count = 0;
+        m_World.each([viewId, &count](const TransformComponent& transform, const MeshComponent& mesh) {
             Renderer::SubmitMesh(viewId, mesh, transform);
+            QS_CORE_INFO("{}, {}, {}", transform.Position.x, transform.Position.y, transform.Position.z);
+            count++;
         });
+
+        QS_CORE_INFO("{}", count);
     }
 
-    void Scene::EndRender() const { }
+    void Scene::EndRender() const {
+    }
 
     Entity Scene::CreateEntity(const std::string& entityName) {
         const EntityID guid = EntityID::Generate();
@@ -49,7 +56,7 @@ namespace Quelos {
     }
 
     Entity Scene::CreateEntity(const EntityID& guid, const std::string& entityName) {
-        const Entity entity(m_World.make_alive(guid).set_name(entityName.c_str()));
+        const Entity entity(m_World.entity().set_name(entityName.c_str()).set(RuntimeTag(guid)));
         m_EntityMap[guid] = entity;
         return entity;
     }
@@ -58,5 +65,14 @@ namespace Quelos {
         m_World.each([viewportSize](CameraComponent& camera) {
             camera.Camera.SetViewportSize(viewportSize.x, viewportSize.y);
         });
+    }
+
+    Ref<Scene> Scene::Copy(const Ref<Scene>& scene) {
+        Ref<Scene> sceneCopy = CreateRef<Scene>();
+
+        auto x = sceneCopy->m_World.to_json();
+        sceneCopy->m_Name = scene->m_Name;
+
+        return sceneCopy;
     }
 }

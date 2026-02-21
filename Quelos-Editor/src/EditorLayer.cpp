@@ -5,11 +5,14 @@
 #include <Quelos/Core/Log.h>
 
 #include "imgui_internal.h"
+#include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.inl"
 
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
 #include "Quelos/Renderer/Material.h"
+#include "Quelos/Scenes/ComponentRegistery.h"
+#include "Quelos/Serialization/SceneBinarySerializer.h"
 
 #include "Quelos/Serialization/Serializer.h"
 
@@ -48,7 +51,7 @@ namespace Quelos {
     EditorLayer::EditorLayer() {
     }
 
-    template<class... Ts>
+    template <class... Ts>
     struct Overloaded : Ts... {
         using Ts::operator()...;
     };
@@ -61,9 +64,11 @@ namespace Quelos {
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
-        s_Camera = m_DefaultScene->CreateEntity("Camera");
-        s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
+        Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
+
+        /*s_Camera = m_DefaultScene->CreateEntity("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
+        s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
 
         const Entity cube = m_DefaultScene->CreateEntity("Cube");
         cube.Set(TransformComponent{glm::vec3(-2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
@@ -72,7 +77,6 @@ namespace Quelos {
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
         cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
         cube.Set(cubeMesh);
-
         cube.Set(CubePlayer());
 
         const Entity cube2 = m_DefaultScene->CreateEntity("Cube2");
@@ -87,10 +91,9 @@ namespace Quelos {
 
         const Entity floor = m_DefaultScene->CreateEntity("Floor");
         floor.Set(TransformComponent{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
-        floor.Set(cubeMesh);
+        floor.Set(cubeMesh);*/
 
-        /*
-        m_DefaultScene->System<TransformComponent, CubePlayer>(
+        /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
                 player.Timer += it.delta_time();
                 transform.Rotation = glm::quat({
@@ -107,8 +110,10 @@ namespace Quelos {
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
+        //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
 
         // Quel testing
+#if 0
         {
             using namespace Serialization;
 
@@ -144,66 +149,66 @@ lens.fov = 70
             StringQuelWriter writer(out);
             writer.SetIndent(2);
             //writer.SetFormatting(QuelFormatting::None);
-            writer.Write(SectionEvent { "entity" });
-            writer.Write(FieldEvent { "guid", 0 });
-            writer.Write(ValueEvent { "267AB7E7E5700A72" });
-            writer.Write(FieldEvent { "name", 0 });
-            writer.Write(ValueEvent { "Player" });
-            writer.Write(FieldEvent { "position", 0 });
+            writer.Write(SectionEvent{"entity"});
+            writer.Write(FieldEvent{"guid", 0});
+            writer.Write(ValueEvent{"267AB7E7E5700A72"});
+            writer.Write(FieldEvent{"name", 0});
+            writer.Write(ValueEvent{"Player"});
+            writer.Write(FieldEvent{"position", 0});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
-            writer.Write(FieldEvent { "positions", 0 });
+            writer.Write(FieldEvent{"positions", 0});
             writer.Write(ArrayBeginEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(ArrayEndEvent{});
-            writer.Write(ComponentEvent { "Transform" });
-            writer.Write(FieldEvent { "position", 0 });
+            writer.Write(ComponentEvent{"Transform"});
+            writer.Write(FieldEvent{"position", 0});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
-            writer.Write(FieldEvent { "rotation", 0 });
+            writer.Write(FieldEvent{"rotation", 0});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
-            writer.Write(ComponentEvent { "Waypoints" });
-            writer.Write(FieldEvent { "positions", 0 });
+            writer.Write(ComponentEvent{"Waypoints"});
+            writer.Write(FieldEvent{"positions", 0});
             writer.Write(ArrayBeginEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
-            writer.Write(ValueEvent {"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
+            writer.Write(ValueEvent{"0.0"});
             writer.Write(TupleEndEvent{});
             writer.Write(ArrayEndEvent{});
 
@@ -211,38 +216,40 @@ lens.fov = 70
 
             QuelReader parser(out);
             for (auto&& parserEvent : parser.Parse()) {
-                std::visit([](auto x) {}, parserEvent);
-                std::visit(Overloaded {
-                    [](const SectionEvent& event) {
-                        QS_INFO("Section: {}", event.Name);
-                    },
-                    [](const ComponentEvent& event) {
-                        QS_INFO("Component: {}", event.Name);
-                    },
-                    [](const FieldEvent& event) {
-                        QS_INFO("Field: {}({})", event.Path, event.ID);
-                    },
-                    [](const ValueEvent& event) {
-                        QS_INFO("Value: {}", event.Text);
-                    },
-                    [](const TupleBeginEvent& _) {
-                        QS_INFO("Tuple Begin:");
-                    },
-                    [](const TupleEndEvent& _) {
-                        QS_INFO("Tuple End");
-                    },
-                    [](const ArrayBeginEvent& _) {
-                        QS_INFO("Array Start:");
-                    },
-                    [](const ArrayEndEvent& _) {
-                        QS_INFO("Array End");
-                    },
-                    [](const ParseError& error) {
-                        QS_INFO("Error Line {}: {}", error.Line, error.Message);
-                    }
+                std::visit([](auto x) {
                 }, parserEvent);
+                std::visit(Overloaded{
+                               [](const SectionEvent& event) {
+                                   QS_INFO("Section: {}", event.Name);
+                               },
+                               [](const ComponentEvent& event) {
+                                   QS_INFO("Component: {}", event.Name);
+                               },
+                               [](const FieldEvent& event) {
+                                   QS_INFO("Field: {}({})", event.Path, event.ID);
+                               },
+                               [](const ValueEvent& event) {
+                                   QS_INFO("Value: {}", event.Value);
+                               },
+                               [](const TupleBeginEvent& _) {
+                                   QS_INFO("Tuple Begin:");
+                               },
+                               [](const TupleEndEvent& _) {
+                                   QS_INFO("Tuple End");
+                               },
+                               [](const ArrayBeginEvent& _) {
+                                   QS_INFO("Array Start:");
+                               },
+                               [](const ArrayEndEvent& _) {
+                                   QS_INFO("Array End");
+                               },
+                               [](const ParseError& error) {
+                                   QS_INFO("Error Line {}: {}", error.Line, error.Message);
+                               }
+                           }, parserEvent);
             }
         }
+#endif
     }
 
     void EditorLayer::Tick(const float deltaTime) {
@@ -252,7 +259,7 @@ lens.fov = 70
     }
 
     void EditorLayer::ImGuiRender() {
-        if (ImGui::Begin("Camera")) {
+        /*if (ImGui::Begin("Camera")) {
             CRef<TransformComponent> transform = s_Camera.GetRef<TransformComponent>();
             CRef<CameraComponent> camera = s_Camera.GetRef<CameraComponent>();
             ImGui::DragFloat3("Position", glm::value_ptr(transform->Position));
@@ -261,7 +268,7 @@ lens.fov = 70
                 transform->Rotation = glm::radians(currentRot);
             }
         }
-        ImGui::End();
+        ImGui::End();*/
 
         static ImGuiDockNodeFlags dockspace_flags =
             ImGuiDockNodeFlags_NoSplit |
@@ -369,6 +376,69 @@ lens.fov = 70
         for (const auto& workspace : m_Workspaces) {
             workspace->OnImGuiRender(globalDockspaceID);
         }
+    }
+
+    void EditorLayer::OnScenePlay() {
+    }
+
+    void EditorLayer::UI_Toolbar() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+        const auto& colors = ImGui::GetStyle().Colors;
+        const ImVec4 hovered = colors[ImGuiCol_ButtonHovered];
+        const ImVec4 active = colors[ImGuiCol_ButtonActive];
+
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(hovered.x, hovered.y, hovered.z, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(active.x, active.y, active.z, 0.5f));
+
+        if (ImGui::Begin("##toolbar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
+                         | ImGuiWindowFlags_NoScrollWithMouse)) {
+            float size = ImGui::GetWindowHeight() - 4.0f;
+
+            Ref<Texture2D> icon = m_SceneState == SceneState::Edit
+                                      ? m_IconPlay
+                                      : m_IconStop;
+
+            ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x * 0.5f - size * 2.0f);
+            if (ImGui::ImageButton(icon, {size, size}, {0, 1}, {1, 0})) {
+                if (m_SceneState == SceneState::Edit) {
+                    //OnScenePlay();
+                }
+                else if (m_SceneState == SceneState::Play) {
+                    //OnSceneStop();
+                }
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::ImageButton(
+                m_IconPause,
+                {size, size},
+                {0, 1},
+                {1, 0},
+                m_ScenePaused ? ImVec4{0.5f, 0.5f, 0.5f, 1.0f} : ImVec4{0, 0, 0, 0}
+            )) {
+                m_ScenePaused = !m_ScenePaused;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::ImageButton(m_IconStep, {size, size}, {0, 1}, {1, 0})) {
+                if (!m_ScenePaused) {
+                    m_ScenePaused = true;
+                }
+
+                m_SceneStep = true;
+            }
+
+            ImGui::End();
+        }
+        else ImGui::End();
+
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(3);
     }
 
     void EditorLayer::OnEvent(Event& event) {

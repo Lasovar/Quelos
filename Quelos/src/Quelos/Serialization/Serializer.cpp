@@ -76,10 +76,7 @@ namespace Quelos::Serialization {
                         co_return;
                     }
 
-                    co_yield FieldEvent {
-                        key.Text,
-                        Utils::GetPathID(key.Text)
-                    };
+                    co_yield FieldEvent { key.Text };
 
                     for (auto&& parseEvent : ParseValue()) {
                         co_yield parseEvent;
@@ -109,7 +106,7 @@ namespace Quelos::Serialization {
                     co_return;
                 }
 
-                co_yield FieldEvent { token.Text, Utils::GetPathID(token.Text) };
+                co_yield FieldEvent { token.Text };
 
                 for (auto&& parserEvent : ParseValue()) {
                     co_yield parserEvent;
@@ -191,6 +188,139 @@ namespace Quelos::Serialization {
         }
 
         co_yield ParseError{token.Line, std::format("Invalid value: {}", token.Text)};
+    }
+
+    void QuelWriter::WriteValue(const uint32_t value) {
+        Write(ValueEvent{static_cast<uint64_t>(value)});
+    }
+
+    void QuelWriter::WriteValue(uint64_t value) {
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteValue(const int32_t value) {
+        Write(ValueEvent{static_cast<int64_t>(value)});
+    }
+
+    void QuelWriter::WriteValue(int64_t value) {
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteValue(float value) {
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteValue(double value) {
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteValue(glm::vec2 value) {
+        Write(TupleBeginEvent{});
+        Write(ValueEvent{value.x});
+        Write(ValueEvent{value.y});
+        Write(TupleEndEvent{});
+    }
+
+    void QuelWriter::WriteValue(glm::vec3 value) {
+        Write(TupleBeginEvent{});
+        Write(ValueEvent{value.x});
+        Write(ValueEvent{value.y});
+        Write(ValueEvent{value.z});
+        Write(TupleEndEvent{});
+    }
+
+    void QuelWriter::WriteValue(glm::vec4 value) {
+        Write(TupleBeginEvent{});
+        Write(ValueEvent{value.x});
+        Write(ValueEvent{value.y});
+        Write(ValueEvent{value.z});
+        Write(ValueEvent{value.w});
+        Write(TupleEndEvent{});
+    }
+
+    void QuelWriter::WriteValue(glm::quat value) {
+        Write(TupleBeginEvent{});
+        Write(ValueEvent{value.w});
+        Write(ValueEvent{value.x});
+        Write(ValueEvent{value.y});
+        Write(ValueEvent{value.z});
+        Write(TupleEndEvent{});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, std::string_view value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, bool value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, int64_t value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, uint64_t value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const uint32_t value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{static_cast<uint64_t>(value)});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, float value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, double value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const glm::vec2 value) {
+        Write(FieldEvent{field});
+        WriteValue(value);
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const glm::vec3 value) {
+        Write(FieldEvent{field});
+        WriteValue(value);
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const glm::quat value) {
+        Write(FieldEvent{field});
+        WriteValue(value);
+    }
+
+    void QuelWriter::BeginTupleField(std::string_view name) {
+        Write(FieldEvent{name});
+        BeginTuple();
+    }
+
+    void QuelWriter::BeginTuple() {
+        Write(TupleBeginEvent{});
+    }
+
+    void QuelWriter::EndTuple() {
+        Write(TupleEndEvent{});
+    }
+
+    void QuelWriter::BeginArrayField(const std::string_view name) {
+        Write(FieldEvent{name});
+        BeginArray();
+    }
+
+    void QuelWriter::BeginArray() {
+        Write(ArrayBeginEvent{});
+    }
+
+    void QuelWriter::EndArray() {
+        Write(ArrayEndEvent{});
     }
 
     void StringQuelWriter::WriteEscaped(const std::string_view text) const {
@@ -295,7 +425,17 @@ namespace Quelos::Serialization {
                     WriteIndent();
                 }
 
-                WriteEscaped(e.Text);
+                std::visit([this]<typename TValue>(TValue&& value) {
+                    if constexpr (std::is_arithmetic_v<TValue> && !std::is_same_v<TValue, bool>) {
+                        AppendNumber(value);
+                    }
+                    else if constexpr (std::is_same_v<TValue, bool>) {
+                        m_Out += (value ? "true" : "false");
+                    }
+                    else if constexpr (std::is_same_v<TValue, std::string_view>) {
+                        WriteEscaped(value);
+                    }
+                }, e.Value);
 
                 if (m_InArray || m_InTuple) {
                     m_Out.push_back(',');
