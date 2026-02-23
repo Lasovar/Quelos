@@ -13,6 +13,7 @@
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
 #include "Quelos/Serialization/SceneBinarySerializer.h"
+#include "Quelos/Serialization/SceneQuelSerializer.h"
 
 #include "Quelos/Serialization/Serializer.h"
 
@@ -64,7 +65,16 @@ namespace Quelos {
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
-        Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
+        //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
+
+        /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
+            cameraComponent.Camera.SetOrthographic(15, -100, 100);
+        });*/
+
+        Serialization::SceneQuelSerializer serializer;
+        serializer.Deserialize(m_DefaultScene, "Assets/TestScene.txt");
+
+        Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
         /*s_Camera = m_DefaultScene->CreateEntity("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
@@ -111,145 +121,6 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
-
-        // Quel testing
-#if 0
-        {
-            using namespace Serialization;
-
-            std::string save = R"(
-[entity guid=7BB49C9FCBEBA782 name="\"Player Controller\""]
-@Transform
-position = (0,0,0)
-rotation = (0,0,0,1)
-
-@Waypoints
-positions = {
-  (1,0,0),
-  (0,1,0),
-  (0,0,1),
-}
-
-@Attack
-attack.force.direction = (0,1,0)
-attack.force.power = 15
-
-[entity guid=267AB7E7E5700A72 name=Camera]
-parent = 7BB49C9FCBEBA782
-
-@Transform
-position = (0,0,10)
-rotation = (0,0,0,1)
-
-@Camera
-lens.fov = 70
-)";
-
-            std::string out("\n");
-            StringQuelWriter writer(out);
-            writer.SetIndent(2);
-            //writer.SetFormatting(QuelFormatting::None);
-            writer.Write(SectionEvent{"entity"});
-            writer.Write(FieldEvent{"guid", 0});
-            writer.Write(ValueEvent{"267AB7E7E5700A72"});
-            writer.Write(FieldEvent{"name", 0});
-            writer.Write(ValueEvent{"Player"});
-            writer.Write(FieldEvent{"position", 0});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(FieldEvent{"positions", 0});
-            writer.Write(ArrayBeginEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(ArrayEndEvent{});
-            writer.Write(ComponentEvent{"Transform"});
-            writer.Write(FieldEvent{"position", 0});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(FieldEvent{"rotation", 0});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(ComponentEvent{"Waypoints"});
-            writer.Write(FieldEvent{"positions", 0});
-            writer.Write(ArrayBeginEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(TupleBeginEvent{});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(ValueEvent{"0.0"});
-            writer.Write(TupleEndEvent{});
-            writer.Write(ArrayEndEvent{});
-
-            QS_INFO("{}", out);
-
-            QuelReader parser(out);
-            for (auto&& parserEvent : parser.Parse()) {
-                std::visit([](auto x) {
-                }, parserEvent);
-                std::visit(Overloaded{
-                               [](const SectionEvent& event) {
-                                   QS_INFO("Section: {}", event.Name);
-                               },
-                               [](const ComponentEvent& event) {
-                                   QS_INFO("Component: {}", event.Name);
-                               },
-                               [](const FieldEvent& event) {
-                                   QS_INFO("Field: {}({})", event.Path, event.ID);
-                               },
-                               [](const ValueEvent& event) {
-                                   QS_INFO("Value: {}", event.Value);
-                               },
-                               [](const TupleBeginEvent& _) {
-                                   QS_INFO("Tuple Begin:");
-                               },
-                               [](const TupleEndEvent& _) {
-                                   QS_INFO("Tuple End");
-                               },
-                               [](const ArrayBeginEvent& _) {
-                                   QS_INFO("Array Start:");
-                               },
-                               [](const ArrayEndEvent& _) {
-                                   QS_INFO("Array End");
-                               },
-                               [](const ParseError& error) {
-                                   QS_INFO("Error Line {}: {}", error.Line, error.Message);
-                               }
-                           }, parserEvent);
-            }
-        }
-#endif
     }
 
     void EditorLayer::Tick(const float deltaTime) {

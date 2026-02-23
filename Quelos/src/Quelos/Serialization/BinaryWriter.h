@@ -84,7 +84,13 @@ namespace Quelos::Serialization {
 
         template <typename T>
         void Value(T& value) {
-            m_Writer.Write(value);
+            if constexpr (std::is_enum_v<T>) {
+                using Underlying = std::underlying_type_t<T>;
+                m_Writer.Write(static_cast<Underlying>(value));
+            }
+            else {
+                m_Writer.Write(value);
+            }
         }
 
         // Archive API... not needed for binary
@@ -122,9 +128,21 @@ namespace Quelos::Serialization {
 
         template <typename T>
         void Value(T& value) {
-            std::optional<T> result = m_Reader.Read<T>();
-            if (result.has_value()) {
-                value = std::move(*result);
+            if constexpr (std::is_enum_v<T>) {
+                using Underlying = std::underlying_type_t<T>;
+
+                auto raw = m_Reader.Read<Underlying>();
+                if (!raw.has_value()) {
+                    return;
+                }
+
+                value = static_cast<T>(*raw);
+            }
+            else {
+                std::optional<T> result = m_Reader.Read<T>();
+                if (result.has_value()) {
+                    value = std::move(*result);
+                }
             }
         }
 

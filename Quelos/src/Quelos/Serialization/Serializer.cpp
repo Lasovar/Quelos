@@ -101,8 +101,8 @@ namespace Quelos::Serialization {
             }
             // Field
             else if (token.Type == TokenType::Identifier) {
-                if (m_Lexer.Next().Type != TokenType::Equals) {
-                    co_yield ParseError{token.Line, "Expected '=' after key"};
+                if (Token next = m_Lexer.Next(); next.Type != TokenType::Equals) {
+                    co_yield ParseError{next.Line, std::format("Expected '=' after key, found '{}'", std::string(next.Text))};
                     co_return;
                 }
 
@@ -380,6 +380,7 @@ namespace Quelos::Serialization {
         if (m_InSectionHeader) {
             m_Out.push_back(']');
             NewLine();
+
             m_InSectionHeader = false;
         }
     }
@@ -395,13 +396,28 @@ namespace Quelos::Serialization {
     void StringQuelWriter::Write(const ParserEvent& parserEvent) {
             std::visit(Overloaded {
             [&](const SectionEvent& e) {
+                CloseSectionHeader();
+
+                if (!m_IsFirstSection) {
+                    NewLine();
+                } else {
+                    m_IsFirstSection = false;
+                }
+
                 m_Out.push_back('[');
                 m_Out.append(e.Name);
 
                 m_InSectionHeader = true;
+                m_IsFirstComponent = true;
             },
             [&](const ComponentEvent& e) {
                 CloseSectionHeader();
+
+                if (!m_IsFirstComponent) {
+                    NewLine();
+                } else {
+                    m_IsFirstComponent = false;
+                }
 
                 m_Out.push_back('@');
                 m_Out.append(e.Name);
@@ -426,14 +442,15 @@ namespace Quelos::Serialization {
                 }
 
                 std::visit([this]<typename TValue>(TValue&& value) {
-                    if constexpr (std::is_arithmetic_v<TValue> && !std::is_same_v<TValue, bool>) {
-                        AppendNumber(value);
+                    using T = std::decay_t<TValue>;
+                    if constexpr (std::is_same_v<T, bool>) {
+                        m_Out += value ? "true" : "false";
                     }
-                    else if constexpr (std::is_same_v<TValue, bool>) {
-                        m_Out += (value ? "true" : "false");
-                    }
-                    else if constexpr (std::is_same_v<TValue, std::string_view>) {
+                    else if constexpr (std::is_same_v<T, std::string_view>) {
                         WriteEscaped(value);
+                    }
+                    else if constexpr (std::is_arithmetic_v<T>) {
+                        AppendNumber(value);
                     }
                 }, e.Value);
 

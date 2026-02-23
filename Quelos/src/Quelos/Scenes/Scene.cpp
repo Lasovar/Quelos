@@ -37,26 +37,38 @@ namespace Quelos {
     }
 
     void Scene::Render(uint32_t viewId) const {
-        uint32_t count = 0;
-        m_World.each([viewId, &count](const TransformComponent& transform, const MeshComponent& mesh) {
+        m_World.each([viewId](const TransformComponent& transform, const MeshComponent& mesh) {
             Renderer::SubmitMesh(viewId, mesh, transform);
-            QS_CORE_INFO("{}, {}, {}", transform.Position.x, transform.Position.y, transform.Position.z);
-            count++;
         });
-
-        QS_CORE_INFO("{}", count);
     }
 
     void Scene::EndRender() const {
     }
 
-    Entity Scene::CreateEntity(const std::string& entityName) {
+    Entity Scene::CreateEntity(const std::string_view entityName) {
         const EntityID guid = EntityID::Generate();
         return CreateEntity(guid, entityName);
     }
 
-    Entity Scene::CreateEntity(const EntityID& guid, const std::string& entityName) {
-        const Entity entity(m_World.entity().set_name(entityName.c_str()).set(RuntimeTag(guid)));
+    inline void SetNameFromView(flecs::entity e, std::string_view view) {
+        constexpr size_t MaxStack = 32;
+
+        if (view.size() < MaxStack) {
+            char buffer[MaxStack];
+            std::memcpy(buffer, view.data(), view.size());
+            buffer[view.size()] = '\0';
+            e.set_name(buffer);
+        }
+        else {
+            const std::string temp(view);
+            e.set_name(temp.c_str());
+        }
+    }
+
+    Entity Scene::CreateEntity(const EntityID& guid, const std::string_view entityName) {
+        const flecs::entity entityId = m_World.entity().set(RuntimeTag(guid));
+        SetNameFromView(entityId, entityName);
+        const Entity entity(entityId);
         m_EntityMap[guid] = entity;
         return entity;
     }

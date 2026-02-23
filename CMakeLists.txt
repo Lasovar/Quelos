@@ -41,6 +41,7 @@ add_subdirectory(Quelos/vendor/glm)
 add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)
+add_subdirectory(Quelos/vendor/magic_enum)
 
 if (MSVC)
     add_compile_options(

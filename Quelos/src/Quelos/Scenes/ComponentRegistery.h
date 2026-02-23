@@ -23,6 +23,7 @@ namespace Quelos {
     struct SerializableComponentInfo {
         ecs_id_t RuntimeID{};
         ComponentID Guid{};
+        std::string Name;
 
         // serialization callbacks
         std::function<void(Serialization::BinaryWriteArchive& archive, void* data)> SerializeBinaryWriteFunc = nullptr;
@@ -137,6 +138,7 @@ namespace Quelos {
                 SerializableComponentInfo serializableInfo;
                 serializableInfo.Guid = componentId;
                 serializableInfo.RuntimeID = info.RuntimeID;
+                serializableInfo.Name = TypeName<TComponent>();
 
                 serializableInfo.SerializeBinaryWriteFunc = [](Serialization::BinaryWriteArchive& bArchive, void* data) {
                     TComponent::Serialize(bArchive, *static_cast<TComponent*>(data));

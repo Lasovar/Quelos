@@ -40,7 +40,7 @@ namespace Quelos {
         return value;
     }
 
-    GUID64::GUID64(const std::string& guidString) {
+    GUID64::GUID64(std::string_view guidString) {
         const std::variant<uint64_t, std::errc> guidResult = TryParseGuid64(guidString);
         if (std::holds_alternative<std::errc>(guidResult)) {
             QS_CORE_ERROR_TAG(

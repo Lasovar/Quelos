@@ -26,7 +26,7 @@ namespace Quelos::Serialization {
         while (len < m_Input.size()) {
             char c = m_Input[len];
 
-            if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '.') {
+            if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '.' || c == ':' || c == '-') {
                 len++;
             }
             else {
@@ -61,7 +61,7 @@ namespace Quelos::Serialization {
         }
 
         if (i >= m_Input.size()) {
-            return {TokenType::Error, {}, m_Line};
+            return {TokenType::Error, {""}, m_Line};
         }
 
         std::string_view raw = m_Input.substr(0, i);
@@ -142,7 +142,7 @@ namespace Quelos::Serialization {
         }
 
         // identifier
-        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-') {
             return ReadIdentifier();
         }
 
