@@ -66,9 +66,10 @@ namespace Quelos {
 		void EndRender() const;
 
 		const std::string& GetName() const { return m_Name; }
+		void SetName(const std::string_view& name) { m_Name = name; }
 
-		Entity CreateEntity(const std::string& entityName);
-		Entity CreateEntity(const EntityID& guid, const std::string& entityName);
+		Entity CreateEntity(std::string_view entityName);
+		Entity CreateEntity(const EntityID& guid, std::string_view entityName);
 
 		void OnViewportResized(glm::vec2 viewportSize) const;
 

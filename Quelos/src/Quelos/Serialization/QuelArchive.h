@@ -4,18 +4,43 @@
 #include <variant>
 
 #include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
+
+#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/magic_enum_flags.hpp>
 
 #include "Quelos/Serialization/Serializer.h"
+
+namespace Quelos::Serialization {
+    class QuelReadArchive;
+    class QuelWriteArchive;
+}
+
+template <typename TComponent, typename TArchive>
+concept SerializableWith = requires(TArchive& archive, TComponent& component) {
+    TComponent::Serialize(archive, component);
+};
+
+template <typename T>
+constexpr bool IsSerializable = SerializableWith<T, Quelos::Serialization::BinaryWriteArchive>
+    && SerializableWith<T, Quelos::Serialization::BinaryReadArchive>
+    && SerializableWith<T, Quelos::Serialization::QuelWriteArchive>
+    && SerializableWith<T, Quelos::Serialization::QuelReadArchive>;
+
+template <typename T>
+concept TupleLike = requires(T t) {
+    t[0];
+};
 
 namespace Quelos::Serialization {
     struct TextArchiveValue;
 
     struct TupleValue {
-        std::vector<TextArchiveValue> Elements;
+        std::vector<size_t> Elements;
     };
 
     struct ArrayValue {
-        std::vector<TextArchiveValue> Elements;
+        std::vector<size_t> Elements;
     };
 
     struct TextArchiveValue {
@@ -75,7 +100,7 @@ namespace Quelos::Serialization {
         }
 
         void BeginTupleField(const std::string_view name) const {
-            m_Writer.Write(FieldEvent{name});
+            m_Writer.Write(FieldEvent{ name });
             BeginTuple();
         }
 
@@ -86,7 +111,17 @@ namespace Quelos::Serialization {
     private:
         template <typename T>
         void WriteValue(std::string_view name, T& value) {
-            if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
+            if constexpr (std::is_enum_v<T>) {
+                if constexpr (magic_enum::detail::has_is_flags<T>::value) {
+                    auto enumName = magic_enum::enum_flags_name(value);
+                    m_Writer.WriteField(name, std::string_view{ enumName });
+                }
+                else {
+                    auto enumName = magic_enum::enum_name(value);
+                    m_Writer.WriteField(name, std::string_view{ enumName });
+                }
+            }
+            else if constexpr (std::is_arithmetic_v<T>) {
                 m_Writer.WriteField(name, value);
             }
             else if constexpr (std::is_same_v<T, std::string>) {
@@ -142,10 +177,10 @@ namespace Quelos::Serialization {
 
         void WriteComplex(const std::string_view name, const glm::quat& q) const {
             m_Writer.BeginTupleField(name);
+            m_Writer.WriteValue(q.w);
             m_Writer.WriteValue(q.x);
             m_Writer.WriteValue(q.y);
             m_Writer.WriteValue(q.z);
-            m_Writer.WriteValue(q.w);
             m_Writer.EndTuple();
         }
 
@@ -154,7 +189,8 @@ namespace Quelos::Serialization {
             if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
                 if constexpr (std::is_unsigned_v<T>) {
                     m_Writer.WriteValue(static_cast<uint64_t>(value));
-                } else {
+                }
+                else {
                     m_Writer.WriteValue(static_cast<int64_t>(value));
                 }
             }
@@ -192,17 +228,26 @@ namespace Quelos::Serialization {
         static constexpr bool IsSaving = false;
 
     public:
-        explicit QuelReadArchive(QuelReader& reader) : m_Reader(reader) {
-        }
+        explicit QuelReadArchive(
+            const std::vector<std::pair<std::string_view, size_t>>& fields,
+            const std::vector<TextArchiveValue>& valuePool
+        )
+            : m_Fields(fields), m_Pool(valuePool) { }
 
         template <typename T>
         void Field(const std::string& name, T& value) {
-            const auto it = m_FieldMap.find(name);
-            if (it == m_FieldMap.end()) {
+            auto it = std::find_if(
+                m_Fields.begin(),
+                m_Fields.end(),
+                [&](const auto& pair) { return pair.first == name; }
+            );
+
+            if (it == m_Fields.end()) {
                 return;
             }
 
-            TryConvert(it->second, value);
+            const TextArchiveValue& val = m_Pool[it->second];
+            TryConvert(val, value);
         }
 
         template <typename T>
@@ -212,7 +257,7 @@ namespace Quelos::Serialization {
 
         template <typename T>
         void Value(T& value) {
-            TryConvert(m_CurrentTuple->Elements[m_TupleIndex++], value);
+            TryConvert(m_Pool[m_CurrentTuple->Elements[m_TupleIndex++]], value);
         }
 
         static void BeginTuple() { }
@@ -222,7 +267,34 @@ namespace Quelos::Serialization {
     private:
         template <typename T>
         bool TryConvert(const TextArchiveValue& src, T& out) {
-            if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
+            if constexpr (std::is_enum_v<T>) {
+                if (!src.IsScalar()) {
+                    return false;
+                }
+
+                const auto& scalar = src.AsScalar();
+
+                if (const auto str = std::get_if<std::string_view>(&scalar)) {
+                    if constexpr (magic_enum::detail::has_is_flags<T>::value) {
+                        auto result = magic_enum::enum_flags_cast<T>(*str);
+                        if (result) {
+                            out = result.value();
+                            return true;
+                        }
+                    }
+                    else {
+                        auto result = magic_enum::enum_cast<T>(*str);
+                        if (result) {
+                            out = result.value();
+                            return true;
+                        }
+                    }
+                }
+
+                QS_CORE_ERROR_TAG("Serialization", "Invalid enum value");
+                return false;
+            }
+            else if constexpr (std::is_arithmetic_v<T>) {
                 if (!src.IsScalar()) {
                     QS_CORE_ERROR_TAG("Serialization", "Expected scalar");
                     return false;
@@ -234,6 +306,7 @@ namespace Quelos::Serialization {
                     return true;
                 }
 
+                QS_CORE_ERROR_TAG("Serialization", "Couldn't convert scalar");
                 return false;
             }
             else if constexpr (std::is_same_v<T, std::string>) {
@@ -279,17 +352,36 @@ namespace Quelos::Serialization {
 
         template <typename T>
         std::optional<T> ConvertScalar(const ValueEvent::ValueType& v) {
-            return std::visit([]<typename TValue>(TValue&& value) -> std::optional<T> {
-                if constexpr (std::is_arithmetic_v<TValue> && std::is_arithmetic_v<T>) {
-                    return static_cast<T>(value);
-                }
-                else if constexpr (std::is_enum_v<T> && std::is_arithmetic_v<TValue>) {
-                    return static_cast<T>(value);
-                }
-                else {
-                    return std::nullopt;
-                }
-            }, v);
+            return std::visit(
+                []<typename TValue>(TValue&& value) -> std::optional<T> {
+                    using V = std::decay_t<TValue>;
+
+                    if constexpr (std::is_arithmetic_v<V> && std::is_arithmetic_v<T>) {
+                        return static_cast<T>(value);
+                    }
+                    else if constexpr (std::is_enum_v<T> && std::is_arithmetic_v<V>) {
+                        return static_cast<T>(value);
+                    }
+                    else if constexpr (std::is_same_v<V, std::string_view> && std::is_arithmetic_v<T>) {
+                        T result{};
+                        auto [ptr, ec] = std::from_chars(
+                            value.data(),
+                            value.data() + value.size(),
+                            result
+                        );
+
+                        if (ec == std::errc()) {
+                            return result;
+                        }
+
+                        return std::nullopt;
+                    }
+                    else {
+                        return std::nullopt;
+                    }
+                },
+                v
+            );
         }
 
         template <TupleLike T>
@@ -307,7 +399,8 @@ namespace Quelos::Serialization {
             }
 
             for (size_t i = 0; i < expectedSize; ++i) {
-                if (!TryConvert(elems[i], out[i])) {
+                if (!TryConvert(m_Pool[elems[i]], out[i])) {
+                    QS_CORE_ERROR_TAG("Serialization", "Couldn't deserialize a tuple value");
                     return false;
                 }
             }
@@ -345,7 +438,8 @@ namespace Quelos::Serialization {
 
             for (const auto& elem : elems) {
                 T value{};
-                if (!TryConvert(elem, value)) {
+                if (!TryConvert(m_Pool[elem], value)) {
+                    QS_CORE_ERROR_TAG("Serialization", "Couldn't deserialize an array value");
                     return false;
                 }
 
@@ -356,8 +450,8 @@ namespace Quelos::Serialization {
         }
 
     private:
-        QuelReader& m_Reader;
-        std::unordered_map<std::string, TextArchiveValue> m_FieldMap;
+        const std::vector<std::pair<std::string_view, size_t>>& m_Fields;
+        const std::vector<TextArchiveValue>& m_Pool;
 
         const TupleValue* m_CurrentTuple = nullptr;
         uint32_t m_TupleIndex = 0;

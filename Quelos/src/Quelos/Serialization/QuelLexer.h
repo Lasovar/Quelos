@@ -49,6 +49,8 @@ namespace Quelos::Serialization {
 
     class QuelLexer {
     public:
+        QuelLexer() = default;
+
         explicit QuelLexer(const std::string_view input)
             : m_Input(input) { }
 

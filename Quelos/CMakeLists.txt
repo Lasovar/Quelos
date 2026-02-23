@@ -41,6 +41,7 @@ target_link_libraries(Quelos
         flecs_static
         glm
         spdlog
+        magic_enum
 )
 
 set_target_properties(Quelos PROPERTIES

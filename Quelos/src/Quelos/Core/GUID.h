@@ -8,7 +8,7 @@ namespace Quelos {
         GUID64() = default;
         GUID64(const GUID64& other) = default;
         constexpr explicit GUID64(const uint64_t guid) : m_GUID(guid) {}
-        explicit GUID64(const std::string& guidString);
+        explicit GUID64(std::string_view guidString);
 
         [[nodiscard]] bool IsValid() const noexcept { return m_GUID != 0; }
 

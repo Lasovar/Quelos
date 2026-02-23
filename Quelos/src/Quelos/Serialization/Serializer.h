@@ -9,28 +9,6 @@
 #include "Quelos/Utility/Generator.h"
 
 namespace Quelos::Serialization {
-    class QuelReadArchive;
-    class QuelWriteArchive;
-}
-
-template <typename TComponent, typename TArchive>
-concept SerializableWith = requires(TArchive& archive, TComponent& component) {
-    TComponent::Serialize(archive, component);
-};
-
-template <typename T>
-constexpr bool IsSerializable = SerializableWith<T, Quelos::Serialization::BinaryWriteArchive>
-                                    && SerializableWith<T, Quelos::Serialization::BinaryReadArchive>
-                                    && SerializableWith<T, Quelos::Serialization::QuelWriteArchive>
-                                    && SerializableWith<T, Quelos::Serialization::QuelReadArchive>;
-
-template <typename T>
-concept TupleLike = requires(T t) {
-    t[0];
-};
-
-namespace Quelos::Serialization {
-    // Document
     using PathID = uint64_t;
 
     struct FieldEvent {
@@ -39,8 +17,7 @@ namespace Quelos::Serialization {
         FieldEvent() = default;
 
         explicit FieldEvent(const std::string_view& path)
-            : Path(path) {
-        }
+            : Path(path) { }
     };
 
     struct ValueEvent {
@@ -71,17 +48,10 @@ namespace Quelos::Serialization {
         std::string Message;
     };
 
-    struct TupleBeginEvent {
-    };
-
-    struct TupleEndEvent {
-    };
-
-    struct ArrayBeginEvent {
-    };
-
-    struct ArrayEndEvent {
-    };
+    struct TupleBeginEvent { };
+    struct TupleEndEvent { };
+    struct ArrayBeginEvent { };
+    struct ArrayEndEvent { };
 
     using ParserEvent = std::variant<
         SectionEvent,
@@ -99,11 +69,10 @@ namespace Quelos::Serialization {
 
     class QuelReader {
     public:
-        QuelReader() = delete;
+        QuelReader() = default;
 
         explicit QuelReader(const std::string_view input)
-            : m_Lexer(input) {
-        }
+            : m_Lexer(input) { }
 
         Generator<ParserEvent> Parse();
 
@@ -164,8 +133,7 @@ namespace Quelos::Serialization {
     public:
         StringQuelWriter() = delete;
 
-        explicit StringQuelWriter(std::string& out) : m_Out(out) {
-        }
+        explicit StringQuelWriter(std::string& out) : m_Out(out) { }
 
         void Write(const ParserEvent& parserEvent) override;
 
@@ -199,6 +167,8 @@ namespace Quelos::Serialization {
 
         bool m_AtLineStart = true;
         bool m_InSectionHeader = false;
+        bool m_IsFirstSection = true;
+        bool m_IsFirstComponent = true;
         bool m_InArray = false;
         bool m_InTuple = false;
     };

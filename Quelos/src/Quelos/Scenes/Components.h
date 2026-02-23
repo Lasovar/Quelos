@@ -39,7 +39,36 @@ namespace Quelos {
         SceneCamera Camera;
 
         template <typename TArchive>
-        static void Serialize(TArchive& writer, CameraComponent& data) { }
+        static void Serialize(TArchive& archive, CameraComponent& data) {
+            SceneCamera::ProjectionType projectionType = data.Camera.GetProjectionType();
+            float persFov = data.Camera.GetPerspectiveVerticalFOV();
+            float persNear = data.Camera.GetPerspectiveNearClip();
+            float persFar = data.Camera.GetPerspectiveFarClip();
+            float orthoSize = data.Camera.GetOrthographicSize();
+            float orthoNear = data.Camera.GetOrthographicNearClip();
+            float orthoFar = data.Camera.GetOrthographicFarClip();
+
+            archive.Field("projection", projectionType);
+            archive.Field("lens.fov", persFov);
+            archive.Field("lens.near", persNear);
+            archive.Field("lens.far", persFar);
+
+            archive.Field("ortho.size", orthoSize);
+            archive.Field("ortho.near", orthoNear);
+            archive.Field("ortho.far", orthoFar);
+
+            if constexpr (TArchive::IsLoading) {
+                data.Camera.SetProjectionType(projectionType);
+                data.Camera.SetPerspectiveVerticalFOV(persFov);
+                data.Camera.SetPerspectiveNearClip(persNear);
+                data.Camera.SetPerspectiveFarClip(persFar);
+                data.Camera.SetOrthographicSize(orthoSize);
+                data.Camera.SetOrthographicNearClip(orthoNear);
+                data.Camera.SetOrthographicFarClip(orthoFar);
+
+                data.Camera.RecalculateProjection();
+            }
+        }
     };
 
     struct MeshComponent {
@@ -54,7 +83,8 @@ namespace Quelos {
 
                 archive.FieldVector("vertices", vertices);
                 archive.FieldVector("indices", indices);
-            } else {
+            }
+            else {
                 std::vector<PosColorVertex> vertices;
                 archive.FieldVector("vertices", vertices);
 
@@ -68,8 +98,7 @@ namespace Quelos {
     };
 
     template <typename... Component>
-    struct ComponentGroup {
-    };
+    struct ComponentGroup { };
 
     using AllComponents = ComponentGroup<TransformComponent, CameraComponent, MeshComponent>;
 }
