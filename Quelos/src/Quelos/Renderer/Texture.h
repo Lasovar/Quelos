@@ -66,7 +66,7 @@ namespace Quelos {
 
     class Texture : Asset {
     public:
-        ~Texture() override = default;
+        virtual ~Texture() = default;
 
         virtual ImageFormat GetFormat() const = 0;
         virtual uint32_t GetWidth() const = 0;

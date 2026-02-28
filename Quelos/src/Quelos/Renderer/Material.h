@@ -3,11 +3,11 @@
 namespace Quelos {
     class Shader;
 
-    class Material : public RefCounted {
+    class Material {
     public:
         explicit Material(const Ref<Shader>& shader);
 
-        Ref<Shader> GetShader() const;
+        [[nodiscard]] Ref<Shader> GetShader() const;
 
     private:
         Ref<Shader> m_Shader;

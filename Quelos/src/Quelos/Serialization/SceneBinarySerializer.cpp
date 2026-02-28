@@ -17,7 +17,7 @@ namespace Quelos::Serialization {
         }
 
         const size_t fileSize = file.tellg();
-        std::vector<std::byte> buffer(fileSize);
+        Vec<byte> buffer(fileSize);
 
         file.seekg(0);
         file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
@@ -94,15 +94,27 @@ namespace Quelos::Serialization {
             idLookup[typeBuffer.RuntimeID] = typeBuffer;
         }
 
-        auto q = world.query_builder<RuntimeTag>()
-                      .build();
+        auto guidLookup = world.query_builder<RuntimeTag>().build();
+        Vec<Pair<EntityID, flecs::entity>> entities;
+        entities.reserve(guidLookup.count());
 
-        q.each([&](const flecs::entity entity, const RuntimeTag&) {
+        guidLookup.each([&entities](const flecs::entity entity, const RuntimeTag& tag) {
+            entities.emplace_back(tag.ID, entity);
+        });
+
+        std::ranges::sort(
+            entities,
+            [](const Pair<EntityID, flecs::entity>& a, const Pair<EntityID, flecs::entity>& b) {
+                return a.first < b.first;
+            }
+        );
+
+        for (auto& [guid, entity] : entities) {
             const ecs_entity_t entityId = entity.id();
 
-            finalWriter.Write(entity.get<RuntimeTag>().ID);
+            finalWriter.Write(guid);
             const flecs::string_view name = entity.name();
-            const uint32_t len = static_cast<uint32_t>(name.size());
+            const auto len = static_cast<uint32_t>(name.size());
             finalWriter.Write(len);
             finalWriter.WriteBytes(
                 std::as_bytes(std::span(name.c_str(), name.size()))
@@ -141,7 +153,7 @@ namespace Quelos::Serialization {
 
             finalWriter.Write(componentCount);
             finalWriter.WriteBytes(entityComponentsBuffer);
-        });
+        }
 
         // Disk write
         std::ofstream file(path, std::ios::binary);

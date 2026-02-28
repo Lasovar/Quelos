@@ -2,11 +2,11 @@
 
 #include "bgfx/bgfx.h"
 
+import Quelos.Math;
+
 namespace Quelos {
     SceneCamera::SceneCamera() { RecalculateProjection(); }
-
-    SceneCamera::~SceneCamera() {
-    }
+    SceneCamera::~SceneCamera() = default;
 
     void SceneCamera::SetPerspective(const float verticalFov, const float nearClip, const float farClip) {
         m_ProjectionType = ProjectionType::Perspective;

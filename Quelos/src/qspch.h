@@ -12,6 +12,7 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <flat_map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -29,6 +30,10 @@
 #include <optional>
 #include <variant>
 
+using namespace std::literals::string_literals;
+using namespace std::literals::string_view_literals;
+using namespace std::literals::chrono_literals;
+
 #include <glm/glm.hpp>
 
 // Quelos
@@ -37,5 +42,3 @@
 #include <Quelos/Core/Ref.h>
 #include <Quelos/Core/Log.h>
 #include <Quelos/Core/GUID.h>
-#include <Quelos/Math/Math.h>
-

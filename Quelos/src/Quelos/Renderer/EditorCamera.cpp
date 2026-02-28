@@ -3,11 +3,12 @@
 
 #include "Quelos/Core/Events/InputEvents.h"
 
-#include "Quelos/Math/Math.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include "Quelos/Core/Application.h"
+
+import Quelos.Math;
 
 namespace Quelos {
     EditorCamera::EditorCamera(const float fov, const float aspectRatio, const float nearClip, const float farClip)

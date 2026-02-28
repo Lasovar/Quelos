@@ -20,9 +20,9 @@ namespace Quelos {
 		Locked
 	};
 
-	class Window : public RefCounted {
+	class Window : public RefCounted<Window> {
 	public:
-		~Window() override = default;
+		virtual ~Window() = default;
 
 		virtual void Init() = 0;
 		virtual void Shutdown() = 0;

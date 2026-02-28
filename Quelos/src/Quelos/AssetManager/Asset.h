@@ -20,7 +20,7 @@ namespace Quelos {
         Other
     };
 
-    class Asset : RefCounted {
+    class Asset : RefCounted<Asset> {
     public:
         AssetHandle GetHandle() const { return Handle; }
 

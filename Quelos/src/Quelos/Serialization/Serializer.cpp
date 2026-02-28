@@ -3,6 +3,8 @@
 
 #include "xxhash.h"
 
+import Quelos.Math;
+
 namespace Quelos::Serialization {
     namespace Utils {
         inline PathID GetPathID(const std::string_view path) {
