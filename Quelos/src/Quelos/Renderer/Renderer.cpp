@@ -15,7 +15,8 @@
 
 #include "Quelos/Core/Application.h"
 #include "Quelos/Core/Events/WindowEvents.h"
-#include "Quelos/Math/Math.h"
+
+import Quelos.Math;
 
 namespace Quelos {
     static Ref<Window> s_Window;

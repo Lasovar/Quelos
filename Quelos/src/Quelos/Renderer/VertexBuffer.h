@@ -16,12 +16,12 @@ namespace Quelos {
 		}
 	};
 
-	class VertexBuffer : public RefCounted {
+	class VertexBuffer {
 	public:
-		virtual void Bind(uint32_t stream) const = 0;
+		virtual ~VertexBuffer() = default;
 
+		virtual void Bind(uint32_t stream) const = 0;
 	public:
 		static Ref<VertexBuffer> Create(const std::vector<PosColorVertex>& vertices);
 	};
 }
-

@@ -4,7 +4,7 @@
 #include <Quelos/Core/Ref.h>
 
 namespace Quelos {
-    class Time : public RefCounted {
+    class Time {
     public:
         using Clock = std::chrono::steady_clock;
 

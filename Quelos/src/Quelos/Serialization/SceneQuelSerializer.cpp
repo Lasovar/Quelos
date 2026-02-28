@@ -98,8 +98,8 @@ namespace Quelos::Serialization {
         m_FieldTable.clear();
         m_ContainerStack.clear();
 
-        m_ValuePool.reserve(64);
-        m_FieldTable.reserve(16);
+        m_ValuePool.reserve(256);
+        m_FieldTable.reserve(128);
 
         m_CurrentComponent = e.Name;
         m_CurrentComponentID = ComponentRegistry::GetComponentID(m_CurrentComponent);
@@ -131,7 +131,7 @@ namespace Quelos::Serialization {
                     }
                 }
 
-                if (m_CurrentEntityID.IsValid() && m_CurrentEntityName != "") {
+                if (m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty()) {
                     m_CurrentEntity = m_Scene->CreateEntity(m_CurrentEntityID, m_CurrentEntityName);
                     m_CurrentEntityID = {};
                     m_CurrentEntityName = "";
@@ -233,7 +233,7 @@ namespace Quelos::Serialization {
         quelWriter.WriteField("version", static_cast<uint64_t>(1));
         quelWriter.WriteField("name", scene->GetName());
 
-        std::unordered_map<ecs_id_t, SerializableComponentInfo> idLookup;
+        Map<ecs_id_t, SerializableComponentInfo> idLookup;
         for (auto& typeBuffer : types | std::views::values) {
             idLookup[typeBuffer.RuntimeID] = typeBuffer;
         }

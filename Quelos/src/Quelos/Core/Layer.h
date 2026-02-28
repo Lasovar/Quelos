@@ -5,9 +5,9 @@
 #include <Quelos/Core/Ref.h>
 
 namespace Quelos {
-	class Layer : public RefCounted {
+	class Layer {
 	public:
-		Layer(const std::string& DebugName = "Layer");
+		explicit Layer(const std::string& DebugName = "Layer");
 		virtual ~Layer();
 
 		virtual void OnAttach() {}

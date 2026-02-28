@@ -1,8 +1,10 @@
-#include "qspch.h"
-#include "Math.h"
+module;
+#include "glm/gtc/matrix_transform.hpp";
+#include "glm/gtx/quaternion.hpp";
 
-#include "bgfx/bgfx.h"
-#include "bx/math.h"
+#include "bgfx/bgfx.h";
+
+module Quelos.Math;
 
 namespace Quelos::Math {
     glm::mat4 OrthographicMatrix(
@@ -13,50 +15,41 @@ namespace Quelos::Math {
         const float zNear,
         const float zFar
     ) {
-        glm::mat4 projection;
-        if (bgfx::getCaps()->homogeneousDepth) {
-            projection = glm::orthoLH_NO(
-                left,
-                right,
-                bottom,
-                top,
-                zNear,
-                zFar
-            );
-        } else {
-            projection = glm::orthoLH_ZO(
-                left,
-                right,
-                bottom,
-                top,
-                zNear,
-                zFar
-            );
-        }
+        const glm::mat4 projection = bgfx::getCaps()->homogeneousDepth
+                                         ? glm::orthoLH_NO(
+                                             left,
+                                             right,
+                                             bottom,
+                                             top,
+                                             zNear,
+                                             zFar
+                                         )
+                                         : glm::orthoLH_ZO(
+                                             left,
+                                             right,
+                                             bottom,
+                                             top,
+                                             zNear,
+                                             zFar
+                                         );
 
         return projection;
     }
 
     glm::mat4 PerspectiveMatrix(const float fov, const float aspectRatio, const float nearClip, const float farClip) {
-        glm::mat4 projection;
-        if (bgfx::getCaps()->homogeneousDepth) {
-            // OpenGL style: Z = -1..1
-            projection = glm::perspectiveLH_NO(
-                fov,
-                aspectRatio,
-                nearClip,
-                farClip
-            );
-        }
-        else {
-            // DX/Vulkan/Metal: Z = 0..1
-            projection = glm::perspectiveLH_ZO(
-                fov,
-                aspectRatio,
-                nearClip,
-                farClip
-            );
-        }
+        const glm::mat4 projection = bgfx::getCaps()->homogeneousDepth
+                                         ? glm::perspectiveLH_NO(
+                                             fov,
+                                             aspectRatio,
+                                             nearClip,
+                                             farClip
+                                         )
+                                         : glm::perspectiveLH_ZO(
+                                             fov,
+                                             aspectRatio,
+                                             nearClip,
+                                             farClip
+                                         );
 
         return projection;
     }
@@ -69,15 +62,7 @@ namespace Quelos::Math {
     }
 
     glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::vec3& eulerAngles, const glm::vec3& position) {
-        glm::mat4 result;
-        bx::mtxSRT(
-            glm::value_ptr(result),
-            scale.x, scale.y, scale.z,
-            eulerAngles.x, eulerAngles.y, eulerAngles.z,
-            position.x, position.y, position.z
-        );
-
-        return result;
+        return SRTMatrix(scale, glm::quat(eulerAngles), position);
     }
 
     glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::quat& rotation, const glm::vec3& position) {

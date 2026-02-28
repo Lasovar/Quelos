@@ -1,8 +1,10 @@
 #pragma once
 
 namespace Quelos {
-    class ImGuiState : public RefCounted {
+    class ImGuiState {
     public:
+        virtual ~ImGuiState() = default;
+
         virtual void Init(float fontSize) = 0;
         virtual void Destroy() = 0;
 

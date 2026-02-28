@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.1.2)
 
 project(Quelos
     LANGUAGES C CXX
 )
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -42,10 +42,11 @@ add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)
 add_subdirectory(Quelos/vendor/magic_enum)
+add_subdirectory(Quelos/vendor/ska)
 
 if (MSVC)
     add_compile_options(
-            /std:c++20
+            /std:c++23
             /await:strict
     )
 endif()

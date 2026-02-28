@@ -35,7 +35,7 @@ namespace Quelos {
 		}
 	}
 
-	class Scene : public RefCounted {
+	class Scene : public RefCounted<Scene> {
 	public:
 		explicit Scene(std::string name = "Untitled Scene");
 
@@ -80,7 +80,7 @@ namespace Quelos {
 
 		friend class SceneBinarySerializer;
 	private:
-		std::unordered_map<EntityID, Entity> m_EntityMap;
+		Map<EntityID, Entity> m_EntityMap;
 		ComponentRegistry m_ComponentRegistry;
 
 		flecs::world m_World;

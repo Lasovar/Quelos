@@ -1,8 +1,18 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.1.2)
 
 project(Quelos LANGUAGES CXX)
 
 add_library(Quelos STATIC)
+
+file(GLOB_RECURSE QUELOS_MODULES
+    src/*.ixx
+)
+
+target_sources(Quelos
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        ${QUELOS_MODULES}
+)
 
 file(GLOB_RECURSE QUELOS_SRC
     src/*.cpp
@@ -42,10 +52,11 @@ target_link_libraries(Quelos
         glm
         spdlog
         magic_enum
+        ska
 )
 
 set_target_properties(Quelos PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED YES
 )
 

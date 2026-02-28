@@ -85,8 +85,7 @@ namespace Quelos::Serialization {
         template <typename T>
         void Value(T& value) {
             if constexpr (std::is_enum_v<T>) {
-                using Underlying = std::underlying_type_t<T>;
-                m_Writer.Write(static_cast<Underlying>(value));
+                m_Writer.Write(std::to_underlying(value));
             }
             else {
                 m_Writer.Write(value);

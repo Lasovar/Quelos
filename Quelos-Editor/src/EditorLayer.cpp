@@ -71,12 +71,12 @@ namespace Quelos {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
         });*/
 
-        Serialization::SceneQuelSerializer serializer;
-        serializer.Deserialize(m_DefaultScene, "Assets/TestScene.txt");
+        //Serialization::SceneQuelSerializer serializer;
+        //serializer.Deserialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
+        //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        /*s_Camera = m_DefaultScene->CreateEntity("Camera2");
+        s_Camera = m_DefaultScene->CreateEntity("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
         s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
 
@@ -101,7 +101,7 @@ namespace Quelos {
 
         const Entity floor = m_DefaultScene->CreateEntity("Floor");
         floor.Set(TransformComponent{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
-        floor.Set(cubeMesh);*/
+        floor.Set(cubeMesh);
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {

@@ -1,20 +1,24 @@
 #pragma once
 
-#include  <memory>
-#include <cstdint>
-
-using byte = uint8_t;
+#include <flat_map>
+#include "ska/flat_hash_map.hpp"
 
 namespace Quelos {
-	constexpr int GetBit(const int x) { return 1 << x; }
+	using byte = std::byte;
+	consteval int GetBit(const int x) { return 1 << x; }
 
-	template<typename T>
-	using Scope = std::unique_ptr<T>;
-	template<typename T, typename ... Args>
-	constexpr Scope<T> CreateScope(Args&& ... args)
-	{
-		return std::make_unique<T>(std::forward<Args>(args)...);
-	}
+	template <typename TKey, typename TValue>
+	using Map = ska::flat_hash_map<TKey, TValue>;
 
+	template <typename TKey, typename TValue>
+	using OrderedMap = std::flat_map<TKey, TValue>;
+
+	template <typename TKey, typename TValue>
+	using Set = ska::flat_hash_set<TKey, TValue>;
+
+	template <typename T>
+	using Vec = std::vector<T>;
+
+	template <typename TFirst, typename  TSecond>
+	using Pair = std::pair<TFirst, TSecond>;
 }
-
