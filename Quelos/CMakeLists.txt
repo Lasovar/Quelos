@@ -34,6 +34,8 @@ target_include_directories(Quelos
 target_compile_definitions(Quelos
     PUBLIC
         GLM_ENABLE_EXPERIMENTAL
+        GLM_FORCE_QUAT_DATA_WXYZ
+        GLM_FORCE_LEFT_HANDED
 )
 
 target_link_libraries(Quelos

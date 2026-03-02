@@ -113,13 +113,14 @@ namespace Quelos {
                 });
             }, "RotatePlayer");*/
 
-        m_SceneWorkspace = CreateRef<SceneWorkspace>();
-        m_SceneWorkspace->SetScene(m_DefaultScene);
+        m_SceneWorkspace = CreateRef<SceneWorkspace>(m_DefaultScene);
 
         m_Workspaces.push_back(m_SceneWorkspace);
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
+
+        m_SceneWorkspace->SelectEntity(cube3);
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
     }
 

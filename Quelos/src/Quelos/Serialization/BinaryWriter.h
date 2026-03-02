@@ -40,7 +40,6 @@ namespace Quelos::Serialization {
         size_t m_Offset = 0;
     };
 
-
     class BinaryWriter {
     public:
         explicit BinaryWriter(std::vector<std::byte>& buffer)

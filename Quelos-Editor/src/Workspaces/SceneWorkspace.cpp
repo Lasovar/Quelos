@@ -3,10 +3,16 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
-    SceneWorkspace::SceneWorkspace() {
+    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene)
+            : m_Scene(scene), m_InspectorPanel(EntityInspectorPanel(scene))
+    {
+        m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
+        m_WorkspaceID = m_Scene->GetName() + "_Dockspace";
+
         m_GameViewportPanel = ViewportPanel("Game View", 0, 1, 1);
         m_SceneViewportPanel = ViewportPanel("Scene View", 1, 1, 1);
 
@@ -15,6 +21,10 @@ namespace Quelos {
 
         m_WorkspaceID = "SceneWorkspace_Dockspace";
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
+    }
+
+    void SceneWorkspace::SelectEntity(const Entity entity) {
+        m_InspectorPanel.SetSelectedEntity(entity);
     }
 
     void SceneWorkspace::Tick(const float deltaTime) {
@@ -62,16 +72,10 @@ namespace Quelos {
         ImGui::DockSpace(workspaceDockId, ImVec2(0, 0), ImGuiDockNodeFlags_None, &m_SceneWorkspaceClass);
 
         m_GameViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
-
         m_SceneViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+        m_InspectorPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
 
         ImGui::End();
-    }
-
-    void SceneWorkspace::SetScene(const Ref<Scene>& scene) {
-        m_Scene = scene;
-        m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
-        m_WorkspaceID = m_Scene->GetName() + "_Dockspace";
     }
 
     void SceneWorkspace::OnEvent(Event& e) {

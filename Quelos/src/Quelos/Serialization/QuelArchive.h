@@ -29,7 +29,7 @@ constexpr bool IsSerializable = SerializableWith<T, Quelos::Serialization::Binar
 
 template <typename T>
 concept TupleLike = requires(T t) {
-    t[0];
+    t[0] && T::length();
 };
 
 namespace Quelos::Serialization {
