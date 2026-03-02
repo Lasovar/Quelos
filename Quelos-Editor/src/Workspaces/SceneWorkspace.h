@@ -2,6 +2,7 @@
 
 #include "Workspace.h"
 #include "imgui.h"
+#include "Panels/EntityInspectorPanel.h"
 
 #include "Panels/ViewportPanel.h"
 #include "Quelos/Renderer/EditorCamera.h"
@@ -10,12 +11,12 @@
 namespace Quelos {
     class SceneWorkspace : public Workspace {
     public:
-        SceneWorkspace();
+        explicit SceneWorkspace(const Ref<Scene>& scene);
+
+        void SelectEntity(Entity entity);
 
         void Tick(float deltaTime) override;
-        void OnImGuiRender(unsigned int dockspaceID) override;
-
-        void SetScene(const Ref<Scene>& scene);
+        void OnImGuiRender(ImGuiID dockspaceID) override;
 
         void OnEvent(Event& e);
 
@@ -24,6 +25,9 @@ namespace Quelos {
 
         ViewportPanel m_GameViewportPanel;
         ViewportPanel m_SceneViewportPanel;
+
+        EntityInspectorPanel m_InspectorPanel;
+
         EditorCamera m_EditorCamera;
         ImGuiWindowClass m_SceneWorkspaceClass;
         std::string m_WorkspaceID;

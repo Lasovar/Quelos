@@ -51,7 +51,8 @@ namespace Quelos {
             Ref<Scene> m_Scene;
 
             Entity m_CurrentEntity;
-            std::string_view m_CurrentEntityName = "";
+            std::string_view m_CurrentEntityName;
+            std::string_view m_CurrentEntityState;
             EntityID m_CurrentEntityID{};
 
             std::string_view m_CurrentComponent;

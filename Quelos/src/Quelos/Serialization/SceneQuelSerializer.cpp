@@ -129,6 +129,10 @@ namespace Quelos::Serialization {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
                         m_CurrentEntityID = EntityID(std::get<std::string_view>(e.Value));
                     }
+                } else if (m_CurrentField == "state") {
+                    if (std::holds_alternative<std::string_view>(e.Value)) {
+                        m_CurrentEntityState = std::get<std::string_view>(e.Value);
+                    }
                 }
 
                 if (m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty()) {

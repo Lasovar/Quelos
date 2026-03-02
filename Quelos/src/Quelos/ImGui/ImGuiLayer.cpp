@@ -196,13 +196,13 @@ namespace Quelos {
 	    colors[ImGuiCol_TextDisabled]         = subtext0;
 
 	    // Rounded corners
-	    style.WindowRounding    = 6.0f;
-	    style.ChildRounding     = 6.0f;
-	    style.FrameRounding     = 4.0f;
-	    style.PopupRounding     = 4.0f;
-	    style.ScrollbarRounding = 9.0f;
-	    style.GrabRounding      = 4.0f;
-	    style.TabRounding       = 4.0f;
+	    style.WindowRounding    = 0.0f;
+	    style.ChildRounding     = 0.0f;
+	    style.FrameRounding     = 0.0f;
+	    style.PopupRounding     = 0.0f;
+	    style.ScrollbarRounding = 0.0f;
+	    style.GrabRounding      = 0.0f;
+	    style.TabRounding       = 0.0f;
 
 	    // Padding and spacing
 	    style.WindowPadding     = ImVec2(8.0f, 8.0f);
