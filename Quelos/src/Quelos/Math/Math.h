@@ -1,10 +1,9 @@
-module;
+#pragma once
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-export module Quelos.Math;
-
-export namespace Quelos::Math {
+namespace Quelos::Math {
     glm::mat4 OrthographicMatrix(float left, float right, float bottom, float top, float zNear, float zFar);
     glm::mat4 PerspectiveMatrix(float fov, float aspectRatio, float nearClip, float farClip);
     glm::mat4 ViewMatrix(const glm::quat& rotation, const glm::vec3& position);

@@ -2,7 +2,7 @@
 
 #include "bgfx/bgfx.h"
 
-import Quelos.Math;
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     SceneCamera::SceneCamera() { RecalculateProjection(); }

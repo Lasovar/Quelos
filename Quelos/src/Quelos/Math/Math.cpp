@@ -1,10 +1,9 @@
-module;
-#include "glm/gtc/matrix_transform.hpp";
-#include "glm/gtx/quaternion.hpp";
+#include "Math.h"
 
-#include "bgfx/bgfx.h";
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/quaternion.hpp"
 
-module Quelos.Math;
+#include "bgfx/bgfx.h"
 
 namespace Quelos::Math {
     glm::mat4 OrthographicMatrix(

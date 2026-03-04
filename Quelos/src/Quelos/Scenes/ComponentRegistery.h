@@ -1,6 +1,5 @@
 #pragma once
 #include "flecs.h"
-#include "xxhash.h"
 
 #include "Quelos/Core/GUID.h"
 #include "Quelos/Core/Log.h"
@@ -55,9 +54,7 @@ namespace Quelos {
 #endif
         }
 
-        static constexpr ComponentID GetComponentID(const std::string_view& typeName) {
-            return ComponentID(XXH3_64bits(typeName.data(), typeName.size()));
-        }
+        static constexpr ComponentID GetComponentID(const std::string_view& typeName);
 
         void RegisterType(const ComponentTypeInfo& info) {
             m_ComponentTypes[info.Guid] = info;

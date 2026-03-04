@@ -3,7 +3,7 @@
 
 #include "xxhash.h"
 
-import Quelos.Math;
+#include "Quelos/Math/Math.h"
 
 namespace Quelos::Serialization {
     namespace Utils {
