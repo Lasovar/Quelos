@@ -1,6 +1,9 @@
 #pragma once
 
-#include <flat_map>
+#include <map>
+
+// can't compile ska without this... MSVC throws an exception that std doesn't contain std::out_of_range without this
+#include <stdexcept>
 #include "ska/flat_hash_map.hpp"
 
 namespace Quelos {
@@ -11,7 +14,7 @@ namespace Quelos {
 	using Map = ska::flat_hash_map<TKey, TValue>;
 
 	template <typename TKey, typename TValue>
-	using OrderedMap = std::flat_map<TKey, TValue>;
+	using OrderedMap = std::map<TKey, TValue>;
 
 	template <typename TKey, typename TValue>
 	using Set = ska::flat_hash_set<TKey, TValue>;

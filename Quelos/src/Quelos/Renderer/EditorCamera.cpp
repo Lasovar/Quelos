@@ -8,7 +8,7 @@
 
 #include "Quelos/Core/Application.h"
 
-import Quelos.Math;
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     EditorCamera::EditorCamera(const float fov, const float aspectRatio, const float nearClip, const float farClip)

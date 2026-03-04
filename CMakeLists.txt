@@ -46,7 +46,6 @@ add_subdirectory(Quelos/vendor/ska)
 
 if (MSVC)
     add_compile_options(
-            /std:c++23
             /await:strict
     )
 endif()

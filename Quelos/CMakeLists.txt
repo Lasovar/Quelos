@@ -4,16 +4,6 @@ project(Quelos LANGUAGES CXX)
 
 add_library(Quelos STATIC)
 
-file(GLOB_RECURSE QUELOS_MODULES
-    src/*.ixx
-)
-
-target_sources(Quelos
-        PUBLIC
-        FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        ${QUELOS_MODULES}
-)
-
 file(GLOB_RECURSE QUELOS_SRC
     src/*.cpp
     src/*.h
