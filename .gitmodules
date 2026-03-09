@@ -17,3 +17,6 @@
 [submodule "Quelos/vendor/SDL"]
 	path = Quelos/vendor/SDL
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "Quelos/vendor/daScript"]
+	path = Quelos/vendor/daScript
+	url = https://github.com/Lasovar/daScript.git
