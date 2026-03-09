@@ -41,6 +41,7 @@ target_link_libraries(Quelos
         imgui
         stduuid
         flecs_static
+        libDaScript
         glm
         spdlog
         magic_enum

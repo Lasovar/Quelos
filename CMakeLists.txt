@@ -32,9 +32,22 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(Quelos/vendor/bgfx.cmake)
 
 add_subdirectory(Quelos/vendor/GLFW)
+add_subdirectory(Quelos/vendor/SDL)
 add_subdirectory(Quelos/vendor/imgui)
 add_subdirectory(Quelos/vendor/flecs)
-add_subdirectory(Quelos/vendor/SDL)
+
+# Daslang options
+set(DAS_GLFW_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_STDDLG_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_STBIMAGE_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_STBTRUETYPE_DISABLED ON CACHE BOOL "" FORCE)
+
+set(DAS_TOOLS_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_TESTS_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_TUTORIAL_DISABLED ON CACHE BOOL "" FORCE)
+set(DAS_AOT_EXAMPLES_DISABLED ON CACHE BOOL "" FORCE)
+
+add_subdirectory(Quelos/vendor/daScript)
 
 # Header-only libraries
 add_subdirectory(Quelos/vendor/glm)
