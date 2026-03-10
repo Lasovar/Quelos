@@ -11,7 +11,7 @@
 namespace Quelos {
     class SceneWorkspace : public Workspace {
     public:
-        explicit SceneWorkspace(const Ref<Scene>& scene);
+        explicit SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem);
 
         void SelectEntity(Entity entity);
 
@@ -22,6 +22,7 @@ namespace Quelos {
 
     private:
         Ref<Scene> m_Scene;
+        UndoSystem& m_UndoSystem;
 
         ViewportPanel m_GameViewportPanel;
         ViewportPanel m_SceneViewportPanel;

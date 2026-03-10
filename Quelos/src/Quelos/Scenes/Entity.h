@@ -34,9 +34,17 @@ namespace Quelos {
 		}
 
 		template <typename T, typename A = flecs::actual_type_t<T>, flecs::if_t< flecs::is_pair<T>::value > = 0>
-		CRef<A> GetRef() const {
-			// TODO: check wtf this is
+		[[nodiscard]] CRef<A> GetRef() const {
 			return m_ID.get_ref<T>();
+		}
+
+		template <typename T>
+		[[nodiscard]] CUntypedRef GetUntypedRef() const {
+			return flecs::untyped_ref(m_ID.world(), m_ID, m_ID.world().id<T>());
+		}
+
+		[[nodiscard]] CUntypedRef GetUntypedRef(const flecs::id id) const {
+			return flecs::untyped_ref(m_ID.world(), m_ID, id);
 		}
 
 		template <typename First, typename Second, typename P = flecs::pair<First, Second>,
@@ -54,6 +62,11 @@ namespace Quelos {
 		template <typename T>
 		const T& Get() const {
 			return m_ID.get<T>();
+		}
+
+		template <typename T>
+		T& GetMut() {
+			return m_ID.get_mut<T>();
 		}
 
 		void SetName(const std::string& name) const { m_ID.set_name(name.c_str()); }

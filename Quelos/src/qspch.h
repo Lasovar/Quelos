@@ -17,6 +17,7 @@
 #include <optional>
 #include <random>
 #include <set>
+#include <deque>
 #include <stack>
 #include <string>
 #include <string_view>

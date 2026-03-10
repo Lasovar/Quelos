@@ -10,11 +10,15 @@ namespace Quelos {
 
         if (ImGui::Begin("Entity Inspector")) {
             if (m_SelectedEntity.IsAlive()) {
-                UndoSystem undo;
-                InspectorArchive archive(m_SelectedEntity, m_Scene, undo);
+                static std::function<void(SetFieldArchive& archive, void* data)> serialize =
+                    [](SetFieldArchive& archive, void* data) {
+                        TransformComponent::Serialize(archive, *static_cast<TransformComponent*>(data));
+                    };
 
-                auto transform = m_SelectedEntity.GetRef<TransformComponent>();
-                TransformComponent::Serialize(archive, *transform.Get());
+                InspectorArchive archive(m_SelectedEntity, m_Scene->GetWorld().id<TransformComponent>(), m_Scene, m_UndoSystem, serialize);
+
+                auto& transform = m_SelectedEntity.GetMut<TransformComponent>();
+                TransformComponent::Serialize(archive, transform);
             }
         }
         ImGui::End();

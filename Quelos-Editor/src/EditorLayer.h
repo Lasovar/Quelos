@@ -4,6 +4,7 @@
 #include <Quelos/Scenes/Scene.h>
 #include <Quelos/Core/Ref.h>
 
+#include "UndoSystem.h"
 #include "Panels/ViewportPanel.h"
 #include "Workspaces/SceneWorkspace.h"
 
@@ -38,8 +39,13 @@ namespace Quelos {
 
         ImGuiWindowClass m_EditorLayerClass;
 		Ref<SceneWorkspace> m_SceneWorkspace;
+		UndoSystem m_UndoSystem;
 
 		std::vector<Ref<Workspace>> m_Workspaces;
+
+		bool m_CtrlKey: 1 = false;
+		bool m_ZKey: 1 = false;
+		bool m_YKey: 1 = false;
+		bool m_ShiftKey: 1 = false;
 	};
 }
-
