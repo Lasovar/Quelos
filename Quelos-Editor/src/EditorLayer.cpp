@@ -49,8 +49,7 @@ namespace Quelos {
         float Timer = 0.0f;
     };
 
-    EditorLayer::EditorLayer() {
-    }
+    EditorLayer::EditorLayer() = default;
 
     template <class... Ts>
     struct Overloaded : Ts... {
@@ -113,7 +112,7 @@ namespace Quelos {
                 });
             }, "RotatePlayer");*/
 
-        m_SceneWorkspace = CreateRef<SceneWorkspace>(m_DefaultScene);
+        m_SceneWorkspace = CreateRef<SceneWorkspace>(m_DefaultScene, m_UndoSystem);
 
         m_Workspaces.push_back(m_SceneWorkspace);
 
@@ -314,6 +313,43 @@ namespace Quelos {
     }
 
     void EditorLayer::OnEvent(Event& event) {
+        EventDispatcher dispatcher(event);
+        dispatcher.Dispatch<KeyPressedEvent>([this](KeyPressedEvent& e) {
+            switch (e.GetKeyCode()) {
+            case KeyCode::LeftControl:
+            case KeyCode::RightControl:
+                m_CtrlKey = true;
+                break;
+            case KeyCode::Z:
+                if (m_CtrlKey && !e.IsRepeat()) {
+                    m_UndoSystem.Undo();
+                }
+                break;
+            case KeyCode::Y:
+                if (m_CtrlKey && !e.IsRepeat()) {
+                    m_UndoSystem.Redo();
+                }
+                break;
+            default:
+                break;
+            }
+
+            return false;
+        });
+
+        dispatcher.Dispatch<KeyReleasedEvent>([this](const KeyReleasedEvent& e) {
+            switch (e.GetKeyCode()) {
+            case KeyCode::LeftControl:
+            case KeyCode::RightControl:
+                m_CtrlKey = false;
+                break;
+            default:
+                break;
+            }
+
+            return false;
+        });
+
         m_SceneWorkspace->OnEvent(event);
     }
 }

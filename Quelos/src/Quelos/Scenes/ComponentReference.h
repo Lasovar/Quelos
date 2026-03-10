@@ -17,4 +17,16 @@ namespace Quelos {
     private:
         flecs::ref<Component> m_Ref{};
     };
+
+    class CUntypedRef {
+    public:
+        CUntypedRef(const flecs::untyped_ref& ref) {
+            m_Ref = ref;
+        }
+
+        void* Get() { return m_Ref.get(); }
+        void* TryGet() { return m_Ref.try_get(); }
+    private:
+        flecs::untyped_ref m_Ref{};
+    };
 }

@@ -7,8 +7,8 @@
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
-    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene)
-            : m_Scene(scene), m_InspectorPanel(EntityInspectorPanel(scene))
+    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem)
+            : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem))
     {
         m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
         m_WorkspaceID = m_Scene->GetName() + "_Dockspace";

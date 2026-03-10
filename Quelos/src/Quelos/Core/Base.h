@@ -3,6 +3,7 @@
 #include <map>
 
 // can't compile ska without this... MSVC throws an exception that std doesn't contain std::out_of_range without this
+#include <deque>
 #include <stdexcept>
 #include "ska/flat_hash_map.hpp"
 
@@ -18,6 +19,9 @@ namespace Quelos {
 
 	template <typename TKey, typename TValue>
 	using Set = ska::flat_hash_set<TKey, TValue>;
+
+	template <typename T>
+	using Deque = std::deque<T>;
 
 	template <typename T>
 	using Vec = std::vector<T>;

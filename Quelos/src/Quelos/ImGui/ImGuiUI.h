@@ -6,6 +6,7 @@
 #include "imgui_internal.h"
 
 #include "glm/vec3.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 namespace Quelos::UI {
     inline std::string BeautifyLabel(std::string label) {
@@ -88,7 +89,7 @@ namespace Quelos::UI {
         T& value,
         const std::array<AxisColor, 4> colors,
         const std::array<const char*, 4> axisLabels,
-        const float resetValue,
+        const T resetValue,
         const float speed,
         const float min,
         const float max
@@ -120,6 +121,8 @@ namespace Quelos::UI {
 
         float dragWidth = (totalWidth - totalButtonsWidth - totalSpacingWidth) / count;
 
+        ImGui::BeginGroup();
+
         for (int i = 0; i < count; i++) {
             if (i == count - 1) {
                 dragWidth = ImGui::GetContentRegionAvail().x;
@@ -128,7 +131,7 @@ namespace Quelos::UI {
             changed |= DrawAxis(
                 axisLabels[i],
                 value[i],
-                resetValue,
+                resetValue[i],
                 speed,
                 min,
                 max,
@@ -142,6 +145,8 @@ namespace Quelos::UI {
                 ImGui::SameLine();
             }
         }
+
+        ImGui::EndGroup();
 
         ImGui::PopStyleVar();
         ImGui::Columns(1);
@@ -170,7 +175,7 @@ namespace Quelos::UI {
 
     inline bool EditVec2(
         const std::string& label, glm::vec2& value,
-        const float reset = 0.0f, const float speed = 0.1f,
+        const glm::vec2 reset = glm::zero<glm::vec2>(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
         return EditVectorN<glm::vec2>(
@@ -187,7 +192,7 @@ namespace Quelos::UI {
 
     inline bool EditVec3(
         const std::string& label, glm::vec3& value,
-        const float reset = 0.0f, const float speed = 0.1f,
+        const glm::vec3 reset = glm::zero<glm::vec3>(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
         return EditVectorN<glm::vec3>(
@@ -204,7 +209,7 @@ namespace Quelos::UI {
 
     inline bool EditVec4(
         const std::string& label, glm::vec4& value,
-        const float reset = 0.0f, const float speed = 0.1f,
+        const glm::vec4 reset = glm::zero<glm::vec4>(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
         return EditVectorN<glm::vec4>(
@@ -221,7 +226,7 @@ namespace Quelos::UI {
 
     inline bool EditQuat(
         const std::string& label, glm::quat& quaternion,
-        const float reset = 0.0f, const float speed = 0.1f,
+        const glm::quat reset = glm::identity<glm::quat>(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
         return EditVectorN<glm::quat>(
