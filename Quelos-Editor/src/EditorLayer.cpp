@@ -6,7 +6,7 @@
 
 #include "imgui_internal.h"
 #include "Quelos/ImGui/widgets/texture.h"
-#include "glm/gtc/type_ptr.inl"
+#include "glm/gtc/type_ptr.hpp"
 
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
@@ -119,7 +119,7 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        m_SceneWorkspace->SelectEntity(cube3);
+        m_SceneWorkspace->SelectEntity(s_Camera);
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
     }
 

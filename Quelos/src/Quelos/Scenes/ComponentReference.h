@@ -3,24 +3,24 @@
 #include "flecs/addons/cpp/ref.hpp"
 
 namespace Quelos {
-    template <typename Component>
-    class CRef {
+    template <typename TComponent>
+    class ComponentRef {
     public:
-        CRef(flecs::ref<Component> ref) {
+        ComponentRef(flecs::ref<TComponent> ref) {
             m_Ref = ref;
         }
 
-        Component* Get() { return m_Ref.get(); }
-        Component* TryGet() { return m_Ref.try_get(); }
+        TComponent* Get() { return m_Ref.get(); }
+        TComponent* TryGet() { return m_Ref.try_get(); }
 
-        Component* operator->() { return m_Ref.operator->(); }
+        TComponent* operator->() { return m_Ref.operator->(); }
     private:
-        flecs::ref<Component> m_Ref{};
+        flecs::ref<TComponent> m_Ref{};
     };
 
-    class CUntypedRef {
+    class ComponentUntypedRef {
     public:
-        CUntypedRef(const flecs::untyped_ref& ref) {
+        ComponentUntypedRef(const flecs::untyped_ref& ref) {
             m_Ref = ref;
         }
 

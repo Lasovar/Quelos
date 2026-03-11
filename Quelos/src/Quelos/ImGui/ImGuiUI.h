@@ -24,6 +24,36 @@ namespace Quelos::UI {
         return label;
     }
 
+
+    inline bool EditFloat(const std::string& label, float& value, float speed = 0.1f, float min = 0, float max = 0) {
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2, nullptr, false);
+
+        ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
+        ImGui::Text(BeautifyLabel(label).c_str());
+        ImGui::NextColumn();
+
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+        ImGui::BeginGroup();
+
+        const bool used = ImGui::DragFloat("##f", &value, speed, min, max);
+
+        ImGui::EndGroup();
+        ImGui::PopItemWidth();
+
+        ImGui::PopStyleVar();
+
+        ImGui::Columns(1);
+
+        ImGui::PopID();
+
+        ImGui::Spacing();
+
+        return used;
+    }
+
     struct AxisColor {
         ImVec4 Base;
         ImVec4 Hover;
@@ -32,12 +62,12 @@ namespace Quelos::UI {
 
     consteval AxisColor GetAxisColor(const char axis) {
         switch (axis) {
-        case 'X': return { { 0.8f, 0.1f, 0.15f, 1 }, { 0.9f, 0.2f, 0.2f, 1 }, { 0.8f, 0.1f, 0.15f, 1 } };
-        case 'Y': return { { 0.2f, 0.7f, 0.2f, 1 }, { 0.3f, 0.8f, 0.3f, 1 }, { 0.2f, 0.7f, 0.3f, 1 } };
-        case 'Z': return { { 0.1f, 0.25f, 0.8f, 1 }, { 0.2f, 0.3f, 0.9f, 1 }, { 0.1f, 0.25f, 0.8f, 1 } };
-        case 'W': return { { 0.65f, 0.5f, 0.1f, 1 }, { 0.8f, 0.65f, 0.2f, 1 }, { 0.6f, 0.45f, 0.1f, 1 } };
-        case 'Q': return { { 0.6f, 0.3f, 0.9f, 1 }, { 0.7f, 0.4f, 1.0f, 1 }, { 0.6f, 0.3f, 0.9f, 1 } };
-        default:  return { { 0.5f, 0.5f, 0.5f, 1 }, { 0.6f, 0.6f, 0.6f, 1 }, { 0.5f, 0.5f, 0.5f, 1 } };
+        case 'X': return {{0.8f, 0.1f, 0.15f, 1}, {0.9f, 0.2f, 0.2f, 1}, {0.8f, 0.1f, 0.15f, 1}};
+        case 'Y': return {{0.2f, 0.7f, 0.2f, 1}, {0.3f, 0.8f, 0.3f, 1}, {0.2f, 0.7f, 0.3f, 1}};
+        case 'Z': return {{0.1f, 0.25f, 0.8f, 1}, {0.2f, 0.3f, 0.9f, 1}, {0.1f, 0.25f, 0.8f, 1}};
+        case 'W': return {{0.65f, 0.5f, 0.1f, 1}, {0.8f, 0.65f, 0.2f, 1}, {0.6f, 0.45f, 0.1f, 1}};
+        case 'Q': return {{0.6f, 0.3f, 0.9f, 1}, {0.7f, 0.4f, 1.0f, 1}, {0.6f, 0.3f, 0.9f, 1}};
+        default: return {{0.5f, 0.5f, 0.5f, 1}, {0.6f, 0.6f, 0.6f, 1}, {0.5f, 0.5f, 0.5f, 1}};
         }
     }
 
@@ -108,13 +138,13 @@ namespace Quelos::UI {
         ImGui::TextUnformatted(label.c_str());
         ImGui::NextColumn();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
 
         const float totalWidth = ImGui::GetContentRegionAvail().x;
-        const float spacing    = ImGui::GetStyle().ItemSpacing.x;
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
         const float lineHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        const ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+        const ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
 
         const float totalButtonsWidth = buttonSize.x * count;
         const float totalSpacingWidth = spacing * (count - 1);
@@ -164,14 +194,13 @@ namespace Quelos::UI {
     };
 
     constinit static std::array QuatColors = {
-        GetAxisColor('Q'),
         GetAxisColor('X'),
         GetAxisColor('Y'),
-        GetAxisColor('Z')
+        GetAxisColor('Z'),
+        GetAxisColor('Q')
     };
 
-    constinit static std::array VecLabels  = { "X", "Y", "Z", "W" };
-    constinit static std::array QuatLabels = { "W", "X", "Y", "Z" };
+    constinit static std::array VecLabels = {"X", "Y", "Z", "W"};
 
     inline bool EditVec2(
         const std::string& label, glm::vec2& value,
@@ -233,7 +262,7 @@ namespace Quelos::UI {
             label,
             quaternion,
             QuatColors,
-            QuatLabels,
+            VecLabels,
             reset,
             speed,
             min,
@@ -256,7 +285,7 @@ namespace Quelos::UI {
         const float totalWidth = ImGui::GetContentRegionAvail().x;
 
         const float lineHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        const ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+        const ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.35f, 0.35f, 1));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.45f, 0.45f, 0.45f, 1));
@@ -275,7 +304,7 @@ namespace Quelos::UI {
         ImGui::PushItemWidth(colorWidth);
 
         changed |= ImGui::ColorEdit4(
-            "##Color",
+            "##color",
             glm::value_ptr(value),
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_AlphaBar |
@@ -287,6 +316,51 @@ namespace Quelos::UI {
 
         ImGui::Columns(1);
         ImGui::PopID();
+        ImGui::Spacing();
+
+        return changed;
+    }
+
+    template <typename TEnum>
+        requires (std::is_enum_v<TEnum>)
+    bool EditEnum(const std::string& label, TEnum& value) {
+        bool changed = false;
+
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2, nullptr, false);
+
+        ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
+        ImGui::Text(BeautifyLabel(label).c_str());
+        ImGui::NextColumn();
+
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        if (ImGui::BeginCombo("##editEnum", magic_enum::enum_name(value).data())) {
+            for (TEnum v : magic_enum::enum_values<TEnum>()) {
+                bool selected = v == value;
+                if (ImGui::Selectable(magic_enum::enum_name(v).data(), selected)) {
+                    value = v;
+                    changed = true;
+                }
+
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::PopItemWidth();
+
+        ImGui::PopStyleVar();
+
+        ImGui::Columns(1);
+
+        ImGui::PopID();
+
         ImGui::Spacing();
 
         return changed;

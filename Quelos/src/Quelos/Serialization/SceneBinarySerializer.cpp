@@ -89,11 +89,6 @@ namespace Quelos::Serialization {
 
         finalWriter.Write(header);
 
-        std::unordered_map<ecs_id_t, SerializableComponentInfo> idLookup;
-        for (auto& typeBuffer : types | std::views::values) {
-            idLookup[typeBuffer.RuntimeID] = typeBuffer;
-        }
-
         auto guidLookup = world.query_builder<RuntimeTag>().build();
         Vec<Pair<EntityID, flecs::entity>> entities;
         entities.reserve(guidLookup.count());
@@ -125,12 +120,10 @@ namespace Quelos::Serialization {
             uint32_t componentCount = 0;
 
             entity.each([&](const flecs::id id) {
-                const auto it = idLookup.find(id);
-                if (it == idLookup.end()) {
+                SerializableComponentInfo* componentInfo = registry.GetSerializableComponentInfo(id);
+                if (!componentInfo) {
                     return;
                 }
-
-                const SerializableComponentInfo& componentInfo = it->second;
 
                 void* ptr = ecs_get_mut_id(world.c_ptr(), entityId, id);
                 if (!ptr) {
@@ -142,10 +135,10 @@ namespace Quelos::Serialization {
 
                 BinaryWriteArchive archive(tempWriter);
 
-                componentInfo.SerializeBinaryWriteFunc(archive, ptr);
+                componentInfo->SerializeBinaryWriteFunc(archive, ptr);
                 const uint64_t size = temp.size();
 
-                entityComponentWriter.Write(componentInfo.Guid);
+                entityComponentWriter.Write(componentInfo->Guid);
                 entityComponentWriter.Write(size);
                 entityComponentWriter.WriteBytes(temp);
                 componentCount++;

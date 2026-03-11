@@ -164,6 +164,10 @@ namespace Quelos {
 
     class SetFieldArchive {
     public:
+        static constexpr bool IsLoading = true;
+        static constexpr bool IsSaving = false;
+
+    public:
         explicit SetFieldArchive(const std::string_view fieldName, void* value)
             : m_FieldKey(fieldName), m_Value(value) {}
 
@@ -189,23 +193,25 @@ namespace Quelos {
         void* m_Value;
     };
 
+    using SetFieldSerializeFn = void(*)(SetFieldArchive&, void*);
+
     template <typename TField>
     struct SetField {
-        CUntypedRef ComponentRef;
-        std::move_only_function<void(SetFieldArchive& archive, void* data)> SerializeComponentFunc = nullptr;
+        ComponentUntypedRef ComponentRef;
+        SetFieldSerializeFn SerializeComponentFunc;
 
         std::string_view FieldKey;
 
-        TField before;
-        TField after;
+        TField Before;
+        TField After;
 
         void Apply() {
-            auto archive = SetFieldArchive(FieldKey, &after);
+            SetFieldArchive archive(FieldKey, &After);
             SerializeComponentFunc(archive, ComponentRef.Get());
         }
 
         void Revert() {
-            auto archive = SetFieldArchive(FieldKey, &before);
+            auto archive = SetFieldArchive(FieldKey, &Before);
             SerializeComponentFunc(archive, ComponentRef.Get());
         }
     };
