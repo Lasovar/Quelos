@@ -1,4 +1,5 @@
 #pragma once
+
 #include "flecs.h"
 
 #include "Quelos/Core/GUID.h"
@@ -10,9 +11,10 @@
 
 namespace Quelos {
     using ComponentID = GUID64;
+    using RuntimeID = flecs::id_t;
 
     struct ComponentTypeInfo {
-        ecs_id_t RuntimeID{};
+        RuntimeID RuntimeID{};
         ComponentID Guid{};
 
         size_t Size{};
@@ -20,7 +22,7 @@ namespace Quelos {
     };
 
     struct SerializableComponentInfo {
-        ecs_id_t RuntimeID{};
+        RuntimeID RuntimeID{};
         ComponentID Guid{};
         std::string Name;
 
@@ -29,6 +31,7 @@ namespace Quelos {
         std::function<void(Serialization::QuelWriteArchive& archive, void* data)> SerializeTextWriteFunc = nullptr;
         std::function<void(Serialization::BinaryReadArchive& archive, void* data)> SerializeBinaryReadFunc = nullptr;
         std::function<void(Serialization::QuelReadArchive& archive, void* data)> SerializeTextReadFunc = nullptr;
+        void (*SerializeFunction)(void*, void*);
     };
 
     class ComponentRegistry {
@@ -60,11 +63,11 @@ namespace Quelos {
             m_ComponentTypes[info.Guid] = info;
         }
 
-        [[nodiscard]] std::unordered_map<ComponentID, ComponentTypeInfo> GetComponents() {
+        [[nodiscard]] Map<ComponentID, ComponentTypeInfo>& GetComponents() {
             return m_ComponentTypes;
         }
 
-        [[nodiscard]] std::unordered_map<ComponentID, SerializableComponentInfo>& GetSerializableComponents() {
+        [[nodiscard]] Vec<SerializableComponentInfo>& GetSerializableComponents() {
             return m_SerializableComponents;
         }
 
@@ -78,13 +81,23 @@ namespace Quelos {
         }
 
         [[nodiscard]] SerializableComponentInfo GetSerializableComponentInfo(const ComponentID& componentId) {
-            auto it = m_SerializableComponents.find(componentId);
-            if (it != m_SerializableComponents.end()) {
-                return it->second;
+            const auto it = m_GuidLookup.find(componentId);
+            if (it != m_GuidLookup.end()) {
+                return m_SerializableComponents[it->second];
             }
 
             QS_CORE_ERROR("Can't find component: {}", componentId.ToString());
             return SerializableComponentInfo{};
+        }
+
+        [[nodiscard]] SerializableComponentInfo* GetSerializableComponentInfo(const RuntimeID& componentId) {
+            const auto it = m_RuntimeIDLookup.find(componentId);
+            if (it != m_RuntimeIDLookup.end()) {
+                return &m_SerializableComponents[it->second];
+            }
+
+            QS_CORE_ERROR("Can't find component: {}", componentId);
+            return nullptr;
         }
 
         void RegisterComponent(
@@ -104,6 +117,7 @@ namespace Quelos {
             };
 
             info.RuntimeID = ecs_component_init(world.c_ptr(), &info.ComponentDesc);
+
             // TODO: figure this shit out
             /*info.SerializeFunc = [](Serialization::BinaryWriter& w, const void* data) {
                 w.Write(*static_cast<const T*>(data));
@@ -153,7 +167,10 @@ namespace Quelos {
                     TComponent::Serialize(tArchive, *static_cast<TComponent*>(data));
                 };
 
-                m_SerializableComponents[serializableInfo.Guid] = serializableInfo;
+                size_t index = m_SerializableComponents.size();
+                m_SerializableComponents.push_back(serializableInfo);
+                m_GuidLookup[componentId] = index;
+                m_RuntimeIDLookup[info.RuntimeID] = index;
             }
 
             m_ComponentTypes[info.Guid] = info;
@@ -172,7 +189,11 @@ namespace Quelos {
         }
 
     private:
-        std::unordered_map<ComponentID, ComponentTypeInfo> m_ComponentTypes;
-        std::unordered_map<ComponentID, SerializableComponentInfo> m_SerializableComponents;
+        Map<ComponentID, ComponentTypeInfo> m_ComponentTypes;
+
+        Vec<SerializableComponentInfo> m_SerializableComponents;
+
+        Map<ComponentID, size_t> m_GuidLookup;
+        Map<RuntimeID, size_t> m_RuntimeIDLookup;
     };
 }

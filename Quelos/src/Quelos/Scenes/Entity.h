@@ -7,6 +7,7 @@
 
 namespace Quelos {
 	using EntityID = GUID64;
+	using RuntimeID = flecs::id_t;
 
 	class Entity {
 	public:
@@ -29,33 +30,33 @@ namespace Quelos {
 		}
 
 		template <typename T, flecs::if_t<flecs::is_actual<T>::value > = 0>
-		CRef<T> GetRef() const {
+		ComponentRef<T> GetRef() const {
 			return m_ID.get_ref<T>();
 		}
 
 		template <typename T, typename A = flecs::actual_type_t<T>, flecs::if_t< flecs::is_pair<T>::value > = 0>
-		[[nodiscard]] CRef<A> GetRef() const {
+		[[nodiscard]] ComponentRef<A> GetRef() const {
 			return m_ID.get_ref<T>();
 		}
 
 		template <typename T>
-		[[nodiscard]] CUntypedRef GetUntypedRef() const {
-			return flecs::untyped_ref(m_ID.world(), m_ID, m_ID.world().id<T>());
+		[[nodiscard]] ComponentUntypedRef GetUntypedRef() const {
+			return m_ID.get_ref<T>();
 		}
 
-		[[nodiscard]] CUntypedRef GetUntypedRef(const flecs::id id) const {
-			return flecs::untyped_ref(m_ID.world(), m_ID, id);
+		[[nodiscard]] ComponentUntypedRef GetUntypedRef(const RuntimeID id) const {
+			return m_ID.get_ref(id);
 		}
 
 		template <typename First, typename Second, typename P = flecs::pair<First, Second>,
 			typename A = flecs::actual_type_t<P>>
-		CRef<A> GetRef() const {
+		ComponentRef<A> GetRef() const {
 			// TODO: check this too
 			return m_ID.get_ref<First, Second>();
 		}
 
 		template <typename First>
-		CRef<First> GetRef(const Entity second) const {
+		ComponentRef<First> GetRef(const Entity second) const {
 			return m_ID.get_ref<First>(second.m_ID);
 		}
 
@@ -67,6 +68,10 @@ namespace Quelos {
 		template <typename T>
 		T& GetMut() {
 			return m_ID.get_mut<T>();
+		}
+
+		void* GetMut(const RuntimeID id) const {
+			return m_ID.get_mut(id);
 		}
 
 		void SetName(const std::string& name) const { m_ID.set_name(name.c_str()); }

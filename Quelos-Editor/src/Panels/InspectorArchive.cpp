@@ -1,8 +1,35 @@
 #include "InspectorArchive.h"
 
-#include "Quelos/ImGui/ImGuiUI.h"
 
 namespace Quelos {
+    void InspectorArchive::DrawField(std::string_view name, float& value) {
+        static float startValue = 0.0f;
+        static bool startedEditing = false;
+        float temp = value;
+
+        if (UI::EditFloat(std::string(name), temp)) {
+            if (!startedEditing) {
+                startedEditing = true;
+                startValue = value;
+            }
+
+            value = temp;
+        }
+
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            m_UndoSystem.Push<SetField<float>>(
+                m_Entity.GetUntypedRef(m_ComponentID),
+                m_SerializeComponentFunc,
+                name,
+                startValue,
+                value
+            );
+
+            startedEditing = false;
+            QS_CORE_INFO("HELLO");
+        }
+    }
+
     void InspectorArchive::DrawField(std::string_view name, glm::vec3& value) {
         static auto startValue = glm::zero<glm::vec3>();
         static bool startedEditing = false;
@@ -20,7 +47,7 @@ namespace Quelos {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<glm::vec3>>(
                 m_Entity.GetUntypedRef(m_ComponentID),
-                std::move(m_SerializeComponentFunc),
+                m_SerializeComponentFunc,
                 name,
                 startValue,
                 value

@@ -226,7 +226,6 @@ namespace Quelos::Serialization {
     void SceneQuelSerializer::Serialize(const Ref<Scene>& scene, const std::filesystem::path& path) {
         flecs::world& world = scene->GetWorld();
         ComponentRegistry& registry = scene->GetComponentRegistry();
-        const auto& types = registry.GetSerializableComponents();
 
         std::string stringBuffer;
         StringQuelWriter quelWriter(stringBuffer);
@@ -236,11 +235,6 @@ namespace Quelos::Serialization {
         quelWriter.Write(SectionEvent{ "scene" });
         quelWriter.WriteField("version", static_cast<uint64_t>(1));
         quelWriter.WriteField("name", scene->GetName());
-
-        Map<ecs_id_t, SerializableComponentInfo> idLookup;
-        for (auto& typeBuffer : types | std::views::values) {
-            idLookup[typeBuffer.RuntimeID] = typeBuffer;
-        }
 
         auto q = world.query_builder<RuntimeTag>().build();
 
@@ -254,22 +248,20 @@ namespace Quelos::Serialization {
 
                 entity.each(
                     [&](const flecs::id id) {
-                        const auto it = idLookup.find(id);
-                        if (it == idLookup.end()) {
+                        SerializableComponentInfo* info = registry.GetSerializableComponentInfo(id);
+                        if (!info) {
                             return;
                         }
-
-                        const SerializableComponentInfo& componentInfo = it->second;
 
                         void* ptr = ecs_get_mut_id(world.c_ptr(), entityId, id);
                         if (!ptr) {
                             return;
                         }
 
-                        quelWriter.Write(ComponentEvent{ componentInfo.Name });
+                        quelWriter.Write(ComponentEvent{ info->Name });
 
                         QuelWriteArchive archive(quelWriter);
-                        componentInfo.SerializeTextWriteFunc(archive, ptr);
+                        info->SerializeTextWriteFunc(archive, ptr);
                     }
                 );
             }

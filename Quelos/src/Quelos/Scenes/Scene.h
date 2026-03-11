@@ -3,9 +3,10 @@
 #include "Entity.h"
 #include <Quelos/Core/Ref.h>
 
-#include "ComponentRegistery.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/FrameBuffer.h"
+
+#include "ComponentRegistery.h"
 
 namespace Quelos {
 	enum class SystemGroup : uint8_t {
