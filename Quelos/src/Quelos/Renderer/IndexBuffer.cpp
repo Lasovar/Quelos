@@ -1,11 +1,9 @@
-#include <qspch.h>
 #include "IndexBuffer.h"
 
-#include "Quelos/Platform/bgfx/bgfxIndexBuffer.h"
+#include "Renderer.h"
 
 namespace Quelos {
-
-    Ref<IndexBuffer> IndexBuffer::Create(const std::vector<uint16_t>& indices) {
-        return CreateRef<bgfxIndexBuffer>(indices);
+    void IndexBufferHandle::Bind() const {
+        Renderer::BindIndexBuffer(*this);
     }
 }

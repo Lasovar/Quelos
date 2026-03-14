@@ -13,11 +13,11 @@ namespace Quelos {
 		std::vector<PosColorVertex>& GetVertices() { return m_Vertices; }
 		std::vector<uint16_t>& GetIndices() { return m_Indices; }
 
-		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
-		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
+		[[nodiscard]] VertexBufferHandle GetVertexBuffer() const { return m_VertexBuffer; }
+		[[nodiscard]] IndexBufferHandle GetIndexBuffer() const { return m_IndexBuffer; }
 	private:
-		Ref<VertexBuffer> m_VertexBuffer;
-		Ref<IndexBuffer> m_IndexBuffer;
+		VertexBufferHandle m_VertexBuffer;
+		IndexBufferHandle m_IndexBuffer;
 
 		std::vector<PosColorVertex> m_Vertices;
 		std::vector<uint16_t> m_Indices;

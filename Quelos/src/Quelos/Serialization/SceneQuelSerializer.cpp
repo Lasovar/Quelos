@@ -21,7 +21,8 @@ namespace Quelos::Serialization {
     void SceneQuelSerializer::Deserialize(const Ref<Scene>& scene, const std::filesystem::path& path) {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file) {
-            throw std::runtime_error("Failed to open scene file");
+            QS_ERROR_TAG("SceneSerializer", "Failed to open scene file");
+            return;
         }
 
         const size_t fileSize = file.tellg();

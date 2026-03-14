@@ -1,12 +1,17 @@
 #pragma once
 
-namespace Quelos {
-	class IndexBuffer {
-	public:
-		virtual ~IndexBuffer() = default;
+#include "Quelos/Utility/SlotMap.h"
 
-		virtual void Bind() const = 0;
-	public:
-		static Ref<IndexBuffer> Create(const std::vector<uint16_t>& indices);
+namespace Quelos {
+	class IndexBuffer;
+
+	struct IndexBufferHandle : Handle<IndexBuffer> {
+		IndexBufferHandle() = default;
+
+		IndexBufferHandle(const Handle handle) {
+			Value = handle.Value;
+		}
+
+		void Bind() const;
 	};
 }

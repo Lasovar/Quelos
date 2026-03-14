@@ -6,6 +6,7 @@
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
 #include "Material.h"
+#include "RendererContext.h"
 #include "Shader.h"
 #include "VertexBuffer.h"
 
@@ -23,22 +24,9 @@ namespace Quelos {
     static Ref<Time> s_Time;
 
     static bool s_NeedReset = false;
-    static uint32_t s_CurrentViewID = BGFX_INVALID_HANDLE;
     static bool s_IsInitialized = false;
 
-    static bgfx::RendererType::Enum GetRendererType(const RendererAPI api) {
-        switch (api) {
-        case RendererAPI::None: return bgfx::RendererType::Noop;
-        case RendererAPI::OpenGL: return bgfx::RendererType::OpenGL;
-        case RendererAPI::Vulkan: return bgfx::RendererType::Vulkan;
-        case RendererAPI::Direct3D11: return bgfx::RendererType::Direct3D11;
-        case RendererAPI::Direct3D12: return bgfx::RendererType::Direct3D12;
-        case RendererAPI::Metal: return bgfx::RendererType::Metal;
-        }
-
-        QS_CORE_ASSERT(false, "Unknown RendererAPI");
-        return bgfx::RendererType::Noop;
-    }
+    static Ref<RendererContext> s_RendererContext;
 
     bool Renderer::IsInitialized() { return s_IsInitialized; }
 
@@ -46,39 +34,8 @@ namespace Quelos {
         s_Window = window;
         s_Time = Application::Get().GetTime();
 
-        bgfx::PlatformData platformData;
-        platformData.nwh = window->GetNativeWindow();
-        platformData.ndt = window->GetNativeDisplay();
-
-        bgfx::Init bgfxInit;
-        bgfxInit.type = GetRendererType(api);
-        bgfxInit.resolution.width = window->GetWidth();
-        bgfxInit.resolution.height = window->GetHeight();
-        bgfxInit.resolution.reset = BGFX_RESET_NONE;
-#if QUELOS_PLATFORM_WINDOWS
-        // TODO: Try to get Direct3D12 to work
-        platformData.type = bgfx::NativeWindowHandleType::Default;
-#elif QUELOS_PLATFORM_LINUX
-        // TODO: SETUP VULKAN PROPERLY ON WAYLAND
-        platformData.type = s_Window->IsWayland()
-                                ? bgfx::NativeWindowHandleType::Wayland
-                                : bgfx::NativeWindowHandleType::Default;
-#endif
-
-        bgfxInit.platformData = platformData;
-        bgfx::init(bgfxInit);
-
-       uint64_t cullState = bgfx::getCaps()->originBottomLeft
-                    ? BGFX_STATE_CULL_CW   // OpenGL
-                    : BGFX_STATE_CULL_CCW; // DX/Vulkan/Metal
-
-        bgfx::setState(
-            BGFX_STATE_WRITE_RGB |
-            BGFX_STATE_WRITE_A |
-            BGFX_STATE_WRITE_Z |
-            BGFX_STATE_DEPTH_TEST_LESS |
-            BGFX_STATE_CULL_CCW
-        );
+        s_RendererContext = RendererContext::Create();
+        s_RendererContext->Init(window, api);
 
         s_IsInitialized = true;
     }
@@ -121,8 +78,8 @@ namespace Quelos {
         // Move functionality to Uniform Buffers
         bgfx::setTransform(glm::value_ptr(mat));
 
-        mesh.MeshData->GetVertexBuffer()->Bind(0);
-        mesh.MeshData->GetIndexBuffer()->Bind();
+        mesh.MeshData->GetVertexBuffer().Bind(0);
+        mesh.MeshData->GetIndexBuffer().Bind();
 
         mesh.MaterialData->GetShader()->Submit(viewID);
     }
@@ -137,5 +94,29 @@ namespace Quelos {
             s_NeedReset = true;
             return false;
         });
+    }
+
+    VertexBufferHandle Renderer::CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) {
+        return s_RendererContext->CreateVertexBuffer(vertices);
+    }
+
+    void Renderer::BindVertexBuffer(const VertexBufferHandle handle, const uint32_t stream) {
+        s_RendererContext->BindVertexBuffer(handle, stream);
+    }
+
+    void Renderer::Destroy(const VertexBufferHandle vertexBufferHandle) {
+        s_RendererContext->Destroy(vertexBufferHandle);
+    }
+
+    IndexBufferHandle Renderer::CreateIndexBuffer(const std::vector<uint16_t>& indices) {
+        return s_RendererContext->CreateIndexBuffer(indices);
+    }
+
+    void Renderer::BindIndexBuffer(const IndexBufferHandle handle) {
+        s_RendererContext->BindIndexBuffer(handle);
+    }
+
+    void Renderer::Destroy(const IndexBufferHandle indexBufferHandle) {
+        s_RendererContext->Destroy(indexBufferHandle);
     }
 }

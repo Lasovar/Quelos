@@ -4,6 +4,8 @@
 
 // Credits Hazel
 
+#define QS_ENABLE_ASSERTS
+
 #ifdef QS_PLATFORM_WINDOWS
 	#define QS_DEBUG_BREAK __debugbreak()
 #elif defined(QS_COMPILER_CLANG)

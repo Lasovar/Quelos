@@ -7,18 +7,21 @@
 #include <stdexcept>
 #include "ska/flat_hash_map.hpp"
 
+#define QS_STRINGIFY_IMPL(x) #x
+#define QS_STRINGIFY(x) QS_STRINGIFY_IMPL(x)
+
 namespace Quelos {
 	using byte = std::byte;
 	consteval int GetBit(const int x) { return 1 << x; }
 
 	template <typename TKey, typename TValue>
-	using Map = ska::flat_hash_map<TKey, TValue>;
+	using HashMap = ska::flat_hash_map<TKey, TValue>;
 
 	template <typename TKey, typename TValue>
 	using OrderedMap = std::map<TKey, TValue>;
 
 	template <typename TKey, typename TValue>
-	using Set = ska::flat_hash_set<TKey, TValue>;
+	using HashSet = ska::flat_hash_set<TKey, TValue>;
 
 	template <typename T>
 	using Deque = std::deque<T>;
