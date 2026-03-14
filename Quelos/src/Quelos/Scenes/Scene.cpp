@@ -73,6 +73,12 @@ namespace Quelos {
         return entity;
     }
 
+    void Scene::DestroyEntity(const EntityID entityId) {
+        const auto entity = m_EntityMap[entityId];
+        entity.Destroy();
+        m_EntityMap.erase(entityId);
+    }
+
     void Scene::OnViewportResized(glm::vec2 viewportSize) const {
         m_World.each([viewportSize](CameraComponent& camera) {
             camera.Camera.SetViewportSize(viewportSize.x, viewportSize.y);

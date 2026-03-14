@@ -67,7 +67,7 @@ namespace Quelos {
                 }
             }
 
-            auto* header = reinterpret_cast<CommandHeader*>(m_Buffer.get() + m_Head);
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + m_Head));
             auto* data = reinterpret_cast<T*>(header + 1);
 
             new(data) T(std::forward<Args>(args)...);
@@ -92,7 +92,7 @@ namespace Quelos {
             const size_t offset = m_Stack.back();
             m_Stack.pop_back();
 
-            auto* header = reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset);
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
             void* data = header + 1;
 
             header->VTable->Revert(data);
@@ -108,7 +108,7 @@ namespace Quelos {
             const size_t offset = m_RedoStack.back();
             m_RedoStack.pop_back();
 
-            auto* header = reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset);
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
             void* data = header + 1;
 
             header->VTable->Apply(data);
@@ -118,7 +118,7 @@ namespace Quelos {
 
         void DestroyRedo() {
             for (const size_t offset : m_RedoStack) {
-                auto* header = reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset);
+                auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
                 void* data = header + 1;
 
                 header->VTable->Destroy(data);
@@ -140,7 +140,7 @@ namespace Quelos {
             const size_t offset = m_Stack.front();
             m_Stack.pop_front();
 
-            auto* header = reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset);
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
             void* data = header + 1;
 
             header->VTable->Destroy(data);

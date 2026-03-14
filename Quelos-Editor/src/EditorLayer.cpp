@@ -16,6 +16,7 @@
 #include "Quelos/Serialization/SceneQuelSerializer.h"
 
 #include "Quelos/Serialization/Serializer.h"
+#include "Scene/SceneSerializer.h"
 
 namespace Quelos {
     static std::vector<PosColorVertex> cubeVertices = {
@@ -66,6 +67,8 @@ namespace Quelos {
 
         //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
 
+        SceneSerializer sceneSerializer(m_DefaultScene, "Assets/TestScene");
+
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
         });*/
@@ -75,7 +78,7 @@ namespace Quelos {
 
         //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        s_Camera = m_DefaultScene->CreateEntity("Camera2");
+        /*s_Camera = m_DefaultScene->CreateEntity("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
         s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
 
@@ -100,7 +103,7 @@ namespace Quelos {
 
         const Entity floor = m_DefaultScene->CreateEntity("Floor");
         floor.Set(TransformComponent{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
-        floor.Set(cubeMesh);
+        floor.Set(cubeMesh);*/
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
@@ -119,7 +122,7 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        m_SceneWorkspace->SelectEntity(s_Camera);
+        //m_SceneWorkspace->SelectEntity(s_Camera);
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
     }
 

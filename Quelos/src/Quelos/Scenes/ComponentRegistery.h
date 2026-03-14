@@ -63,7 +63,7 @@ namespace Quelos {
             m_ComponentTypes[info.Guid] = info;
         }
 
-        [[nodiscard]] Map<ComponentID, ComponentTypeInfo>& GetComponents() {
+        [[nodiscard]] HashMap<ComponentID, ComponentTypeInfo>& GetComponents() {
             return m_ComponentTypes;
         }
 
@@ -189,11 +189,11 @@ namespace Quelos {
         }
 
     private:
-        Map<ComponentID, ComponentTypeInfo> m_ComponentTypes;
+        HashMap<ComponentID, ComponentTypeInfo> m_ComponentTypes;
 
         Vec<SerializableComponentInfo> m_SerializableComponents;
 
-        Map<ComponentID, size_t> m_GuidLookup;
-        Map<RuntimeID, size_t> m_RuntimeIDLookup;
+        HashMap<ComponentID, size_t> m_GuidLookup;
+        HashMap<RuntimeID, size_t> m_RuntimeIDLookup;
     };
 }

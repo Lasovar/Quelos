@@ -1,4 +1,5 @@
 #pragma once
+#include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
 	struct PosColorVertex {
@@ -16,12 +17,14 @@ namespace Quelos {
 		}
 	};
 
-	class VertexBuffer {
-	public:
-		virtual ~VertexBuffer() = default;
+	class VertexBuffer;
 
-		virtual void Bind(uint32_t stream) const = 0;
-	public:
-		static Ref<VertexBuffer> Create(const std::vector<PosColorVertex>& vertices);
+	struct VertexBufferHandle : Handle<VertexBuffer> {
+		VertexBufferHandle() = default;
+		VertexBufferHandle(const Handle handle) {
+			Value = handle.Value;
+		}
+
+		void Bind(uint32_t stream = 0) const;
 	};
 }

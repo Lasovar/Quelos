@@ -71,17 +71,20 @@ namespace Quelos {
 
 		Entity CreateEntity(std::string_view entityName);
 		Entity CreateEntity(const EntityID& guid, std::string_view entityName);
+		void DestroyEntity(EntityID entityId);
 
 		void OnViewportResized(glm::vec2 viewportSize) const;
 
 		flecs::world& GetWorld() { return m_World; }
 		ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
+		Entity GetEntity(const EntityID entityId) { return m_EntityMap[entityId]; }
+
 	public:
 		static Ref<Scene> Copy(const Ref<Scene>& scene);
 
 		friend class SceneBinarySerializer;
 	private:
-		Map<EntityID, Entity> m_EntityMap;
+		HashMap<EntityID, Entity> m_EntityMap;
 		ComponentRegistry m_ComponentRegistry;
 
 		flecs::world m_World;

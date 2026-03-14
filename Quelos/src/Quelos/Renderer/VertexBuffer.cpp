@@ -1,12 +1,10 @@
-#include "qspch.h"
 #include "VertexBuffer.h"
 
-#include "Quelos/Platform/bgfx/bgfxVertexBuffer.h"
+#include "Renderer.h"
 
 namespace Quelos {
-
-	Ref<VertexBuffer> VertexBuffer::Create(const std::vector<PosColorVertex>& vertices) {
-		return CreateRef<bgfxVertexBuffer>(vertices);
-	}
+    void VertexBufferHandle::Bind(const uint32_t stream) const {
+        Renderer::BindVertexBuffer(*this, stream);
+    }
 }
 
