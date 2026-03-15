@@ -80,9 +80,19 @@ namespace Quelos::Serialization {
         explicit QuelWriteArchive(QuelWriter& writer)
             : m_Writer(writer) { }
 
+        QuelWriteArchive(QuelWriter& writer, HashSet<std::string_view>* fieldToWrite)
+            : m_Writer(writer), m_FieldsToWrite(fieldToWrite) { }
+
         template <typename T>
         void Field(std::string_view name, T& value) {
-            WriteValue(name, value);
+            if (m_FieldsToWrite) {
+                if (m_FieldsToWrite->find(name) != m_FieldsToWrite->end()) {
+                    WriteValue(name, value);
+                }
+            }
+            else {
+                WriteValue(name, value);
+            }
         }
 
         template <typename T>
@@ -152,36 +162,19 @@ namespace Quelos::Serialization {
         }
 
         void WriteComplex(const std::string_view name, const glm::vec2& v) const {
-            m_Writer.BeginTupleField(name);
-            m_Writer.WriteValue(v.x);
-            m_Writer.WriteValue(v.y);
-            m_Writer.EndTuple();
+            m_Writer.WriteField(name, v);
         }
 
         void WriteComplex(const std::string_view name, const glm::vec3& v) const {
-            m_Writer.BeginTupleField(name);
-            m_Writer.WriteValue(v.x);
-            m_Writer.WriteValue(v.y);
-            m_Writer.WriteValue(v.z);
-            m_Writer.EndTuple();
+            m_Writer.WriteField(name, v);
         }
 
         void WriteComplex(const std::string_view name, const glm::vec4& v) const {
-            m_Writer.BeginTupleField(name);
-            m_Writer.WriteValue(v.x);
-            m_Writer.WriteValue(v.y);
-            m_Writer.WriteValue(v.z);
-            m_Writer.WriteValue(v.w);
-            m_Writer.EndTuple();
+            m_Writer.WriteField(name, v);
         }
 
         void WriteComplex(const std::string_view name, const glm::quat& q) const {
-            m_Writer.BeginTupleField(name);
-            m_Writer.WriteValue(q.w);
-            m_Writer.WriteValue(q.x);
-            m_Writer.WriteValue(q.y);
-            m_Writer.WriteValue(q.z);
-            m_Writer.EndTuple();
+            m_Writer.WriteField(name, q);
         }
 
         template <typename T>
@@ -220,6 +213,7 @@ namespace Quelos::Serialization {
 
     private:
         QuelWriter& m_Writer;
+        HashSet<std::string_view>* m_FieldsToWrite = nullptr;
     };
 
     class QuelReadArchive {

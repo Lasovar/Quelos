@@ -32,7 +32,7 @@ namespace Quelos::Serialization {
         }
 
         for (uint64_t i = 0; i < header.EntityCount; ++i) {
-            EntityID entityId(reader.Read<uint64_t>().value());
+            ActorID entityId(reader.Read<uint64_t>().value());
             uint32_t nameLength = reader.Read<uint32_t>().value();
             auto nameBytes = reader.ReadBytes(nameLength).value();
 
@@ -41,7 +41,7 @@ namespace Quelos::Serialization {
                 nameLength
             );
 
-            Entity entity = scene->CreateEntity(entityId, name.c_str());
+            Entity entity = scene->CreateActor(entityId, name.c_str());
 
             uint32_t componentCount = reader.Read<uint32_t>().value();
             for (uint32_t c = 0; c < componentCount; ++c) {
@@ -84,22 +84,22 @@ namespace Quelos::Serialization {
         // Header
         SceneHeader header{};
         header.ComponentTypeCount = types.size();
-        header.EntityCount = world.count<RuntimeTag>();
+        header.EntityCount = world.count<Actor>();
         QS_CORE_INFO("Entity count: {}", header.EntityCount);
 
         finalWriter.Write(header);
 
-        auto guidLookup = world.query_builder<RuntimeTag>().build();
-        Vec<Pair<EntityID, flecs::entity>> entities;
+        auto guidLookup = world.query_builder<Actor>().build();
+        Vec<Pair<ActorID, flecs::entity>> entities;
         entities.reserve(guidLookup.count());
 
-        guidLookup.each([&entities](const flecs::entity entity, const RuntimeTag& tag) {
+        guidLookup.each([&entities](const flecs::entity entity, const Actor& tag) {
             entities.emplace_back(tag.ID, entity);
         });
 
         std::ranges::sort(
             entities,
-            [](const Pair<EntityID, flecs::entity>& a, const Pair<EntityID, flecs::entity>& b) {
+            [](const Pair<ActorID, flecs::entity>& a, const Pair<ActorID, flecs::entity>& b) {
                 return a.first < b.first;
             }
         );

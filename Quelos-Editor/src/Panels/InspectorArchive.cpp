@@ -1,6 +1,5 @@
 #include "InspectorArchive.h"
 
-
 namespace Quelos {
     void InspectorArchive::DrawField(std::string_view name, float& value) {
         static float startValue = 0.0f;

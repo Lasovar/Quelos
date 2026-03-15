@@ -1,8 +1,9 @@
 #pragma once
 
 #include "flecs.h"
-#include "Quelos/Scenes/Entity.h"
+
 #include "Quelos/Serialization/QuelArchive.h"
+#include "Scene/SceneSerializer.h"
 
 namespace Quelos {
     struct CommandVTable {
@@ -42,11 +43,17 @@ namespace Quelos {
 
     class UndoSystem {
     public:
-        explicit UndoSystem(const size_t capacity = 1024 * 1024) {
+        UndoSystem() = default;
+
+        explicit UndoSystem(SceneSerializer* sceneSerializer, const size_t capacity = 1024 * 1024)
+            : m_SceneSerializer(sceneSerializer) {
             m_Buffer = CreateScope<byte[]>(capacity);
             m_Capacity = capacity;
             m_Head = 0;
         }
+
+        UndoSystem(UndoSystem&& undoSystem) noexcept = default;
+        UndoSystem& operator=(UndoSystem&&) noexcept = default;
 
         ~UndoSystem() = default;
 
@@ -82,6 +89,11 @@ namespace Quelos {
             DestroyRedo();
 
             header->VTable->Apply(data);
+            if (m_SceneSerializer) {
+                m_SceneSerializer->Record(*data);
+            } else {
+                QS_CORE_ERROR("SceneSerializer is null");
+            }
         }
 
         void Undo() {
@@ -160,59 +172,7 @@ namespace Quelos {
 
         Deque<size_t> m_Stack;
         Vec<size_t> m_RedoStack;
-    };
 
-    class SetFieldArchive {
-    public:
-        static constexpr bool IsLoading = true;
-        static constexpr bool IsSaving = false;
-
-    public:
-        explicit SetFieldArchive(const std::string_view fieldName, void* value)
-            : m_FieldKey(fieldName), m_Value(value) {}
-
-        template <typename T>
-        void Field(const std::string_view name, T& value) {
-            if (name == m_FieldKey) {
-                value = *static_cast<T*>(m_Value);
-            }
-        }
-
-        // TODO:
-        template <typename T>
-            requires(std::is_trivially_copyable_v<T>)
-        void FieldVector(const std::string&, std::vector<T>& data) { }
-        template <typename T>
-        void Value(T& value) { }
-        static void BeginTuple() { }
-        static void BeginTupleField(const std::string_view) { }
-        static void EndTuple() { }
-
-    private:
-        std::string_view m_FieldKey;
-        void* m_Value;
-    };
-
-    using SetFieldSerializeFn = void(*)(SetFieldArchive&, void*);
-
-    template <typename TField>
-    struct SetField {
-        ComponentUntypedRef ComponentRef;
-        SetFieldSerializeFn SerializeComponentFunc;
-
-        std::string_view FieldKey;
-
-        TField Before;
-        TField After;
-
-        void Apply() {
-            SetFieldArchive archive(FieldKey, &After);
-            SerializeComponentFunc(archive, ComponentRef.Get());
-        }
-
-        void Revert() {
-            auto archive = SetFieldArchive(FieldKey, &Before);
-            SerializeComponentFunc(archive, ComponentRef.Get());
-        }
+        SceneSerializer* m_SceneSerializer = nullptr;
     };
 }

@@ -242,10 +242,10 @@ namespace Quelos::Serialization {
 
     void QuelWriter::WriteValue(glm::quat value) {
         Write(TupleBeginEvent{});
-        Write(ValueEvent{value.w});
         Write(ValueEvent{value.x});
         Write(ValueEvent{value.y});
         Write(ValueEvent{value.z});
+        Write(ValueEvent{value.w});
         Write(TupleEndEvent{});
     }
 
@@ -290,6 +290,11 @@ namespace Quelos::Serialization {
     }
 
     void QuelWriter::WriteField(const std::string_view field, const glm::vec3 value) {
+        Write(FieldEvent{field});
+        WriteValue(value);
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const glm::vec4 value) {
         Write(FieldEvent{field});
         WriteValue(value);
     }

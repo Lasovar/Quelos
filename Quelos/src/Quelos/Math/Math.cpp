@@ -60,6 +60,14 @@ namespace Quelos::Math {
         );
     }
 
+    glm::mat4 ViewMatrix(const glm::mat4& world) {
+        return glm::inverse(world);
+    }
+
+    glm::mat4 SRTMatrix(const LocalTransform& transform) {
+        return SRTMatrix(transform.Scale, transform.Rotation, transform.Position);
+    }
+
     glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::vec3& eulerAngles, const glm::vec3& position) {
         return SRTMatrix(scale, glm::quat(eulerAngles), position);
     }

@@ -128,7 +128,7 @@ namespace Quelos::Serialization {
                 }
                 else if (m_CurrentField == "guid") {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
-                        m_CurrentEntityID = EntityID(std::get<std::string_view>(e.Value));
+                        m_CurrentEntityID = ActorID(std::get<std::string_view>(e.Value));
                     }
                 } else if (m_CurrentField == "state") {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
@@ -137,7 +137,7 @@ namespace Quelos::Serialization {
                 }
 
                 if (m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty()) {
-                    m_CurrentEntity = m_Scene->CreateEntity(m_CurrentEntityID, m_CurrentEntityName);
+                    m_CurrentEntity = m_Scene->CreateActor(m_CurrentEntityID, m_CurrentEntityName);
                     m_CurrentEntityID = {};
                     m_CurrentEntityName = "";
                 }
@@ -237,14 +237,14 @@ namespace Quelos::Serialization {
         quelWriter.WriteField("version", static_cast<uint64_t>(1));
         quelWriter.WriteField("name", scene->GetName());
 
-        auto q = world.query_builder<RuntimeTag>().build();
+        auto q = world.query_builder<Actor>().build();
 
         q.each(
-            [&](const flecs::entity entity, const RuntimeTag&) {
+            [&](const flecs::entity entity, const Actor&) {
                 const ecs_entity_t entityId = entity.id();
 
                 quelWriter.Write(SectionEvent{ "entity" });
-                quelWriter.WriteField("guid", entity.get<RuntimeTag>().ID.ToString());
+                quelWriter.WriteField("guid", entity.get<Actor>().ID.ToString());
                 quelWriter.WriteField("name", std::string_view(entity.name()));
 
                 entity.each(

@@ -49,10 +49,10 @@ namespace Quelos {
 
     void Renderer::StartSceneRender(
         const Ref<FrameBuffer>& frameBuffer,
-        const TransformComponent& transform,
+        const WorldTransform& transform,
         const glm::mat4& projection
     ) {
-        StartSceneRender(frameBuffer, Math::ViewMatrix(transform.Rotation, transform.Position), projection);
+        StartSceneRender(frameBuffer, Math::ViewMatrix(transform.Value), projection);
     }
 
     void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view,
@@ -72,11 +72,9 @@ namespace Quelos {
         bgfx::frame();
     }
 
-    void Renderer::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const TransformComponent& transform) {
-        glm::mat4 mat = Math::SRTMatrix(transform.Scale, transform.Rotation, transform.Position);
-
+    void Renderer::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) {
         // Move functionality to Uniform Buffers
-        bgfx::setTransform(glm::value_ptr(mat));
+        bgfx::setTransform(glm::value_ptr(transform.Value));
 
         mesh.MeshData->GetVertexBuffer().Bind(0);
         mesh.MeshData->GetIndexBuffer().Bind();

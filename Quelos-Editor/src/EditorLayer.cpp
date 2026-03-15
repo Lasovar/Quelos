@@ -50,8 +50,6 @@ namespace Quelos {
         float Timer = 0.0f;
     };
 
-    EditorLayer::EditorLayer() = default;
-
     template <class... Ts>
     struct Overloaded : Ts... {
         using Ts::operator()...;
@@ -61,13 +59,15 @@ namespace Quelos {
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
     static Entity s_Camera;
+    static SceneSerializer s_SceneSerializer;
 
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
         //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
 
-        SceneSerializer sceneSerializer(m_DefaultScene, "Assets/TestScene");
+        s_SceneSerializer = SceneSerializer(m_DefaultScene, "Assets/TestScene");
+        m_UndoSystem = std::move(UndoSystem(&s_SceneSerializer));
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
@@ -78,32 +78,39 @@ namespace Quelos {
 
         //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        /*s_Camera = m_DefaultScene->CreateEntity("Camera2");
+        s_Camera = m_DefaultScene->CreateActor("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
-        s_Camera.Set(TransformComponent{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
-
-        const Entity cube = m_DefaultScene->CreateEntity("Cube");
-        cube.Set(TransformComponent{glm::vec3(-2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        s_Camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
         cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
+
+        const Entity floor = m_DefaultScene->CreateActor("Floor");
+        floor.Set(LocalTransform{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
+        floor.Set(cubeMesh);
+
+        const Entity cube = m_DefaultScene->CreateActor("Cube");
+        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube.Set(cubeMesh);
         cube.Set(CubePlayer());
+        cube.GetID().child_of(floor.GetID());
 
-        const Entity cube2 = m_DefaultScene->CreateEntity("Cube2");
-        cube2.Set(TransformComponent{glm::vec3(5.f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        const Entity cube2 = m_DefaultScene->CreateActor("Cube2");
+        cube2.Set(LocalTransform{glm::vec3(5.f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube2.Set(cubeMesh);
         cube2.Set(CubePlayer{-2});
+        cube2.GetID().child_of(floor.GetID());
 
-        const Entity cube3 = m_DefaultScene->CreateEntity("Cube3");
-        cube3.Set(TransformComponent{glm::vec3(0, 5, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        const Entity cube3 = m_DefaultScene->CreateActor("Cube3");
+        cube3.Set(LocalTransform{glm::vec3(0, 5, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
         cube3.Set(cubeMesh);
         cube3.Set(CubePlayer{-10});
+        cube3.GetID().child_of(floor.GetID());
 
-        const Entity floor = m_DefaultScene->CreateEntity("Floor");
-        floor.Set(TransformComponent{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
-        floor.Set(cubeMesh);*/
+        floor.GetID().children([](flecs::entity e) {
+            QS_INFO("{}", e.name().c_str());
+        });
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
@@ -122,7 +129,11 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        //m_SceneWorkspace->SelectEntity(s_Camera);
+        m_DefaultScene->GetWorld().each<CameraComponent>([](flecs::entity entity, CameraComponent& cameraComponent) {
+            s_Camera = entity;
+        });
+
+        m_SceneWorkspace->SelectEntity(cube);
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
     }
 
@@ -333,6 +344,10 @@ namespace Quelos {
                     m_UndoSystem.Redo();
                 }
                 break;
+            case KeyCode::S:
+                if (m_CtrlKey && !e.IsRepeat()) {
+                    s_SceneSerializer.SerializePatches();
+                }
             default:
                 break;
             }

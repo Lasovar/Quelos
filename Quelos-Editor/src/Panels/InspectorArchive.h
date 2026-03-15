@@ -2,6 +2,7 @@
 
 #include "Quelos/Scenes/Scene.h"
 
+#include "Scene/SetFieldCommand.h"
 #include "UndoSystem.h"
 
 #include "Quelos/ImGui/ImGuiUI.h"

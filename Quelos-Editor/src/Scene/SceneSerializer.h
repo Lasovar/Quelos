@@ -1,15 +1,65 @@
 #pragma once
 
 #include "Quelos/Scenes/Scene.h"
+#include "SetFieldCommand.h"
+
+#include "Quelos/Core/Base.h"
 
 namespace Quelos {
+    struct ComponentPatch {
+        ComponentUntypedRef ComponentRef;
+        HashSet<std::string_view> Fields;
+    };
+
+    struct EntityPatch {
+        enum class State : uint8_t {
+            Changed = 0,
+            Added = 1,
+            Removed = 2
+        };
+
+        OrderedMap<RuntimeID, ComponentPatch> Components;
+        State PatchState = State::Changed;
+
+        void SetState(const State next) {
+            if (PatchState == State::Added && next == State::Changed) {
+                return;
+            }
+
+            PatchState = next;
+        }
+
+        void ApplyPreviousState(const State previous) {
+            // Hacking but idk
+            const State current = PatchState;
+            PatchState = previous;
+            SetState(current);
+        }
+    };
+
     class SceneSerializer {
     public:
+        SceneSerializer() = default;
         SceneSerializer(const Ref<Scene>& scene, const std::filesystem::path& sceneFolderPath);
         ~SceneSerializer() = default;
 
         void SerializePatches();
         void BakePatches();
+
+        void PushComponentFieldCommand(Entity entity, RuntimeID componentId, std::string_view field);
+
+        template<typename T>
+        void Record(SetField<T>& cmd) {
+            const Entity entity(cmd.ComponentRef.GetEntityID());
+
+            auto& entityPatch = m_Entities[entity.GetID()];
+            auto& compPatch = entityPatch.Components[cmd.ComponentRef.GetID()];
+
+            compPatch.ComponentRef = cmd.ComponentRef;
+            compPatch.Fields.insert(cmd.FieldKey);
+
+            entityPatch.SetState(EntityPatch::State::Changed);
+        }
 
     private:
         Ref<Scene> m_Scene;
@@ -32,6 +82,8 @@ namespace Quelos {
         void PushBackToContainer(size_t childIndex);
 
     private:
+        HashMap<Entity, EntityPatch> m_Entities{};
+
         enum class ParserState : uint8_t {
             None = 0,
             InSection = 1,
@@ -56,7 +108,7 @@ namespace Quelos {
         Entity m_CurrentEntity;
         std::string_view m_CurrentEntityName;
         std::string_view m_CurrentEntityState;
-        EntityID m_CurrentEntityID{};
+        ActorID m_CurrentEntityID{};
 
         bool m_SkipToNextSection = false;
 

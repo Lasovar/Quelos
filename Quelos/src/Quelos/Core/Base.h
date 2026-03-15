@@ -20,8 +20,8 @@ namespace Quelos {
 	template <typename TKey, typename TValue>
 	using OrderedMap = std::map<TKey, TValue>;
 
-	template <typename TKey, typename TValue>
-	using HashSet = ska::flat_hash_set<TKey, TValue>;
+	template <typename TValue>
+	using HashSet = ska::flat_hash_set<TValue>;
 
 	template <typename T>
 	using Deque = std::deque<T>;

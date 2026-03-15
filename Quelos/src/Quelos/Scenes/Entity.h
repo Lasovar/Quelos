@@ -6,7 +6,7 @@
 #include "ComponentReference.h"
 
 namespace Quelos {
-	using EntityID = GUID64;
+	using ActorID = GUID64;
 	using RuntimeID = flecs::id_t;
 
 	class Entity {
@@ -14,6 +14,10 @@ namespace Quelos {
 		Entity() = default;
 		Entity(const flecs::entity id)
 			: m_ID(id) { }
+
+		bool operator==(const Entity& other) const {
+			return m_ID == other.m_ID;
+		}
 
 		[[nodiscard]] bool IsAlive() const;
 
@@ -85,5 +89,14 @@ namespace Quelos {
 
 	private:
 		flecs::entity m_ID;
+	};
+}
+
+namespace std {
+	template<>
+	struct hash<Quelos::Entity> {
+		size_t operator()(const Quelos::Entity& e) const noexcept {
+			return std::hash<ecs_id_t>{}(e.GetID());
+		}
 	};
 }

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "flecs/addons/cpp/ref.hpp"
+#include "flecs.h"
 
 namespace Quelos {
+    using RuntimeID = ecs_id_t;
     template <typename TComponent>
     class ComponentRef {
     public:
@@ -20,12 +21,17 @@ namespace Quelos {
 
     class ComponentUntypedRef {
     public:
+        ComponentUntypedRef() = default;
+
         ComponentUntypedRef(const flecs::untyped_ref& ref) {
             m_Ref = ref;
         }
 
         void* Get() { return m_Ref.get(); }
         void* TryGet() { return m_Ref.try_get(); }
+
+        [[nodiscard]] flecs::entity GetEntityID() const { return m_Ref.entity(); }
+        [[nodiscard]] RuntimeID GetID() const { return m_Ref.component(); }
     private:
         flecs::untyped_ref m_Ref{};
     };
