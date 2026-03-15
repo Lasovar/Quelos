@@ -10,10 +10,10 @@ namespace Quelos {
 
     static constexpr std::string s_SceneFileExtension = ".qscene";
     static const std::filesystem::path s_ScenePatchesFolder = "Patches";
-    static const std::filesystem::path s_ScenePatchFileExtension = ".qpatch";
+    static constexpr std::string s_ScenePatchFileExtension = ".qpatch";
 
     SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const std::filesystem::path& sceneFolderPath)
-        : m_Scene(scene) {
+        : m_Scene(scene), m_ScenePath(sceneFolderPath) {
         if (!std::filesystem::is_directory(sceneFolderPath)) {
             if (std::filesystem::exists(sceneFolderPath)) {
                 QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
@@ -28,7 +28,8 @@ namespace Quelos {
             std::filesystem::create_directories(patchesFolder);
         }
 
-        std::filesystem::path sceneFilePath = sceneFolderPath / (sceneFolderPath.filename().string() + s_SceneFileExtension);
+        std::filesystem::path sceneFilePath = sceneFolderPath / (sceneFolderPath.filename().string() +
+            s_SceneFileExtension);
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -66,7 +67,7 @@ namespace Quelos {
         }
 
         for (uint64_t i = 0; i < header.EntityCount; i++) {
-            EntityID entityId(reader.Read<uint64_t>().value());
+            ActorID entityId(reader.Read<uint64_t>().value());
             uint32_t nameLength = reader.Read<uint32_t>().value();
             auto nameBytes = reader.ReadBytes(nameLength).value();
 
@@ -75,7 +76,7 @@ namespace Quelos {
                 nameLength
             );
 
-            Entity entity = scene->CreateEntity(entityId, name);
+            Entity entity = scene->CreateActor(entityId, name);
 
             uint32_t componentCount = reader.Read<uint32_t>().value();
             for (uint32_t c = 0; c < componentCount; c++) {
@@ -85,7 +86,7 @@ namespace Quelos {
 
                 if (!typeInfo.Guid.IsValid()) {
                     QS_ERROR_TAG("SceneSerializer", "Unknown component type in scene!");
-                    return;
+                    continue;
                 }
 
                 // Serialized blob size
@@ -98,7 +99,7 @@ namespace Quelos {
 
                 if (!componentPtr) {
                     QS_ERROR_TAG("SceneSerializer", "Failed to ensure component!");
-                    return;
+                    continue;
                 }
 
                 // Deserialize
@@ -108,24 +109,32 @@ namespace Quelos {
             }
         }
 
-        for (auto& patchFilePath : std::filesystem::directory_iterator(patchesFolder)) {
-            if (!patchFilePath.is_regular_file() || patchesFolder.extension() != s_ScenePatchFileExtension) {
+        for (auto& patchFileEntry : std::filesystem::directory_iterator(patchesFolder)) {
+            const auto& patchFilePath = patchFileEntry.path();
+            if (!patchFileEntry.is_regular_file() || patchFilePath.extension() != s_ScenePatchFileExtension) {
+                QS_INFO(
+                    "invalid file '{}': (isFile: {}, extension: {})",
+                    patchFilePath.string(),
+                    patchFileEntry.is_regular_file(),
+                    patchFilePath.extension().string()
+                );
+
                 continue;
             }
 
-            std::ifstream patchFile(patchFilePath.path(), std::ios::binary | std::ios::ate);
+            std::ifstream patchFile(patchFilePath, std::ios::binary | std::ios::ate);
 
-            if (!file) {
+            if (!patchFile) {
                 QS_ERROR_TAG("SceneSerializer", "Failed to open scene patch file!");
                 continue;
             }
 
-            const size_t patchFileSize = file.tellg();
-            file.seekg(0);
+            const size_t patchFileSize = patchFile.tellg();
+            patchFile.seekg(0);
 
             std::string patchFileBuffer;
             patchFileBuffer.resize(patchFileSize);
-            file.read(patchFileBuffer.data(), patchFileSize);
+            patchFile.read(patchFileBuffer.data(), patchFileSize);
 
             m_Reader = QuelReader(patchFileBuffer);
 
@@ -236,7 +245,7 @@ namespace Quelos {
                 }
                 else if (m_CurrentField == "guid") {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
-                        m_CurrentEntityID = EntityID(std::get<std::string_view>(e.Value));
+                        m_CurrentEntityID = ActorID(std::get<std::string_view>(e.Value));
                     }
                 }
                 else if (m_CurrentField == "state") {
@@ -247,7 +256,7 @@ namespace Quelos {
 
                 if (m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty() && !m_CurrentEntityState.empty()) {
                     if (m_CurrentEntityState == "added") {
-                        m_CurrentEntity = m_Scene->CreateEntity(m_CurrentEntityID, m_CurrentEntityName);
+                        m_CurrentEntity = m_Scene->CreateActor(m_CurrentEntityID, m_CurrentEntityName);
                     }
                     else if (m_CurrentEntityState == "changed") {
                         m_CurrentEntity = m_Scene->GetEntity(m_CurrentEntityID);
@@ -347,9 +356,176 @@ namespace Quelos {
         }
     }
 
+    static std::string_view GetStateName(const EntityPatch::State state) {
+        switch (state) {
+        case EntityPatch::State::Changed: return "changed";
+        case EntityPatch::State::Added: return "added";
+        case EntityPatch::State::Removed: return "removed";
+        }
+
+        return "added";
+    }
+
     void SceneSerializer::SerializePatches() {
+        flecs::world& world = m_Scene->GetWorld();
+        ComponentRegistry& registry = m_Scene->GetComponentRegistry();
+
+        std::filesystem::path patchesFolder = m_ScenePath / s_ScenePatchesFolder;
+        for (auto& [entity, patch] : m_Entities) {
+            std::string guid = entity.Get<Actor>().ID.ToString();
+
+            std::filesystem::path filePath = patchesFolder / (guid + s_ScenePatchFileExtension);
+            std::ifstream patchReadFile(filePath, std::ios::binary | std::ios::ate);
+
+            if (patchReadFile) {
+                const size_t patchFileSize = patchReadFile.tellg();
+                patchReadFile.seekg(0);
+
+                std::string patchFileBuffer;
+                patchFileBuffer.resize(patchFileSize);
+                patchReadFile.read(patchFileBuffer.data(), patchFileSize);
+
+                m_Reader = QuelReader(patchFileBuffer);
+
+                RuntimeID componentID = 0;
+                EntityPatch::State previousPatchState;
+                SectionKind sectionKind;
+                ParserState parserState;
+                std::string_view sectionField;
+
+                for (auto&& parserEvent : m_Reader.Parse()) {
+                    std::visit([&]<typename TEvent>(const TEvent& e) {
+                        using T = std::decay_t<TEvent>;
+
+                        if constexpr (std::is_same_v<T, SectionEvent>) {
+                            parserState = ParserState::InSection;
+                            if (e.Name == "entity") {
+                                sectionKind = SectionKind::Entity;
+                            }
+                            else if (e.Name == "scene") {
+                                sectionKind = SectionKind::SceneHeader;
+                            }
+                            else {
+                                sectionKind = SectionKind::None;
+                            }
+
+                            componentID = 0;
+                        }
+                        else if constexpr (std::is_same_v<T, ComponentEvent>) {
+                            parserState |= ParserState::InComponent;
+                            componentID = registry.GetSerializableComponentInfo(
+                                                      ComponentRegistry::GetComponentID(e.Name))
+                                                  .RuntimeID;
+                        }
+                        else if constexpr (std::is_same_v<T, FieldEvent>) {
+                            if ((parserState & ParserState::InComponent) == ParserState::None) {
+                                sectionField = e.Path;
+                                return;
+                            }
+
+                            if ((parserState & (ParserState::InArray | ParserState::InTuple)) != ParserState::None) {
+                                return;
+                            }
+
+                            patch.Components[componentID].Fields.emplace(e.Path);
+                        }
+                        else if constexpr (std::is_same_v<T, TupleBeginEvent>) {
+                            parserState |= ParserState::InTuple;
+                        }
+                        else if constexpr (std::is_same_v<T, TupleEndEvent>) {
+                            parserState &= ~ParserState::InTuple;
+                        }
+                        else if constexpr (std::is_same_v<T, ArrayBeginEvent>) {
+                            parserState |= ParserState::InArray;
+                        }
+                        else if constexpr (std::is_same_v<T, ArrayEndEvent>) {
+                            parserState &= ~ParserState::InArray;
+                        }
+                        else if constexpr (std::is_same_v<T, ValueEvent>) {
+                            if ((parserState & ParserState::InSection) == ParserState::None
+                                || sectionKind != SectionKind::Entity
+                            ) {
+                                return;
+                            }
+
+                            if ((parserState & ParserState::InComponent) != ParserState::None) {
+                                return;
+                            }
+
+                            if (sectionField == "state") {
+                                if (std::holds_alternative<std::string_view>(e.Value)) {
+                                    const std::string_view state = std::get<std::string_view>(e.Value);
+
+                                    if (state == "added") {
+                                        previousPatchState = EntityPatch::State::Added;
+                                    }
+                                    else if (state == "removed") {
+                                        previousPatchState = EntityPatch::State::Removed;
+                                    }
+                                    else if (state == "changed") {
+                                        previousPatchState = EntityPatch::State::Changed;
+                                    }
+                                }
+                            }
+                        }
+                    }, parserEvent);
+                }
+
+                patch.ApplyPreviousState(previousPatchState);
+            }
+
+            std::string stringBuffer;
+            StringQuelWriter quelWriter(stringBuffer);
+            quelWriter.SetIndent(2);
+
+            quelWriter.Write(SectionEvent{"entity"});
+            quelWriter.WriteField("guid", guid);
+            quelWriter.WriteField("name", std::string_view(entity.GetName()));
+            quelWriter.WriteField("state", GetStateName(patch.PatchState));
+
+            quelWriter.CloseSection();
+
+            if (flecs::entity parent = entity.GetID().target(flecs::ChildOf)) {
+                if (const auto* runtimeTag = parent.try_get<Actor>()) {
+                    quelWriter.WriteField("parent", runtimeTag->ID.ToString());
+                }
+            }
+
+            for (auto& [componentId, compPatch] : patch.Components) {
+                SerializableComponentInfo* info = registry.GetSerializableComponentInfo(componentId);
+                if (!info) {
+                    continue;
+                }
+
+                void* ptr = ecs_get_mut_id(world.c_ptr(), entity.GetID(), info->RuntimeID);
+                if (!ptr) {
+                    continue;
+                }
+
+                quelWriter.Write(ComponentEvent{info->Name});
+
+                QuelWriteArchive archive(quelWriter, &compPatch.Fields);
+                info->SerializeTextWriteFunc(archive, ptr);
+            }
+
+            std::ofstream file(filePath, std::ios::binary);
+            if (!file) {
+                QS_CORE_ERROR("Failed to open file: {}", filePath.string());
+                continue;
+            }
+
+            file.write(
+                stringBuffer.data(),
+                static_cast<std::streamsize>(stringBuffer.size())
+            );
+        }
+
+        m_Entities.clear();
     }
 
     void SceneSerializer::BakePatches() {
+    }
+
+    void SceneSerializer::PushComponentFieldCommand(Entity entity, RuntimeID componentId, std::string_view field) {
     }
 }

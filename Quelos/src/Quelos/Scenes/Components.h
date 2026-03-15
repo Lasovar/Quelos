@@ -13,26 +13,30 @@
 #include "Quelos/Renderer/Shader.h"
 
 namespace Quelos {
-    using EntityID = GUID64;
+    using ActorID = GUID64;
 
     class IndexBuffer;
     class VertexBuffer;
 
-    struct RuntimeTag {
-        EntityID ID;
+    struct Actor {
+        ActorID ID;
     };
 
-    struct TransformComponent {
+    struct LocalTransform {
         glm::vec3 Position;
         glm::quat Rotation;
-        glm::vec3 Scale;
+        glm::vec3 Scale = glm::vec3(1);
 
         template <typename TArchive>
-        static void Serialize(TArchive& archive, TransformComponent& data) {
+        static void Serialize(TArchive& archive, LocalTransform& data) {
             archive.Field("position", data.Position);
             archive.Field("rotation", data.Rotation);
             archive.Field("scale", data.Scale);
         }
+    };
+
+    struct WorldTransform {
+        glm::mat4 Value;
     };
 
     struct CameraComponent {
@@ -100,5 +104,5 @@ namespace Quelos {
     template <typename... Component>
     struct ComponentGroup { };
 
-    using AllComponents = ComponentGroup<TransformComponent, CameraComponent, MeshComponent>;
+    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshComponent>;
 }

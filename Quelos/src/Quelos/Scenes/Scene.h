@@ -28,8 +28,8 @@ namespace Quelos {
 		case SystemGroup::PostLoad: return flecs::PostLoad;
 		case SystemGroup::OnUpdate: return flecs::OnUpdate;
 		case SystemGroup::PreUpdate: return flecs::PreUpdate;
-		case SystemGroup::OnValidate: return flecs::OnValidate;
 		case SystemGroup::PostUpdate: return flecs::PostUpdate;
+		case SystemGroup::OnValidate: return flecs::OnValidate;
 		case SystemGroup::PreStore: return flecs::PreStore;
 		case SystemGroup::OnStore: return flecs::OnStore;
 		default: return flecs::OnUpdate;
@@ -69,25 +69,32 @@ namespace Quelos {
 		const std::string& GetName() const { return m_Name; }
 		void SetName(const std::string_view& name) { m_Name = name; }
 
-		Entity CreateEntity(std::string_view entityName);
-		Entity CreateEntity(const EntityID& guid, std::string_view entityName);
-		void DestroyEntity(EntityID entityId);
+		Entity CreateActor(std::string_view entityName);
+		Entity CreateActor(const ActorID& guid, std::string_view entityName);
+		void DestroyEntity(ActorID entityId);
 
 		void OnViewportResized(glm::vec2 viewportSize) const;
 
 		flecs::world& GetWorld() { return m_World; }
 		ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
-		Entity GetEntity(const EntityID entityId) { return m_EntityMap[entityId]; }
+		Entity GetEntity(const ActorID entityId) { return m_EntityMap[entityId]; }
 
 	public:
 		static Ref<Scene> Copy(const Ref<Scene>& scene);
 
+		static Ref<Scene> GetScene(const flecs::world& world) { return s_WorldToScene[world.c_ptr()]->shared_from_this(); }
+
 		friend class SceneBinarySerializer;
 	private:
-		HashMap<EntityID, Entity> m_EntityMap;
+		static HashMap<ecs_world_t*, Scene*> s_WorldToScene;
+	private:
+		HashMap<ActorID, Entity> m_EntityMap;
 		ComponentRegistry m_ComponentRegistry;
 
 		flecs::world m_World;
 		std::string m_Name;
+
+		flecs::entity m_TransformUpdate;
+		flecs::entity m_TransformChildUpdate;
 	};
 }

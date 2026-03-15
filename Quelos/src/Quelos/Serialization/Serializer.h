@@ -93,6 +93,7 @@ namespace Quelos::Serialization {
         virtual ~QuelWriter() = default;
 
         virtual void Write(const ParserEvent& ev) = 0;
+        virtual void CloseSection() = 0;
 
         void WriteValue(uint32_t value);
         void WriteValue(uint64_t value);
@@ -113,9 +114,11 @@ namespace Quelos::Serialization {
         void WriteField(std::string_view field, uint32_t value);
         void WriteField(std::string_view field, float value);
         void WriteField(std::string_view field, double value);
+
         inline void WriteField(std::string_view field, glm::vec2 value);
-        inline void WriteField(std::string_view field, glm::vec3 value);
-        inline void WriteField(std::string_view field, glm::quat value);
+        void WriteField(std::string_view field, glm::vec3 value);
+        inline void WriteField(std::string_view field, glm::vec4 value);
+        void WriteField(std::string_view field, glm::quat value);
 
         void BeginTupleField(std::string_view name);
         void BeginTuple();
@@ -158,6 +161,9 @@ namespace Quelos::Serialization {
                 m_Out += "0";
             }
         }
+
+    public:
+        void CloseSection() override { CloseSectionHeader(); }
 
     private:
         std::string& m_Out;

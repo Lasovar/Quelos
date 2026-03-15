@@ -15,7 +15,7 @@ namespace Quelos {
 
 	class EditorLayer : public Layer {
 	public:
-		EditorLayer();
+		EditorLayer() = default;
 
 		void OnAttach() override;
 
@@ -41,7 +41,7 @@ namespace Quelos {
 		Ref<SceneWorkspace> m_SceneWorkspace;
 		UndoSystem m_UndoSystem;
 
-		std::vector<Ref<Workspace>> m_Workspaces;
+		Vec<Ref<Workspace>> m_Workspaces;
 
 		bool m_CtrlKey: 1 = false;
 		bool m_ZKey: 1 = false;
