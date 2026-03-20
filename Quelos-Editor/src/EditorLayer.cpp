@@ -59,7 +59,6 @@ namespace Quelos {
     template <class... Ts>
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
-    static Entity s_Camera;
     static SceneSerializer s_SceneSerializer;
 
     void EditorLayer::OnAttach() {
@@ -79,9 +78,9 @@ namespace Quelos {
 
         //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        s_Camera = m_DefaultScene->CreateActor("Camera2");
-        s_Camera.Set(CameraComponent{SceneCamera()});
-        s_Camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
+        const Entity camera = m_DefaultScene->CreateActor("Camera");
+        camera.Set(CameraComponent{SceneCamera()});
+        camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
@@ -109,6 +108,12 @@ namespace Quelos {
         cube3.Set(CubePlayer{-10});
         cube3.GetID().child_of(floor.GetID());
 
+        const Entity cube4 = m_DefaultScene->CreateActor("Cube4");
+        cube4.Set(LocalTransform{glm::vec3(0, 5, 0)});
+        cube4.Set(cubeMesh);
+        cube4.Set(CubePlayer{-10});
+        cube4.GetID().child_of(cube.GetID());
+
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
                 player.Timer += it.delta_time();
@@ -126,11 +131,6 @@ namespace Quelos {
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        m_DefaultScene->GetWorld().each<CameraComponent>([](flecs::entity entity, CameraComponent& cameraComponent) {
-            s_Camera = entity;
-        });
-
-        m_SceneWorkspace->SelectEntity(cube);
         //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
     }
 

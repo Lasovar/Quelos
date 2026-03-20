@@ -8,9 +8,9 @@ using namespace magic_enum::bitwise_operators;
 namespace Quelos {
     using namespace Serialization;
 
-    static constexpr std::string s_SceneFileExtension = ".qscene";
+    static const std::string s_SceneFileExtension = ".qscene";
     static const std::filesystem::path s_ScenePatchesFolder = "Patches";
-    static constexpr std::string s_ScenePatchFileExtension = ".qpatch";
+    static const std::string s_ScenePatchFileExtension = ".qpatch";
 
     SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const std::filesystem::path& sceneFolderPath)
         : m_Scene(scene), m_ScenePath(sceneFolderPath) {

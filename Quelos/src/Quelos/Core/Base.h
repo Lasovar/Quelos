@@ -11,43 +11,63 @@
 #define QS_STRINGIFY(x) QS_STRINGIFY_IMPL(x)
 
 namespace Quelos {
-	using byte = std::byte;
-	consteval int GetBit(const int x) { return 1 << x; }
+    using byte = std::byte;
+    consteval int GetBit(const int x) { return 1 << x; }
 
-	template <typename T>
-	constexpr std::string_view TypeName() {
+    template <typename T>
+    constexpr std::string_view TypeName() {
 #if defined(__clang__) || defined(__GNUC__)
-		constexpr std::string_view p = __PRETTY_FUNCTION__;
-		constexpr std::string_view key = "T = ";
-		constexpr size_t start = p.find(key) + key.size();
-		constexpr size_t end = p.find(']', start);
-		return p.substr(start, end - start);
+        constexpr std::string_view p = __PRETTY_FUNCTION__;
+        constexpr std::string_view key = "T = ";
+        const size_t start = p.find(key) + key.size();
+        const size_t end = p.find(']', start);
+        return p.substr(start, end - start);
+
 #elif defined(_MSC_VER)
-		constexpr std::string_view p = __FUNCSIG__;
-		constexpr std::string_view key = "type_name<";
-		const size_t start = p.find(key) + key.size();
-		const size_t end = p.find(">(void)");
-		return p.substr(start, end - start);
+        // Maybe try something different? to messy
+        constexpr std::string_view p = __FUNCSIG__;
+        constexpr std::string_view key = "TypeName<";
+        constexpr size_t start = p.find(key) + key.size();
+        constexpr size_t end = p.rfind('>');
+        std::string_view name = p.substr(start, end - start);
+        while (true) {
+            const size_t pos = name.find(' ');
+            if (pos == std::string_view::npos) {
+                break;
+            }
+
+            std::string_view prefix = name.substr(0, pos);
+
+            if (prefix == "class" || prefix == "struct" || prefix == "enum" || prefix == "union") {
+                name.remove_prefix(pos + 1);
+            }
+            else {
+                break;
+            }
+        }
+
+        return name;
 #else
 #   error Unsupported compiler
 #endif
-	}
+    }
 
-	template <typename TKey, typename TValue>
-	using HashMap = ska::flat_hash_map<TKey, TValue>;
 
-	template <typename TKey, typename TValue>
-	using OrderedMap = std::map<TKey, TValue>;
+    template <typename TKey, typename TValue>
+    using HashMap = ska::flat_hash_map<TKey, TValue>;
 
-	template <typename TValue>
-	using HashSet = ska::flat_hash_set<TValue>;
+    template <typename TKey, typename TValue>
+    using OrderedMap = std::map<TKey, TValue>;
 
-	template <typename T>
-	using Deque = std::deque<T>;
+    template <typename TValue>
+    using HashSet = ska::flat_hash_set<TValue>;
 
-	template <typename T>
-	using Vec = std::vector<T>;
+    template <typename T>
+    using Deque = std::deque<T>;
 
-	template <typename TFirst, typename  TSecond>
-	using Pair = std::pair<TFirst, TSecond>;
+    template <typename T>
+    using Vec = std::vector<T>;
+
+    template <typename TFirst, typename TSecond>
+    using Pair = std::pair<TFirst, TSecond>;
 }

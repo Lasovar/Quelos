@@ -8,8 +8,13 @@
 
 namespace Quelos {
     SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem)
-            : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem))
+        : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
+          m_EntityHierarchyPanel(scene, undoSystem)
     {
+        m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Entity entity) {
+            m_InspectorPanel.SetSelectedEntity(entity);
+        });
+
         m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
         m_WorkspaceID = m_Scene->GetName() + "_Dockspace";
 
@@ -73,6 +78,7 @@ namespace Quelos {
 
         m_GameViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
         m_SceneViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+        m_EntityHierarchyPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
         m_InspectorPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
 
         ImGui::End();

@@ -21,7 +21,7 @@ namespace Quelos {
         };
 
         componentMap[world.id<TComponent>()] = {
-            inspectorSerialize, setFieldSerialize, std::string(ComponentRegistry::TypeName<TComponent>())
+            inspectorSerialize, setFieldSerialize, std::string(TypeName<TComponent>())
         };
     }
 
@@ -65,7 +65,7 @@ namespace Quelos {
                     }
 
                     const InspectorComponent& inspectorComponent = it->second;
-                    if (ImGui::CollapsingHeader(inspectorComponent.ComponentName.c_str())) {
+                    if (ImGui::CollapsingHeader(inspectorComponent.ComponentName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                         InspectorArchive archive(
                             m_SelectedEntity,
                             runtimeId,

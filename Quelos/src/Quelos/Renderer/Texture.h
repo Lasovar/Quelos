@@ -6,7 +6,6 @@
 #include "Quelos/Core/Ref.h"
 
 namespace Quelos {
-
     enum class ImageFormat {
         None = 0,
         RED8UN,
@@ -36,22 +35,33 @@ namespace Quelos {
     };
 
     enum class TextureWrap {
-        None = 0,
         Clamp,
         Repeat
     };
 
     enum class TextureFilter {
-        None = 0,
         Linear,
         Nearest,
         Anisotropic,
     };
 
     enum class TextureType {
-        None = 0,
         Texture2D,
         TextureCube
+    };
+
+    enum class TextureRenderTarget {
+        Off,
+        ReadWrite,
+        WriteOnly
+    };
+
+    enum class RenderTargetMSAA {
+        None,
+        MSAA_X2,
+        MSAA_X4,
+        MSAA_X8,
+        MSAA_X16,
     };
 
     struct TextureSpecification {
@@ -61,7 +71,9 @@ namespace Quelos {
         TextureWrap SamplerWrap = TextureWrap::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
 
-        bool IsRenderTarget = false;
+        bool IsBlitDestination = false;
+        TextureRenderTarget RenderTarget = TextureRenderTarget::Off;
+        RenderTargetMSAA MSAAType = RenderTargetMSAA::None;
     };
 
     class Texture : Asset {
@@ -88,12 +100,13 @@ namespace Quelos {
         static Ref<Texture2D> Create(const TextureSpecification& spec);
         static Ref<Texture2D> Create(const TextureSpecification& spec, const std::filesystem::path& texturePath);
 
-        virtual void CreateFromFile(const TextureSpecification& specification, const std::filesystem::path& filepath) = 0;
+        virtual void CreateFromFile(const TextureSpecification& specification,
+                                    const std::filesystem::path& filepath) = 0;
 
         virtual void Resize(const glm::uvec2& size) = 0;
         virtual void Resize(uint32_t width, uint32_t height) = 0;
 
-		virtual const std::filesystem::path& GetPath() const = 0;
+        virtual const std::filesystem::path& GetPath() const = 0;
 
         TextureType GetType() const override { return TextureType::Texture2D; }
     };

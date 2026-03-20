@@ -32,7 +32,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #endif
 
 #if QUELOS_PLATFORM_WINDOWS
-	specs.RendererAPI = RendererAPI::OpenGL;
+	specs.RendererAPI = RendererAPI::Direct3D12;
 #elif QUELOS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #endif

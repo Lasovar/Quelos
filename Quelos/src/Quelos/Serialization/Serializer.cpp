@@ -242,10 +242,10 @@ namespace Quelos::Serialization {
 
     void QuelWriter::WriteValue(glm::quat value) {
         Write(TupleBeginEvent{});
+        Write(ValueEvent{value.w});
         Write(ValueEvent{value.x});
         Write(ValueEvent{value.y});
         Write(ValueEvent{value.z});
-        Write(ValueEvent{value.w});
         Write(TupleEndEvent{});
     }
 

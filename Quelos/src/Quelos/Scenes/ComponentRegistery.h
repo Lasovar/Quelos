@@ -38,25 +38,6 @@ namespace Quelos {
     public:
         void RegisterBuiltinTypes(flecs::world& world);
 
-        template <typename T>
-        static constexpr std::string_view TypeName() {
-#if defined(__clang__) || defined(__GNUC__)
-            constexpr std::string_view p = __PRETTY_FUNCTION__;
-            constexpr std::string_view key = "T = ";
-            constexpr size_t start = p.find(key) + key.size();
-            constexpr size_t end = p.find(']', start);
-            return p.substr(start, end - start);
-#elif defined(_MSC_VER)
-            constexpr std::string_view p = __FUNCSIG__;
-            constexpr std::string_view key = "type_name<";
-            const size_t start = p.find(key) + key.size();
-            const size_t end = p.find(">(void)");
-            return p.substr(start, end - start);
-#else
-#   error Unsupported compiler
-#endif
-        }
-
         static constexpr ComponentID GetComponentID(const std::string_view& typeName);
 
         void RegisterType(const ComponentTypeInfo& info) {
