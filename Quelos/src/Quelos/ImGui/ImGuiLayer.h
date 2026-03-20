@@ -5,6 +5,9 @@
 namespace Quelos {
 	class ImGuiLayer : public Layer {
 	public:
+		explicit ImGuiLayer(const std::string& name = "ImGui Layer")
+			: Layer(name) {}
+
 		virtual void Begin();
 		virtual void End();
 

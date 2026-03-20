@@ -20,6 +20,7 @@ namespace Quelos {
 
         virtual void Destroy(VertexBufferHandle vertexBufferHandle) = 0;
         virtual void Destroy(IndexBufferHandle indexBufferHandle) = 0;
+        virtual void Shutdown() = 0;
 
     public:
         static Ref<RendererContext> Create();

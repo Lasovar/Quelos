@@ -155,7 +155,9 @@ namespace Quelos {
                 }, parserEvent);
             }
 
-            DeserializeComponentData();
+            if (m_CurrentEntity.GetID()) {
+                DeserializeComponentData();
+            }
             m_ParserState &= ~ParserState::InComponent;
         }
     }
@@ -199,7 +201,7 @@ namespace Quelos {
         if (e.Name == "scene") {
             m_SectionKind = SectionKind::SceneHeader;
         }
-        else if (e.Name == "entity") {
+        else if (e.Name == "actor") {
             m_SectionKind = SectionKind::Entity;
         }
         else {
@@ -372,7 +374,7 @@ namespace Quelos {
 
         std::filesystem::path patchesFolder = m_ScenePath / s_ScenePatchesFolder;
         for (auto& [entity, patch] : m_Entities) {
-            std::string guid = entity.Get<Actor>().ID.ToString();
+            std::string guid = entity.Get<ActorTag>().ID.ToString();
 
             std::filesystem::path filePath = patchesFolder / (guid + s_ScenePatchFileExtension);
             std::ifstream patchReadFile(filePath, std::ios::binary | std::ios::ate);
@@ -399,7 +401,7 @@ namespace Quelos {
 
                         if constexpr (std::is_same_v<T, SectionEvent>) {
                             parserState = ParserState::InSection;
-                            if (e.Name == "entity") {
+                            if (e.Name == "actor") {
                                 sectionKind = SectionKind::Entity;
                             }
                             else if (e.Name == "scene") {
@@ -478,7 +480,7 @@ namespace Quelos {
             StringQuelWriter quelWriter(stringBuffer);
             quelWriter.SetIndent(2);
 
-            quelWriter.Write(SectionEvent{"entity"});
+            quelWriter.Write(SectionEvent{"actor"});
             quelWriter.WriteField("guid", guid);
             quelWriter.WriteField("name", std::string_view(entity.GetName()));
             quelWriter.WriteField("state", GetStateName(patch.PatchState));
@@ -486,7 +488,7 @@ namespace Quelos {
             quelWriter.CloseSection();
 
             if (flecs::entity parent = entity.GetID().target(flecs::ChildOf)) {
-                if (const auto* runtimeTag = parent.try_get<Actor>()) {
+                if (const auto* runtimeTag = parent.try_get<ActorTag>()) {
                     quelWriter.WriteField("parent", runtimeTag->ID.ToString());
                 }
             }

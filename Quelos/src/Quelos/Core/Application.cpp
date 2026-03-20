@@ -69,6 +69,8 @@ namespace Quelos {
 	}
 
 	void Application::Stop() {
+		m_LayerStack.clear();
+
 		Renderer::Shutdown();
 		Log::Shutdown();
 	}

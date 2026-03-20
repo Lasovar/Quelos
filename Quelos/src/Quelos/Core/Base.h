@@ -14,6 +14,25 @@ namespace Quelos {
 	using byte = std::byte;
 	consteval int GetBit(const int x) { return 1 << x; }
 
+	template <typename T>
+	constexpr std::string_view TypeName() {
+#if defined(__clang__) || defined(__GNUC__)
+		constexpr std::string_view p = __PRETTY_FUNCTION__;
+		constexpr std::string_view key = "T = ";
+		constexpr size_t start = p.find(key) + key.size();
+		constexpr size_t end = p.find(']', start);
+		return p.substr(start, end - start);
+#elif defined(_MSC_VER)
+		constexpr std::string_view p = __FUNCSIG__;
+		constexpr std::string_view key = "type_name<";
+		const size_t start = p.find(key) + key.size();
+		const size_t end = p.find(">(void)");
+		return p.substr(start, end - start);
+#else
+#   error Unsupported compiler
+#endif
+	}
+
 	template <typename TKey, typename TValue>
 	using HashMap = ska::flat_hash_map<TKey, TValue>;
 

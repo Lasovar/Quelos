@@ -91,7 +91,7 @@ namespace Quelos {
         constexpr size_t MaxStack = 32;
 
         if (view.size() < MaxStack) {
-            char buffer[MaxStack];
+            static char buffer[MaxStack];
             std::memcpy(buffer, view.data(), view.size());
             buffer[view.size()] = '\0';
             e.set_name(buffer);
@@ -103,7 +103,7 @@ namespace Quelos {
     }
 
     Entity Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
-        const flecs::entity entityId = m_World.entity().set(Actor(guid));
+        const flecs::entity entityId = m_World.entity().set(ActorTag(guid));
         SetNameFromView(entityId, entityName);
         const Entity entity(entityId);
         m_EntityMap[guid] = entity;

@@ -237,14 +237,14 @@ namespace Quelos::Serialization {
         quelWriter.WriteField("version", static_cast<uint64_t>(1));
         quelWriter.WriteField("name", scene->GetName());
 
-        auto q = world.query_builder<Actor>().build();
+        auto q = world.query_builder<ActorTag>().build();
 
         q.each(
-            [&](const flecs::entity entity, const Actor&) {
+            [&](const flecs::entity entity, const ActorTag&) {
                 const ecs_entity_t entityId = entity.id();
 
                 quelWriter.Write(SectionEvent{ "entity" });
-                quelWriter.WriteField("guid", entity.get<Actor>().ID.ToString());
+                quelWriter.WriteField("guid", entity.get<ActorTag>().ID.ToString());
                 quelWriter.WriteField("name", std::string_view(entity.name()));
 
                 entity.each(

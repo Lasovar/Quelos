@@ -18,13 +18,13 @@ namespace Quelos {
     class IndexBuffer;
     class VertexBuffer;
 
-    struct Actor {
+    struct ActorTag {
         ActorID ID;
     };
 
     struct LocalTransform {
         glm::vec3 Position;
-        glm::quat Rotation;
+        glm::quat Rotation = glm::identity<glm::quat>();
         glm::vec3 Scale = glm::vec3(1);
 
         template <typename TArchive>

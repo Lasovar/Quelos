@@ -42,5 +42,3 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 
 	return app;
 }
-
-
