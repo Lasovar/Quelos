@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "Base.h"
+
 #include "Quelos/Core/Timer.h"
 #include "Quelos/Core/Window.h"
 #include "Quelos/Core/Layer.h"
@@ -50,7 +52,7 @@ namespace Quelos {
 	private:
 		static Application* s_Instance;
 	private:
-		std::vector<Ref<Layer>> m_LayerStack;
+		Vec<Ref<Layer>> m_LayerStack;
 		Ref<ImGuiLayer> m_ImGuiLayer;
 
 		Ref<Time> m_Time;
@@ -58,6 +60,7 @@ namespace Quelos {
 
 		Ref<Window> m_Window;
 		ApplicationSpecification m_Specifications;
+
 		bool m_IsRunning = false;
 	};
 

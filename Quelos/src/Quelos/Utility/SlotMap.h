@@ -3,6 +3,8 @@
 #include <cinttypes>
 #include <vector>
 
+#include "Quelos/Utility/Generator.h"
+
 namespace Quelos {
     template <typename Resource>
     struct Handle {
@@ -139,6 +141,12 @@ namespace Quelos {
             return &slot.Value;
         }
 
+        Generator<THandle> GetAllHandles() {
+            for (int i = 0; i < m_Slots.size(); ++i) {
+                co_yield THandle::Make(i, m_Slots[i].Generation);
+            }
+        }
+
         bool Alive(THandle handle) const {
             return Get(handle) != nullptr;
         }
@@ -152,9 +160,13 @@ namespace Quelos {
             return m_Slots.size() - m_FreeList.size();
         }
 
+        [[nodiscard]] size_t Capacity() const {
+            return m_Slots.size();
+        }
+
     private:
-        std::vector<Slot<TValue>> m_Slots;
-        std::vector<uint32_t> m_FreeList;
+        Vec<Slot<TValue>> m_Slots;
+        Vec<uint32_t> m_FreeList;
     };
 
     template <typename Resource, typename Impl>

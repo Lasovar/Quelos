@@ -5,6 +5,7 @@ namespace Quelos {
     class bgfxRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
+        void Shutdown() override;
 
         VertexBufferHandle CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;

@@ -132,7 +132,7 @@ namespace Quelos {
     static uint64_t ToBgfxTextureFlags(const TextureSpecification& spec) {
         uint64_t flags = ToBgfxSamplerFlags(spec.SamplerWrap) | ToBgfxSamplerFlags(spec.SamplerFilter);
         if (spec.IsRenderTarget) {
-            flags |= BGFX_TEXTURE_RT;
+            flags |= BGFX_TEXTURE_RT | BGFX_TEXTURE_RT_MSAA_X4;
         }
         return flags;
     }

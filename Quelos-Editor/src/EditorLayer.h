@@ -15,7 +15,8 @@ namespace Quelos {
 
 	class EditorLayer : public Layer {
 	public:
-		EditorLayer() = default;
+		explicit EditorLayer(const std::string& name = "Editor Layer")
+			: Layer(name) {}
 
 		void OnAttach() override;
 

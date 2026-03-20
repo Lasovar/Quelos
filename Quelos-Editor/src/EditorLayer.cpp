@@ -7,6 +7,7 @@
 #include "imgui_internal.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
@@ -80,37 +81,33 @@ namespace Quelos {
 
         s_Camera = m_DefaultScene->CreateActor("Camera2");
         s_Camera.Set(CameraComponent{SceneCamera()});
-        s_Camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::quat({0, 0, 0})});
+        s_Camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
         cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
 
         const Entity floor = m_DefaultScene->CreateActor("Floor");
-        floor.Set(LocalTransform{glm::vec3(0, 0, 0), glm::quat({0, 0, 0}), glm::vec3(5, 0.5f, 5)});
+        floor.Set(LocalTransform{glm::vec3(0, 0, 0), glm::identity<glm::quat>(), glm::vec3(5, 0.5f, 5)});
         floor.Set(cubeMesh);
 
         const Entity cube = m_DefaultScene->CreateActor("Cube");
-        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
         cube.Set(cubeMesh);
         cube.Set(CubePlayer());
         cube.GetID().child_of(floor.GetID());
 
         const Entity cube2 = m_DefaultScene->CreateActor("Cube2");
-        cube2.Set(LocalTransform{glm::vec3(5.f, 2.5f, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube2.Set(LocalTransform{glm::vec3(5.f, 2.5f, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
         cube2.Set(cubeMesh);
         cube2.Set(CubePlayer{-2});
-        cube2.GetID().child_of(floor.GetID());
+        cube2.GetID().child_of(cube.GetID());
 
         const Entity cube3 = m_DefaultScene->CreateActor("Cube3");
-        cube3.Set(LocalTransform{glm::vec3(0, 5, 0), glm::quat({0, 0, 0}), glm::vec3(1.0f)});
+        cube3.Set(LocalTransform{glm::vec3(0, 5, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
         cube3.Set(cubeMesh);
         cube3.Set(CubePlayer{-10});
         cube3.GetID().child_of(floor.GetID());
-
-        floor.GetID().children([](flecs::entity e) {
-            QS_INFO("{}", e.name().c_str());
-        });
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {

@@ -43,6 +43,18 @@ namespace Quelos {
         bgfx::init(bgfxInit);
     }
 
+    void bgfxRendererContext::Shutdown() {
+        for (auto&& vertexBufferHandle : s_VertexBufferTable.GetAllHandles()) {
+            Destroy(vertexBufferHandle);
+        }
+
+        for (auto&& indexBufferHandle : s_IndexBufferTable.GetAllHandles()) {
+            Destroy(indexBufferHandle);
+        }
+
+        bgfx::shutdown();
+    }
+
     VertexBufferHandle bgfxRendererContext::CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) {
         bgfx::VertexLayout pvcLayout;
         pvcLayout

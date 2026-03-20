@@ -84,16 +84,16 @@ namespace Quelos::Serialization {
         // Header
         SceneHeader header{};
         header.ComponentTypeCount = types.size();
-        header.EntityCount = world.count<Actor>();
+        header.EntityCount = world.count<ActorTag>();
         QS_CORE_INFO("Entity count: {}", header.EntityCount);
 
         finalWriter.Write(header);
 
-        auto guidLookup = world.query_builder<Actor>().build();
+        auto guidLookup = world.query_builder<ActorTag>().build();
         Vec<Pair<ActorID, flecs::entity>> entities;
         entities.reserve(guidLookup.count());
 
-        guidLookup.each([&entities](const flecs::entity entity, const Actor& tag) {
+        guidLookup.each([&entities](const flecs::entity entity, const ActorTag& tag) {
             entities.emplace_back(tag.ID, entity);
         });
 

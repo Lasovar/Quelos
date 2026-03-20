@@ -83,7 +83,7 @@ namespace Quelos {
     }
 
     void Renderer::Shutdown() {
-        bgfx::shutdown();
+        s_RendererContext->Shutdown();
     }
 
     void Renderer::OnEvent(Event& event) {

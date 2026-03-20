@@ -7,7 +7,7 @@
 namespace Quelos {
 	class Layer {
 	public:
-		explicit Layer(const std::string& DebugName = "Layer");
+		explicit Layer(const std::string& debugName = "Layer");
 		virtual ~Layer();
 
 		virtual void OnAttach() {}
@@ -18,9 +18,9 @@ namespace Quelos {
 
 		virtual void OnEvent(Event& event) {}
 
-		std::string GetName() const { return DebugName; }
+		std::string GetName() const { return m_DebugName; }
 	private:
-		std::string DebugName;
+		std::string m_DebugName;
 	};
 }
 
