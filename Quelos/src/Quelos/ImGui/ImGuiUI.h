@@ -194,13 +194,15 @@ namespace Quelos::UI {
     };
 
     constinit static std::array QuatColors = {
+        GetAxisColor('Q'),
         GetAxisColor('X'),
         GetAxisColor('Y'),
-        GetAxisColor('Z'),
-        GetAxisColor('Q')
+        GetAxisColor('Z')
     };
 
     constinit static std::array VecLabels = {"X", "Y", "Z", "W"};
+
+    constinit static std::array QuatLabels = {"W", "X", "Y", "Z"};
 
     inline bool EditVec2(
         const std::string& label, glm::vec2& value,
@@ -262,7 +264,7 @@ namespace Quelos::UI {
             label,
             quaternion,
             QuatColors,
-            VecLabels,
+            QuatLabels,
             reset,
             speed,
             min,

@@ -39,6 +39,7 @@ namespace Quelos {
 
         Ref<Texture2D> m_ColorAttachment;
         Ref<Texture2D> m_DepthAttachment;
+
         Ref<FrameBuffer> m_FrameBuffer;
     };
 }

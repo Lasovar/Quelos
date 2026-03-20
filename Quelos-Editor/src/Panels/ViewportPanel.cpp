@@ -6,34 +6,39 @@
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "../../../Quelos/vendor/bgfx.cmake/bgfx/include/bgfx/bgfx.h"
 
 namespace Quelos {
     ViewportPanel::ViewportPanel(std::string  name, const uint32_t viewId, const uint32_t width, const uint32_t height)
         : m_Name(std::move(name))
     {
-        auto colorSpec = TextureSpecification{};
-        colorSpec.Width = width;
-        colorSpec.Height = height;
+        {
+            TextureSpecification colorSpec;
+            colorSpec.Width = width;
+            colorSpec.Height = height;
 
-        colorSpec.Format = ImageFormat::RGBA;
-        colorSpec.SamplerWrap = TextureWrap::Clamp;
+            colorSpec.Format = ImageFormat::RGBA;
+            colorSpec.SamplerWrap = TextureWrap::Clamp;
 
-        colorSpec.IsRenderTarget = true;
+            colorSpec.RenderTarget = TextureRenderTarget::ReadWrite;
+            colorSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
 
-        m_ColorAttachment = Texture2D::Create(colorSpec);
+            m_ColorAttachment = Texture2D::Create(colorSpec);
 
-        auto depthSpec = TextureSpecification{};
-        depthSpec.Width = width;
-        depthSpec.Height = height;
+            TextureSpecification depthSpec;
+            depthSpec.Width = width;
+            depthSpec.Height = height;
 
-        depthSpec.Format = ImageFormat::Depth;
-        depthSpec.SamplerWrap = TextureWrap::Repeat;
+            depthSpec.Format = ImageFormat::Depth;
+            depthSpec.SamplerWrap = TextureWrap::Repeat;
 
-        depthSpec.IsRenderTarget = true;
+            depthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
+            depthSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
 
-        m_DepthAttachment = Texture2D::Create(depthSpec);
+            m_DepthAttachment = Texture2D::Create(depthSpec);
 
-        m_FrameBuffer = FrameBuffer::CreateFrameBuffer(viewId, {m_ColorAttachment, m_DepthAttachment});
+            m_FrameBuffer = FrameBuffer::CreateFrameBuffer(viewId, {m_ColorAttachment, m_DepthAttachment});
+        }
     }
 
     bool ViewportPanel::ResizeIfNeeded() {

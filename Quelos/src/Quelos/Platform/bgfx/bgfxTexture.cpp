@@ -94,8 +94,10 @@ namespace Quelos {
     static bgfx::TextureFormat::Enum QuelosImageFormatToBgfxFormat(const ImageFormat format) {
         switch (format) {
             case ImageFormat::RGBA:  return bgfx::TextureFormat::RGBA8;
+            case ImageFormat::RGBA16F: return bgfx::TextureFormat::RGBA16F;
             case ImageFormat::RGB:   return bgfx::TextureFormat::RGB8;
             case ImageFormat::RED8UN:   return bgfx::TextureFormat::R8;
+            case ImageFormat::DEPTH32F: return bgfx::TextureFormat::D32F;
             case ImageFormat::Depth: return bgfx::TextureFormat::D24S8;
             default:
                 QS_CORE_WARN("Unsupported image format conversion to bgfx format!");
@@ -129,11 +131,35 @@ namespace Quelos {
         }
     }
 
+    static uint64_t GetBgfxRenderTextureMSAA(const RenderTargetMSAA textureMsaa) {
+        switch (textureMsaa) {
+        case RenderTargetMSAA::None: return 0;
+        case RenderTargetMSAA::MSAA_X2: return BGFX_TEXTURE_RT_MSAA_X2;
+        case RenderTargetMSAA::MSAA_X4: return BGFX_TEXTURE_RT_MSAA_X4;
+        case RenderTargetMSAA::MSAA_X8: return BGFX_TEXTURE_RT_MSAA_X8;
+        case RenderTargetMSAA::MSAA_X16: return BGFX_TEXTURE_RT_MSAA_X16;
+        }
+
+        return 0;
+    }
+
     static uint64_t ToBgfxTextureFlags(const TextureSpecification& spec) {
         uint64_t flags = ToBgfxSamplerFlags(spec.SamplerWrap) | ToBgfxSamplerFlags(spec.SamplerFilter);
-        if (spec.IsRenderTarget) {
-            flags |= BGFX_TEXTURE_RT | BGFX_TEXTURE_RT_MSAA_X4;
+        if (spec.RenderTarget != TextureRenderTarget::Off) {
+            if (spec.RenderTarget == TextureRenderTarget::ReadWrite) {
+                flags |= BGFX_TEXTURE_RT;
+            } else if (spec.RenderTarget == TextureRenderTarget::WriteOnly) {
+                flags |= BGFX_TEXTURE_RT_WRITE_ONLY;
+            }
+
+            flags |= GetBgfxRenderTextureMSAA(spec.MSAAType);
         }
+
+
+        if (spec.IsBlitDestination) {
+            flags |= BGFX_TEXTURE_BLIT_DST;
+        }
+
         return flags;
     }
 
