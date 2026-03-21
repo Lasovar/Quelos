@@ -249,6 +249,14 @@ namespace Quelos::Serialization {
         Write(TupleEndEvent{});
     }
 
+    void QuelWriter::WriteField(const std::string_view field, const char* value) {
+        WriteField(field, std::string_view(value));
+    }
+
+    void QuelWriter::WriteField(const std::string_view field, const std::string& value) {
+        WriteField(field, std::string_view(value));
+    }
+
     void QuelWriter::WriteField(const std::string_view field, std::string_view value) {
         Write(FieldEvent{field});
         Write(ValueEvent{value});

@@ -9,6 +9,7 @@
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
 
+#include "Quelos/Core/Log.h"
 #include "Quelos/Serialization/Serializer.h"
 
 namespace Quelos::Serialization {
@@ -36,11 +37,11 @@ namespace Quelos::Serialization {
     struct TextArchiveValue;
 
     struct TupleValue {
-        std::vector<size_t> Elements;
+        Vec<size_t> Elements;
     };
 
     struct ArrayValue {
-        std::vector<size_t> Elements;
+        Vec<size_t> Elements;
     };
 
     struct TextArchiveValue {

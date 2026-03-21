@@ -108,6 +108,8 @@ namespace Quelos::Serialization {
         inline void WriteValue(glm::quat value);
 
         void WriteField(std::string_view field, std::string_view value);
+        void WriteField(std::string_view field, const char* value);
+        void WriteField(std::string_view field, const std::string& value);
         void WriteField(std::string_view field, bool value);
         void WriteField(std::string_view field, int64_t value);
         void WriteField(std::string_view field, uint64_t value);

@@ -2,7 +2,7 @@
 
 #include "Quelos/Scenes/Scene.h"
 
-#include "Scene/SetFieldCommand.h"
+#include "../Scene/Commands/SetFieldCommand.h"
 #include "UndoSystem.h"
 
 #include "Quelos/ImGui/ImGuiUI.h"
@@ -22,7 +22,7 @@ namespace Quelos {
             SetFieldSerializeFn serializeComponentFunc
         ) : m_Entity(entity), m_ComponentID(componentID), m_Scene(scene), m_UndoSystem(undoSystem)
         {
-            m_SerializeComponentFunc = std::move(serializeComponentFunc);
+            m_SerializeComponentFunc = serializeComponentFunc;
         }
 
         template <typename T>
@@ -48,7 +48,9 @@ namespace Quelos {
 
                 if (UI::EditEnum(std::string(name), temp)) {
                     m_UndoSystem.Push<SetField<T>>(
-                        m_Entity.GetUntypedRef(m_ComponentID),
+                        m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                        m_Entity.Get<ActorTag>().ID,
+                        m_Scene,
                         m_SerializeComponentFunc,
                         name,
                         value,

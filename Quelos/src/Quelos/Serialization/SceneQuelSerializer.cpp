@@ -50,21 +50,21 @@ namespace Quelos::Serialization {
 
         flecs::world& world = m_Scene->GetWorld();
         auto& registry = m_Scene->GetComponentRegistry();
-        const SerializableComponentInfo componentInfo = registry.GetSerializableComponentInfo(m_CurrentComponentID);
+        const SerializableComponentInfo* componentInfo = registry.GetSerializableComponentInfo(m_CurrentComponentID);
 
-        if (!componentInfo.Guid.IsValid()) {
+        if (!componentInfo) {
             return;
         }
 
         QuelReadArchive archive(m_FieldTable, m_ValuePool);
-        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo.RuntimeID);
-        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo.RuntimeID);
+        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
+        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
 
         if (!data) {
             return;
         }
 
-        componentInfo.SerializeTextReadFunc(archive, data);
+        componentInfo->SerializeTextReadFunc(archive, data);
 
         m_FieldsMap.clear();
         m_ContainerStack.clear();

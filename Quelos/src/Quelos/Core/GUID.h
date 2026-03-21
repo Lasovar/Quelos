@@ -19,7 +19,7 @@ namespace Quelos {
     public:
         static GUID64 Generate();
     private:
-        uint64_t m_GUID;
+        uint64_t m_GUID = 0;
         friend struct std::hash<GUID64>;
     };
 
@@ -41,7 +41,7 @@ namespace Quelos {
     public:
         static GUID128 Generate();
     private:
-        uuids::uuid m_UUID;
+        uuids::uuid m_UUID{};
         friend struct std::hash<GUID128>;
     };
 }

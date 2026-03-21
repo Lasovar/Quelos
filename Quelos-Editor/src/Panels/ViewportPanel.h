@@ -12,9 +12,13 @@ namespace Quelos {
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
+
         bool ResizeIfNeeded();
 
-        glm::vec2 GetViewportSize() const { return m_ViewportSize; }
+        [[nodiscard]] glm::vec2 GetViewportSize() const { return m_ViewportSize; }
+
+        [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
+        [[nodiscard]] bool IsViewportHovered() const { return m_ViewportHovered; }
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 

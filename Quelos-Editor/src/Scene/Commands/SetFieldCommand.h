@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Quelos/Scenes/ComponentReference.h"
+#include "Quelos/Core/Assert.h"
 
 namespace Quelos {
     class SetFieldArchive {
@@ -41,7 +41,10 @@ namespace Quelos {
 
     template <typename TField>
     struct SetField {
-        ComponentUntypedRef ComponentRef;
+        ComponentID ComponentId{};
+        ActorID ActorId{};
+        Ref<Scene>& scene;
+
         SetFieldSerializeFn SerializeComponentFunc = nullptr;
 
         std::string_view FieldKey;
@@ -50,13 +53,23 @@ namespace Quelos {
         TField After;
 
         void Apply() {
+            const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            QS_ASSERT(componentInfo->Guid);
+
+            const Entity actor = scene->GetActor(ActorId);
+
             SetFieldArchive archive(FieldKey, &After);
-            SerializeComponentFunc(archive, ComponentRef.Get());
+            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
         }
 
         void Revert() {
+            const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            QS_ASSERT(componentInfo->Guid);
+
+            const Entity actor = scene->GetActor(ActorId);
+
             auto archive = SetFieldArchive(FieldKey, &Before);
-            SerializeComponentFunc(archive, ComponentRef.Get());
+            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
         }
     };
 }

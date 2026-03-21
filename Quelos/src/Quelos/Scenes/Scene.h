@@ -77,7 +77,15 @@ namespace Quelos {
 
 		flecs::world& GetWorld() { return m_World; }
 		ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
-		Entity GetEntity(const ActorID entityId) { return m_EntityMap[entityId]; }
+
+		Entity GetActor(const ActorID entityId) {
+			const auto it = m_EntityMap.find(entityId);
+			if (it == m_EntityMap.end()) {
+				return {};
+			}
+
+			return it->second;
+		}
 
 	public:
 		static Ref<Scene> Copy(const Ref<Scene>& scene);
