@@ -78,7 +78,7 @@ namespace Quelos {
 
         //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        const Entity camera = m_DefaultScene->CreateActor("Camera");
+        /*const Entity camera = m_DefaultScene->CreateActor("Camera");
         camera.Set(CameraComponent{SceneCamera()});
         camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 
@@ -112,7 +112,7 @@ namespace Quelos {
         cube4.Set(LocalTransform{glm::vec3(0, 5, 0)});
         cube4.Set(cubeMesh);
         cube4.Set(CubePlayer{-10});
-        cube4.GetID().child_of(cube.GetID());
+        cube4.GetID().child_of(cube.GetID());*/
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
@@ -331,6 +331,10 @@ namespace Quelos {
             case KeyCode::RightControl:
                 m_CtrlKey = true;
                 break;
+            case KeyCode::LeftShift:
+            case KeyCode::RightShift:
+                m_ShiftKey = true;
+                break;
             case KeyCode::Z:
                 if (m_CtrlKey && !e.IsRepeat()) {
                     m_UndoSystem.Undo();
@@ -342,8 +346,15 @@ namespace Quelos {
                 }
                 break;
             case KeyCode::S:
-                if (m_CtrlKey && !e.IsRepeat()) {
-                    s_SceneSerializer.SerializePatches();
+                if (!e.IsRepeat()) {
+                    if (m_CtrlKey) {
+                        if (m_ShiftKey) {
+                            s_SceneSerializer.BakePatches();
+                        }
+                        else {
+                            s_SceneSerializer.SerializePatches();
+                        }
+                    }
                 }
             default:
                 break;
@@ -357,6 +368,10 @@ namespace Quelos {
             case KeyCode::LeftControl:
             case KeyCode::RightControl:
                 m_CtrlKey = false;
+                break;
+            case KeyCode::LeftShift:
+            case KeyCode::RightShift:
+                m_ShiftKey = false;
                 break;
             default:
                 break;

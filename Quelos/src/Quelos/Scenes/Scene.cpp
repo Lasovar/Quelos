@@ -87,25 +87,10 @@ namespace Quelos {
         return CreateActor(guid, entityName);
     }
 
-    inline void SetNameFromView(const flecs::entity e, const std::string_view view) {
-        constexpr size_t MaxStack = 32;
-
-        if (view.size() < MaxStack) {
-            static char buffer[MaxStack];
-            std::memcpy(buffer, view.data(), view.size());
-            buffer[view.size()] = '\0';
-            e.set_name(buffer);
-        }
-        else {
-            const std::string temp(view);
-            e.set_name(temp.c_str());
-        }
-    }
-
     Entity Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
         const flecs::entity entityId = m_World.entity().set(ActorTag(guid));
-        SetNameFromView(entityId, entityName);
         const Entity entity(entityId);
+        entity.SetName(entityName);
         m_EntityMap[guid] = entity;
         return entity;
     }

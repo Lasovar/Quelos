@@ -10,6 +10,8 @@ namespace Quelos {
         void (*Apply)(void*);
         void (*Revert)(void*);
         void (*Destroy)(void*);
+        void (*ApplyPatch)(SceneSerializer&, void*);
+        void (*RemovePatch)(SceneSerializer&, void*);
     };
 
     struct CommandHeader {
@@ -31,6 +33,14 @@ namespace Quelos {
             static_cast<T*>(data)->~T();
         }
 
+        static void ApplyPatch(SceneSerializer& serializer, void* data) {
+            serializer.Record(*static_cast<T*>(data));
+        }
+
+        static void RemovePatch(SceneSerializer& serializer, void* data) {
+            serializer.Remove(*static_cast<T*>(data));
+        }
+
         static CommandVTable VTABLE;
     };
 
@@ -38,7 +48,9 @@ namespace Quelos {
     CommandVTable CommandWrapper<T>::VTABLE = {
         &CommandWrapper::Apply,
         &CommandWrapper::Revert,
-        &CommandWrapper::Destroy
+        &CommandWrapper::Destroy,
+        &CommandWrapper::ApplyPatch,
+        &CommandWrapper::RemovePatch
     };
 
     class UndoSystem {
@@ -90,9 +102,10 @@ namespace Quelos {
 
             header->VTable->Apply(data);
             if (m_SceneSerializer) {
-                m_SceneSerializer->Record(*data);
-            } else {
-                QS_CORE_ERROR("SceneSerializer is null");
+                header->VTable->ApplyPatch(*m_SceneSerializer, data);
+            }
+            else {
+                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
             }
         }
 
@@ -109,6 +122,13 @@ namespace Quelos {
 
             header->VTable->Revert(data);
 
+            if (m_SceneSerializer) {
+                header->VTable->RemovePatch(*m_SceneSerializer, data);
+            }
+            else {
+                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
+            }
+
             m_RedoStack.push_back(offset);
         }
 
@@ -124,6 +144,13 @@ namespace Quelos {
             void* data = header + 1;
 
             header->VTable->Apply(data);
+
+            if (m_SceneSerializer) {
+                header->VTable->ApplyPatch(*m_SceneSerializer, data);
+            }
+            else {
+                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
+            }
 
             m_Stack.push_back(offset);
         }

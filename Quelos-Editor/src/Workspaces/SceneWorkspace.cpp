@@ -85,6 +85,8 @@ namespace Quelos {
     }
 
     void SceneWorkspace::OnEvent(Event& e) {
-        m_EditorCamera.OnEvent(e);
+        if (m_SceneViewportPanel.IsViewportHovered()) {
+            m_EditorCamera.OnEvent(e);
+        }
     }
 }

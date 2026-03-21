@@ -1,40 +1,48 @@
 #pragma once
 
+#include "Commands/CreateActorCommand.h"
 #include "Quelos/Scenes/Scene.h"
-#include "SetFieldCommand.h"
+#include "Commands/SetFieldCommand.h"
+#include "Commands/SetParentCommand.h"
 
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
     struct ComponentPatch {
-        ComponentUntypedRef ComponentRef;
-        HashSet<std::string_view> Fields;
+        HashMap<std::string_view, uint32_t> Fields;
     };
 
-    struct EntityPatch {
+    struct ActorPatch {
         enum class State : uint8_t {
             Changed = 0,
             Added = 1,
             Removed = 2
         };
 
-        OrderedMap<RuntimeID, ComponentPatch> Components;
-        State PatchState = State::Changed;
+        OrderedMap<ComponentID, ComponentPatch> Components;
+        uint32_t ParentPatchCount = 0;
+        Deque<State> PatchStates;
 
-        void SetState(const State next) {
-            if (PatchState == State::Added && next == State::Changed) {
-                return;
-            }
-
-            PatchState = next;
+        void StatePushBack(const State next) {
+            PatchStates.push_back(next);
         }
 
-        void ApplyPreviousState(const State previous) {
-            // Hacking but idk
-            const State current = PatchState;
-            PatchState = previous;
-            SetState(current);
+        void PushFrontState(const State previous) {
+            PatchStates.push_front(previous);
         }
+
+        void StatePopBack() {
+            PatchStates.pop_back();
+        }
+
+        void PopFrontState() {
+            PatchStates.pop_front();
+        }
+    };
+
+    struct ParentPair {
+        ActorID ChildID;
+        ActorID ParentID;
     };
 
     class SceneSerializer {
@@ -44,21 +52,58 @@ namespace Quelos {
         ~SceneSerializer() = default;
 
         void SerializePatches();
-        void BakePatches();
-
-        void PushComponentFieldCommand(Entity entity, RuntimeID componentId, std::string_view field);
+        void BakePatches() const;
 
         template<typename T>
         void Record(SetField<T>& cmd) {
-            const Entity entity(cmd.ComponentRef.GetEntityID());
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            auto& compPatch = entityPatch.Components[cmd.ComponentId];
 
-            auto& entityPatch = m_Entities[entity.GetID()];
-            auto& compPatch = entityPatch.Components[cmd.ComponentRef.GetID()];
+            ++compPatch.Fields[cmd.FieldKey];
 
-            compPatch.ComponentRef = cmd.ComponentRef;
-            compPatch.Fields.insert(cmd.FieldKey);
+            entityPatch.StatePushBack(ActorPatch::State::Changed);
+        }
 
-            entityPatch.SetState(EntityPatch::State::Changed);
+        template<typename T>
+        void Remove(SetField<T>& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            auto& compPatch = entityPatch.Components[cmd.ComponentId];
+
+            --compPatch.Fields[cmd.FieldKey];
+
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const SetParent& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.ParentPatchCount++;
+            entityPatch.StatePushBack(ActorPatch::State::Changed);
+        }
+
+        void Remove(const SetParent& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.ParentPatchCount--;
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const CreateActor& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.StatePushBack(ActorPatch::State::Added);
+        }
+
+        void Remove(const CreateActor& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const DestroyActor& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.StatePushBack(ActorPatch::State::Removed);
+        }
+
+        void Remove(const DestroyActor& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.StatePopBack();
         }
 
     private:
@@ -82,7 +127,7 @@ namespace Quelos {
         void PushBackToContainer(size_t childIndex);
 
     private:
-        HashMap<Entity, EntityPatch> m_Entities{};
+        HashMap<ActorID, ActorPatch> m_Actors{};
 
         enum class ParserState : uint8_t {
             None = 0,
@@ -117,12 +162,14 @@ namespace Quelos {
 
         std::string_view m_CurrentField;
 
-        std::unordered_map<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
+        HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
 
-        std::vector<Serialization::TextArchiveValue> m_ValuePool;
-        std::vector<std::pair<std::string_view, size_t>> m_FieldTable;
+        Vec<ParentPair> m_ParentPairsToResolve;
 
-        std::vector<size_t> m_ContainerStack;
+        Vec<Serialization::TextArchiveValue> m_ValuePool;
+        Vec<Pair<std::string_view, size_t>> m_FieldTable;
+
+        Vec<size_t> m_ContainerStack;
 
         bool hadError = false;
     };

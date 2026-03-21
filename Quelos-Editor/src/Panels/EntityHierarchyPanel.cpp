@@ -3,6 +3,8 @@
 
 #include "imgui_internal.h"
 #include "Quelos/Platform/bgfx/ImGui/icons_font_awesome.h"
+#include "Scene/Commands/CreateActorCommand.h"
+#include "Scene/Commands/SetParentCommand.h"
 
 namespace Quelos {
     EntityHierarchyPanel::EntityHierarchyPanel(
@@ -20,11 +22,44 @@ namespace Quelos {
         ImGui::SetNextWindowClass(&windowClass);
 
         if (ImGui::Begin("Hierarchy")) {
+            if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_NoOpenOverItems)) {
+                if (ImGui::MenuItem("Create Empty Actor")) {
+                    ActorID actorId = ActorID::Generate();
+                    m_UndoSystem.Push<CreateActor>(actorId, m_Scene);
+                    SetSelectedEntity(m_Scene->GetActor(actorId));
+                }
+
+                if (ImGui::MenuItem("Paste")) {
+                    // clipboard logic
+                }
+
+                ImGui::EndPopup();
+            }
+
             m_EntitiesStack.clear();
 
+            const flecs::world& world = m_Scene->GetWorld();
+            world.defer_begin();
             m_EntitiesQuery.each([&](const flecs::entity entity) {
                 DrawEntity(entity, 0, m_EntitiesStack);
             });
+
+            ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
+
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
+                    const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
+
+                    if (droppedId.IsValid()) {
+                        m_UndoSystem.Push<SetParent>(droppedId, ActorID(), m_Scene);
+                    }
+                }
+
+                ImGui::EndDragDropTarget();
+            }
+
+
+            world.defer_end();
 
             const ImVec2 mouse = ImGui::GetIO().MousePos;
             const ImVec2 cursor = ImGui::GetCursorScreenPos();
@@ -40,16 +75,25 @@ namespace Quelos {
         ImGui::End();
     }
 
+    static bool IsDescendant(const Entity parent, Entity candidate) {
+        while (candidate.IsValid()) {
+            if (candidate == parent) {
+                return true;
+            }
+
+            candidate = candidate.GetParent();
+        }
+
+        return false;
+    }
+
     void EntityHierarchyPanel::DrawEntity(const Entity entity, const int depth, std::vector<bool>& stack) {
         ImGui::PushID(entity.GetID());
 
         // Row
-        if (ImGui::Selectable("##row", m_Selected == entity, ImGuiSelectableFlags_SpanAllColumns)) {
-            SetSelectedEntity(entity);
-        }
+        const bool selected = ImGui::Selectable("##row", m_Selected == entity, ImGuiSelectableFlags_SpanAllColumns);
 
-        int count = 0;
-        entity.GetID().children([&count] { count++; });
+        const int count = entity.ChildrenCount();
         const bool hasChildren = count > 0;
 
         const ImVec2 min = ImGui::GetItemRectMin();
@@ -106,7 +150,7 @@ namespace Quelos {
         );
 
         const bool hovered = arrowRect.Contains(ImGui::GetIO().MousePos);
-        const bool clicked = hovered && ImGui::IsMouseClicked(0);
+        const bool clicked = hovered && ImGui::IsMouseReleased(0);
 
         if (clicked && hasChildren) {
             if (open) {
@@ -115,6 +159,8 @@ namespace Quelos {
             else {
                 m_OpenEntities.insert(entity);
             }
+        } else if (selected) {
+            SetSelectedEntity(entity);
         }
 
         // draw arrow
@@ -140,6 +186,80 @@ namespace Quelos {
             IM_COL32_WHITE,
             label.c_str()
         );
+
+        if (ImGui::BeginPopupContextItem("EntityContext")) {
+            m_Selected = entity;
+
+            if (ImGui::MenuItem("Create Child")) {
+                // your create logic
+            }
+
+            if (ImGui::MenuItem("Delete")) {
+                m_UndoSystem.Push<DestroyActor>(entity.Get<ActorTag>().ID, m_Scene);
+            }
+
+            if (ImGui::MenuItem("Rename"))
+            {
+                // trigger rename state
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+            ActorID dragged = entity.Get<ActorTag>().ID;
+
+            ImGui::SetDragDropPayload(
+                "ACTOR",
+                &dragged,
+                sizeof(ActorID)
+            );
+
+            ImGui::Text("%s", entity.GetName());
+
+            ImGui::EndDragDropSource();
+        }
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
+                const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
+
+                if (droppedId.IsValid()) {
+                    const Entity dropped = m_Scene->GetActor(droppedId);
+
+                    if (dropped != entity) {
+                        if (IsDescendant(dropped, entity)) {
+                            const Entity parent = dropped.GetParent();
+
+                            dropped.GetID().children([&](const flecs::entity child) {
+                                if (parent.IsValid()) {
+                                    m_UndoSystem.Push<SetParent>(
+                                        child.get<ActorTag>().ID,
+                                        parent.Get<ActorTag>().ID,
+                                        m_Scene
+                                    );
+                                }
+                                else {
+                                    m_UndoSystem.Push<SetParent>(
+                                        child.get<ActorTag>().ID,
+                                        ActorID(),
+                                        m_Scene
+                                    );
+                                }
+                            });
+                        }
+
+                        m_UndoSystem.Push<SetParent>(
+                            droppedId,
+                            entity.Get<ActorTag>().ID,
+                            m_Scene
+                        );
+                    }
+                }
+            }
+
+            ImGui::EndDragDropTarget();
+        }
 
         ImGui::PopID();
 

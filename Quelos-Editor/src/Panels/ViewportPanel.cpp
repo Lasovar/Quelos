@@ -1,12 +1,9 @@
 #include "qspch.h"
 #include "ViewportPanel.h"
 
-#include <utility>
-
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "../../../Quelos/vendor/bgfx.cmake/bgfx/include/bgfx/bgfx.h"
 
 namespace Quelos {
     ViewportPanel::ViewportPanel(std::string  name, const uint32_t viewId, const uint32_t width, const uint32_t height)

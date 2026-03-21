@@ -1,9 +1,10 @@
 #pragma once
 
 #include <map>
+#include <deque>
+#include <span>
 
 // can't compile ska without this... MSVC throws an exception that std doesn't contain std::out_of_range without this
-#include <deque>
 #include <stdexcept>
 #include "ska/flat_hash_map.hpp"
 
@@ -67,6 +68,9 @@ namespace Quelos {
 
     template <typename T>
     using Vec = std::vector<T>;
+
+    template <typename T>
+    using Span = std::span<T>;
 
     template <typename TFirst, typename TSecond>
     using Pair = std::pair<TFirst, TSecond>;

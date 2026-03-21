@@ -47,9 +47,9 @@ namespace Quelos::Serialization {
             for (uint32_t c = 0; c < componentCount; ++c) {
                 ComponentID guid(reader.Read<uint64_t>().value());
 
-                auto typeInfo = registry.GetSerializableComponentInfo(guid);
+                const SerializableComponentInfo* typeInfo = registry.GetSerializableComponentInfo(guid);
 
-                if (!typeInfo.Guid.IsValid()) {
+                if (!typeInfo) {
                     throw std::runtime_error("Unknown component type in scene");
                 }
 
@@ -59,7 +59,12 @@ namespace Quelos::Serialization {
                 std::span<const std::byte> blob = reader.ReadBytes(blobSize).value();
 
                 // Allocate component
-                void* componentPtr = ecs_ensure_id(world.c_ptr(), entity.GetID(), typeInfo.RuntimeID, 0);
+                void* componentPtr = ecs_ensure_id(
+                    world.c_ptr(),
+                    entity.GetID(),
+                    typeInfo->RuntimeID,
+                    0
+                );
 
                 if (!componentPtr) {
                     throw std::runtime_error("Failed to ensure component");
@@ -68,7 +73,7 @@ namespace Quelos::Serialization {
                 // Deserialize
                 BinaryReader subReader(blob);
                 BinaryReadArchive archive(subReader);
-                typeInfo.SerializeBinaryReadFunc(archive, componentPtr);
+                typeInfo->SerializeBinaryReadFunc(archive, componentPtr);
             }
         }
     }
