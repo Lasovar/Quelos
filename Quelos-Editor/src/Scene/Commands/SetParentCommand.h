@@ -6,22 +6,22 @@ namespace Quelos {
     struct SetParent {
     public:
         void Apply() const {
-            const Entity actor = Scene->GetActor(ActorId);
+            const Actor actor = Scene->GetActor(ActorId);
 
             if (!NewParentId) {
                 actor.RemoveParent();
                 return;
             }
 
-            const Entity parent = Scene->GetActor(NewParentId);
+            const Actor parent = Scene->GetActor(NewParentId);
             actor.SetParent(parent);
         }
 
         void Revert() const {
-            const Entity actor = Scene->GetActor(ActorId);
+            const Actor actor = Scene->GetActor(ActorId);
 
             if (PreviousParentId) {
-                const Entity parent = Scene->GetActor(PreviousParentId);
+                const Actor parent = Scene->GetActor(PreviousParentId);
                 actor.SetParent(parent);
             } else {
                 actor.RemoveParent();
@@ -34,9 +34,9 @@ namespace Quelos {
             NewParentId = parentId;
             Scene = scene;
 
-            const Entity actor = Scene->GetActor(ActorId);
-            if (const Entity previousParent = actor.GetParent(); previousParent.IsValid()) {
-                PreviousParentId = previousParent.Get<ActorTag>().ID;
+            const Actor actor = Scene->GetActor(ActorId);
+            if (const Actor previousParent = actor.GetParent(); previousParent.IsValid()) {
+                PreviousParentId = previousParent.GetActorID();
             }
         }
 

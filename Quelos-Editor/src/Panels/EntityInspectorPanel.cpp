@@ -53,12 +53,12 @@ namespace Quelos {
         ImGui::SetNextWindowClass(&windowClass);
 
         if (ImGui::Begin("Entity Inspector")) {
-            if (m_SelectedEntity.IsAlive()) {
-                ImGui::Text("Entity: %s", m_SelectedEntity.GetName());
+            if (m_SelectedActor.IsAlive()) {
+                ImGui::Text("Entity: %s", m_SelectedActor.GetName());
 
                 ImGui::Separator();
 
-                m_SelectedEntity.GetID().each([this](const flecs::id runtimeId) {
+                m_SelectedActor.GetInternalID().each([this](const flecs::id runtimeId) {
                     const auto it = m_InspectorArchiveSerialize.find(runtimeId);
                     if (it == m_InspectorArchiveSerialize.end()) {
                         return;
@@ -67,14 +67,14 @@ namespace Quelos {
                     const InspectorComponent& inspectorComponent = it->second;
                     if (ImGui::CollapsingHeader(inspectorComponent.ComponentName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                         InspectorArchive archive(
-                            m_SelectedEntity,
+                            m_SelectedActor,
                             runtimeId,
                             m_Scene,
                             m_UndoSystem,
                             inspectorComponent.SetFieldSerializeFn
                         );
 
-                        void* data = m_SelectedEntity.GetMut(runtimeId);
+                        void* data = m_SelectedActor.GetMut(runtimeId);
                         inspectorComponent.InspectorSerializeFn(archive, data);
                     }
                 });

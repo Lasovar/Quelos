@@ -7,35 +7,35 @@
 namespace Quelos {
     class Scene;
 
-    using SelectionCallback = std::function<void(Entity)>;
+    using SelectionCallback = std::move_only_function<void(const Actor&)>;
 
     class EntityHierarchyPanel {
     public:
         EntityHierarchyPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
 
-        void AddListenerOnEntitySelected(std::move_only_function<void(Entity)> callback) {
+        void AddListenerOnEntitySelected(SelectionCallback callback) {
             m_OnSelectionChangedCallbacks.push_back(std::move(callback));
         };
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
-        void SetSelectedEntity(const Entity entity) {
-            m_Selected = entity;
+        void SetSelectedActor(const Actor& actor) {
+            m_SelectedActor = actor;
             NotifyOnEntitySelectedListeners();
         }
 
         void NotifyOnEntitySelectedListeners() {
             for (auto& callback : m_OnSelectionChangedCallbacks) {
-                callback(m_Selected);
+                callback(m_SelectedActor);
             }
         }
-        void DrawEntity(Entity entity, int depth, std::vector<bool>& stack);
+        void DrawActor(const Entity& actor, int depth, std::vector<bool>& stack, uint32_t order);
 
     private:
         Ref<Scene> m_Scene;
         UndoSystem& m_UndoSystem;
-        Vec<std::move_only_function<void(Entity)>> m_OnSelectionChangedCallbacks;
+        Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
         flecs::query<> m_EntitiesQuery;
 
@@ -43,6 +43,11 @@ namespace Quelos {
         Vec<bool> m_EntitiesStack;
         HashSet<Entity> m_OpenEntities;
 
-        Entity m_Selected;
+        bool m_RequestReorder;
+        ActorID m_ReorderTargetParent;
+        ActorID m_ReorderTargetAfter;
+        ActorID m_ReorderTarget;
+
+        Actor m_SelectedActor;
     };
 }

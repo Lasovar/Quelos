@@ -11,8 +11,8 @@ namespace Quelos {
         : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
           m_EntityHierarchyPanel(scene, undoSystem)
     {
-        m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Entity entity) {
-            m_InspectorPanel.SetSelectedEntity(entity);
+        m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Actor& actor) {
+            m_InspectorPanel.SetSelectedEntity(actor);
         });
 
         m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());

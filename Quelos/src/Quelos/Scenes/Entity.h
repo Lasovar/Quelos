@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Quelos/Core/Base.h"
 #include "Quelos/Core/GUID.h"
 
 #include "flecs.h"
@@ -91,7 +92,7 @@ namespace Quelos {
         }
 
         void SetParent(const Entity parent) const {
-            m_ID.child_of(parent.GetID());
+            m_ID.child_of(parent.GetInternalID());
         }
 
         [[nodiscard]] void* GetMut(const RuntimeID id) const {
@@ -106,7 +107,7 @@ namespace Quelos {
 
         [[nodiscard]] const char* GetName() const { return m_ID.name().c_str(); }
 
-        [[nodiscard]] flecs::entity GetID() const { return m_ID; }
+        [[nodiscard]] flecs::entity GetInternalID() const { return m_ID; }
 
         [[nodiscard]] int ChildrenCount() const { return m_ID.world().count(flecs::ChildOf, m_ID); }
 
@@ -118,7 +119,7 @@ namespace Quelos {
             m_ID.remove(flecs::ChildOf, flecs::Wildcard);
         }
 
-    private:
+    protected:
         flecs::entity m_ID;
     };
 }
@@ -127,7 +128,7 @@ namespace std {
     template <>
     struct hash<Quelos::Entity> {
         size_t operator()(const Quelos::Entity& e) const noexcept {
-            return std::hash<ecs_id_t>{}(e.GetID());
+            return std::hash<ecs_id_t>{}(e.GetInternalID());
         }
     };
 }

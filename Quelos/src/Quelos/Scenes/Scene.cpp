@@ -22,6 +22,14 @@ namespace Quelos {
         m_ComponentRegistry.RegisterBuiltinTypes(m_World);
         s_WorldToScene[m_World.c_ptr()] = this;
 
+        m_SceneRoot = m_World.entity<SceneRootTag>("Root")
+                             .add<ActorTag>()
+                             .add(flecs::OrderedChildren);
+
+        if (m_World.singleton<SceneRootTag>().has(flecs::OrderedChildren)) {
+            QS_CORE_INFO("Has Ordered children");
+        }
+
         m_World.observer<LocalTransform>()
                .event(flecs::OnAdd)
                .each([](const flecs::entity e, const LocalTransform&) {
@@ -36,14 +44,22 @@ namespace Quelos {
                                         .add(flecs::Phase)
                                         .depends_on(m_TransformUpdate);
 
-        m_World.system<const LocalTransform, WorldTransform>()
+        m_World.system<const LocalTransform&, WorldTransform&>()
+               .with(flecs::ChildOf, m_SceneRoot)
+               .kind(m_TransformUpdate)
+               .each([](const LocalTransform& local, WorldTransform& world) {
+                   world.Value = Math::SRTMatrix(local);
+               });
+
+        m_World.system<const LocalTransform&, WorldTransform&>()
                .without(flecs::ChildOf, flecs::Wildcard)
                .kind(m_TransformUpdate)
                .each([](const LocalTransform& local, WorldTransform& world) {
                    world.Value = Math::SRTMatrix(local);
                });
 
-        m_World.system<const LocalTransform, WorldTransform, const WorldTransform>()
+        m_World.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
+               .without(flecs::ChildOf, m_SceneRoot)
                .with(flecs::ChildOf, flecs::Wildcard)
                .term_at(2).cascade()
                .kind(m_TransformChildUpdate)
@@ -82,23 +98,33 @@ namespace Quelos {
     void Scene::EndRender() const {
     }
 
-    Entity Scene::CreateActor(const std::string_view entityName) {
+    Actor Scene::CreateActor(const std::string_view entityName) {
         const ActorID guid = ActorID::Generate();
         return CreateActor(guid, entityName);
     }
 
-    Entity Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
-        const flecs::entity entityId = m_World.entity().set(ActorTag(guid));
-        const Entity entity(entityId);
-        entity.SetName(entityName);
-        m_EntityMap[guid] = entity;
-        return entity;
+    Actor Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
+        const flecs::entity entityId = m_World.entity()
+                                              .set(ActorTag(guid))
+                                              .add<ChildOrder>()
+                                              .add(flecs::OrderedChildren);
+
+        const Actor actor(entityId, guid);
+        actor.SetName(entityName);
+        actor.OrderBack(Actor(m_SceneRoot, ActorID()));
+
+        m_ActorsMap[guid] = actor;
+        return actor;
     }
 
     void Scene::DestroyEntity(const ActorID entityId) {
-        const auto entity = m_EntityMap[entityId];
+        const auto entity = m_ActorsMap[entityId];
         entity.Destroy();
-        m_EntityMap.erase(entityId);
+        m_ActorsMap.erase(entityId);
+    }
+
+    void Scene::SetActorParentToRoot(const Actor& actor) const {
+        actor.GetInternalID().child_of(m_SceneRoot);
     }
 
     void Scene::OnViewportResized(glm::vec2 viewportSize) const {

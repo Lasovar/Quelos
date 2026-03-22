@@ -3,106 +3,120 @@
 #include "Entity.h"
 #include <Quelos/Core/Ref.h>
 
+#include "Actor.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
 
 namespace Quelos {
-	enum class SystemGroup : uint8_t {
-		OnStart,
-		OnLoad,
-		PostLoad,
-		OnUpdate,
-		PreUpdate,
-		OnValidate,
-		PostUpdate,
-		PreStore,
-		OnStore
-	};
+    enum class SystemGroup : uint8_t {
+        OnStart,
+        OnLoad,
+        PostLoad,
+        OnUpdate,
+        PreUpdate,
+        OnValidate,
+        PostUpdate,
+        PreStore,
+        OnStore
+    };
 
-	constexpr flecs::entity_t SystemGroupToFlecsKind(const SystemGroup systemGroup) {
-		switch (systemGroup) {
-		case SystemGroup::OnStart: return flecs::OnStart;
-		case SystemGroup::OnLoad: return flecs::OnLoad;
-		case SystemGroup::PostLoad: return flecs::PostLoad;
-		case SystemGroup::OnUpdate: return flecs::OnUpdate;
-		case SystemGroup::PreUpdate: return flecs::PreUpdate;
-		case SystemGroup::PostUpdate: return flecs::PostUpdate;
-		case SystemGroup::OnValidate: return flecs::OnValidate;
-		case SystemGroup::PreStore: return flecs::PreStore;
-		case SystemGroup::OnStore: return flecs::OnStore;
-		default: return flecs::OnUpdate;
-		}
-	}
+    constexpr flecs::entity_t SystemGroupToFlecsKind(const SystemGroup systemGroup) {
+        switch (systemGroup) {
+        case SystemGroup::OnStart: return flecs::OnStart;
+        case SystemGroup::OnLoad: return flecs::OnLoad;
+        case SystemGroup::PostLoad: return flecs::PostLoad;
+        case SystemGroup::OnUpdate: return flecs::OnUpdate;
+        case SystemGroup::PreUpdate: return flecs::PreUpdate;
+        case SystemGroup::PostUpdate: return flecs::PostUpdate;
+        case SystemGroup::OnValidate: return flecs::OnValidate;
+        case SystemGroup::PreStore: return flecs::PreStore;
+        case SystemGroup::OnStore: return flecs::OnStore;
+        default: return flecs::OnUpdate;
+        }
+    }
 
-	class Scene : public RefCounted<Scene> {
-	public:
-		explicit Scene(std::string name = "Untitled Scene");
+    class Scene : public RefCounted<Scene> {
+    public:
+        explicit Scene(std::string name = "Untitled Scene");
 
-		template <typename Func>
-		void Each(Func&& func) const {
-			flecs::_::query_delegate<Func> f_delegate(m_World, FLECS_MOV(func));
-		}
+        template <typename Func>
+        void Each(Func&& func) const {
+            flecs::_::query_delegate<Func> f_delegate(m_World, FLECS_MOV(func));
+        }
 
-		template <typename... Comps, typename... Args, typename Func>
-		void System(const SystemGroup systemGroup, Func&& func, Args&&... args) const {
-			m_World.system<Comps...>(std::forward<Args>(args)...)
-				.kind(SystemGroupToFlecsKind(systemGroup))
-				.each(func);
-		}
+        template <typename... Comps, typename... Args, typename Func>
+        void System(const SystemGroup systemGroup, Func&& func, Args&&... args) const {
+            m_World.system<Comps...>(std::forward<Args>(args)...)
+                   .kind(SystemGroupToFlecsKind(systemGroup))
+                   .each(func);
+        }
 
-		template <typename... Comps, typename... Args, typename Func>
-		void System(Func&& func, Args&&... args) const {
-			System<Comps...>(
-				SystemGroup::OnUpdate,
-				std::forward<Func>(func),
-				std::forward<Args>(args)...
-			);
-		}
+        template <typename... Comps, typename... Args, typename Func>
+        void System(Func&& func, Args&&... args) const {
+            System<Comps...>(
+                SystemGroup::OnUpdate,
+                std::forward<Func>(func),
+                std::forward<Args>(args)...
+            );
+        }
 
-		void Tick(float deltaTime) const;
-		void StartRender(const Ref<FrameBuffer>& frameBuffer) const;
-		void Render(uint32_t viewId) const;
-		void EndRender() const;
+        void Tick(float deltaTime) const;
+        void StartRender(const Ref<FrameBuffer>& frameBuffer) const;
+        void Render(uint32_t viewId) const;
+        void EndRender() const;
 
-		const std::string& GetName() const { return m_Name; }
-		void SetName(const std::string_view& name) { m_Name = name; }
+        const std::string& GetName() const { return m_Name; }
+        void SetName(const std::string_view& name) { m_Name = name; }
 
-		Entity CreateActor(std::string_view entityName);
-		Entity CreateActor(const ActorID& guid, std::string_view entityName);
-		void DestroyEntity(ActorID entityId);
+        Actor CreateActor(std::string_view entityName);
+        Actor CreateActor(const ActorID& guid, std::string_view entityName);
+        void DestroyEntity(ActorID entityId);
 
-		void OnViewportResized(glm::vec2 viewportSize) const;
+        Entity GetSceneRoot() const { return m_SceneRoot; }
+        void SetActorParentToRoot(const Actor& actor) const;
 
-		flecs::world& GetWorld() { return m_World; }
-		ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
+        void OnViewportResized(glm::vec2 viewportSize) const;
 
-		Entity GetActor(const ActorID entityId) {
-			const auto it = m_EntityMap.find(entityId);
-			if (it == m_EntityMap.end()) {
-				return {};
-			}
+        flecs::world& GetWorld() { return m_World; }
+        ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
 
-			return it->second;
-		}
+        Actor GetActor(const ActorID actorId) {
+            if (!actorId) {
+                return Actor(m_SceneRoot, actorId);
+            }
 
-	public:
-		static Ref<Scene> Copy(const Ref<Scene>& scene);
+            const auto it = m_ActorsMap.find(actorId);
+            if (it == m_ActorsMap.end()) {
+                return {};
+            }
 
-		static Ref<Scene> GetScene(const flecs::world& world) { return s_WorldToScene[world.c_ptr()]->shared_from_this(); }
+            return it->second;
+        }
 
-		friend class SceneBinarySerializer;
-	private:
-		static HashMap<ecs_world_t*, Scene*> s_WorldToScene;
-	private:
-		HashMap<ActorID, Entity> m_EntityMap;
-		ComponentRegistry m_ComponentRegistry;
+    public:
+        static Ref<Scene> Copy(const Ref<Scene>& scene);
 
-		flecs::world m_World;
-		std::string m_Name;
+        static Ref<Scene> GetScene(const flecs::world& world) {
+            return s_WorldToScene[world.c_ptr()]->shared_from_this();
+        }
 
-		flecs::entity m_TransformUpdate;
-		flecs::entity m_TransformChildUpdate;
-	};
+        friend class SceneBinarySerializer;
+
+    private:
+        static HashMap<ecs_world_t*, Scene*> s_WorldToScene;
+
+    private:
+        HashMap<ActorID, Actor> m_ActorsMap;
+        ComponentRegistry m_ComponentRegistry;
+
+        flecs::world m_World;
+        std::string m_Name;
+
+        flecs::entity m_SceneRoot;
+
+        flecs::entity m_TransformUpdate;
+        flecs::entity m_TransformChildUpdate;
+    };
 }

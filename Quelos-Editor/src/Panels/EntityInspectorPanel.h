@@ -19,14 +19,14 @@ namespace Quelos {
     public:
         explicit EntityInspectorPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
 
-        void SetSelectedEntity(const Entity entity) { m_SelectedEntity = entity; }
-        void ClearSelectedEntity() { m_SelectedEntity = {}; }
+        void SetSelectedEntity(const Actor& entity) { m_SelectedActor = entity; }
+        void ClearSelectedEntity() { m_SelectedActor = {}; }
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
         HashMap<RuntimeID, InspectorComponent> m_InspectorArchiveSerialize;
-        Entity m_SelectedEntity;
+        Actor m_SelectedActor;
         Ref<Scene> m_Scene;
         UndoSystem& m_UndoSystem;
     };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Commands/CreateActorCommand.h"
+#include "Commands/ReorderChildrenCommand.h"
 #include "Quelos/Scenes/Scene.h"
 #include "Commands/SetFieldCommand.h"
 #include "Commands/SetParentCommand.h"
@@ -40,9 +41,9 @@ namespace Quelos {
         }
     };
 
-    struct ParentPair {
-        ActorID ChildID;
-        ActorID ParentID;
+    struct ChildEntry {
+        Actor Child;
+        uint64_t Order = 0;
     };
 
     class SceneSerializer {
@@ -84,6 +85,34 @@ namespace Quelos {
             auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.ParentPatchCount--;
             entityPatch.StatePopBack();
+        }
+
+        void Record(const ReorderChild& cmd) {
+            m_Scene->GetActor(cmd.NewParentId).GetInternalID().children([&](const flecs::entity child) {
+                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
+                actorPatch.ParentPatchCount++;
+                actorPatch.StatePushBack(ActorPatch::State::Changed);
+            });
+
+            m_Scene->GetActor(cmd.PreviousParentId).GetInternalID().children([&](const flecs::entity child) {
+                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
+                actorPatch.ParentPatchCount++;
+                actorPatch.StatePushBack(ActorPatch::State::Changed);
+            });
+        }
+
+        void Remove(const ReorderChild& cmd) {
+            m_Scene->GetActor(cmd.NewParentId).GetInternalID().children([&](const flecs::entity child) {
+                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
+                actorPatch.ParentPatchCount--;
+                actorPatch.StatePushBack(ActorPatch::State::Changed);
+            });
+
+            m_Scene->GetActor(cmd.PreviousParentId).GetInternalID().children([&](const flecs::entity child) {
+                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
+                actorPatch.ParentPatchCount--;
+                actorPatch.StatePushBack(ActorPatch::State::Changed);
+            });
         }
 
         void Record(const CreateActor& cmd) {
@@ -140,7 +169,7 @@ namespace Quelos {
         enum class SectionKind : uint8_t {
             None,
             SceneHeader,
-            Entity
+            Actor
         };
 
         Serialization::QuelReader m_Reader;
@@ -150,10 +179,11 @@ namespace Quelos {
 
         std::string_view m_CurrentSection;
 
-        Entity m_CurrentEntity;
+        Actor m_CurrentEntity;
         std::string_view m_CurrentEntityName;
         std::string_view m_CurrentEntityState;
         ActorID m_CurrentEntityID{};
+        ActorID m_CurrentParentID{};
 
         bool m_SkipToNextSection = false;
 
@@ -164,7 +194,7 @@ namespace Quelos {
 
         HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
 
-        Vec<ParentPair> m_ParentPairsToResolve;
+        HashMap<ActorID, Vec<ChildEntry>> m_ParentPairsToResolve;
 
         Vec<Serialization::TextArchiveValue> m_ValuePool;
         Vec<Pair<std::string_view, size_t>> m_FieldTable;

@@ -61,7 +61,7 @@ namespace Quelos::Serialization {
                 // Allocate component
                 void* componentPtr = ecs_ensure_id(
                     world.c_ptr(),
-                    entity.GetID(),
+                    entity.GetInternalID(),
                     typeInfo->RuntimeID,
                     0
                 );

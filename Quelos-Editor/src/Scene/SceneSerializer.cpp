@@ -2,6 +2,7 @@
 #include "SceneSerializer.h"
 
 #include <ranges>
+#include <string_view>
 
 #include "Quelos/Serialization/SceneBinarySerializer.h"
 
@@ -139,27 +140,44 @@ namespace Quelos {
                 }, parserEvent);
             }
 
-            if (m_CurrentEntity.GetID()) {
+            if (m_CurrentEntity.GetInternalID()) {
                 DeserializeComponentData();
             }
 
+
             m_ParserState &= ~ParserState::InComponent;
 
-            for (auto& [childId, parentId] : m_ParentPairsToResolve) {
-                Entity actor = scene->GetActor(childId);
-                if (parentId) {
-                    if (const Entity parent = scene->GetActor(parentId); parent.IsValid()) {
-                        actor.SetParent(parent);
-                    }
-                } else {
-                    actor.RemoveParent();
-                }
-            }
-
-            m_ParentPairsToResolve.clear();
         }
 
         world.defer_end();
+
+
+        world.defer_begin();
+
+        for (auto& [parentId, childrenEntries] : m_ParentPairsToResolve) {
+            const Actor parent = scene->GetActor(parentId);
+
+            for (auto& [child, order] : childrenEntries) {
+                if (parentId) {
+                    if (parent.IsValid()) {
+                        child.SetParent(parent);
+                    }
+                } else {
+                    child.RemoveParent();
+                }
+
+                child.GetInternalID().set(ChildOrder{order});
+            }
+        }
+
+        world.defer_end();
+
+        for (auto& parentId : m_ParentPairsToResolve | std::views::keys) {
+            const Actor parent = scene->GetActor(parentId);
+            parent.IndexChildOrders();
+        }
+
+        m_ParentPairsToResolve.clear();
     }
 
     void SceneSerializer::DeserializeComponentData() {
@@ -176,8 +194,8 @@ namespace Quelos {
         }
 
         QuelReadArchive archive(m_FieldTable, m_ValuePool);
-        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
-        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
+        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetInternalID(), componentInfo->RuntimeID);
+        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetInternalID(), componentInfo->RuntimeID);
 
         if (!data) {
             return;
@@ -202,7 +220,7 @@ namespace Quelos {
             m_SectionKind = SectionKind::SceneHeader;
         }
         else if (e.Name == "actor") {
-            m_SectionKind = SectionKind::Entity;
+            m_SectionKind = SectionKind::Actor;
         }
         else {
             m_SectionKind = SectionKind::None;
@@ -239,7 +257,7 @@ namespace Quelos {
                     }
                 }
                 break;
-            case SectionKind::Entity:
+            case SectionKind::Actor:
                 if (m_CurrentField == "name") {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
                         m_CurrentEntityName = std::get<std::string_view>(e.Value);
@@ -255,16 +273,40 @@ namespace Quelos {
                         m_CurrentEntityState = std::get<std::string_view>(e.Value);
                     }
                 }
-                else if (m_CurrentEntityID && m_CurrentField == "parent") {
-                    if (std::holds_alternative<std::string_view>(e.Value)) {
-                        const auto parentValue = std::get<std::string_view>(e.Value);
+                else if (m_CurrentEntityID) {
+                    if (m_CurrentField == "parent") {
+                        if (std::holds_alternative<std::string_view>(e.Value)) {
+                            const auto parentValue = std::get<std::string_view>(e.Value);
 
-                        ActorID parentId = {};
-                        if (parentValue != "root") {
-                            parentId = ActorID(parentValue);
+                            ActorID parentId = {};
+                            if (parentValue != "root") {
+                                parentId = ActorID(parentValue);
+                            }
+
+                            m_CurrentParentID = parentId;
                         }
+                    } else if (m_CurrentField == "order") {
+                        if (const std::string_view* orderStr = std::get_if<std::string_view>(&e.Value)) {
+                            const std::string_view hex = orderStr->substr(2);
+                            uint32_t order = 0;
 
-                        m_ParentPairsToResolve.emplace_back(m_CurrentEntityID, parentId);
+                            auto [ptr, errCode] = std::from_chars(
+                                hex.data(),
+                                hex.data() + hex.size(),
+                                order
+                            );
+
+                            if (errCode == std::errc()) {
+                                m_ParentPairsToResolve[m_CurrentParentID].emplace_back(m_CurrentEntity, order);
+                            } else {
+                                QS_ERROR_TAG(
+                                    "SceneSerializer",
+                                    "Failed to read child order for actor '{}({})'",
+                                    m_CurrentEntityName,
+                                    m_CurrentEntityID.ToString()
+                                );
+                            }
+                        }
                     }
                 }
 
@@ -431,7 +473,7 @@ namespace Quelos {
                         if constexpr (std::is_same_v<T, SectionEvent>) {
                             parserState = ParserState::InSection;
                             if (e.Name == "actor") {
-                                sectionKind = SectionKind::Entity;
+                                sectionKind = SectionKind::Actor;
                             }
                             else if (e.Name == "scene") {
                                 sectionKind = SectionKind::SceneHeader;
@@ -472,7 +514,7 @@ namespace Quelos {
                         }
                         else if constexpr (std::is_same_v<T, ValueEvent>) {
                             if ((parserState & ParserState::InSection) == ParserState::None
-                                || sectionKind != SectionKind::Entity
+                                || sectionKind != SectionKind::Actor
                             ) {
                                 return;
                             }
@@ -509,7 +551,7 @@ namespace Quelos {
             StringQuelWriter quelWriter(stringBuffer);
             quelWriter.SetIndent(2);
 
-            const Entity entity = m_Scene->GetActor(actorId);
+            const Actor entity = m_Scene->GetActor(actorId);
 
             ActorPatch::State patchState = Collapse(patch.PatchStates).value();
             quelWriter.Write(SectionEvent{"actor"});
@@ -524,11 +566,13 @@ namespace Quelos {
             }
 
             if (patch.ParentPatchCount > 0) {
-                if (const Entity parent = entity.GetParent(); !parent.IsValid()) {
+                if (const Actor parent = entity.GetParent(); !parent.IsValid()) {
                     quelWriter.WriteField("parent", "root");
                 } else {
-                    quelWriter.WriteField("parent", parent.Get<ActorTag>().ID.ToString());
+                    quelWriter.WriteField("parent", parent.GetActorID().ToString());
                 }
+
+                quelWriter.WriteField("order", std::format("0x{:016X}", entity.Get<ChildOrder>().Value));
             }
 
             for (auto& [componentId, compPatch] : patch.Components) {
@@ -537,7 +581,7 @@ namespace Quelos {
                     continue;
                 }
 
-                void* ptr = ecs_get_mut_id(world.c_ptr(), entity.GetID(), info->RuntimeID);
+                void* ptr = ecs_get_mut_id(world.c_ptr(), entity.GetInternalID(), info->RuntimeID);
                 if (!ptr) {
                     continue;
                 }
