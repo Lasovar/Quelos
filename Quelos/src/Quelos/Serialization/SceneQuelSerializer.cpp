@@ -57,8 +57,8 @@ namespace Quelos::Serialization {
         }
 
         QuelReadArchive archive(m_FieldTable, m_ValuePool);
-        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
-        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetID(), componentInfo->RuntimeID);
+        ecs_add_id(world.c_ptr(), m_CurrentEntity.GetInternalID(), componentInfo->RuntimeID);
+        void* data = ecs_get_mut_id(world.c_ptr(), m_CurrentEntity.GetInternalID(), componentInfo->RuntimeID);
 
         if (!data) {
             return;

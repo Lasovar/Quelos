@@ -4,16 +4,16 @@
 #include "imgui_internal.h"
 #include "Quelos/Platform/bgfx/ImGui/icons_font_awesome.h"
 #include "Scene/Commands/CreateActorCommand.h"
+#include "Scene/Commands/ReorderChildrenCommand.h"
 #include "Scene/Commands/SetParentCommand.h"
 
 namespace Quelos {
     EntityHierarchyPanel::EntityHierarchyPanel(
         const Ref<Scene>& scene, UndoSystem& undoSystem
-    ) : m_Scene(scene), m_UndoSystem(undoSystem)
-    {
+    ) : m_Scene(scene), m_UndoSystem(undoSystem) {
         m_EntitiesQuery = m_Scene->GetWorld().query_builder()
                                  .with<ActorTag>()
-                                 .without(flecs::ChildOf, flecs::Wildcard)
+                                 .with(flecs::ChildOf, m_Scene->GetSceneRoot().GetInternalID())
                                  .build();
     }
 
@@ -26,7 +26,7 @@ namespace Quelos {
                 if (ImGui::MenuItem("Create Empty Actor")) {
                     ActorID actorId = ActorID::Generate();
                     m_UndoSystem.Push<CreateActor>(actorId, m_Scene);
-                    SetSelectedEntity(m_Scene->GetActor(actorId));
+                    SetSelectedActor(m_Scene->GetActor(actorId));
                 }
 
                 if (ImGui::MenuItem("Paste")) {
@@ -36,12 +36,13 @@ namespace Quelos {
                 ImGui::EndPopup();
             }
 
-            m_EntitiesStack.clear();
-
             const flecs::world& world = m_Scene->GetWorld();
             world.defer_begin();
+            uint32_t order = 0;
             m_EntitiesQuery.each([&](const flecs::entity entity) {
-                DrawEntity(entity, 0, m_EntitiesStack);
+                m_EntitiesStack.clear();
+                DrawActor(entity, 0, m_EntitiesStack, order);
+                order++;
             });
 
             ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
@@ -58,8 +59,18 @@ namespace Quelos {
                 ImGui::EndDragDropTarget();
             }
 
-
             world.defer_end();
+
+            if (m_RequestReorder) {
+                m_UndoSystem.Push<ReorderChild>(
+                    m_ReorderTarget,
+                    m_ReorderTargetParent,
+                    m_ReorderTargetAfter,
+                    m_Scene
+                );
+
+                m_RequestReorder = false;
+            }
 
             const ImVec2 mouse = ImGui::GetIO().MousePos;
             const ImVec2 cursor = ImGui::GetCursorScreenPos();
@@ -67,15 +78,14 @@ namespace Quelos {
             if (mouse.y > cursor.y &&
                 ImGui::IsWindowHovered() &&
                 ImGui::IsMouseClicked(0) &&
-                !ImGui::IsAnyItemHovered())
-            {
-                SetSelectedEntity({});
+                !ImGui::IsAnyItemHovered()) {
+                SetSelectedActor({});
             }
         }
         ImGui::End();
     }
 
-    static bool IsDescendant(const Entity parent, Entity candidate) {
+    static bool IsDescendant(const Entity& parent, Entity candidate) {
         while (candidate.IsValid()) {
             if (candidate == parent) {
                 return true;
@@ -87,13 +97,18 @@ namespace Quelos {
         return false;
     }
 
-    void EntityHierarchyPanel::DrawEntity(const Entity entity, const int depth, std::vector<bool>& stack) {
-        ImGui::PushID(entity.GetID());
+    void EntityHierarchyPanel::DrawActor(
+        const Entity& actor,
+        const int depth,
+        std::vector<bool>& stack,
+        const uint32_t order
+    ) {
+        ImGui::PushID(actor.GetInternalID());
 
         // Row
-        const bool selected = ImGui::Selectable("##row", m_Selected == entity, ImGuiSelectableFlags_SpanAllColumns);
+        const bool selected = ImGui::Selectable("##row", m_SelectedActor == actor);
 
-        const int count = entity.ChildrenCount();
+        const int count = actor.ChildrenCount();
         const bool hasChildren = count > 0;
 
         const ImVec2 min = ImGui::GetItemRectMin();
@@ -107,15 +122,17 @@ namespace Quelos {
         const float baseX = min.x;
         const float centerY = (min.y + max.y) * 0.5f;
 
+        constexpr uint32_t lineColor = IM_COL32(90, 90, 90, 255);
+
         // Tree Lines
         for (int i = 0; i < depth; i++) {
             if (stack[i]) {
                 float x = baseX + i * indent + 12.0f;
 
                 draw->AddLine(
-                    ImVec2(x, min.y),
+                    ImVec2(x, min.y - 8),
                     ImVec2(x, max.y),
-                    IM_COL32(90, 90, 90, 255)
+                    lineColor
                 );
             }
         }
@@ -127,21 +144,21 @@ namespace Quelos {
 
             // vertical part
             draw->AddLine(
-                ImVec2(x, min.y),
+                ImVec2(x, min.y - 8),
                 ImVec2(x, hasNext ? max.y : centerY),
-                IM_COL32(90, 90, 90, 255)
+                lineColor
             );
 
             // horizontal part
             draw->AddLine(
                 ImVec2(x, centerY),
                 ImVec2(hasChildren ? x + 12.0f : x + 24.0f, centerY),
-                IM_COL32(90, 90, 90, 255)
+                lineColor
             );
         }
 
         // Arrow
-        const bool open = std::ranges::contains(m_OpenEntities, entity);
+        const bool open = std::ranges::contains(m_OpenEntities, actor);
         const float arrowX = baseX + depth * indent + 4.0f;
 
         const ImRect arrowRect(
@@ -152,15 +169,20 @@ namespace Quelos {
         const bool hovered = arrowRect.Contains(ImGui::GetIO().MousePos);
         const bool clicked = hovered && ImGui::IsMouseReleased(0);
 
+        if (open && !hasChildren) {
+            m_OpenEntities.erase(actor);
+        }
+
         if (clicked && hasChildren) {
             if (open) {
-                m_OpenEntities.erase(entity);
+                m_OpenEntities.erase(actor);
             }
             else {
-                m_OpenEntities.insert(entity);
+                m_OpenEntities.insert(actor);
             }
-        } else if (selected) {
-            SetSelectedEntity(entity);
+        }
+        else if (selected) {
+            SetSelectedActor(actor);
         }
 
         // draw arrow
@@ -179,7 +201,7 @@ namespace Quelos {
 
         // Icon + Name
         const float textX = baseX + depth * indent + 24.0f;
-        const std::string label = std::format("{} {}", ICON_FA_CUBE, entity.GetName());
+        const std::string label = std::format("{} {}", ICON_FA_CUBE, actor.GetName());
 
         draw->AddText(
             ImVec2(textX, centerY - ImGui::GetFontSize() * 0.5f),
@@ -188,18 +210,17 @@ namespace Quelos {
         );
 
         if (ImGui::BeginPopupContextItem("EntityContext")) {
-            m_Selected = entity;
+            m_SelectedActor = actor;
 
             if (ImGui::MenuItem("Create Child")) {
                 // your create logic
             }
 
             if (ImGui::MenuItem("Delete")) {
-                m_UndoSystem.Push<DestroyActor>(entity.Get<ActorTag>().ID, m_Scene);
+                m_UndoSystem.Push<DestroyActor>(actor.Get<ActorTag>().ID, m_Scene);
             }
 
-            if (ImGui::MenuItem("Rename"))
-            {
+            if (ImGui::MenuItem("Rename")) {
                 // trigger rename state
             }
 
@@ -207,7 +228,7 @@ namespace Quelos {
         }
 
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-            ActorID dragged = entity.Get<ActorTag>().ID;
+            ActorID dragged = actor.Get<ActorTag>().ID;
 
             ImGui::SetDragDropPayload(
                 "ACTOR",
@@ -215,7 +236,7 @@ namespace Quelos {
                 sizeof(ActorID)
             );
 
-            ImGui::Text("%s", entity.GetName());
+            ImGui::Text("%s", actor.GetName());
 
             ImGui::EndDragDropSource();
         }
@@ -227,11 +248,11 @@ namespace Quelos {
                 if (droppedId.IsValid()) {
                     const Entity dropped = m_Scene->GetActor(droppedId);
 
-                    if (dropped != entity) {
-                        if (IsDescendant(dropped, entity)) {
+                    if (dropped != actor) {
+                        if (IsDescendant(dropped, actor)) {
                             const Entity parent = dropped.GetParent();
 
-                            dropped.GetID().children([&](const flecs::entity child) {
+                            dropped.GetInternalID().children([&](const flecs::entity child) {
                                 if (parent.IsValid()) {
                                     m_UndoSystem.Push<SetParent>(
                                         child.get<ActorTag>().ID,
@@ -251,7 +272,7 @@ namespace Quelos {
 
                         m_UndoSystem.Push<SetParent>(
                             droppedId,
-                            entity.Get<ActorTag>().ID,
+                            actor.Get<ActorTag>().ID,
                             m_Scene
                         );
                     }
@@ -264,18 +285,57 @@ namespace Quelos {
         ImGui::PopID();
 
         // Children
-        if (!open) {
-            return;
+        if (open) {
+            const float separatorX = baseX + (depth + 1) * indent;
+            const ImVec2 size(ImGui::GetContentRegionAvail().x, 3.0f);
+            ImGui::SetCursorPosX(separatorX);
+            ImGui::Dummy(size);
+
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
+                    const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
+                    const Actor dragged = m_Scene->GetActor(draggedId);
+
+                    m_ReorderTargetParent = actor.Get<ActorTag>().ID;
+                    m_ReorderTarget = dragged.GetActorID();
+                    m_ReorderTargetAfter = {};
+
+                    m_RequestReorder = true;
+                }
+
+                ImGui::EndDragDropTarget();
+            }
+
+            int childOrder = 0;
+            actor.GetInternalID().children([&](const flecs::entity child) {
+                stack.push_back(childOrder < count - 1);
+
+                DrawActor(child, depth + 1, stack, childOrder);
+
+                stack.pop_back();
+                childOrder++;
+            });
         }
 
-        int i = 0;
-        entity.GetID().children([&](const flecs::entity child) {
-            stack.push_back(i < count - 1);
+        const float separatorX = baseX + depth * indent;
+        const ImVec2 size(ImGui::GetContentRegionAvail().x, 3.0f);
+        ImGui::SetCursorPos({separatorX, ImGui::GetCursorPosY() - 3.0f});
+        ImGui::Dummy(size);
 
-            DrawEntity(child, depth + 1, stack);
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
+                const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
+                const Actor dragged = m_Scene->GetActor(draggedId);
 
-            stack.pop_back();
-            i++;
-        });
+                const Entity parent = actor.GetParent();
+                m_ReorderTargetParent = parent.Get<ActorTag>().ID;
+                m_ReorderTarget = dragged.GetActorID();
+                m_ReorderTargetAfter = actor.Get<ActorTag>().ID;
+
+                m_RequestReorder = true;
+            }
+
+            ImGui::EndDragDropTarget();
+        }
     }
 }

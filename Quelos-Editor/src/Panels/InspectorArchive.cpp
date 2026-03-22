@@ -18,7 +18,7 @@ namespace Quelos {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<float>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
-                m_Entity.Get<ActorTag>().ID,
+                m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
                 name,
@@ -49,7 +49,7 @@ namespace Quelos {
 
             m_UndoSystem.Push<SetField<glm::vec3>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
-                m_Entity.Get<ActorTag>().ID,
+                m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
                 name,
@@ -78,7 +78,7 @@ namespace Quelos {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<glm::quat>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
-                m_Entity.Get<ActorTag>().ID,
+                m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
                 name,

@@ -18,8 +18,14 @@ namespace Quelos {
     class IndexBuffer;
     class VertexBuffer;
 
+    struct SceneRootTag { };
+
     struct ActorTag {
         ActorID ID;
+    };
+
+    struct ChildOrder {
+        uint64_t Value = 0;
     };
 
     struct LocalTransform {

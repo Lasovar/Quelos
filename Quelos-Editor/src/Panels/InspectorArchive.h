@@ -20,7 +20,7 @@ namespace Quelos {
             Ref<Scene>& scene,
             UndoSystem& undoSystem,
             SetFieldSerializeFn serializeComponentFunc
-        ) : m_Entity(entity), m_ComponentID(componentID), m_Scene(scene), m_UndoSystem(undoSystem)
+        ) : m_Actor(entity), m_ComponentID(componentID), m_Scene(scene), m_UndoSystem(undoSystem)
         {
             m_SerializeComponentFunc = serializeComponentFunc;
         }
@@ -49,7 +49,7 @@ namespace Quelos {
                 if (UI::EditEnum(std::string(name), temp)) {
                     m_UndoSystem.Push<SetField<T>>(
                         m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
-                        m_Entity.Get<ActorTag>().ID,
+                        m_Actor.GetActorID(),
                         m_Scene,
                         m_SerializeComponentFunc,
                         name,
@@ -67,7 +67,7 @@ namespace Quelos {
         void DrawField(std::string_view name, glm::quat& value);
 
     private:
-        Entity m_Entity;
+        Actor m_Actor;
         flecs::id m_ComponentID;
         Ref<Scene>& m_Scene;
         SetFieldSerializeFn m_SerializeComponentFunc = nullptr;

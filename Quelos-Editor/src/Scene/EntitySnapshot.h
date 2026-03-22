@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Quelos/Scenes/Actor.h"
 #include "Quelos/Scenes/Entity.h"
 
 namespace Quelos {
@@ -9,6 +10,6 @@ namespace Quelos {
         Vec<byte> Data;
 
         static ActorSnapshot Create(const Ref<Scene>& scene, ActorID actorId);
-        static Entity Load(const Ref<Scene>& scene, const ActorSnapshot& snapshot);
+        static Actor Load(const Ref<Scene>& scene, const ActorSnapshot& snapshot);
     };
 }

@@ -3,6 +3,7 @@
 #include <cinttypes>
 #include <vector>
 
+#include "Quelos/Core/Base.h"
 #include "Quelos/Utility/Generator.h"
 
 namespace Quelos {
