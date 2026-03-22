@@ -11,10 +11,7 @@ namespace Quelos {
     EntityHierarchyPanel::EntityHierarchyPanel(
         const Ref<Scene>& scene, UndoSystem& undoSystem
     ) : m_Scene(scene), m_UndoSystem(undoSystem) {
-        m_EntitiesQuery = m_Scene->GetWorld().query_builder()
-                                 .with<ActorTag>()
-                                 .with(flecs::ChildOf, m_Scene->GetSceneRoot().GetInternalID())
-                                 .build();
+        m_SceneRoot = m_Scene->GetSceneRoot().GetInternalID();
     }
 
     void EntityHierarchyPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
@@ -39,7 +36,7 @@ namespace Quelos {
             const flecs::world& world = m_Scene->GetWorld();
             world.defer_begin();
             uint32_t order = 0;
-            m_EntitiesQuery.each([&](const flecs::entity entity) {
+            m_SceneRoot.GetInternalID().children([&](const flecs::entity entity) {
                 m_EntitiesStack.clear();
                 DrawActor(entity, 0, m_EntitiesStack, order);
                 order++;
@@ -69,7 +66,13 @@ namespace Quelos {
                     m_Scene
                 );
 
+                m_ReorderTargetParent = {};
+                m_ReorderTargetAfter = {};
+                m_ReorderTarget = {};
+
                 m_RequestReorder = false;
+
+                m_SceneRoot.IndexChildOrders();
             }
 
             const ImVec2 mouse = ImGui::GetIO().MousePos;
@@ -296,11 +299,13 @@ namespace Quelos {
                     const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
                     const Actor dragged = m_Scene->GetActor(draggedId);
 
-                    m_ReorderTargetParent = actor.Get<ActorTag>().ID;
-                    m_ReorderTarget = dragged.GetActorID();
-                    m_ReorderTargetAfter = {};
+                    if (actor != dragged && !IsDescendant(dragged, actor)) {
+                        m_ReorderTargetParent = actor.Get<ActorTag>().ID;
+                        m_ReorderTarget = dragged.GetActorID();
+                        m_ReorderTargetAfter = {};
 
-                    m_RequestReorder = true;
+                        m_RequestReorder = true;
+                    }
                 }
 
                 ImGui::EndDragDropTarget();
@@ -327,12 +332,16 @@ namespace Quelos {
                 const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
                 const Actor dragged = m_Scene->GetActor(draggedId);
 
-                const Entity parent = actor.GetParent();
-                m_ReorderTargetParent = parent.Get<ActorTag>().ID;
-                m_ReorderTarget = dragged.GetActorID();
-                m_ReorderTargetAfter = actor.Get<ActorTag>().ID;
+                if (actor != dragged && !IsDescendant(dragged, actor)) {
+                    const Actor aActor(actor);
+                    const Actor parent = aActor.GetParent();
 
-                m_RequestReorder = true;
+                    m_ReorderTargetParent = parent.GetActorID();
+                    m_ReorderTarget = dragged.GetActorID();
+                    m_ReorderTargetAfter = aActor.GetActorID();
+
+                    m_RequestReorder = true;
+                }
             }
 
             ImGui::EndDragDropTarget();
