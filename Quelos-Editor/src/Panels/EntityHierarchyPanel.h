@@ -37,7 +37,7 @@ namespace Quelos {
         UndoSystem& m_UndoSystem;
         Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
-        flecs::query<> m_EntitiesQuery;
+        Actor m_SceneRoot;
 
         // False for every last child
         Vec<bool> m_EntitiesStack;

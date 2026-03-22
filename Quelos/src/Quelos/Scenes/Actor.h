@@ -142,32 +142,31 @@ namespace Quelos {
                 return;
             }
 
-            Vec<flecs::entity> children;
+            Vec<Pair<flecs::entity, ChildOrder>> children;
 
             m_ID.children([&](const flecs::entity c) {
-                children.push_back(c);
+                children.push_back({c, c.get<ChildOrder>()});
             });
 
             if (children.empty()) {
                 return;
             }
 
-            std::ranges::sort(children, [](const flecs::entity& first, const flecs::entity& second) {
-                uint64_t s = second.get<ChildOrder>().Value;
-                uint64_t f = first.get<ChildOrder>().Value;
-                QS_CORE_INFO("{} < {}: {}", f, s, f < s);
-
-                return f < s;
-            });
+            std::ranges::sort(
+                children,
+                [](const Pair<flecs::entity, ChildOrder>& first, const Pair<flecs::entity, ChildOrder>& second) {
+                    return first.second.Value < second.second.Value;
+                });
 
             Vec<flecs::entity_t> ids;
             ids.reserve(children.size());
 
             std::ranges::transform(children,
                 std::back_inserter(ids),
-                [](const flecs::entity e) { return e; }
+                [](const Pair<flecs::entity, ChildOrder>& e) { return e.first; }
             );
 
+            std::string name = GetName();
             m_ID.set_child_order(ids.data(), ids.size());
         }
 

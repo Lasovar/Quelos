@@ -166,6 +166,7 @@ namespace Quelos {
                     child.RemoveParent();
                 }
 
+                QS_CORE_INFO("{}", order);
                 child.GetInternalID().set(ChildOrder{order});
             }
         }
@@ -288,12 +289,15 @@ namespace Quelos {
                     } else if (m_CurrentField == "order") {
                         if (const std::string_view* orderStr = std::get_if<std::string_view>(&e.Value)) {
                             const std::string_view hex = orderStr->substr(2);
-                            uint32_t order = 0;
+                            QS_CORE_INFO("{}", *orderStr);
+                            QS_CORE_INFO("{}", hex);
+                            uint64_t order = 0;
 
                             auto [ptr, errCode] = std::from_chars(
                                 hex.data(),
                                 hex.data() + hex.size(),
-                                order
+                                order,
+                                16
                             );
 
                             if (errCode == std::errc()) {
@@ -301,9 +305,10 @@ namespace Quelos {
                             } else {
                                 QS_ERROR_TAG(
                                     "SceneSerializer",
-                                    "Failed to read child order for actor '{}({})'",
+                                    "Failed to read child order for actor '{}({})': {}",
                                     m_CurrentEntityName,
-                                    m_CurrentEntityID.ToString()
+                                    m_CurrentEntityID.ToString(),
+                                    std::make_error_code(errCode).message()
                                 );
                             }
                         }
@@ -566,7 +571,7 @@ namespace Quelos {
             }
 
             if (patch.ParentPatchCount > 0) {
-                if (const Actor parent = entity.GetParent(); !parent.IsValid()) {
+                if (const Actor parent = entity.GetParent(); !parent.GetActorID()) {
                     quelWriter.WriteField("parent", "root");
                 } else {
                     quelWriter.WriteField("parent", parent.GetActorID().ToString());
@@ -625,30 +630,23 @@ namespace Quelos {
         std::vector<std::byte> buffer;
         BinaryWriter writer(buffer);
 
-        auto rootActorsQuery = world.query_builder<ActorTag>()
-                                    .without(flecs::ChildOf, flecs::Wildcard)
-                                    .build();
+        Entity sceneRoot = m_Scene->GetSceneRoot();
 
         // Header
         SceneHeader header{};
         header.ComponentTypeCount = types.size();
-        header.EntityCount = rootActorsQuery.count();
+        header.EntityCount = sceneRoot.ChildrenCount();
 
         writer.Write(header);
 
         Vec<ActorID> rootActors;
         rootActors.reserve(header.EntityCount);
 
-        rootActorsQuery.each([&rootActors](const ActorTag& tag) {
-            rootActors.emplace_back(tag.ID);
-        });
-
-        std::ranges::sort(
-            rootActors,
-            [](const ActorID& a, const ActorID& b) {
-                return a < b;
+        sceneRoot.GetInternalID().children([&rootActors](const flecs::entity child) {
+            if (auto* actorTag = child.try_get<ActorTag>()) {
+                rootActors.push_back(actorTag->ID);
             }
-        );
+        });
 
         for (auto& actorId : rootActors) {
             ActorSnapshot snapshot = ActorSnapshot::Create(m_Scene, actorId);

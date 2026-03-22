@@ -30,6 +30,7 @@ namespace Quelos {
         }
 
         writer.Write(parentId);
+        writer.Write(actor.Get<ChildOrder>().Value);
 
         Vec<byte> tempComponentData;
         actor.GetInternalID().each([&](const flecs::id id) {
@@ -127,6 +128,10 @@ namespace Quelos {
                 Actor parent = scene->GetActor(parentId);
                 entity.SetParent(parent);
             }
+        }
+
+        if (const auto childOrder = reader.Read<uint64_t>()) {
+            entity.Set(ChildOrder{childOrder.value()});
         }
 
         if (const auto componentCount = reader.Read<uint32_t>(); !componentCount) {

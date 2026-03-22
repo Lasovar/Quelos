@@ -88,31 +88,15 @@ namespace Quelos {
         }
 
         void Record(const ReorderChild& cmd) {
-            m_Scene->GetActor(cmd.NewParentId).GetInternalID().children([&](const flecs::entity child) {
-                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
-                actorPatch.ParentPatchCount++;
-                actorPatch.StatePushBack(ActorPatch::State::Changed);
-            });
-
-            m_Scene->GetActor(cmd.PreviousParentId).GetInternalID().children([&](const flecs::entity child) {
-                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
-                actorPatch.ParentPatchCount++;
-                actorPatch.StatePushBack(ActorPatch::State::Changed);
-            });
+            ActorPatch& actorPatch = m_Actors[cmd.ActorId];
+            actorPatch.ParentPatchCount++;
+            actorPatch.StatePushBack(ActorPatch::State::Changed);
         }
 
         void Remove(const ReorderChild& cmd) {
-            m_Scene->GetActor(cmd.NewParentId).GetInternalID().children([&](const flecs::entity child) {
-                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
-                actorPatch.ParentPatchCount--;
-                actorPatch.StatePushBack(ActorPatch::State::Changed);
-            });
-
-            m_Scene->GetActor(cmd.PreviousParentId).GetInternalID().children([&](const flecs::entity child) {
-                ActorPatch& actorPatch = m_Actors[child.get<ActorTag>().ID];
-                actorPatch.ParentPatchCount--;
-                actorPatch.StatePushBack(ActorPatch::State::Changed);
-            });
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.ParentPatchCount--;
+            entityPatch.StatePopBack();
         }
 
         void Record(const CreateActor& cmd) {
