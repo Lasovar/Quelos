@@ -76,9 +76,9 @@ namespace Quelos {
         RenderTargetMSAA MSAAType = RenderTargetMSAA::None;
     };
 
-    class Texture : Asset {
+    class Texture : public Asset {
     public:
-        virtual ~Texture() = default;
+        ~Texture() override = default;
 
         virtual ImageFormat GetFormat() const = 0;
         virtual uint32_t GetWidth() const = 0;
@@ -98,6 +98,7 @@ namespace Quelos {
     class Texture2D : public Texture {
     public:
         static Ref<Texture2D> Create(const TextureSpecification& spec);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, BufferView data);
         static Ref<Texture2D> Create(const TextureSpecification& spec, const std::filesystem::path& texturePath);
 
         virtual void CreateFromFile(const TextureSpecification& specification,

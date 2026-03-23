@@ -5,7 +5,7 @@
 
 namespace Quelos::Utility {
     bool ReadBinaryFile(const std::filesystem::path& relativeFilePath, void* buffer, size_t size) {
-        const std::string executable = Application::Get().GetApplicationSpecification().Executable;
+        const std::string executable = Application::Get().GetApplicationSpecification().ApplicationPath;
         const std::filesystem::path exeDir = std::filesystem::canonical(executable).parent_path();
         const std::filesystem::path filePath = exeDir / relativeFilePath;
 
@@ -27,7 +27,7 @@ namespace Quelos::Utility {
     }
 
     std::vector<byte> ReadBinaryFile(const std::filesystem::path& relativeFilePath) {
-        const std::string executable = Application::Get().GetApplicationSpecification().Executable;
+        const std::string executable = Application::Get().GetApplicationSpecification().ApplicationPath;
         const std::filesystem::path exeDir = std::filesystem::canonical(executable).parent_path();
         const std::filesystem::path filePath = exeDir / relativeFilePath;
 

@@ -1,13 +1,18 @@
 #include "EditorLayer.h"
 #include <imgui.h>
 
+#include "Quelos/Core/Base.h"
+
 #include <Quelos/Scenes/Components.h>
 #include <Quelos/Core/Log.h>
 
 #include "imgui_internal.h"
+#include "ProjectSerializer.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "Quelos/AssetManager/AssetManager.h"
+#include "Quelos/Core/Application.h"
 
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
@@ -60,13 +65,25 @@ namespace Quelos {
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
     static SceneSerializer s_SceneSerializer;
+    static ProjectSerializer s_ProjectSerializer;
 
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
         //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
 
-        s_SceneSerializer = SceneSerializer(m_DefaultScene, "Assets/TestScene");
+        s_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "SandboxProject");
+
+        Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
+        /*AssetHandle yuriHandle = assetManager->AddAssetToRegistry(
+            AssetType::Texture2D,
+            "Textures/minecraft.png"
+        );*/
+
+        assetManager->DeserializeAssetRegistry();
+        Ref<Texture2D> yuriTexture = AssetManager::GetAsset<Texture2D>(AssetHandle("d0ac2067-5393-41b0-85d8-fc1d67d9ce07"));
+
+        s_SceneSerializer = SceneSerializer(m_DefaultScene, Project::GetAssetsPath() / "TestScene");
         m_UndoSystem = std::move(UndoSystem(&s_SceneSerializer));
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {

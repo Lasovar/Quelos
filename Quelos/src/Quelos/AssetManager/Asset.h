@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quelos/Core/GUID.h"
+#include "Quelos/Core/Ref.h"
 
 namespace Quelos {
 
@@ -22,6 +23,7 @@ namespace Quelos {
 
     class Asset : RefCounted<Asset> {
     public:
+        virtual ~Asset() = default;
         AssetHandle GetHandle() const { return Handle; }
 
         static AssetType GetStaticType() { return AssetType::None; }

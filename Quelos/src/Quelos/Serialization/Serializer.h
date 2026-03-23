@@ -20,6 +20,10 @@ namespace Quelos::Serialization {
             : Path(path) { }
     };
 
+    struct UnquotedString {
+        std::string_view Value;
+    };
+
     struct ValueEvent {
         using ValueType = std::variant<
             char,
@@ -28,7 +32,8 @@ namespace Quelos::Serialization {
             int64_t,
             uint64_t,
             bool,
-            std::string_view
+            std::string_view,
+            UnquotedString
         >;
 
         ValueType Value;
@@ -107,6 +112,7 @@ namespace Quelos::Serialization {
         inline void WriteValue(glm::vec4 value);
         inline void WriteValue(glm::quat value);
 
+        void WriteField(std::string_view field, UnquotedString value);
         void WriteField(std::string_view field, std::string_view value);
         void WriteField(std::string_view field, const char* value);
         void WriteField(std::string_view field, const std::string& value);
@@ -146,7 +152,7 @@ namespace Quelos::Serialization {
         void SetFormatting(const QuelFormatting formatting) override { m_Formatting = formatting; }
 
     private:
-        void WriteEscaped(std::string_view text) const;
+        void WriteEscaped(std::string_view text, bool addQuotes = false) const;
         void WriteIndent();
         void NewLine();
         void CloseSectionHeader();

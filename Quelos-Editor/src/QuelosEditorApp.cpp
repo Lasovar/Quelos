@@ -5,6 +5,7 @@
 #include <Quelos/Core/Application.h>
 #include <Quelos/Core/Ref.h>
 #include <Quelos/Core/Layer.h>
+#include <print>
 
 #include <EditorLayer.h>
 
@@ -17,10 +18,9 @@ public:
 };
 
 Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
-	Quelos::ApplicationSpecification specs;
+	ApplicationSpecification specs;
 	specs.Name = "Quelos-Editor";
-	specs.Executable = argv[0];
-
+	specs.ApplicationPath = std::filesystem::absolute(argv[0]).parent_path();
 	specs.WindowSpec.Width = 1600;
 	specs.WindowSpec.Height = 900;
 	specs.WindowSpec.Title = "Quelos Editor";

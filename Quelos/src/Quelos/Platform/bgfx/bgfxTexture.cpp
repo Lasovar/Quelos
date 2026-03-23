@@ -20,7 +20,7 @@ namespace Quelos {
         bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
 
         bx::DefaultAllocator allocator;
-        if (const std::vector<byte> data = Utility::ReadBinaryFile(filePath); !data.empty()) {
+        if (const Vec<byte> data = Utility::ReadBinaryFile(filePath); !data.empty()) {
             bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.data(), data.size());
             if (imageContainer != nullptr) {
                 if (orientation) {
@@ -163,14 +163,21 @@ namespace Quelos {
         return flags;
     }
 
-    static bgfx::TextureHandle CreateTextureHandle(const TextureSpecification& spec) {
+    static bgfx::TextureHandle CreateTextureHandle(const TextureSpecification& spec, const BufferView data = BufferView{}) {
+        const bgfx::Memory* mem = nullptr;
+
+        if (data.size() > 1) {
+            mem = bgfx::makeRef(data.data(), data.size());
+        }
+
         return bgfx::createTexture2D(
             static_cast<uint16_t>(spec.Width),
             static_cast<uint16_t>(spec.Height),
             false,
             1,
             QuelosImageFormatToBgfxFormat(spec.Format),
-            ToBgfxTextureFlags(spec)
+            ToBgfxTextureFlags(spec),
+            mem
         );
     }
 
@@ -178,6 +185,12 @@ namespace Quelos {
         m_Specification = spec;
 
         m_Handle = CreateTextureHandle(spec);
+    }
+
+    bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const BufferView data) {
+        m_Specification = spec;
+
+        m_Handle = CreateTextureHandle(spec, data);
     }
 
     bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path) {

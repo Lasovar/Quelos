@@ -38,6 +38,7 @@ using namespace std::literals::chrono_literals;
 
 // Quelos
 #include <Quelos/Core/Base.h>
+#include <Quelos/Core/Buffer.h>
 #include <Quelos/Core/Assert.h>
 #include <Quelos/Core/Ref.h>
 #include <Quelos/Core/Log.h>

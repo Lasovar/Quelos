@@ -262,6 +262,11 @@ namespace Quelos::Serialization {
         Write(ValueEvent{value});
     }
 
+    void QuelWriter::WriteField(const std::string_view field, UnquotedString value) {
+        Write(FieldEvent{field});
+        Write(ValueEvent{value});
+    }
+
     void QuelWriter::WriteField(const std::string_view field, bool value) {
         Write(FieldEvent{field});
         Write(ValueEvent{value});
@@ -338,7 +343,7 @@ namespace Quelos::Serialization {
         Write(ArrayEndEvent{});
     }
 
-    void StringQuelWriter::WriteEscaped(const std::string_view text) const {
+    void StringQuelWriter::WriteEscaped(const std::string_view text, const bool addQuotes) const {
         bool needsQuotes = false;
 
         for (char c : text) {
@@ -349,7 +354,16 @@ namespace Quelos::Serialization {
         }
 
         if (!needsQuotes) {
+            if (addQuotes) {
+                m_Out.push_back('"');
+            }
+
             m_Out += text;
+
+            if (addQuotes) {
+                m_Out.push_back('"');
+            }
+
             return;
         }
 
@@ -428,11 +442,7 @@ namespace Quelos::Serialization {
             [&](const ComponentEvent& e) {
                 CloseSectionHeader();
 
-                if (!m_IsFirstComponent) {
-                    NewLine();
-                } else {
-                    m_IsFirstComponent = false;
-                }
+                NewLine();
 
                 m_Out.push_back('@');
                 m_Out.append(e.Name);
@@ -462,7 +472,9 @@ namespace Quelos::Serialization {
                         m_Out += value ? "true" : "false";
                     }
                     else if constexpr (std::is_same_v<T, std::string_view>) {
-                        WriteEscaped(value);
+                        WriteEscaped(value, true);
+                    } else if constexpr (std::is_same_v<T, UnquotedString>) {
+                        WriteEscaped(value.Value, false);
                     }
                     else if constexpr (std::is_arithmetic_v<T>) {
                         AppendNumber(value);

@@ -57,13 +57,14 @@ set(DAS_AOT_EXAMPLES_DISABLED ON CACHE BOOL "" FORCE)
 
 add_subdirectory(Quelos/vendor/daScript)
 
-# Header-only libraries
+# Header libraries
 add_subdirectory(Quelos/vendor/glm)
 add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)
 add_subdirectory(Quelos/vendor/magic_enum)
 add_subdirectory(Quelos/vendor/ska)
+add_subdirectory(Quelos/vendor/stb_image)
 
 if (MSVC)
     add_compile_options(

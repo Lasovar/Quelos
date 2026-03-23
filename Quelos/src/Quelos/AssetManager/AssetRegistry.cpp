@@ -3,7 +3,7 @@
 
 namespace Quelos {
     bool AssetRegistry::IsAssetHandleValid(const AssetHandle& handle) const {
-        return m_AssetMetadata.contains(handle);
+        return m_AssetMetadata.find(handle) != m_AssetMetadata.end();
     }
 
     const AssetMetadata& AssetRegistry::GetAssetMetadata(const AssetHandle& handle) const {

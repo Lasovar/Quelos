@@ -46,6 +46,7 @@ target_link_libraries(Quelos
         spdlog
         magic_enum
         ska
+        stb_image
 )
 
 set_target_properties(Quelos PROPERTIES
