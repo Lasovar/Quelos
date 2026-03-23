@@ -9,6 +9,8 @@
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
 
+#include "Quelos/Core/Base.h"
+
 #include "Quelos/Core/Log.h"
 #include "Quelos/Serialization/Serializer.h"
 
@@ -125,11 +127,11 @@ namespace Quelos::Serialization {
             if constexpr (std::is_enum_v<T>) {
                 if constexpr (magic_enum::detail::has_is_flags<T>::value) {
                     auto enumName = magic_enum::enum_flags_name(value);
-                    m_Writer.WriteField(name, std::string_view{ enumName });
+                    m_Writer.WriteField(name, UnquotedString{ enumName });
                 }
                 else {
                     auto enumName = magic_enum::enum_name(value);
-                    m_Writer.WriteField(name, std::string_view{ enumName });
+                    m_Writer.WriteField(name, UnquotedString{ enumName });
                 }
             }
             else if constexpr (std::is_arithmetic_v<T>) {

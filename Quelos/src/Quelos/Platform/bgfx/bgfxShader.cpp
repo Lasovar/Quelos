@@ -1,21 +1,23 @@
 #include "qspch.h"
 #include "bgfxShader.h"
 
+#include "Quelos/Core/Application.h"
 #include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
     static bgfx::ShaderHandle LoadShader(const std::string& fileName) {
-        std::string shaderPath;
+        Path shaderPath;
+        const Path assets = Project::GetAssetsPath();
 
         switch (bgfx::getRendererType()) {
         case bgfx::RendererType::Noop:
         case bgfx::RendererType::Direct3D11:
-        case bgfx::RendererType::Direct3D12: shaderPath = "Assets/shaders/dx11/"; break;
-        case bgfx::RendererType::Gnm: shaderPath = "Assets/shaders/pssl/"; break;
-        case bgfx::RendererType::Metal: shaderPath = "Assets/shaders/metal/"; break;
-        case bgfx::RendererType::OpenGL: shaderPath = "Assets/shaders/glsl/"; break;
-        case bgfx::RendererType::OpenGLES: shaderPath = "Assets/shaders/essl/"; break;
-        case bgfx::RendererType::Vulkan: shaderPath = "Assets/shaders/spirv/"; break;
+        case bgfx::RendererType::Direct3D12: shaderPath = assets / "shaders/dx11/"; break;
+        case bgfx::RendererType::Gnm: shaderPath = assets / "shaders/pssl/"; break;
+        case bgfx::RendererType::Metal: shaderPath = assets / "shaders/metal/"; break;
+        case bgfx::RendererType::OpenGL: shaderPath = assets / "shaders/glsl/"; break;
+        case bgfx::RendererType::OpenGLES: shaderPath = assets / "shaders/essl/"; break;
+        case bgfx::RendererType::Vulkan: shaderPath = assets / "shaders/spirv/"; break;
         case bgfx::RendererType::Agc:
         case bgfx::RendererType::Nvn:
         case bgfx::RendererType::WebGPU:
@@ -23,7 +25,7 @@ namespace Quelos {
             break;
         }
 
-        if (const std::vector<byte> data = Utility::ReadBinaryFile(shaderPath + fileName); !data.empty()) {
+        if (const std::vector<byte> data = Utility::ReadBinaryFile(shaderPath / fileName); !data.empty()) {
             const bgfx::Memory* mem = bgfx::copy(data.data(), data.size());
 
             const bgfx::ShaderHandle handle = bgfx::createShader(mem);

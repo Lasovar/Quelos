@@ -49,7 +49,7 @@ namespace Quelos {
     class SceneSerializer {
     public:
         SceneSerializer() = default;
-        SceneSerializer(const Ref<Scene>& scene, const std::filesystem::path& sceneFolderPath);
+        SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath);
         ~SceneSerializer() = default;
 
         void SerializePatches();

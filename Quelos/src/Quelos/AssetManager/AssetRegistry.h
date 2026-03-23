@@ -7,7 +7,9 @@ namespace Quelos {
     public:
         [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const;
         [[nodiscard]] const AssetMetadata& GetAssetMetadata(const AssetHandle& handle) const;
+
+        HashMap<AssetHandle, AssetMetadata>& GetAssetsMetadata() {return m_AssetMetadata; }
     private:
-        std::unordered_map<AssetHandle, AssetMetadata> m_AssetMetadata;
+        HashMap<AssetHandle, AssetMetadata> m_AssetMetadata;
     };
 }

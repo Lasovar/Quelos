@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Base.h"
+#include "../Project/Project.h"
 
 #include "Quelos/Core/Timer.h"
 #include "Quelos/Core/Window.h"
@@ -21,7 +22,7 @@ namespace Quelos {
 
 	struct ApplicationSpecification {
 		std::string Name;
-		std::string Executable;
+		std::filesystem::path ApplicationPath;
 		WindowSpecification WindowSpec;
 		RendererAPI RendererAPI;
 	};
@@ -35,9 +36,7 @@ namespace Quelos {
 
 		[[nodiscard]] Ref<Window> GetWindow() const { return m_Window; }
 		[[nodiscard]] Ref<Time> GetTime() const { return m_Time;}
-		[[nodiscard]] Ref<AssetManagerBase> GetAssetManager() const { return m_AssetManager; }
-		[[nodiscard]] Ref<RuntimeAssetManager> GetRuntimeAssetManager() const { return RefAs<RuntimeAssetManager>(m_AssetManager); }
-		[[nodiscard]] Ref<EditorAssetManager> GetEditorAssetManager() const { return RefAs<EditorAssetManager>(m_AssetManager); }
+		[[nodiscard]] std::filesystem::path GetApplicationPath() const { return m_Specifications.ApplicationPath; }
 		[[nodiscard]] ApplicationSpecification GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>
@@ -56,7 +55,6 @@ namespace Quelos {
 		Ref<ImGuiLayer> m_ImGuiLayer;
 
 		Ref<Time> m_Time;
-		Ref<AssetManagerBase> m_AssetManager;
 
 		Ref<Window> m_Window;
 		ApplicationSpecification m_Specifications;

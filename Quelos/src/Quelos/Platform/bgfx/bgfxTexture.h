@@ -8,6 +8,7 @@ namespace Quelos {
     class bgfxTexture2D : public Texture2D {
     public:
         explicit bgfxTexture2D(const TextureSpecification& spec);
+        explicit bgfxTexture2D(const TextureSpecification& spec, BufferView data);
         explicit bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path);
 
         ~bgfxTexture2D() override;

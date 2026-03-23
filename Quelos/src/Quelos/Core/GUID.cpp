@@ -68,7 +68,7 @@ namespace Quelos {
         return GUID64(s_UniformDistribution(s_Engine64));
     }
 
-    GUID128::GUID128(const std::string& uuidString) {
+    GUID128::GUID128(const std::string_view uuidString) {
         const std::optional<uuids::uuid> uuid = uuids::uuid::from_string(uuidString);
         QS_CORE_ASSERT(uuid.has_value(), "Invalid UUID string: '{}'", uuidString);
         m_UUID = uuid.value();

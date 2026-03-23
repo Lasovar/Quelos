@@ -8,6 +8,10 @@ namespace Quelos {
         return CreateRef<bgfxTexture2D>(spec);
     }
 
+    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, BufferView data) {
+        return CreateRef<bgfxTexture2D>(spec, data);
+    }
+
     Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const std::filesystem::path& texturePath) {
         return CreateRef<bgfxTexture2D>(spec, texturePath);
     }

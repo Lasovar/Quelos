@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include "ska/flat_hash_map.hpp"
 
+#include <filesystem>
+
 #define QS_STRINGIFY_IMPL(x) #x
 #define QS_STRINGIFY(x) QS_STRINGIFY_IMPL(x)
 
@@ -74,4 +76,9 @@ namespace Quelos {
 
     template <typename TFirst, typename TSecond>
     using Pair = std::pair<TFirst, TSecond>;
+
+    using BufferView = Span<const byte>;
+    using MutBufferView = Span<byte>;
+
+    using Path = std::filesystem::path;
 }

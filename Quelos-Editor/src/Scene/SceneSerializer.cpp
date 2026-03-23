@@ -15,7 +15,7 @@ namespace Quelos {
     static const std::filesystem::path s_ScenePatchesFolder = "Patches";
     static const std::string s_ScenePatchFileExtension = ".qpatch";
 
-    SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const std::filesystem::path& sceneFolderPath)
+    SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath)
         : m_Scene(scene), m_ScenePath(sceneFolderPath) {
         if (!std::filesystem::is_directory(sceneFolderPath)) {
             if (std::filesystem::exists(sceneFolderPath)) {
@@ -146,7 +146,6 @@ namespace Quelos {
 
 
             m_ParserState &= ~ParserState::InComponent;
-
         }
 
         world.defer_end();
@@ -162,7 +161,8 @@ namespace Quelos {
                     if (parent.IsValid()) {
                         child.SetParent(parent);
                     }
-                } else {
+                }
+                else {
                     child.RemoveParent();
                 }
 
@@ -286,7 +286,8 @@ namespace Quelos {
 
                             m_CurrentParentID = parentId;
                         }
-                    } else if (m_CurrentField == "order") {
+                    }
+                    else if (m_CurrentField == "order") {
                         if (const std::string_view* orderStr = std::get_if<std::string_view>(&e.Value)) {
                             const std::string_view hex = orderStr->substr(2);
                             QS_CORE_INFO("{}", *orderStr);
@@ -302,7 +303,8 @@ namespace Quelos {
 
                             if (errCode == std::errc()) {
                                 m_ParentPairsToResolve[m_CurrentParentID].emplace_back(m_CurrentEntity, order);
-                            } else {
+                            }
+                            else {
                                 QS_ERROR_TAG(
                                     "SceneSerializer",
                                     "Failed to read child order for actor '{}({})': {}",
@@ -542,7 +544,8 @@ namespace Quelos {
                                         previousPatchState = ActorPatch::State::Changed;
                                     }
                                 }
-                            } else if (sectionField == "parent") {
+                            }
+                            else if (sectionField == "parent") {
                                 patch.ParentPatchCount++;
                             }
                         }
@@ -560,9 +563,9 @@ namespace Quelos {
 
             ActorPatch::State patchState = Collapse(patch.PatchStates).value();
             quelWriter.Write(SectionEvent{"actor"});
-            quelWriter.WriteField("guid", guid);
+            quelWriter.WriteField("guid", UnquotedString{guid});
             quelWriter.WriteField("name", std::string_view(entity.GetName()));
-            quelWriter.WriteField("state", GetStateName(patchState));
+            quelWriter.WriteField("state", UnquotedString{GetStateName(patchState)});
 
             quelWriter.CloseSection();
 
@@ -572,12 +575,18 @@ namespace Quelos {
 
             if (patch.ParentPatchCount > 0) {
                 if (const Actor parent = entity.GetParent(); !parent.GetActorID()) {
-                    quelWriter.WriteField("parent", "root");
-                } else {
-                    quelWriter.WriteField("parent", parent.GetActorID().ToString());
+                    quelWriter.WriteField("parent", UnquotedString {"root" });
+                }
+                else {
+                    quelWriter.WriteField("parent", UnquotedString{parent.GetActorID().ToString()});
                 }
 
-                quelWriter.WriteField("order", std::format("0x{:016X}", entity.Get<ChildOrder>().Value));
+                quelWriter.WriteField(
+                    "order",
+                    UnquotedString {
+                        std::format("0x{:016X}", entity.Get<ChildOrder>().Value)
+                    }
+                );
             }
 
             for (auto& [componentId, compPatch] : patch.Components) {

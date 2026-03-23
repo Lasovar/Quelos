@@ -215,3 +215,60 @@ namespace Quelos {
 	}
 }
 
+template <>
+struct fmt::formatter<glm::vec2> {
+	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const glm::vec2& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{})", v.x, v.y);
+	}
+};
+
+template <>
+struct fmt::formatter<glm::vec3> {
+	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const glm::vec3& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{})", v.x, v.y, v.z);
+	}
+};
+
+template <>
+struct fmt::formatter<glm::vec4> {
+	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const glm::vec4& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{},{})", v.x, v.y, v.z, v.w);
+	}
+};
+
+template <>
+struct fmt::formatter<glm::quat> {
+	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const glm::vec4& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{},{})", v.w, v.z, v.y, v.z);
+	}
+};
+
+
+template <>
+struct fmt::formatter<glm::mat4> {
+	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+	template <typename FormatContext>
+	auto format(const glm::mat4& m, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "{}",
+			"\n\t[[{0.x}, {0.y}, {0.z}, {0.w}],\n"
+			"\t [{1.x}, {1.y}, {1.z}, {1.w}],\n"
+			"\t [{2.x}, {2.y}, {2.z}, {2.w}],\n"
+			"\t [{3.x}, {3.y}, {3.z}, {3.w}]]",
+			m[0], m[1], m[2], m[3]);
+	}
+};
+
+

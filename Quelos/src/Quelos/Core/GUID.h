@@ -27,7 +27,7 @@ namespace Quelos {
     public:
         GUID128() = default;
         GUID128(const uuids::uuid& uuid) : m_UUID(uuid) {}
-        GUID128(const std::string& uuidString);
+        GUID128(std::string_view uuidString);
 
         [[nodiscard]] bool IsValid() const noexcept { return !m_UUID.is_nil(); }
 
