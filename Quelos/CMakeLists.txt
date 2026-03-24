@@ -39,6 +39,7 @@ target_link_libraries(Quelos
         xxhash
     PUBLIC
         imgui
+        freetype
         stduuid
         flecs_static
         libDaScript

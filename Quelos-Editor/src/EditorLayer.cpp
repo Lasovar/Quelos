@@ -95,7 +95,7 @@ namespace Quelos {
 
         //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
-        /*const Entity camera = m_DefaultScene->CreateActor("Camera");
+        /*const Actor camera = m_DefaultScene->CreateActor("Camera");
         camera.Set(CameraComponent{SceneCamera()});
         camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 

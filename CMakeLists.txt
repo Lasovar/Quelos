@@ -42,6 +42,7 @@ add_subdirectory(Quelos/vendor/bgfx.cmake)
 add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/SDL)
 add_subdirectory(Quelos/vendor/imgui)
+add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
 
 # Daslang options
