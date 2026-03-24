@@ -3,6 +3,9 @@
 
 #include "imgui_internal.h"
 
+#define IMGUI_ENABLE_FREETYPE
+#include "Quelos/ImGui/imgui_freetype.h"
+
 #include "bgfx/embedded_shader.h"
 
 #include "vs_ocornut_imgui.bin.h"
@@ -95,6 +98,8 @@ namespace Quelos {
             ImFontConfig config;
             config.FontDataOwnedByAtlas = false;
             config.MergeMode = false;
+
+            io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
 
             const ImWchar* ranges = io.Fonts->GetGlyphRangesDefault();
             m_Font[ImGui::Font::Regular] = io.Fonts->AddFontFromMemoryTTF(

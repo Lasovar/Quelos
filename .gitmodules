@@ -20,3 +20,6 @@
 [submodule "Quelos/vendor/daScript"]
 	path = Quelos/vendor/daScript
 	url = https://github.com/Lasovar/daScript.git
+[submodule "Quelos/vendor/freetype"]
+	path = Quelos/vendor/freetype
+	url = https://github.com/Lasovar/freetype.git
