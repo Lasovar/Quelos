@@ -79,11 +79,12 @@ namespace Quelos {
         mesh.MeshData->GetVertexBuffer().Bind(0);
         mesh.MeshData->GetIndexBuffer().Bind();
 
-        mesh.MaterialData->GetShader()->Submit(viewID);
+        mesh.MaterialData->GetShader().Submit(viewID);
     }
 
     void Renderer::Shutdown() {
         s_RendererContext->Shutdown();
+        s_IsInitialized = false;
     }
 
     void Renderer::OnEvent(Event& event) {
@@ -92,6 +93,18 @@ namespace Quelos {
             s_NeedReset = true;
             return false;
         });
+    }
+
+    ShaderHandle Renderer::CreateShader(const std::string& filePathVertex, const std::string& filePathFragment) {
+        return s_RendererContext->CreateShader(filePathVertex, filePathFragment);
+    }
+
+    void Renderer::Submit(const ShaderHandle handle, const uint32_t view) {
+        s_RendererContext->Submit(handle, view);
+    }
+
+    void Renderer::Destroy(const ShaderHandle shaderHandle) {
+        s_RendererContext->Destroy(shaderHandle);
     }
 
     VertexBufferHandle Renderer::CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) {

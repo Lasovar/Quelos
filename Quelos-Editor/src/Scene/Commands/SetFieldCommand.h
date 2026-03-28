@@ -56,7 +56,7 @@ namespace Quelos {
             const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
-            const Entity actor = scene->GetActor(ActorId);
+            const Actor actor = scene->GetActor(ActorId);
 
             SetFieldArchive archive(FieldKey, &After);
             SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
@@ -66,7 +66,7 @@ namespace Quelos {
             const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
-            const Entity actor = scene->GetActor(ActorId);
+            const Actor actor = scene->GetActor(ActorId);
 
             auto archive = SetFieldArchive(FieldKey, &Before);
             SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));

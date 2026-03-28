@@ -65,23 +65,26 @@ namespace Quelos {
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
     static SceneSerializer s_SceneSerializer;
-    static ProjectSerializer s_ProjectSerializer;
 
     void EditorLayer::OnAttach() {
         m_DefaultScene = CreateRef<Scene>();
 
         //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
 
-        s_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "SandboxProject");
+        m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "SandboxProject");
 
-        Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
         /*AssetHandle yuriHandle = assetManager->AddAssetToRegistry(
             AssetType::Texture2D,
             "Textures/minecraft.png"
         );*/
 
-        assetManager->DeserializeAssetRegistry();
-        Ref<Texture2D> yuriTexture = AssetManager::GetAsset<Texture2D>(AssetHandle("d0ac2067-5393-41b0-85d8-fc1d67d9ce07"));
+        /*
+        const Ref<Texture2D> yuriTexture = AssetManager::GetAsset<Texture2D>(AssetHandle("d0ac2067-5393-41b0-85d8-fc1d67d9ce07"));
+
+        const Actor cube = m_DefaultScene->CreateActor("Sprite");
+        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0)});
+        cube.Set(SpriteRenderer{yuriTexture});
+        */
 
         s_SceneSerializer = SceneSerializer(m_DefaultScene, Project::GetAssetsPath() / "TestScene");
         m_UndoSystem = std::move(UndoSystem(&s_SceneSerializer));
@@ -372,6 +375,10 @@ namespace Quelos {
                             s_SceneSerializer.SerializePatches();
                         }
                     }
+                }
+            case KeyCode::A:
+                if (m_CtrlKey && m_ShiftKey && !e.IsRepeat()) {
+                    m_ProjectSerializer.Serialize();
                 }
             default:
                 break;

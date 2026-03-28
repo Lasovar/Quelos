@@ -27,6 +27,7 @@ target_include_directories(Quelos-Editor
 target_link_libraries(Quelos-Editor
     PRIVATE
         Quelos
+        rapidfuzz
 )
 
 if (WIN32)

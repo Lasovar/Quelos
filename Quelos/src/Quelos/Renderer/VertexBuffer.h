@@ -26,5 +26,7 @@ namespace Quelos {
 		}
 
 		void Bind(uint32_t stream = 0) const;
+
+		operator uint64_t() const { return Value; }
 	};
 }

@@ -24,7 +24,8 @@ namespace Quelos {
     class Asset : RefCounted<Asset> {
     public:
         virtual ~Asset() = default;
-        AssetHandle GetHandle() const { return Handle; }
+        AssetHandle GetAssetHandle() const { return Handle; }
+        void SetAssetHandle(const AssetHandle handle) { Handle = handle; }
 
         static AssetType GetStaticType() { return AssetType::None; }
         virtual AssetType GetAssetType() const = 0;

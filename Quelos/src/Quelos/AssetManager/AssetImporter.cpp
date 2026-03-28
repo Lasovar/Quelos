@@ -5,10 +5,13 @@
 #include "magic_enum/magic_enum.hpp"
 
 namespace Quelos {
-    using AssetLoaderFn = std::function<Ref<Asset>(const AssetMetadata&)>;
-    static HashMap<AssetType, AssetLoaderFn> s_AssetLoaders = {
-        {AssetType::Texture2D, TextureImporter::ImportTexture2D}
+    static HashMap<AssetType, AssetImporterConfig> s_AssetLoaders = {
+        { AssetType::Texture2D, TextureImporter::GetImporterConfig() }
     };
+
+    void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
+        s_AssetLoaders[config.Type] = config;
+    }
 
     Ref<Asset> AssetImporter::ImportAsset(const AssetHandle assetHandle, const AssetMetadata& metadata) {
         const auto it = s_AssetLoaders.find(metadata.Type);
@@ -21,6 +24,24 @@ namespace Quelos {
             return nullptr;
         }
 
-        return it->second(metadata);
+        return it->second.LoadAsset(assetHandle, metadata);
+    }
+
+    bool AssetImporter::IsAssetSupported(const Path& path) {
+        return std::ranges::any_of(s_AssetLoaders | std::views::values,
+            [&path](const AssetImporterConfig& importerConfig) {
+                return importerConfig.IsAssetSupported(path);
+            }
+        );
+    }
+
+    AssetType AssetImporter::GetAssetType(const Path& path) {
+        for (auto & importerConfig : s_AssetLoaders | std::views::values) {
+            if (importerConfig.IsAssetSupported(path)) {
+                return importerConfig.Type;
+            }
+        }
+
+        return AssetType::None;
     }
 }

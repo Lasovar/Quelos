@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/AssetManager/EditorAssetManager.h"
 #include "Quelos/AssetManager/RuntimeAssetManager.h"
@@ -14,6 +16,7 @@ namespace Quelos {
         Path AssetsPath;
         Path SourcePath;
         Path LibraryPath;
+        Path ProjectSettingsPath;
     };
 
     class Project {
@@ -22,6 +25,10 @@ namespace Quelos {
 
         static const Path& GetProjectPath() {
             return s_ActiveProject->m_Config.ProjectPath;
+        }
+
+        static const Path& GetProjectSettingsPath() {
+            return s_ActiveProject->m_Config.ProjectSettingsPath;
         }
 
         static const Path& GetAssetsPath() {
@@ -37,31 +44,6 @@ namespace Quelos {
         }
 
         static ProjectConfig& GetConfig() { return s_ActiveProject->m_Config; }
-
-        static Ref<Project> Load(const std::filesystem::path& projectPath) {
-            ProjectConfig config;
-            config.ProjectPath = projectPath;
-            config.AssetsPath = projectPath / "Assets";
-            config.SourcePath = projectPath / "Source";
-            config.LibraryPath = projectPath / "Library";
-
-            return Load(config);
-        }
-
-        static Ref<Project> Load(
-            const Path& projectPath,
-            const Path& assetsPath,
-            const Path& sourcePath,
-            const Path& libraryPath
-        ) {
-            ProjectConfig config;
-            config.ProjectPath = projectPath;
-            config.AssetsPath = assetsPath;
-            config.SourcePath = sourcePath;
-            config.LibraryPath = libraryPath;
-
-            return Load(config);
-        }
 
         static Ref<Project> Load(const ProjectConfig& projectConfig) {
             s_ActiveProject = CreateRef<Project>(projectConfig);
@@ -79,6 +61,10 @@ namespace Quelos {
                 std::filesystem::create_directories(GetLibraryPath());
             }
 
+            if (!std::filesystem::exists(GetLibraryPath())) {
+                std::filesystem::create_directories(GetProjectPath());
+            }
+
             return s_ActiveProject;
         }
 
@@ -94,8 +80,9 @@ namespace Quelos {
             return RefAs<EditorAssetManager>(s_ActiveProject->m_AssetManager);
         }
 
+
     public:
-        explicit Project(const ProjectConfig& projectConfig) : m_Config(projectConfig) {}
+        explicit Project(ProjectConfig  projectConfig) : m_Config(std::move(projectConfig)) {}
 
     private:
         inline static Ref<Project> s_ActiveProject;

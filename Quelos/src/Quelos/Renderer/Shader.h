@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Quelos/Utility/SlotMap.h"
+
 namespace Quelos {
-    class Shader {
-    public:
-        virtual ~Shader() = default;
-        virtual void Submit(uint32_t view) = 0;
-    public:
-        static Ref<Shader> Create(const std::string& filePathVertex, const std::string& filePathFragment);
+    class Shader;
+    struct ShaderHandle : Handle<Shader> {
+        ShaderHandle() = default;
+        ShaderHandle(const Handle shaderHandle) {
+            Value = shaderHandle.Value;
+        }
+
+        void Submit(uint32_t viewId) const;
     };
 }

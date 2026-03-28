@@ -244,7 +244,7 @@ namespace Quelos::Serialization {
                 const ecs_entity_t entityId = entity.id();
 
                 quelWriter.Write(SectionEvent{ "entity" });
-                quelWriter.WriteField("guid", entity.get<ActorTag>().ID.ToString());
+                quelWriter.WriteField("guid", entity.get<ActorTag>().ID.ToFormattedString());
                 quelWriter.WriteField("name", std::string_view(entity.name()));
 
                 entity.each(

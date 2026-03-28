@@ -11,6 +11,7 @@
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Renderer/SceneCamera.h"
 #include "Quelos/Renderer/Shader.h"
+#include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
     using ActorID = GUID64;
@@ -102,13 +103,22 @@ namespace Quelos {
                 archive.FieldVector("indices", indices);
 
                 data.MeshData = CreateRef<Mesh>(std::move(vertices), std::move(indices));
-                data.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
+                data.MaterialData = CreateRef<Material>("vs_cubes.bin", "fs_cubes.bin");
             }
+        }
+    };
+
+    struct SpriteRenderer {
+        Ref<Texture2D> Texture;
+
+        template <typename TArchive>
+        static void Serialize(TArchive& archive, SpriteRenderer& data) {
+            archive.Field("texture", data.Texture);
         }
     };
 
     template <typename... Component>
     struct ComponentGroup { };
 
-    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshComponent>;
+    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshComponent, SpriteRenderer>;
 }

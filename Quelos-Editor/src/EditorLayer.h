@@ -4,6 +4,7 @@
 #include <Quelos/Scenes/Scene.h>
 #include <Quelos/Core/Ref.h>
 
+#include "ProjectSerializer.h"
 #include "UndoSystem.h"
 #include "Panels/ViewportPanel.h"
 #include "Workspaces/SceneWorkspace.h"
@@ -30,6 +31,8 @@ namespace Quelos {
 		SceneState m_SceneState = SceneState::Edit;
 		bool m_ScenePaused = false;
 		bool m_SceneStep = false;
+
+		ProjectSerializer m_ProjectSerializer;
 
 		Ref<Texture2D> m_IconPlay, m_IconPause, m_IconStop, m_IconStep, m_Container;
 

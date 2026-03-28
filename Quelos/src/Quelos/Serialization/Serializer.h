@@ -6,10 +6,17 @@
 
 #include "BinaryWriter.h"
 #include "QuelLexer.h"
+
+#include "xxhash.h"
+
 #include "Quelos/Utility/Generator.h"
 
 namespace Quelos::Serialization {
     using PathID = uint64_t;
+
+    constexpr PathID GetPathID(const std::string_view path) {
+        return XXH3_64bits(path.data(), path.size());
+    }
 
     struct FieldEvent {
         std::string_view Path;

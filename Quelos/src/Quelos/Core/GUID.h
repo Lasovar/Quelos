@@ -15,6 +15,7 @@ namespace Quelos {
         operator uint64_t() const { return m_GUID; }
 
         [[nodiscard]] std::string ToString() const;
+        [[nodiscard]] std::string ToFormattedString() const;
         [[nodiscard]] std::span<const std::byte, 8> AsBytes() const;
     public:
         static GUID64 Generate();
@@ -36,6 +37,7 @@ namespace Quelos {
         bool operator!=(const GUID128& other) const { return m_UUID != other.m_UUID; }
 
         [[nodiscard]] std::string ToString() const;
+        [[nodiscard]] std::string ToFormattedString() const;
         [[nodiscard]] std::span<const std::byte, 16> AsBytes() const;
         [[nodiscard]] uint64_t Hash64() const;
     public:

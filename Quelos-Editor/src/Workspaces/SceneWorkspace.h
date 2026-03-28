@@ -2,6 +2,7 @@
 
 #include "Workspace.h"
 #include "imgui.h"
+#include "Panels/ContentBrowserPanel.h"
 #include "Panels/EntityHierarchyPanel.h"
 #include "Panels/EntityInspectorPanel.h"
 
@@ -30,6 +31,8 @@ namespace Quelos {
 
         EntityInspectorPanel m_InspectorPanel;
         EntityHierarchyPanel m_EntityHierarchyPanel;
+
+        ContentBrowserPanel m_ContentBrowserPanel;
 
         EditorCamera m_EditorCamera;
         ImGuiWindowClass m_SceneWorkspaceClass;

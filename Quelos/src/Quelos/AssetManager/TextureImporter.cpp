@@ -1,15 +1,26 @@
 #include "qspch.h"
-#include "TextureImporter.h"
 
+#include "AssetImporter.h"
 #include "stb_image.h"
 #include "Quelos/Core/Buffer.h"
 #include "Quelos/Project/Project.h"
 
+#include "TextureImporter.h"
+
 namespace Quelos {
-    Ref<Texture2D> TextureImporter::ImportTexture2D(const AssetMetadata& metadata) {
+    bool TextureImporter::IsAssetSupported(const Path& path) {
+        static HashSet<std::string> s_ImportableExtensions = {
+            ".png", ".jpeg"
+        };
+
+        const std::string normalized = NormalizeExt(path.extension().c_str());
+        return s_ImportableExtensions.find(normalized) != s_ImportableExtensions.end();
+    }
+
+    Ref<Texture2D> TextureImporter::ImportTexture2D(AssetHandle assetHandle, const AssetMetadata& metadata) {
         int width, height, channels;
 
-        const Path assetPath = Project::GetAssetsPath() / metadata.FilePath;
+        const Path assetPath = Project::GetProjectPath() / metadata.FilePath;
         stbi_uc* data = stbi_load(
             assetPath.c_str(),
             &width,
@@ -52,6 +63,11 @@ namespace Quelos {
             return nullptr;
         }
 
-        return Texture2D::Create(textureSpecs, dataBuffer.GetView());
+        Ref<Texture2D> texture = Texture2D::Create(textureSpecs, dataBuffer.GetView());
+        if (texture) {
+            texture->SetAssetHandle(assetHandle);
+        }
+
+        return texture;
     }
 }

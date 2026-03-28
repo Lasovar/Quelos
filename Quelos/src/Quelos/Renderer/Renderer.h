@@ -5,6 +5,7 @@
 #include "FrameBuffer.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/RendererAPI.h"
+#include "Shader.h"
 
 namespace Quelos {
 	class Window;
@@ -25,6 +26,10 @@ namespace Quelos {
 		static void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform);
 
 		// Renderer Context API
+        static ShaderHandle CreateShader(const std::string& filePathVertex, const std::string& filePathFragment);
+		static void Submit(ShaderHandle handle, uint32_t view);
+		static void Destroy(ShaderHandle shaderHandle);
+
 		static VertexBufferHandle CreateVertexBuffer(const std::vector<PosColorVertex>& vertices);
 		static void BindVertexBuffer(VertexBufferHandle handle, uint32_t stream);
 		static void Destroy(VertexBufferHandle vertexBufferHandle);

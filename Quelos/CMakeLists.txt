@@ -36,18 +36,18 @@ target_link_libraries(Quelos
         bgfx
         bx
         SDL3::SDL3-static
+        freetype
+        libDaScript
         xxhash
+        stb_image
     PUBLIC
         imgui
-        freetype
         stduuid
         flecs_static
-        libDaScript
         glm
         spdlog
         magic_enum
         ska
-        stb_image
 )
 
 set_target_properties(Quelos PROPERTIES

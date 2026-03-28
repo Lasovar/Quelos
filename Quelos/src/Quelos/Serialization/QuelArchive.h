@@ -14,6 +14,8 @@
 #include "Quelos/Core/Log.h"
 #include "Quelos/Serialization/Serializer.h"
 
+#include "Quelos/Utility/TupleLike.h"
+
 namespace Quelos::Serialization {
     class QuelReadArchive;
     class QuelWriteArchive;
@@ -29,11 +31,6 @@ constexpr bool IsSerializable = SerializableWith<T, Quelos::Serialization::Binar
     && SerializableWith<T, Quelos::Serialization::BinaryReadArchive>
     && SerializableWith<T, Quelos::Serialization::QuelWriteArchive>
     && SerializableWith<T, Quelos::Serialization::QuelReadArchive>;
-
-template <typename T>
-concept TupleLike = requires(T t) {
-    t[0] && T::length();
-};
 
 namespace Quelos::Serialization {
     struct TextArchiveValue;
@@ -178,6 +175,29 @@ namespace Quelos::Serialization {
 
         void WriteComplex(const std::string_view name, const glm::quat& q) const {
             m_Writer.WriteField(name, q);
+        }
+
+        template <typename T>
+        void WriteComplex(const std::string_view name, const Ref<T>& value) {
+            if constexpr (std::is_base_of_v<Asset, T>) {
+                const AssetHandle handle = value && value->GetAssetHandle()
+                                               ? value->GetAssetHandle()
+                                               : AssetHandle();
+
+                m_Writer.WriteField(name, UnquotedString {handle.ToFormattedString() });
+            }
+            else {
+                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
+            }
+        }
+
+        template <typename T>
+        void WriteComplex(const std::string_view name, const SoftRef<T>& value) {
+            const AssetHandle handle = value && value->GetAssetHandle()
+                                           ? value->GetAssetHandle()
+                                           : AssetHandle();
+
+            m_Writer.WriteField(name, UnquotedString {handle.ToFormattedString() });
         }
 
         template <typename T>
@@ -419,6 +439,42 @@ namespace Quelos::Serialization {
 
         bool TryConvert(const TextArchiveValue& src, glm::quat& out) {
             return TryConvertTuple(src, out, 4);
+        }
+
+        template <typename T>
+        bool TryConvert(const TextArchiveValue& src, Ref<T>& value) {
+            if constexpr (std::is_base_of_v<Asset, T>) {
+                if (src.IsScalar()) {
+                    const auto scalar = src.AsScalar();
+                    if (const auto* assetHandle = std::get_if<std::string_view>(&scalar)) {
+                        if (const AssetHandle handle(*assetHandle); handle) {
+                            value = AssetManager::GetAsset<T>(handle);
+                        }
+
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            else {
+                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
+            }
+
+            return false;
+        }
+
+        template <typename T>
+        static bool TryConvert(const TextArchiveValue& src, SoftRef<T>& value) {
+            if (src.IsScalar()) {
+                const auto scalar = src.AsScalar();
+                if (const auto* assetHandle = std::get_if<std::string_view>(&scalar)) {
+                    value.SetAssetHandle(AssetHandle(*assetHandle));
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         template <typename T>

@@ -1,9 +1,6 @@
 #include "GUID.h"
 
-#define XXH_STATIC_LINKING_ONLY
-#define XXH_IMPLEMENTATION
-
-#include <xxhash.h>
+#include "xxhash.h"
 
 namespace Quelos {
     static std::random_device s_RandomDevice;
@@ -41,6 +38,11 @@ namespace Quelos {
     }
 
     GUID64::GUID64(std::string_view guidString) {
+        if (guidString == "null") {
+            m_GUID = 0;
+            return;
+        }
+
         const std::variant<uint64_t, std::errc> guidResult = TryParseGuid64(guidString);
         if (std::holds_alternative<std::errc>(guidResult)) {
             QS_CORE_ERROR_TAG(
@@ -60,6 +62,14 @@ namespace Quelos {
         return std::format("{:016X}", m_GUID);
     }
 
+    std::string GUID64::ToFormattedString() const {
+        if (!m_GUID) {
+            return "null";
+        }
+
+        return ToString();
+    }
+
     std::span<const std::byte, 8> GUID64::AsBytes() const {
         return std::span<const std::byte, 8>(reinterpret_cast<const std::byte*>(&m_GUID), 8);
     }
@@ -69,12 +79,25 @@ namespace Quelos {
     }
 
     GUID128::GUID128(const std::string_view uuidString) {
+        if (uuidString == "null") {
+            m_UUID = {};
+            return;
+        }
+
         const std::optional<uuids::uuid> uuid = uuids::uuid::from_string(uuidString);
         QS_CORE_ASSERT(uuid.has_value(), "Invalid UUID string: '{}'", uuidString);
         m_UUID = uuid.value();
     }
 
     std::string GUID128::ToString() const { return uuids::to_string(m_UUID); }
+
+    std::string GUID128::ToFormattedString() const {
+        if (m_UUID.is_nil()) {
+            return "null";
+        }
+
+        return ToString();
+    }
 
     std::span<const std::byte, 16> GUID128::AsBytes() const { return m_UUID.as_bytes(); }
 
