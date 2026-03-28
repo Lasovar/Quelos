@@ -6,6 +6,7 @@
 #include <bimg/decode.h>
 #include <bgfx/bgfx.h>
 
+#include "Quelos/Renderer/Renderer.h"
 #include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
@@ -234,7 +235,7 @@ namespace Quelos {
     }
 
     bgfxTexture2D::~bgfxTexture2D() {
-        if (bgfx::isValid(m_Handle)) {
+        if (Renderer::IsInitialized()) {
             bgfx::destroy(m_Handle);
         }
     }

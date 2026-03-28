@@ -17,23 +17,23 @@ namespace Quelos {
 
         constexpr Handle() = default;
 
-        [[nodiscard]] constexpr uint32_t Index() const noexcept {
+        [[nodiscard]] constexpr uint32_t GetIndex() const noexcept {
             return static_cast<uint32_t>(Value);
         }
 
-        [[nodiscard]] constexpr uint32_t Generation() const noexcept {
+        [[nodiscard]] constexpr uint32_t GetGeneration() const noexcept {
             return static_cast<uint32_t>(Value >> 32);
         }
 
-        [[nodiscard]] constexpr bool Valid() const noexcept {
+        [[nodiscard]] constexpr bool IsValid() const noexcept {
             return Value != Invalid;
         }
 
         constexpr explicit operator bool() const noexcept {
-            return Valid();
+            return IsValid();
         }
 
-        static constexpr Handle Make(const uint32_t index, const uint32_t generation) {
+        static constexpr Handle Create(const uint32_t index, const uint32_t generation) {
             return Handle{
                 static_cast<uint64_t>(generation) << 32 | index
             };
@@ -42,6 +42,7 @@ namespace Quelos {
         constexpr bool operator==(const Handle&) const = default;
 
         Handle(const uint64_t value) : Value(value) {}
+        operator uint64_t() const { return Value; }
     };
 
     template <typename T>
@@ -81,21 +82,21 @@ namespace Quelos {
             slot.Value = TValue(std::forward<Args>(args)...);
             slot.Alive = true;
 
-            return THandle::Make(index, slot.Generation);
+            return THandle::Create(index, slot.Generation);
         }
 
         void Erase(THandle handle) {
-            if (!handle.Valid()) {
+            if (!handle.IsValid()) {
                 return;
             }
 
-            auto index = handle.Index();
+            auto index = handle.GetIndex();
 
             QS_CORE_ASSERT(index < m_Slots.size());
 
             auto& slot = m_Slots[index];
 
-            if (slot.Generation != handle.Generation() || !slot.Alive) {
+            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
                 return;
             }
 
@@ -106,17 +107,17 @@ namespace Quelos {
         }
 
         TValue* Get(THandle handle) {
-            if (!handle.Valid())
+            if (!handle.IsValid())
                 return nullptr;
 
-            auto index = handle.Index();
+            auto index = handle.GetIndex();
 
             if (index >= m_Slots.size())
                 return nullptr;
 
             auto& slot = m_Slots[index];
 
-            if (slot.Generation != handle.Generation() || !slot.Alive) {
+            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
                 return nullptr;
             }
 
@@ -124,10 +125,10 @@ namespace Quelos {
         }
 
         const TValue* Get(THandle handle) const {
-            if (!handle.Valid())
+            if (!handle.IsValid())
                 return nullptr;
 
-            auto index = handle.Index();
+            auto index = handle.GetIndex();
 
             if (index >= m_Slots.size()) {
                 return nullptr;
@@ -135,7 +136,7 @@ namespace Quelos {
 
             auto& slot = m_Slots[index];
 
-            if (slot.Generation != handle.Generation() || !slot.Alive) {
+            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
                 return nullptr;
             }
 
@@ -144,7 +145,7 @@ namespace Quelos {
 
         Generator<THandle> GetAllHandles() {
             for (int i = 0; i < m_Slots.size(); ++i) {
-                co_yield THandle::Make(i, m_Slots[i].Generation);
+                co_yield THandle::Create(i, m_Slots[i].Generation);
             }
         }
 

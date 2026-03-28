@@ -1,11 +1,9 @@
 #include "Shader.h"
-
-#include "Quelos/Core/Application.h"
-#include "Quelos/Platform/bgfx/bgfxShader.h"
+#include "Renderer.h"
 
 namespace Quelos {
 
-    Ref<Shader> Shader::Create(const std::string& filePathVertex, const std::string& filePathFragment) {
-        return CreateRef<bgfxShader>(filePathVertex, filePathFragment);
+    void ShaderHandle::Submit(const uint32_t viewId) const {
+        Renderer::Submit(*this, viewId);
     }
 }

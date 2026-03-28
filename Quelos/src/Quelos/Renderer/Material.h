@@ -1,15 +1,16 @@
 #pragma once
 
-namespace Quelos {
-    class Shader;
+#include "Shader.h"
 
+namespace Quelos {
     class Material {
     public:
-        explicit Material(const Ref<Shader>& shader);
+        explicit Material(const ShaderHandle& shader);
+        Material(const std::string& filePathVertex, const std::string& filePathFragment);
 
-        [[nodiscard]] Ref<Shader> GetShader() const;
+        [[nodiscard]] ShaderHandle GetShader() const;
 
     private:
-        Ref<Shader> m_Shader;
+        ShaderHandle m_Shader;
     };
 }

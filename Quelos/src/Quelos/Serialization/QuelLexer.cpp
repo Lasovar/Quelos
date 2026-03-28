@@ -148,7 +148,7 @@ namespace Quelos::Serialization {
 
         // unknown
         m_Input.remove_prefix(1);
-        return {TokenType::Error, std::format("Unexpected character: {}", c), m_Line};
+        return {TokenType::Error, OwnString(std::format("Unexpected character: {}", c)), m_Line};
     }
 
     Token QuelLexer::Peek() {

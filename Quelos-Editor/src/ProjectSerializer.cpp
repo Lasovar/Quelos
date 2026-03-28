@@ -1,3 +1,4 @@
+#include "qspch.h"
 #include "ProjectSerializer.h"
 
 #include "Quelos/Project/Project.h"
@@ -26,6 +27,7 @@ namespace Quelos {
             quelWriter.WriteField("assets", "Assets/");
             quelWriter.WriteField("source", "Source/");
             quelWriter.WriteField("library", "Library/");
+            quelWriter.WriteField("projectSettings", "ProjectSettings/");
 
             std::ofstream projectConfig(configFilePath, std::ios::binary);
             if (projectConfig.write(buffer.data(), buffer.size())) {
@@ -52,7 +54,7 @@ namespace Quelos {
         std::string_view currentField;
 
         ProjectConfig config;
-        config.ProjectPath = projectPath;
+        config.ProjectPath = std::filesystem::absolute(projectPath);
 
         for (auto&& parserEvent : reader.Parse()) {
             if (breakFlag) {
@@ -92,13 +94,16 @@ namespace Quelos {
                         config.ProjectName = value;
                     }
                     else if (currentField == "assets") {
-                        config.AssetsPath = projectPath / value;
+                        config.AssetsPath = config.ProjectPath / value;
                     }
                     else if (currentField == "source") {
-                        config.SourcePath = projectPath / value;
+                        config.SourcePath = config.ProjectPath / value;
                     }
                     else if (currentField == "library") {
-                        config.LibraryPath = projectPath / value;
+                        config.LibraryPath = config.ProjectPath / value;
+                    }
+                    else if (currentField == "projectSettings") {
+                        config.ProjectSettingsPath = config.ProjectPath / value;
                     }
                 }
                 else if constexpr (std::is_same_v<T, TupleBeginEvent>) {
@@ -113,5 +118,16 @@ namespace Quelos {
         }
 
         Project::Load(config);
+
+        m_AssetManager = Project::GetEditorAssetManager();
+        m_AssetManager->DeserializeAssetRegistry();
+    }
+
+    ProjectSerializer::~ProjectSerializer() {
+        Serialize();
+    }
+
+    void ProjectSerializer::Serialize() const {
+        m_AssetManager->SerializeAssetRegistry();
     }
 }

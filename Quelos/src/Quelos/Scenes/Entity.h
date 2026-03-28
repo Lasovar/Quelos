@@ -32,6 +32,19 @@ namespace Quelos {
             m_ID.add<T>();
         }
 
+        void Add(const RuntimeID componentId) const {
+            m_ID.add(componentId);
+        }
+
+        template <typename T>
+        void Remove() const {
+            m_ID.remove<T>();
+        }
+
+        void Remove(const RuntimeID componentId) const {
+            m_ID.remove(componentId);
+        }
+
         template <typename T>
         const flecs::entity& Set(T&& component) const {
             return m_ID.set<T>(component);

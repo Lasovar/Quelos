@@ -33,7 +33,7 @@ struct fmt::formatter<Quelos::GUID128> {
 
     template <typename FormatContext>
     auto format(const Quelos::GUID128& g, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), "{}", g.ToString());
+        return fmt::format_to(ctx.out(), "{}", g.ToFormattedString());
     }
 };
 

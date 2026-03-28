@@ -37,11 +37,39 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Dependencies
+set(BGFX_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
 add_subdirectory(Quelos/vendor/bgfx.cmake)
 
-add_subdirectory(Quelos/vendor/GLFW)
+# SDL configuration
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_TEST OFF CACHE BOOL "" FORCE)
+
+# Core subsystems
+set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_RENDER OFF CACHE BOOL "" FORCE)
+set(SDL_JOYSTICK OFF CACHE BOOL "" FORCE)
+set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
+set(SDL_HIDAPI OFF CACHE BOOL "" FORCE)
+set(SDL_POWER OFF CACHE BOOL "" FORCE)
+set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
+set(SDL_CAMERA OFF CACHE BOOL "" FORCE)
+
+# Linux trimming
+set(SDL_DBUS OFF CACHE BOOL "" FORCE)
+set(SDL_IBUS OFF CACHE BOOL "" FORCE)
+set(SDL_LIBUDEV OFF CACHE BOOL "" FORCE)
+set(SDL_KMSDRM OFF CACHE BOOL "" FORCE)
+
+# Graphics APIs
+set(SDL_OPENGL ON CACHE BOOL "" FORCE)
+set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(Quelos/vendor/SDL)
+
+add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/imgui)
+add_subdirectory(Quelos/vendor/rapidfuzz-cpp)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
 
@@ -75,4 +103,5 @@ endif()
 
 # Main projects
 add_subdirectory(Quelos)
+
 add_subdirectory(Quelos-Editor)

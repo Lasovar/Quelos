@@ -2,10 +2,6 @@
 #include "bgfxImGuiState.h"
 
 #include "imgui_internal.h"
-
-#define IMGUI_ENABLE_FREETYPE
-#include "Quelos/ImGui/imgui_freetype.h"
-
 #include "bgfx/embedded_shader.h"
 
 #include "vs_ocornut_imgui.bin.h"
@@ -13,17 +9,20 @@
 #include "vs_imgui_image.bin.h"
 #include "fs_imgui_image.bin.h"
 
-#include "roboto_regular.ttf.h"
-#include "robotomono_regular.ttf.h"
-#include "icons_kenney.ttf.h"
-#include "icons_font_awesome.ttf.h"
+#define IMGUI_ENABLE_FREETYPE
+#include "Quelos/ImGui/imgui_freetype.h"
 
-#include "icons_kenney.h"
-#include "icons_font_awesome.h"
-#include "bx/math.h"
+#include "Quelos/ImGui/roboto_regular.ttf.h"
+#include "Quelos/ImGui/robotomono_regular.ttf.h"
+#include "Quelos/ImGui/icons_kenney.ttf.h"
+#include "Quelos/ImGui/icons_font_awesome.ttf.h"
+#include "Quelos/ImGui/icons_kenney.h"
+#include "Quelos/ImGui/icons_font_awesome.h"
+
 #include "glm/gtc/type_ptr.hpp"
 
 #include "Quelos/Core/Application.h"
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     static const bgfx::EmbeddedShader s_EmbeddedShaders[] = {
@@ -252,23 +251,16 @@ namespace Quelos {
         bgfx::setViewName(ViewId, "ImGui");
         bgfx::setViewMode(ViewId, bgfx::ViewMode::Sequential);
 
-
-        const bgfx::Caps* caps = bgfx::getCaps();
-
         {
-            glm::mat4 ortho;
             const float x = drawData->DisplayPos.x;
             const float y = drawData->DisplayPos.y;
             const float width = drawData->DisplaySize.x;
             const float height = drawData->DisplaySize.y;
 
-            bx::mtxOrtho(
-                glm::value_ptr(ortho),
+            glm::mat4 ortho = Math::OrthographicMatrix(
                 x, x + width,
                 y + height, y,
-                0.0f, 1000.0f,
-                0.0f,
-                caps->homogeneousDepth
+                0.0f, 1000.0f
             );
 
             bgfx::setViewTransform(ViewId, nullptr, glm::value_ptr(ortho));

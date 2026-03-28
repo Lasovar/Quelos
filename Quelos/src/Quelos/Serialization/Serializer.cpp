@@ -7,9 +7,6 @@
 
 namespace Quelos::Serialization {
     namespace Utils {
-        inline PathID GetPathID(const std::string_view path) {
-            return XXH3_64bits(path.data(), path.size());
-        }
 
         inline std::string_view Trim(std::string_view stringView) {
             while (!stringView.empty() && std::isspace(static_cast<unsigned char>(stringView.front()))) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Commands/ComponentCommand.h"
 #include "Commands/CreateActorCommand.h"
 #include "Commands/ReorderChildrenCommand.h"
 #include "Quelos/Scenes/Scene.h"
@@ -9,26 +10,43 @@
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
-    struct ComponentPatch {
-        HashMap<std::string_view, uint32_t> Fields;
+    enum class PatchState : uint8_t {
+        Changed = 0,
+        Added = 1,
+        Removed = 2
     };
 
-    struct ActorPatch {
-        enum class State : uint8_t {
-            Changed = 0,
-            Added = 1,
-            Removed = 2
-        };
+    struct ComponentPatch {
+        HashMap<std::string_view, uint32_t> Fields;
+        Deque<PatchState> PatchStates;
 
-        OrderedMap<ComponentID, ComponentPatch> Components;
-        uint32_t ParentPatchCount = 0;
-        Deque<State> PatchStates;
-
-        void StatePushBack(const State next) {
+        void StatePushBack(const PatchState next) {
             PatchStates.push_back(next);
         }
 
-        void PushFrontState(const State previous) {
+        void PushFrontState(const PatchState previous) {
+            PatchStates.push_front(previous);
+        }
+
+        void StatePopBack() {
+            PatchStates.pop_back();
+        }
+
+        void PopFrontState() {
+            PatchStates.pop_front();
+        }
+    };
+
+    struct ActorPatch {
+        OrderedMap<ComponentID, ComponentPatch> Components;
+        uint32_t ParentPatchCount = 0;
+        Deque<PatchState> PatchStates;
+
+        void StatePushBack(const PatchState next) {
+            PatchStates.push_back(next);
+        }
+
+        void PushFrontState(const PatchState previous) {
             PatchStates.push_front(previous);
         }
 
@@ -60,9 +78,10 @@ namespace Quelos {
             auto& entityPatch = m_Actors[cmd.ActorId];
             auto& compPatch = entityPatch.Components[cmd.ComponentId];
 
+            compPatch.StatePushBack(PatchState::Changed);
             ++compPatch.Fields[cmd.FieldKey];
 
-            entityPatch.StatePushBack(ActorPatch::State::Changed);
+            entityPatch.StatePushBack(PatchState::Changed);
         }
 
         template<typename T>
@@ -70,15 +89,40 @@ namespace Quelos {
             auto& entityPatch = m_Actors[cmd.ActorId];
             auto& compPatch = entityPatch.Components[cmd.ComponentId];
 
+            compPatch.StatePopBack();
             --compPatch.Fields[cmd.FieldKey];
 
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const AddComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.Components[cmd.ComponentId].StatePushBack(PatchState::Added);
+            entityPatch.StatePushBack(PatchState::Changed);
+        }
+
+        void Remove(const AddComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.Components[cmd.ComponentId].StatePopBack();
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const RemoveComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.Components[cmd.ComponentId].StatePushBack(PatchState::Removed);
+            entityPatch.StatePushBack(PatchState::Changed);
+        }
+
+        void Remove(const RemoveComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.Components[cmd.ComponentId].StatePopBack();
             entityPatch.StatePopBack();
         }
 
         void Record(const SetParent& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.ParentPatchCount++;
-            entityPatch.StatePushBack(ActorPatch::State::Changed);
+            entityPatch.StatePushBack(PatchState::Changed);
         }
 
         void Remove(const SetParent& cmd) {
@@ -90,7 +134,7 @@ namespace Quelos {
         void Record(const ReorderChild& cmd) {
             ActorPatch& actorPatch = m_Actors[cmd.ActorId];
             actorPatch.ParentPatchCount++;
-            actorPatch.StatePushBack(ActorPatch::State::Changed);
+            actorPatch.StatePushBack(PatchState::Changed);
         }
 
         void Remove(const ReorderChild& cmd) {
@@ -101,7 +145,7 @@ namespace Quelos {
 
         void Record(const CreateActor& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
-            entityPatch.StatePushBack(ActorPatch::State::Added);
+            entityPatch.StatePushBack(PatchState::Added);
         }
 
         void Remove(const CreateActor& cmd) {
@@ -111,7 +155,7 @@ namespace Quelos {
 
         void Record(const DestroyActor& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
-            entityPatch.StatePushBack(ActorPatch::State::Removed);
+            entityPatch.StatePushBack(PatchState::Removed);
         }
 
         void Remove(const DestroyActor& cmd) {
@@ -170,11 +214,13 @@ namespace Quelos {
         ActorID m_CurrentParentID{};
 
         bool m_SkipToNextSection = false;
+        bool m_SkipToNextComponent = false;
 
         std::string_view m_CurrentComponent;
         ComponentID m_CurrentComponentID{};
 
         std::string_view m_CurrentField;
+        bool m_IsFirstComponentField = true;
 
         HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
 

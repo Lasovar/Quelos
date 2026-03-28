@@ -109,6 +109,9 @@ namespace Quelos {
 
         virtual const std::filesystem::path& GetPath() const = 0;
 
+        static AssetType GetStaticType() { return AssetType::Texture2D; }
+        AssetType GetAssetType() const override { return GetStaticType(); }
+
         TextureType GetType() const override { return TextureType::Texture2D; }
     };
 }

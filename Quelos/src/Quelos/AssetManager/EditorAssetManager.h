@@ -6,10 +6,21 @@ namespace Quelos {
     class EditorAssetManager : public AssetManagerBase {
     public:
         [[nodiscard]] Ref<Asset> GetAsset(const AssetHandle& handle) override;
+        void UnloadAsset(AssetHandle assetHandle) override;
+
+        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const Path& path) const;
+        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const AssetHandle& assetHandle) const;
+
+        [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const override;
+        [[nodiscard]] bool IsAssetPathValid(const Path& path) const;
+
+        [[nodiscard]] static bool IsAssetSupported(const Path& path);
 
         [[nodiscard]] bool IsAssetLoaded(const AssetHandle& handle) const override;
-        AssetHandle AddAssetToRegistry(AssetType assetType, const Path& assetPath);
-        [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const override;
+        const AssetMetadata* AddAssetToRegistry(const Path& assetPath);
+        void RemoveAssetFromRegistry(const AssetHandle& assetHandle);
+
+        void CleanupAssetMap();
 
         void SerializeAssetRegistry();
         void DeserializeAssetRegistry();

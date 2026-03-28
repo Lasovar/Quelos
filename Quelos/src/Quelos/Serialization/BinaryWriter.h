@@ -5,6 +5,10 @@
 #include <type_traits>
 #include <vector>
 
+#include "Quelos/AssetManager/Asset.h"
+#include "Quelos/AssetManager/AssetManager.h"
+#include "Quelos/AssetManager/SoftRef.h"
+
 namespace Quelos::Serialization {
     class BinaryReader {
     public:
@@ -42,7 +46,7 @@ namespace Quelos::Serialization {
 
     class BinaryWriter {
     public:
-        explicit BinaryWriter(std::vector<std::byte>& buffer)
+        explicit BinaryWriter(Vec<byte>& buffer)
             : m_Buffer(buffer) {
         }
 
@@ -59,7 +63,7 @@ namespace Quelos::Serialization {
         }
 
     private:
-        std::vector<std::byte>& m_Buffer;
+        Vec<byte>& m_Buffer;
     };
 
     class BinaryWriteArchive {
@@ -68,10 +72,11 @@ namespace Quelos::Serialization {
         static constexpr bool IsSaving = true;
 
     public:
-        explicit BinaryWriteArchive(BinaryWriter& writer) : m_Writer(writer) { }
+        explicit BinaryWriteArchive(BinaryWriter& writer) : m_Writer(writer) {
+        }
 
         template <typename T>
-        void Field(std::string_view, const T& value) {
+        void Field(std::string_view, T& value) {
             Value(value);
         }
 
@@ -91,10 +96,43 @@ namespace Quelos::Serialization {
             }
         }
 
+        template <typename T>
+        void Value(Ref<T>& value) {
+            if constexpr (std::is_base_of_v<Asset, T>) {
+                const AssetHandle handle = value && value->GetAssetHandle()
+                                               ? value->GetAssetHandle()
+                                               : AssetHandle();
+
+                m_Writer.Write(handle);
+            }
+            else {
+                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
+            }
+        }
+
+        template <typename T>
+        void Value(SoftRef<T>& value) {
+            if constexpr (std::is_base_of_v<Asset, T>) {
+                const AssetHandle handle = value && value->GetAssetHandle()
+                                               ? value->GetAssetHandle()
+                                               : AssetHandle();
+
+                m_Writer.Write(handle);
+            }
+            else {
+                static_assert(!sizeof(T), "SoftRef<T> only supported for Asset types");
+            }
+        }
+
         // Archive API... not needed for binary
-        static void BeginTuple(std::string_view) { }
-        static void BeginTupleField(const std::string_view) { }
-        static void EndTuple() { }
+        static void BeginTuple(std::string_view) {
+        }
+
+        static void BeginTupleField(const std::string_view) {
+        }
+
+        static void EndTuple() {
+        }
 
     private:
         BinaryWriter& m_Writer;
@@ -106,7 +144,8 @@ namespace Quelos::Serialization {
         static constexpr bool IsSaving = false;
 
     public:
-        explicit BinaryReadArchive(BinaryReader& reader) : m_Reader(reader) { }
+        explicit BinaryReadArchive(BinaryReader& reader) : m_Reader(reader) {
+        }
 
         template <typename T>
         void Field(std::string_view, T& value) {
@@ -144,10 +183,34 @@ namespace Quelos::Serialization {
             }
         }
 
+        template <typename T>
+        void Value(Ref<T>& value) {
+            if constexpr (std::is_base_of_v<Asset, T>) {
+                if (const std::optional<AssetHandle> handleResult = m_Reader.Read<AssetHandle>()) {
+                    value = AssetManager::GetAsset<T>(handleResult.value());
+                }
+            }
+            else {
+                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
+            }
+        }
+
+        template <typename T>
+        void Value(SoftRef<T>& value) {
+            if (const std::optional<AssetHandle> handleResult = m_Reader.Read<AssetHandle>()) {
+                value.SetAssetHandle(handleResult.value());
+            }
+        }
+
         // Archive API... not needed for binary
-        static void BeginTuple() { }
-        static void BeginTupleField(const std::string_view) { }
-        static void EndTuple() { }
+        static void BeginTuple() {
+        }
+
+        static void BeginTupleField(const std::string_view) {
+        }
+
+        static void EndTuple() {
+        }
 
     private:
         BinaryReader& m_Reader;

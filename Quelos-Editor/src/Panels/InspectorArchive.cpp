@@ -1,3 +1,4 @@
+#include "qspch.h"
 #include "InspectorArchive.h"
 
 namespace Quelos {
@@ -6,7 +7,7 @@ namespace Quelos {
         static bool startedEditing = false;
         float temp = value;
 
-        if (UI::EditFloat(std::string(name), temp)) {
+        if (UI::EditFloat(GetFormattedFieldName(name), temp)) {
             if (!startedEditing) {
                 startedEditing = true;
                 startValue = value;
@@ -36,7 +37,7 @@ namespace Quelos {
         static bool startedEditing = false;
         glm::vec3 temp = value;
 
-        if (UI::EditVec3(std::string(name), temp)) {
+        if (UI::EditVec3(GetFormattedFieldName(name), temp)) {
             if (!startedEditing) {
                 startedEditing = true;
                 startValue = value;
@@ -46,7 +47,6 @@ namespace Quelos {
         }
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-
             m_UndoSystem.Push<SetField<glm::vec3>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
                 m_Actor.GetActorID(),
@@ -66,7 +66,7 @@ namespace Quelos {
         static bool startedEditing = false;
         glm::quat temp = value;
 
-        if (UI::EditQuat(std::string(name), temp)) {
+        if (UI::EditQuat(GetFormattedFieldName(name), temp)) {
             if (!startedEditing) {
                 startedEditing = true;
                 startValue = value;

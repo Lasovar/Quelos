@@ -43,7 +43,7 @@ namespace Quelos {
         Vec<bool> m_EntitiesStack;
         HashSet<Entity> m_OpenEntities;
 
-        bool m_RequestReorder;
+        bool m_RequestReorder = false;
         ActorID m_ReorderTargetParent;
         ActorID m_ReorderTargetAfter;
         ActorID m_ReorderTarget;

@@ -13,6 +13,7 @@ namespace Quelos {
         InspectorArchiveSerializeFn InspectorSerializeFn = nullptr;
         SetFieldSerializeFn SetFieldSerializeFn = nullptr;
         std::string ComponentName;
+        HashMap<Serialization::PathID, std::string> FormattedFieldNames;
     };
 
     class EntityInspectorPanel {
@@ -22,10 +23,12 @@ namespace Quelos {
         void SetSelectedEntity(const Actor& entity) { m_SelectedActor = entity; }
         void ClearSelectedEntity() { m_SelectedActor = {}; }
 
+        bool ComponentHeader(const char* label, RuntimeID runtimeId, bool& open);
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
-        HashMap<RuntimeID, InspectorComponent> m_InspectorArchiveSerialize;
+        static HashMap<RuntimeID, InspectorComponent> s_InspectorArchiveSerialize;
+    private:
         Actor m_SelectedActor;
         Ref<Scene> m_Scene;
         UndoSystem& m_UndoSystem;

@@ -2,10 +2,12 @@
 #include "EntityHierarchyPanel.h"
 
 #include "imgui_internal.h"
-#include "Quelos/Platform/bgfx/ImGui/icons_font_awesome.h"
+
 #include "Scene/Commands/CreateActorCommand.h"
 #include "Scene/Commands/ReorderChildrenCommand.h"
 #include "Scene/Commands/SetParentCommand.h"
+
+#include "Quelos/ImGui/icons_font_awesome.h"
 
 namespace Quelos {
     EntityHierarchyPanel::EntityHierarchyPanel(
@@ -215,17 +217,13 @@ namespace Quelos {
         if (ImGui::BeginPopupContextItem("EntityContext")) {
             m_SelectedActor = actor;
 
-            if (ImGui::MenuItem("Create Child")) {
-                // your create logic
-            }
+            if (ImGui::MenuItem("Create Child")) { }
 
             if (ImGui::MenuItem("Delete")) {
                 m_UndoSystem.Push<DestroyActor>(actor.Get<ActorTag>().ID, m_Scene);
             }
 
-            if (ImGui::MenuItem("Rename")) {
-                // trigger rename state
-            }
+            if (ImGui::MenuItem("Rename")) { }
 
             ImGui::EndPopup();
         }
@@ -249,17 +247,17 @@ namespace Quelos {
                 const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
 
                 if (droppedId.IsValid()) {
-                    const Entity dropped = m_Scene->GetActor(droppedId);
+                    const Actor dropped = m_Scene->GetActor(droppedId);
 
                     if (dropped != actor) {
                         if (IsDescendant(dropped, actor)) {
-                            const Entity parent = dropped.GetParent();
+                            const Actor parent = dropped.GetParent();
 
                             dropped.GetInternalID().children([&](const flecs::entity child) {
                                 if (parent.IsValid()) {
                                     m_UndoSystem.Push<SetParent>(
                                         child.get<ActorTag>().ID,
-                                        parent.Get<ActorTag>().ID,
+                                        parent.GetActorID(),
                                         m_Scene
                                     );
                                 }
@@ -291,7 +289,7 @@ namespace Quelos {
         if (open) {
             const float separatorX = baseX + (depth + 1) * indent;
             const ImVec2 size(ImGui::GetContentRegionAvail().x, 3.0f);
-            ImGui::SetCursorPosX(separatorX);
+            ImGui::SetCursorScreenPos({separatorX, ImGui::GetCursorScreenPos().y});
             ImGui::Dummy(size);
 
             if (ImGui::BeginDragDropTarget()) {
@@ -324,7 +322,7 @@ namespace Quelos {
 
         const float separatorX = baseX + depth * indent;
         const ImVec2 size(ImGui::GetContentRegionAvail().x, 3.0f);
-        ImGui::SetCursorPos({separatorX, ImGui::GetCursorPosY() - 3.0f});
+        ImGui::SetCursorScreenPos({separatorX, ImGui::GetCursorScreenPos().y - 3.0f});
         ImGui::Dummy(size);
 
         if (ImGui::BeginDragDropTarget()) {

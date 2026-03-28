@@ -80,6 +80,7 @@ namespace Quelos {
         m_SceneViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
         m_EntityHierarchyPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
         m_InspectorPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+        m_ContentBrowserPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
 
         ImGui::End();
     }

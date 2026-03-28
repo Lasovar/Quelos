@@ -26,10 +26,6 @@ namespace Quelos {
                              .add<ActorTag>()
                              .add(flecs::OrderedChildren);
 
-        if (m_World.singleton<SceneRootTag>().has(flecs::OrderedChildren)) {
-            QS_CORE_INFO("Has Ordered children");
-        }
-
         m_World.observer<LocalTransform>()
                .event(flecs::OnAdd)
                .each([](const flecs::entity e, const LocalTransform&) {
@@ -104,6 +100,11 @@ namespace Quelos {
     }
 
     Actor Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
+        auto it = m_ActorsMap.find(guid);
+        if (it != m_ActorsMap.end()) {
+            return it->second;
+        }
+
         const flecs::entity entityId = m_World.entity()
                                               .set(ActorTag(guid))
                                               .add<ChildOrder>()
