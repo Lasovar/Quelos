@@ -1,0 +1,5 @@
+[project name="SandboxProject"]
+assets = "Assets"
+source = "Source"
+library = "Library"
+projectSettings = "ProjectSettings"

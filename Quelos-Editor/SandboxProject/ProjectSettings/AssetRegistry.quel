@@ -1,0 +1,11 @@
+[Scene]
+handle = 42e09d58-d526-4cbe-b275-80d95d0b9ada
+path = "Assets/TestScene"
+
+[Texture2D]
+handle = 742c43af-4f1e-4bd5-8d2a-7130c426e1fe
+path = "Assets/Textures/yuri.png"
+
+[Texture2D]
+handle = d0ac2067-5393-41b0-85d8-fc1d67d9ce07
+path = "Assets/Textures/minecraft.png"
