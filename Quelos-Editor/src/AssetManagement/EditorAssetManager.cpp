@@ -1,13 +1,15 @@
 #include "qspch.h"
 #include "EditorAssetManager.h"
 
-#include "AssetImporter.h"
+#include "AssetImporters/MeshImporter.h"
+#include "AssetImporters/SceneImporter.h"
+#include "Quelos/AssetManager/AssetImporter.h"
 #include "magic_enum/magic_enum.hpp"
 #include "Quelos/Core/Formatters.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     static const Path k_AssetRegistryFilename = "AssetRegistry.quel";
 
     const AssetMetadata* EditorAssetManager::AddAssetToRegistry(const Path& assetPath) {
@@ -72,6 +74,11 @@ namespace Quelos {
         return m_LoadedAssets.find(handle) != m_LoadedAssets.end();
     }
 
+    EditorAssetManager::EditorAssetManager() {
+        AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
+        //AssetImporter::RegisterAssetImporter(QuelosEditor::MeshImporter::GetImporterConfig());
+    }
+
     Ref<Asset> EditorAssetManager::GetAsset(const AssetHandle& handle) {
         if (!IsAssetHandleValid(handle)) {
             QS_CORE_ERROR_TAG("AssetManager", "Invalid asset handle {}", handle.ToString());
@@ -120,7 +127,6 @@ namespace Quelos {
         }
 
         return m_AssetRegistry.GetAssetMetadata(assetHandle);
-
     }
 
     void EditorAssetManager::SerializeAssetRegistry() {

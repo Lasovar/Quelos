@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Quelos/AssetManager/EditorAssetManager.h"
+#include "AssetManagement/EditorAssetManager.h"
 #include "Quelos/Core/Base.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
+
     class ProjectSerializer {
     public:
         ProjectSerializer() = default;

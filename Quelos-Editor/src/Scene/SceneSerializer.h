@@ -3,6 +3,7 @@
 #include "Commands/ComponentCommand.h"
 #include "Commands/CreateActorCommand.h"
 #include "Commands/ReorderChildrenCommand.h"
+#include "Commands/SetEntityNameCommnad.h"
 #include "Quelos/Scenes/Scene.h"
 #include "Commands/SetFieldCommand.h"
 #include "Commands/SetParentCommand.h"
@@ -66,9 +67,15 @@ namespace Quelos {
 
     class SceneSerializer {
     public:
+        static inline const std::string SceneFileExtension = ".qscene";
+        static inline const std::filesystem::path ScenePatchesFolder = "Patches";
+        static inline const std::string ScenePatchFileExtension = ".qpatch";
+    public:
         SceneSerializer() = default;
         SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath);
         ~SceneSerializer() = default;
+
+        void Deserialize();
 
         void SerializePatches();
         void BakePatches() const;
@@ -116,6 +123,16 @@ namespace Quelos {
         void Remove(const RemoveComponentCommand& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.Components[cmd.ComponentId].StatePopBack();
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const SetEntityName& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
+            entityPatch.StatePushBack(PatchState::Changed);
+        }
+
+        void Remove(const SetEntityName& cmd) {
+            auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.StatePopBack();
         }
 

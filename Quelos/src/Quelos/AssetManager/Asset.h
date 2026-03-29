@@ -21,7 +21,7 @@ namespace Quelos {
         Other
     };
 
-    class Asset : RefCounted<Asset> {
+    class Asset : public RefCounted<Asset> {
     public:
         virtual ~Asset() = default;
         AssetHandle GetAssetHandle() const { return Handle; }

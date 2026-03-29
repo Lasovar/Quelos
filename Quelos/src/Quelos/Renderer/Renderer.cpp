@@ -107,8 +107,8 @@ namespace Quelos {
         s_RendererContext->Destroy(shaderHandle);
     }
 
-    VertexBufferHandle Renderer::CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) {
-        return s_RendererContext->CreateVertexBuffer(vertices);
+    VertexBufferHandle Renderer::CreateVertexBuffer(const BufferView vertices, const VertexLayout& bufferLayout) {
+        return s_RendererContext->CreateVertexBuffer(vertices, bufferLayout);
     }
 
     void Renderer::BindVertexBuffer(const VertexBufferHandle handle, const uint32_t stream) {

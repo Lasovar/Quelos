@@ -11,7 +11,6 @@ using namespace magic_enum::bitwise_operators;
 namespace Quelos {
     using namespace Serialization;
 
-
     static constexpr std::string_view GetStateName(const PatchState state) {
         switch (state) {
         case PatchState::Changed: return "changed";
@@ -38,181 +37,8 @@ namespace Quelos {
         return PatchState::Changed;
     }
 
-    static const std::string s_SceneFileExtension = ".qscene";
-    static const std::filesystem::path s_ScenePatchesFolder = "Patches";
-    static const std::string s_ScenePatchFileExtension = ".qpatch";
-
     SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath)
-        : m_Scene(scene), m_ScenePath(sceneFolderPath) {
-        if (!std::filesystem::is_directory(sceneFolderPath)) {
-            if (std::filesystem::exists(sceneFolderPath)) {
-                QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
-                return;
-            }
-
-            std::filesystem::create_directories(sceneFolderPath);
-        }
-
-        std::filesystem::path patchesFolder = sceneFolderPath / s_ScenePatchesFolder;
-        if (!std::filesystem::exists(patchesFolder)) {
-            std::filesystem::create_directories(patchesFolder);
-        }
-
-        std::filesystem::path sceneFilePath = sceneFolderPath / (sceneFolderPath.filename().string() +
-            s_SceneFileExtension);
-
-        if (!std::filesystem::exists(sceneFilePath)) {
-            std::ofstream create(sceneFilePath, std::ios::binary);
-            SceneHeader sceneHeader;
-            create.write(reinterpret_cast<const char*>(&sceneHeader), sizeof(SceneHeader));
-        }
-
-        std::ifstream file(
-            sceneFilePath,
-            std::ios::binary | std::ios::ate
-        );
-
-        if (!file) {
-            QS_ERROR_TAG("SceneSerializer", "Failed to open scene file '{}'", sceneFilePath.string());
-            return;
-        }
-
-        const size_t fileSize = file.tellg();
-        Vec<byte> buffer(fileSize);
-
-        file.seekg(0);
-        file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
-
-        BinaryReader reader(buffer);
-
-        // Read header
-        SceneHeader header = reader.Read<SceneHeader>().value();
-
-        if (header.Magic != SceneHeader().Magic) {
-            QS_ERROR_TAG("SceneSerializer", "Invalid scene magic!");
-            return;
-        }
-
-        const flecs::world& world = m_Scene->GetWorld();
-        world.defer_begin();
-
-        for (uint64_t i = 0; i < header.EntityCount; i++) {
-            const auto entitySnapshotSize = reader.Read<uint32_t>();
-            if (!entitySnapshotSize) {
-                QS_ERROR_TAG("SceneSerializer", "Invalid entity snapshot size!");
-                continue;
-            }
-
-            ActorSnapshot actorSnapshot;
-            actorSnapshot.Data.resize(entitySnapshotSize.value());
-            const auto entitySnapshotResult = reader.ReadBytes(entitySnapshotSize.value());
-            if (!entitySnapshotResult) {
-                QS_ERROR_TAG("SceneSerializer", "Failed to read entity snapshot!");
-                continue;
-            }
-
-            Span<const byte> entitySnapshot = entitySnapshotResult.value();
-            std::memcpy(actorSnapshot.Data.data(), entitySnapshot.data(), entitySnapshot.size());
-
-            ActorSnapshot::Load(m_Scene, actorSnapshot);
-        }
-
-        world.defer_end();
-
-        world.defer_begin();
-
-        for (auto& patchFileEntry : std::filesystem::directory_iterator(patchesFolder)) {
-            const auto& patchFilePath = patchFileEntry.path();
-            if (!patchFileEntry.is_regular_file() || patchFilePath.extension() != s_ScenePatchFileExtension) {
-                QS_INFO(
-                    "invalid file '{}': (isFile: {}, extension: {})",
-                    patchFilePath.string(),
-                    patchFileEntry.is_regular_file(),
-                    patchFilePath.extension().string()
-                );
-
-                continue;
-            }
-
-            std::ifstream patchFile(patchFilePath, std::ios::binary | std::ios::ate);
-
-            if (!patchFile) {
-                QS_ERROR_TAG("SceneSerializer", "Failed to open scene patch file!");
-                continue;
-            }
-
-            const size_t patchFileSize = patchFile.tellg();
-            patchFile.seekg(0);
-
-            std::string patchFileBuffer;
-            patchFileBuffer.resize(patchFileSize);
-            patchFile.read(patchFileBuffer.data(), patchFileSize);
-
-            m_Reader = QuelReader(patchFileBuffer);
-
-            for (auto&& parserEvent : m_Reader.Parse()) {
-                std::visit([this]<typename TEvent>(const TEvent& e) {
-                    using T = std::decay_t<TEvent>;
-
-                    if (m_SkipToNextSection) {
-                        if constexpr (std::is_same_v<T, SectionEvent>) {
-                            m_SkipToNextSection = false;
-                        }
-                        else {
-                            return;
-                        }
-                    }
-
-                    if (m_SkipToNextComponent) {
-                        if constexpr (std::is_same_v<T, ComponentEvent>) {
-                            m_SkipToNextComponent = false;
-                        }
-                        else {
-                            return;
-                        }
-                    }
-
-                    this->OnEvent(e);
-                }, parserEvent);
-            }
-
-            // Make sure to flush the last component
-            DeserializeComponentData();
-
-            m_ParserState &= ~ParserState::InComponent;
-        }
-
-        world.defer_end();
-
-
-        world.defer_begin();
-
-        for (auto& [parentId, childrenEntries] : m_ParentPairsToResolve) {
-            const Actor parent = scene->GetActor(parentId);
-
-            for (auto& [child, order] : childrenEntries) {
-                if (parentId) {
-                    if (parent.IsValid()) {
-                        child.SetParent(parent);
-                    }
-                }
-                else {
-                    child.RemoveParent();
-                }
-
-                child.GetInternalID().set(ChildOrder{order});
-            }
-        }
-
-        world.defer_end();
-
-        for (auto& parentId : m_ParentPairsToResolve | std::views::keys) {
-            const Actor parent = scene->GetActor(parentId);
-            parent.IndexChildOrders();
-        }
-
-        m_ParentPairsToResolve.clear();
-    }
+        : m_Scene(scene), m_ScenePath(Project::GetProjectPath() / sceneFolderPath) { }
 
     void SceneSerializer::DeserializeComponentData() {
         if (!m_CurrentEntityID.IsValid() && !m_CurrentComponentID.IsValid()) {
@@ -355,12 +181,14 @@ namespace Quelos {
                     }
                 }
 
-                if (!m_CurrentEntity.IsValid() && m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty() && !m_CurrentEntityState.empty()) {
+                if (!m_CurrentEntity.IsValid() && m_CurrentEntityID.IsValid() && !m_CurrentEntityName.empty() && !
+                    m_CurrentEntityState.empty()) {
                     if (m_CurrentEntityState == "added") {
                         m_CurrentEntity = m_Scene->CreateActor(m_CurrentEntityID, m_CurrentEntityName);
                     }
                     else if (m_CurrentEntityState == "changed") {
                         m_CurrentEntity = m_Scene->GetActor(m_CurrentEntityID);
+                        m_CurrentEntity.SetName(m_CurrentEntityName);
                     }
                     else if (m_CurrentEntityState == "removed") {
                         m_Scene->DestroyEntity(m_CurrentEntityID);
@@ -491,11 +319,180 @@ namespace Quelos {
         return lastChange;
     }
 
+    void SceneSerializer::Deserialize() {
+        if (!std::filesystem::is_directory(m_ScenePath)) {
+            if (std::filesystem::exists(m_ScenePath)) {
+                QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
+                return;
+            }
+
+            std::filesystem::create_directories(m_ScenePath);
+        }
+
+        std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
+        if (!std::filesystem::exists(patchesFolder)) {
+            std::filesystem::create_directories(patchesFolder);
+        }
+
+        std::filesystem::path sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
+
+        if (!std::filesystem::exists(sceneFilePath)) {
+            std::ofstream create(sceneFilePath, std::ios::binary);
+            SceneHeader sceneHeader;
+            create.write(reinterpret_cast<const char*>(&sceneHeader), sizeof(SceneHeader));
+        }
+
+        std::ifstream file(
+            sceneFilePath,
+            std::ios::binary | std::ios::ate
+        );
+
+        if (!file) {
+            QS_ERROR_TAG("SceneSerializer", "Failed to open scene file '{}'", sceneFilePath.string());
+            return;
+        }
+
+        const size_t fileSize = file.tellg();
+        Vec<byte> buffer(fileSize);
+
+        file.seekg(0);
+        file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
+
+        BinaryReader reader(buffer);
+
+        // Read header
+        SceneHeader header = reader.Read<SceneHeader>().value();
+
+        if (header.Magic != SceneHeader().Magic) {
+            QS_ERROR_TAG("SceneSerializer", "Invalid scene magic!");
+            return;
+        }
+
+        const flecs::world& world = m_Scene->GetWorld();
+        world.defer_begin();
+
+        for (uint64_t i = 0; i < header.EntityCount; i++) {
+            const auto entitySnapshotSize = reader.Read<uint32_t>();
+            if (!entitySnapshotSize) {
+                QS_ERROR_TAG("SceneSerializer", "Invalid entity snapshot size!");
+                continue;
+            }
+
+            ActorSnapshot actorSnapshot;
+            actorSnapshot.Data.resize(entitySnapshotSize.value());
+            const auto entitySnapshotResult = reader.ReadBytes(entitySnapshotSize.value());
+            if (!entitySnapshotResult) {
+                QS_ERROR_TAG("SceneSerializer", "Failed to read entity snapshot!");
+                continue;
+            }
+
+            Span<const byte> entitySnapshot = entitySnapshotResult.value();
+            std::memcpy(actorSnapshot.Data.data(), entitySnapshot.data(), entitySnapshot.size());
+
+            ActorSnapshot::Load(m_Scene, actorSnapshot);
+        }
+
+        world.defer_end();
+
+        world.defer_begin();
+
+        for (auto& patchFileEntry : std::filesystem::directory_iterator(patchesFolder)) {
+            const auto& patchFilePath = patchFileEntry.path();
+            if (!patchFileEntry.is_regular_file() || patchFilePath.extension() != ScenePatchFileExtension) {
+                QS_INFO(
+                    "invalid file '{}': (isFile: {}, extension: {})",
+                    patchFilePath.string(),
+                    patchFileEntry.is_regular_file(),
+                    patchFilePath.extension().string()
+                );
+
+                continue;
+            }
+
+            std::ifstream patchFile(patchFilePath, std::ios::binary | std::ios::ate);
+
+            if (!patchFile) {
+                QS_ERROR_TAG("SceneSerializer", "Failed to open scene patch file!");
+                continue;
+            }
+
+            const size_t patchFileSize = patchFile.tellg();
+            patchFile.seekg(0);
+
+            std::string patchFileBuffer;
+            patchFileBuffer.resize(patchFileSize);
+            patchFile.read(patchFileBuffer.data(), patchFileSize);
+
+            m_Reader = QuelReader(patchFileBuffer);
+
+            for (auto&& parserEvent : m_Reader.Parse()) {
+                std::visit([this]<typename TEvent>(const TEvent& e) {
+                    using T = std::decay_t<TEvent>;
+
+                    if (m_SkipToNextSection) {
+                        if constexpr (std::is_same_v<T, SectionEvent>) {
+                            m_SkipToNextSection = false;
+                        }
+                        else {
+                            return;
+                        }
+                    }
+
+                    if (m_SkipToNextComponent) {
+                        if constexpr (std::is_same_v<T, ComponentEvent>) {
+                            m_SkipToNextComponent = false;
+                        }
+                        else {
+                            return;
+                        }
+                    }
+
+                    this->OnEvent(e);
+                }, parserEvent);
+            }
+
+            // Make sure to flush the last component
+            DeserializeComponentData();
+
+            m_ParserState &= ~ParserState::InComponent;
+        }
+
+        world.defer_end();
+
+        world.defer_begin();
+
+        for (auto& [parentId, childrenEntries] : m_ParentPairsToResolve) {
+            const Actor parent = m_Scene->GetActor(parentId);
+
+            for (auto& [child, order] : childrenEntries) {
+                if (parentId) {
+                    if (parent.IsValid()) {
+                        child.SetParent(parent);
+                    }
+                }
+                else {
+                    child.RemoveParent();
+                }
+
+                child.GetInternalID().set(ChildOrder{order});
+            }
+        }
+
+        world.defer_end();
+
+        for (auto& parentId : m_ParentPairsToResolve | std::views::keys) {
+            const Actor parent = m_Scene->GetActor(parentId);
+            parent.IndexChildOrders();
+        }
+
+        m_ParentPairsToResolve.clear();
+    }
+
     void SceneSerializer::SerializePatches() {
         flecs::world& world = m_Scene->GetWorld();
         ComponentRegistry& registry = m_Scene->GetComponentRegistry();
 
-        std::filesystem::path patchesFolder = m_ScenePath / s_ScenePatchesFolder;
+        std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
         HashSet<std::string_view> fieldsToWrite;
         for (auto& [actorId, patch] : m_Actors) {
             if (!actorId) {
@@ -508,7 +505,7 @@ namespace Quelos {
 
             std::string guid = actorId.ToFormattedString();
 
-            std::filesystem::path filePath = patchesFolder / (guid + s_ScenePatchFileExtension);
+            std::filesystem::path filePath = patchesFolder / (guid + ScenePatchFileExtension);
             std::ifstream patchReadFile(filePath, std::ios::binary | std::ios::ate);
 
             if (patchReadFile) {
@@ -687,7 +684,8 @@ namespace Quelos {
 
                     QuelWriteArchive archive(quelWriter, &fieldsToWrite);
                     info->SerializeTextWriteFunc(archive, ptr);
-                } else {
+                }
+                else {
                     QuelWriteArchive archive(quelWriter);
                     info->SerializeTextWriteFunc(archive, ptr);
                 }
@@ -741,7 +739,7 @@ namespace Quelos {
         }
 
         // Disk write
-        std::filesystem::path sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + s_SceneFileExtension);
+        std::filesystem::path sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
         std::ofstream sceneFile(sceneFilePath, std::ios::binary);
 
         if (!sceneFile) {
@@ -754,9 +752,9 @@ namespace Quelos {
             static_cast<std::streamsize>(buffer.size())
         );
 
-        for (auto& patchFileEntry : std::filesystem::directory_iterator(m_ScenePath / s_ScenePatchesFolder)) {
+        for (auto& patchFileEntry : std::filesystem::directory_iterator(m_ScenePath / ScenePatchesFolder)) {
             const auto& patchFilePath = patchFileEntry.path();
-            if (!patchFileEntry.is_regular_file() || patchFilePath.extension() != s_ScenePatchFileExtension) {
+            if (!patchFileEntry.is_regular_file() || patchFilePath.extension() != ScenePatchFileExtension) {
                 QS_INFO(
                     "invalid file '{}': (isFile: {}, extension: {})",
                     patchFilePath.string(),

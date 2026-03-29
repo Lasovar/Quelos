@@ -1,6 +1,7 @@
 #include "qspch.h"
 #include "ContentBrowserPanel.h"
 
+#include "EditorLayer.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "magic_enum/magic_enum.hpp"
@@ -9,7 +10,7 @@
 #include "Quelos/Project/Project.h"
 #include "Quelos/ImGui/ImGuiUI.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     void ContentBrowserPanel::DrawFolderTile(const Path& path) {
         ImGui::PushID(path.c_str());
         ImGui::BeginGroup();
@@ -42,7 +43,7 @@ namespace Quelos {
 
         if (ImGui::BeginPopupContextItem("AssetContext")) {
             if (ImGui::MenuItem(UI::FormatTemp("{} {}", ICON_FA_TRASH, "Delete"))) {
-                Project::GetEditorAssetManager()->RemoveAssetFromRegistry(asset.Metadata.Handle);
+                m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.Handle);
                 m_QueueDirectoryTreeRebuild = true;
 
                 // TODO: delete from file system
@@ -50,13 +51,13 @@ namespace Quelos {
 
             if (!asset.IsImportable && ImGui::MenuItem("Remove from registry")) {
                 if (asset.Metadata.Handle) {
-                    Project::GetEditorAssetManager()->RemoveAssetFromRegistry(asset.Metadata.Handle);
+                    m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.Handle);
                     m_QueueDirectoryTreeRebuild = true;
                 }
             }
 
             if (asset.IsImportable && ImGui::MenuItem("Import")) {
-                const AssetMetadata* metadata = Project::GetEditorAssetManager()->AddAssetToRegistry(
+                const AssetMetadata* metadata = m_AssetManager->AddAssetToRegistry(
                     asset.Metadata.FilePath
                 );
 
@@ -72,6 +73,9 @@ namespace Quelos {
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             //TODO: OpenAsset(asset.Metadata.Handle);
+            if (asset.Metadata.Type == AssetType::Scene) {
+                EditorLayer::Get().OpenSceneWorkspace(asset.Metadata.Handle);
+            }
         }
 
         // Drag & Drop
@@ -103,7 +107,7 @@ namespace Quelos {
         }
 
         for (auto& part : m_CurrentPath) {
-            if (strcmp(part.c_str(), ".")) {
+            if (strcmp(part.c_str(), ".") != 0) {
                 ImGui::SameLine();
                 ImGui::Text("%s", ICON_FA_ARROW_RIGHT);
             } else {
@@ -199,7 +203,7 @@ namespace Quelos {
         ImGui::SetNextWindowDockID(dockspaceID, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowClass(&windowClass);
 
-        if (ImGui::Begin("Content Browser")) {
+        if (ImGui::Begin(UI::FormatTemp("Content Browser##{}", static_cast<void*>(this)))) {
             static float sidebar_width = 220.0f;
 
             if (ImGui::BeginChild(
@@ -263,8 +267,8 @@ namespace Quelos {
         }
     }
 
-    ContentBrowserPanel::ContentBrowserPanel() {
-        m_AssetManager = Project::GetEditorAssetManager();
+    void ContentBrowserPanel::Init() {
+        m_AssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
         m_RootPath = Project::GetProjectPath();
         m_RelativeRootPath = std::filesystem::relative(m_RootPath, m_RootPath);
 

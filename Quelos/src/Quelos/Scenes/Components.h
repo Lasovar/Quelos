@@ -19,7 +19,16 @@ namespace Quelos {
     class IndexBuffer;
     class VertexBuffer;
 
-    struct SceneRootTag { };
+    class Scene;
+
+    struct SceneRoot {
+        SceneRoot() = default;
+
+        explicit SceneRoot(Scene* scene) : m_Scene(scene) {}
+        Ref<Scene> GetScene() const;
+    private:
+        Scene* m_Scene = nullptr;
+    };
 
     struct ActorTag {
         ActorID ID;

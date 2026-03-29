@@ -15,22 +15,26 @@
 namespace Quelos {
     class WindowResizeEvent;
 
-    HashMap<ecs_world_t*, Scene*> Scene::s_WorldToScene{};
-
     Scene::Scene(std::string name)
-        : m_Name(std::move(name)) {
+        : m_Name(std::move(name)
+    ) {
         m_ComponentRegistry.RegisterBuiltinTypes(m_World);
-        s_WorldToScene[m_World.c_ptr()] = this;
 
-        m_SceneRoot = m_World.entity<SceneRootTag>("Root")
+        m_SceneRoot = m_World.entity<SceneRoot>("Root")
                              .add<ActorTag>()
                              .add(flecs::OrderedChildren);
+
+        m_SceneRoot.set(SceneRoot { this });
 
         m_World.observer<LocalTransform>()
                .event(flecs::OnAdd)
                .each([](const flecs::entity e, const LocalTransform&) {
                    e.ensure<WorldTransform>();
                });
+
+
+        m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
+        m_RenderingQuery = m_World.query<const WorldTransform&, const MeshComponent&>();
 
         m_TransformUpdate = m_World.entity("TransformUpdate")
                                    .add(flecs::Phase)
@@ -73,25 +77,36 @@ namespace Quelos {
         }
     }
 
-    void Scene::StartRender(const Ref<FrameBuffer>& frameBuffer) const {
-        const auto query = m_World.query<LocalTransform, CameraComponent>();
-        const Entity cameraEntity = query.first();
-        auto transform = cameraEntity.Get<WorldTransform>();
-        auto camera = cameraEntity.Get<CameraComponent>().Camera;
+    void Scene::StartRender(const Ref<FrameBuffer>& frameBuffer) {
+        if (m_CameraQuery.count() < 1) {
+            return;
+        }
+
+        const flecs::entity cameraEntity = m_CameraQuery.first();
+        const auto& transform = cameraEntity.get<WorldTransform>();
+        const auto& camera = cameraEntity.get<CameraComponent>().Camera;
+
         Renderer::StartSceneRender(
             frameBuffer,
             transform,
             camera.GetProjection()
         );
+
+        m_SceneRenderStarted = true;
     }
 
     void Scene::Render(uint32_t viewId) const {
-        m_World.each([viewId](const WorldTransform& transform, const MeshComponent& mesh) {
+        if (!m_SceneRenderStarted) {
+            return;
+        }
+
+        m_RenderingQuery.each([viewId](const WorldTransform& transform, const MeshComponent& mesh) {
             Renderer::SubmitMesh(viewId, mesh, transform);
         });
     }
 
-    void Scene::EndRender() const {
+    void Scene::EndRender() {
+        m_SceneRenderStarted = false;
     }
 
     Actor Scene::CreateActor(const std::string_view entityName) {

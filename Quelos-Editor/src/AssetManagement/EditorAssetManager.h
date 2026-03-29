@@ -1,15 +1,20 @@
 #pragma once
-#include "AssetManagerBase.h"
-#include "AssetRegistry.h"
 
-namespace Quelos {
+#include "Quelos/AssetManager/AssetManagerBase.h"
+#include "Quelos/AssetManager/AssetRegistry.h"
+
+namespace QuelosEditor {
+    using namespace Quelos;
+
     class EditorAssetManager : public AssetManagerBase {
     public:
+        EditorAssetManager();
+
         [[nodiscard]] Ref<Asset> GetAsset(const AssetHandle& handle) override;
         void UnloadAsset(AssetHandle assetHandle) override;
 
         [[nodiscard]] const AssetMetadata* GetAssetMetadata(const Path& path) const;
-        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const AssetHandle& assetHandle) const;
+        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const AssetHandle& assetHandle) const override;
 
         [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const override;
         [[nodiscard]] bool IsAssetPathValid(const Path& path) const;
@@ -27,7 +32,5 @@ namespace Quelos {
     private:
         AssetRegistry m_AssetRegistry;
         AssetMap m_LoadedAssets;
-
-        // TODO: Memory only assets
     };
 }

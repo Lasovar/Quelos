@@ -5,6 +5,7 @@
 
 #include "Quelos/Scenes/ComponentRegistery.h"
 #include "rapidfuzz/fuzz.hpp"
+#include "Scene/Commands/SetEntityNameCommnad.h"
 
 namespace Quelos {
     HashMap<RuntimeID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{};
@@ -64,7 +65,7 @@ namespace Quelos {
         ImGuiStyle& style = ImGui::GetStyle();
 
         float height = ImGui::GetFrameHeight();
-        float width  = ImGui::GetContentRegionAvail().x - height - 3.0f;
+        float width = ImGui::GetContentRegionAvail().x - height - 3.0f;
 
         ImVec2 pos = ImGui::GetCursorScreenPos();
 
@@ -99,7 +100,7 @@ namespace Quelos {
         ImGui::SetCursorScreenPos({pos.x + 24, pos.y + 2});
         ImGui::TextUnformatted(label);
 
-        // menu button (RIGHT SIDE — fully independent)
+        // menu button
         float buttonSize = height;
         ImGui::SetCursorScreenPos({pos.x + width + 3.0f, pos.y});
 
@@ -137,7 +138,36 @@ namespace Quelos {
         ImGui::PushID(m_SelectedActor.GetActorID());
         if (ImGui::Begin("Entity Inspector")) {
             if (m_SelectedActor.IsAlive()) {
-                ImGui::Text("Entity: %s", m_SelectedActor.GetName());
+                ImGui::Spacing();
+
+                ImGui::SameLine();
+
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text(ICON_FA_CUBE);
+
+                ImGui::SameLine();
+
+                ImGui::InputTextEx(
+                     "##entityName",
+                     "Set the entity name",
+                     m_EntityNameField.data(),
+                     m_EntityNameField.size(),
+                     {ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()},
+                     ImGuiInputTextFlags_None
+                 );
+
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    m_UndoSystem.Push<SetEntityName>(
+                        m_SelectedActor.GetActorID(),
+                        m_Scene,
+                        std::string(m_EntityNameField.data())
+                    );
+
+                    std::snprintf(
+                        m_EntityNameField.data(), m_EntityNameField.size(),
+                        "%s", m_SelectedActor.GetName()
+                    );
+                }
 
                 ImGui::Separator();
 

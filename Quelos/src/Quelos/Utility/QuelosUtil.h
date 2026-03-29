@@ -1,6 +1,7 @@
 #pragma once
 
 namespace Quelos::Utility {
-        bool ReadBinaryFile(const std::filesystem::path& relativeFilePath, void* buffer, size_t size);
-        std::vector<byte> ReadBinaryFile(const std::filesystem::path& relativeFilePath);
+        /// @param relativeFilePath file path relative to the Project path (requires project to be loaded)
+        /// @return a Buffer containing the file contents
+        Buffer ReadFile(const std::filesystem::path& relativeFilePath);
 }

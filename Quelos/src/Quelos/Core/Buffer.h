@@ -7,19 +7,19 @@ namespace Quelos {
         using Deleter = void(*)(void*);
 
         Buffer() = default;
-        Buffer(byte* data, const size_t size, const Deleter deleter)
+        Buffer(byte* data, const uint64_t size, const Deleter deleter)
             : m_Data(data), m_Size(size), m_Deleter(deleter) {}
 
-        static Buffer Allocate(const size_t size) {
+        static Buffer Allocate(const uint64_t size) {
             void* ptr = std::malloc(size);
-            return Buffer(static_cast<byte*>(ptr), size, std::free);
+            return { static_cast<byte*>(ptr), size, std::free };
         }
 
-        static Buffer Adopt(void* data, const size_t size, const Deleter deleter) {
-            return Buffer(static_cast<byte*>(data), size, deleter);
+        static Buffer Adopt(void* data, const uint64_t size, const Deleter deleter) {
+            return { static_cast<byte*>(data), size, deleter };
         }
 
-        static Buffer Copy(const void* data, const size_t size) {
+        static Buffer Copy(const void* data, const uint64_t size) {
             Buffer buffer = Allocate(size);
             std::memcpy(buffer.m_Data, data, size);
             return buffer;
@@ -66,12 +66,20 @@ namespace Quelos {
             m_Deleter = nullptr;
         }
 
-        BufferView GetView() const {
+        [[nodiscard]] BufferView GetView() const {
             return { m_Data, m_Size };
         }
 
         MutBufferView GetMutView() {
             return { m_Data, m_Size };
+        }
+
+        [[nodiscard]] byte* GetData() const {
+            return m_Data;
+        }
+
+        [[nodiscard]] uint64_t GetSize() const {
+            return m_Size;
         }
 
         template <typename T>
@@ -102,7 +110,7 @@ namespace Quelos {
 
 
         template <typename T>
-        std::optional<T> AsValue(const size_t offset = 0) {
+        std::optional<T> AsValue(const uint64_t offset = 0) {
             if (offset + sizeof(T) > m_Size) {
                 return std::nullopt;
             }
@@ -118,7 +126,7 @@ namespace Quelos {
 
     private:
         byte* m_Data = nullptr;
-        size_t m_Size = 0;
+        uint64_t m_Size = 0;
         Deleter m_Deleter = nullptr;
     };
 }

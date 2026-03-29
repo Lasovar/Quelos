@@ -38,6 +38,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Dependencies
 set(BGFX_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
+set(BGFX_BUILD_TOOLS ON)
+set(BGFX_BUILD_TOOLS_SHADER ON)
 add_subdirectory(Quelos/vendor/bgfx.cmake)
 
 # SDL configuration
@@ -55,11 +57,9 @@ set(SDL_POWER OFF CACHE BOOL "" FORCE)
 set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
 set(SDL_CAMERA OFF CACHE BOOL "" FORCE)
 
-# Linux trimming
 set(SDL_DBUS OFF CACHE BOOL "" FORCE)
 set(SDL_IBUS OFF CACHE BOOL "" FORCE)
 set(SDL_LIBUDEV OFF CACHE BOOL "" FORCE)
-set(SDL_KMSDRM OFF CACHE BOOL "" FORCE)
 
 # Graphics APIs
 set(SDL_OPENGL ON CACHE BOOL "" FORCE)
@@ -72,6 +72,17 @@ add_subdirectory(Quelos/vendor/imgui)
 add_subdirectory(Quelos/vendor/rapidfuzz-cpp)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
+
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
+set(ASSIMP_BUILD_MINIZIP ON)
+set(ASSIMP_HUNTER_ENABLED OFF)
+set(BUILD_SHARED_LIBS OFF)
+set(ASSIMP_INSTALL OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+add_subdirectory(Quelos/vendor/assimp)
 
 # Daslang options
 set(DAS_GLFW_DISABLED ON CACHE BOOL "" FORCE)

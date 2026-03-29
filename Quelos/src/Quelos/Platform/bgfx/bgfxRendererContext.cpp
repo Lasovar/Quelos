@@ -1,6 +1,7 @@
 #include "qspch.h"
 #include "bgfxRendererContext.h"
 
+#include "../../../../vendor/bgfx.cmake/bgfx/tools/shaderc/shaderc.h"
 #include "bgfx/bgfx.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Renderer/Shader.h"
@@ -24,7 +25,7 @@ namespace Quelos {
 
         static bgfx::ShaderHandle LoadShader(const std::string& fileName) {
             Path shaderPath;
-            const Path& assets = Project::GetAssetsPath();
+            const Path& assets = "Assets/";
 
             switch (bgfx::getRendererType()) {
             case bgfx::RendererType::Noop:
@@ -42,8 +43,8 @@ namespace Quelos {
                 break;
             }
 
-            if (const std::vector<byte> data = ReadBinaryFile(shaderPath / fileName); !data.empty()) {
-                const bgfx::Memory* mem = bgfx::copy(data.data(), data.size());
+            if (const Buffer data = ReadFile(shaderPath / fileName); data) {
+                const bgfx::Memory* mem = bgfx::copy(data.GetData(), data.GetSize());
 
                 const bgfx::ShaderHandle handle = bgfx::createShader(mem);
                 bgfx::setName(handle, fileName.c_str(), static_cast<int32_t>(fileName.length()));
@@ -52,6 +53,53 @@ namespace Quelos {
             }
 
             return BGFX_INVALID_HANDLE;
+        }
+
+        bgfx::AttribType::Enum ToBGFX(const ShaderDataType type) {
+            switch (type) {
+            case ShaderDataType::Float:
+            case ShaderDataType::Float2:
+            case ShaderDataType::Float3:
+            case ShaderDataType::Float4:
+                return bgfx::AttribType::Float;
+
+            case ShaderDataType::UNorm8x4:
+            case ShaderDataType::UNorm8x2:
+                return bgfx::AttribType::Uint8;
+            case ShaderDataType::UInt10x3_A2:
+                return bgfx::AttribType::Uint10;
+
+            case ShaderDataType::UNorm16x2:
+            case ShaderDataType::UNorm16x4:
+                return bgfx::AttribType::Int16;
+
+            default:
+                return bgfx::AttribType::Float;
+            }
+        }
+
+        constexpr bgfx::Attrib::Enum ToBGFX(VertexAttribute attr) {
+            return static_cast<bgfx::Attrib::Enum>(attr);
+        }
+
+        static bgfx::VertexLayout ToBGFXLayout(const VertexLayout& layout) {
+            bgfx::VertexLayout result;
+            result.begin();
+
+            for (uint8_t i = 0; i < layout.Count; ++i) {
+                const auto& element = layout[i];
+
+                result.add(
+                    ToBGFX(element.Attribute),
+                    ComponentCount(element.Type),
+                    ToBGFX(element.Type),
+                    IsNormalized(element.Type),
+                    IsIntegerType(element.Type)
+                );
+            }
+
+            result.end();
+            return result;
         }
     }
 
@@ -127,15 +175,13 @@ namespace Quelos {
         bgfx::destroy(*s_ShaderTable.Get(shaderHandle));
     }
 
-    VertexBufferHandle bgfxRendererContext::CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) {
-        bgfx::VertexLayout pvcLayout;
-        pvcLayout
-            .begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
-            .end();
+    VertexBufferHandle bgfxRendererContext::CreateVertexBuffer(const BufferView vertices, const VertexLayout bufferLayout) {
+        const bgfx::VertexLayout pvcLayout = Utility::ToBGFXLayout(bufferLayout);
 
-        bgfx::VertexBufferHandle handle = createVertexBuffer(bgfx::makeRef(vertices.data(), vertices.size() * sizeof(PosColorVertex)), pvcLayout);
+        bgfx::VertexBufferHandle handle = createVertexBuffer(
+            bgfx::makeRef(vertices.data(), vertices.size()),
+            pvcLayout
+        );
 
         if (!bgfx::isValid(handle)) {
             QS_CORE_ERROR("Failed to create VertexBuffer!");
