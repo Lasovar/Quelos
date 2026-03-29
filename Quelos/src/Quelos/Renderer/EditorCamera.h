@@ -14,6 +14,17 @@ namespace Quelos {
 		void OnUpdate(float deltaTime);
 		void OnEvent(Event& e);
 
+		void ClearInput() {
+			m_Up = false;
+			m_Down = false;
+			m_Forward = false;
+			m_Backwards = false;
+			m_Left = false;
+			m_Right = false;
+			m_LMB = false;
+			m_RMB = false;
+		}
+
 		[[nodiscard]] float GetDistance() const { return m_Distance; }
 		void SetDistance(const float distance) { m_Distance = distance; }
 

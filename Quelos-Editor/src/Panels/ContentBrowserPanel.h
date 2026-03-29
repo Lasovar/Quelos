@@ -2,9 +2,11 @@
 
 #include "imgui.h"
 #include "Quelos/AssetManager/Asset.h"
-#include "Quelos/AssetManager/EditorAssetManager.h"
+#include "AssetManagement/EditorAssetManager.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
+
     struct AssetEntry {
         bool IsImportable = false;
         AssetMetadata Metadata;
@@ -19,7 +21,8 @@ namespace Quelos {
 
     class ContentBrowserPanel {
     public:
-        ContentBrowserPanel();
+        ContentBrowserPanel() = default;
+        void Init();
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 

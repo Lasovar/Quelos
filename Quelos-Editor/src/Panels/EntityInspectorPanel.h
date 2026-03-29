@@ -20,7 +20,11 @@ namespace Quelos {
     public:
         explicit EntityInspectorPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
 
-        void SetSelectedEntity(const Actor& entity) { m_SelectedActor = entity; }
+        void SetSelectedEntity(const Actor& entity) {
+            m_SelectedActor = entity;
+            std::snprintf(m_EntityNameField.data(), m_EntityNameField.size(), "%s", entity.GetName());
+        }
+
         void ClearSelectedEntity() { m_SelectedActor = {}; }
 
         bool ComponentHeader(const char* label, RuntimeID runtimeId, bool& open);
@@ -28,7 +32,10 @@ namespace Quelos {
 
     private:
         static HashMap<RuntimeID, InspectorComponent> s_InspectorArchiveSerialize;
+
     private:
+        std::array<char, 64> m_EntityNameField;
+
         Actor m_SelectedActor;
         Ref<Scene> m_Scene;
         UndoSystem& m_UndoSystem;

@@ -6,26 +6,42 @@
 
 #include "Quelos/Renderer/Renderer.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem)
         : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
-          m_EntityHierarchyPanel(scene, undoSystem)
-    {
+          m_EntityHierarchyPanel(scene, undoSystem) {
         m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Actor& actor) {
             m_InspectorPanel.SetSelectedEntity(actor);
         });
 
         m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
-        m_WorkspaceID = m_Scene->GetName() + "_Dockspace";
+        m_SceneWorkspaceClass.DockingAllowUnclassed = false;
+
+        m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
 
         m_GameViewportPanel = ViewportPanel("Game View", 0, 1, 1);
         m_SceneViewportPanel = ViewportPanel("Scene View", 1, 1, 1);
 
-        m_SceneWorkspaceClass.ClassId = ImHashStr("SceneWorkspace");
-        m_SceneWorkspaceClass.DockingAllowUnclassed = false;
-
-        m_WorkspaceID = "SceneWorkspace_Dockspace";
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
+
+        const AssetMetadata* metadata = RefAs<EditorAssetManager>(
+            Project::GetAssetManager())->GetAssetMetadata(m_Scene->GetAssetHandle()
+        );
+
+        if (!metadata) {
+            QS_CORE_ERROR_TAG(
+                "SceneWorkspace",
+                "Failed to get scene metadata for scene '{}'({})",
+                scene->GetName(),
+                scene->GetAssetHandle().ToString()
+            );
+
+            return;
+        }
+
+        m_SceneSerializer = SceneSerializer(m_Scene, metadata->FilePath);
+        m_UndoSystem.AddSceneSerializer(m_Scene, &m_SceneSerializer);
+        m_ContentBrowserPanel.Init();
     }
 
     void SceneWorkspace::SelectEntity(const Entity entity) {
@@ -33,6 +49,10 @@ namespace Quelos {
     }
 
     void SceneWorkspace::Tick(const float deltaTime) {
+        if (!m_SceneViewportPanel.IsViewportFocused() && !m_SceneViewportPanel.IsViewportHovered()) {
+            m_EditorCamera.ClearInput();
+        }
+
         m_EditorCamera.OnUpdate(deltaTime);
 
         m_Scene->Tick(deltaTime);
@@ -73,21 +93,67 @@ namespace Quelos {
         ImGui::Begin(m_Scene->GetName().c_str(), nullptr, flags);
 
         // Workspace-local dockspace
-        const ImGuiID workspaceDockId = ImGui::GetID(m_WorkspaceID.c_str());
-        ImGui::DockSpace(workspaceDockId, ImVec2(0, 0), ImGuiDockNodeFlags_None, &m_SceneWorkspaceClass);
+        ImGui::DockSpace(m_WorkspaceID, ImVec2(0, 0), ImGuiDockNodeFlags_None, &m_SceneWorkspaceClass);
 
-        m_GameViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
-        m_SceneViewportPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
-        m_EntityHierarchyPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
-        m_InspectorPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
-        m_ContentBrowserPanel.OnImGuiRender(workspaceDockId, m_SceneWorkspaceClass);
+        m_GameViewportPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
+        m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
+        m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
+        m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
+        m_ContentBrowserPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
 
         ImGui::End();
     }
 
-    void SceneWorkspace::OnEvent(Event& e) {
-        if (m_SceneViewportPanel.IsViewportHovered()) {
-            m_EditorCamera.OnEvent(e);
+    void SceneWorkspace::OnEvent(Event& event) {
+        if (m_SceneViewportPanel.IsViewportFocused() || m_SceneViewportPanel.IsViewportHovered()) {
+            m_EditorCamera.OnEvent(event);
         }
+
+        EventDispatcher dispatcher(event);
+        dispatcher.Dispatch<KeyPressedEvent>([this](const KeyPressedEvent& e) {
+            switch (e.GetKeyCode()) {
+            case KeyCode::LeftControl:
+            case KeyCode::RightControl:
+                m_CtrlKey = true;
+                break;
+            case KeyCode::LeftShift:
+            case KeyCode::RightShift:
+                m_ShiftKey = true;
+                break;
+            case KeyCode::S:
+                if (!e.IsRepeat()) {
+                    if (m_CtrlKey) {
+                        if (m_ShiftKey) {
+                            m_SceneSerializer.BakePatches();
+                        }
+                        else {
+                            m_SceneSerializer.SerializePatches();
+                        }
+                    }
+                }
+            default:
+                break;
+            }
+
+            return false;
+        });
+
+
+        dispatcher.Dispatch<KeyReleasedEvent>([this](const KeyReleasedEvent& e) {
+            switch (e.GetKeyCode()) {
+            case KeyCode::LeftControl:
+            case KeyCode::RightControl:
+                m_CtrlKey = false;
+                break;
+            case KeyCode::LeftShift:
+            case KeyCode::RightShift:
+                m_ShiftKey = false;
+                break;
+            default:
+                break;
+            }
+
+            return false;
+        });
     }
 }

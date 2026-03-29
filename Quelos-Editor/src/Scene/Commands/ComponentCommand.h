@@ -72,7 +72,7 @@ namespace Quelos {
         }
 
         ActorID ActorId;
-        Ref<Scene>& Scene;
+        Ref<Scene> Scene;
         Vec<byte> ComponentData;
 
         ComponentID ComponentId;

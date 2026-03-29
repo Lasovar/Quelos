@@ -25,7 +25,7 @@ namespace Quelos {
         [[nodiscard]] bool IsAlive() const;
         [[nodiscard]] bool IsValid() const { return m_ID.is_valid(); }
 
-        void Destruct();
+        void Destruct() const;
 
         template <typename T>
         void Add() const {

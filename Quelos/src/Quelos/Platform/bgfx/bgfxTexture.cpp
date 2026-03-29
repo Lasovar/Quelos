@@ -21,8 +21,8 @@ namespace Quelos {
         bgfx::TextureHandle handle = BGFX_INVALID_HANDLE;
 
         bx::DefaultAllocator allocator;
-        if (const Vec<byte> data = Utility::ReadBinaryFile(filePath); !data.empty()) {
-            bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.data(), data.size());
+        if (const Buffer data = Utility::ReadFile(filePath); !data) {
+            bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.GetData(), data.GetSize());
             if (imageContainer != nullptr) {
                 if (orientation) {
                     *orientation = imageContainer->m_orientation;

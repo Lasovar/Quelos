@@ -38,7 +38,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #endif
 
 	const auto app = new QuelosEditorApp(specs);
-	app->PushLayer<EditorLayer>();
+	app->PushLayer<QuelosEditor::EditorLayer>();
 
 	return app;
 }

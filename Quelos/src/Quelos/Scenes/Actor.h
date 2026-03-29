@@ -40,7 +40,7 @@ namespace Quelos {
         }
 
         void RemoveParent() const {
-            SetParent(Actor(m_ID.world().singleton<SceneRootTag>(), ActorID()));
+            SetParent(Actor(m_ID.world().singleton<SceneRoot>(), ActorID()));
         }
 
         void OrderBefore(const Actor target) const {

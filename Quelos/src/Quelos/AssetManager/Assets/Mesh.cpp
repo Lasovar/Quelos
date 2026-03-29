@@ -7,7 +7,11 @@ namespace Quelos {
 		m_Vertices(vertices),
 		m_Indices(indices)
 	{
-		m_VertexBuffer = Renderer::CreateVertexBuffer(m_Vertices);
+		VertexLayout layout;
+		layout.Add(VertexAttribute::Position, ShaderDataType::Float3);
+		layout.Add(VertexAttribute::Color0, ShaderDataType::UNorm8x4);
+
+		m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(m_Vertices)), layout);
 		m_IndexBuffer = Renderer::CreateIndexBuffer(m_Indices);
 	}
 }

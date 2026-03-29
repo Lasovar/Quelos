@@ -6,17 +6,25 @@
 #include "Scene/SceneSerializer.h"
 
 namespace Quelos {
+    template<typename T>
+    concept IsSceneCommand = requires(const T& cmd) {
+        { cmd.Scene } -> std::convertible_to<Ref<Scene>>;
+    };
+
+    class UndoSystem;
+
     struct CommandVTable {
         void (*Apply)(void*);
         void (*Revert)(void*);
         void (*Destroy)(void*);
-        void (*ApplyPatch)(SceneSerializer&, void*);
-        void (*RemovePatch)(SceneSerializer&, void*);
+        void (*ApplyPatch)(UndoSystem&, void*);
+        void (*RemovePatch)(UndoSystem&, void*);
     };
 
     struct CommandHeader {
-        CommandVTable* VTable;
-        uint32_t Size;
+        CommandVTable* VTable = nullptr;
+        bool IsSceneCommand = false;
+        uint32_t Size = 0;
     };
 
     template <typename T>
@@ -33,14 +41,6 @@ namespace Quelos {
             static_cast<T*>(data)->~T();
         }
 
-        static void ApplyPatch(SceneSerializer& serializer, void* data) {
-            serializer.Record(*static_cast<T*>(data));
-        }
-
-        static void RemovePatch(SceneSerializer& serializer, void* data) {
-            serializer.Remove(*static_cast<T*>(data));
-        }
-
         static CommandVTable VTABLE;
     };
 
@@ -49,16 +49,13 @@ namespace Quelos {
         &CommandWrapper::Apply,
         &CommandWrapper::Revert,
         &CommandWrapper::Destroy,
-        &CommandWrapper::ApplyPatch,
-        &CommandWrapper::RemovePatch
+        nullptr,
+        nullptr
     };
 
     class UndoSystem {
     public:
-        UndoSystem() = default;
-
-        explicit UndoSystem(SceneSerializer* sceneSerializer, const size_t capacity = 1024 * 1024)
-            : m_SceneSerializer(sceneSerializer) {
+        UndoSystem(const size_t capacity = 1024 * 1024) {
             m_Buffer = CreateScope<byte[]>(capacity);
             m_Capacity = capacity;
             m_Head = 0;
@@ -94,6 +91,7 @@ namespace Quelos {
             header->VTable = &CommandWrapper<T>::VTABLE;
             header->Size = sizeof(T);
 
+
             m_Stack.push_back(m_Head);
 
             m_Head += size;
@@ -101,11 +99,31 @@ namespace Quelos {
             DestroyRedo();
 
             header->VTable->Apply(data);
-            if (m_SceneSerializer) {
-                header->VTable->ApplyPatch(*m_SceneSerializer, data);
-            }
-            else {
-                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
+
+            if constexpr (IsSceneCommand<T>) {
+                header->IsSceneCommand = true;
+
+                header->VTable->ApplyPatch = [](UndoSystem& undoSystem, void* commandData) {
+                    T* cmd = static_cast<T*>(commandData);
+                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetHandle());
+                    if (it != undoSystem.m_SceneSerializers.end()) {
+                        if (SceneSerializer* sceneSerializer = it->second) {
+                            sceneSerializer->Record(*cmd);
+                        }
+                    }
+                };
+
+                header->VTable->RemovePatch = [](UndoSystem& undoSystem, void* commandData) {
+                    T* cmd = static_cast<T*>(commandData);
+                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetHandle());
+                    if (it != undoSystem.m_SceneSerializers.end()) {
+                        if (SceneSerializer* sceneSerializer = it->second) {
+                            sceneSerializer->Remove(*cmd);
+                        }
+                    }
+                };
+
+                header->VTable->ApplyPatch(*this, data);
             }
         }
 
@@ -122,11 +140,8 @@ namespace Quelos {
 
             header->VTable->Revert(data);
 
-            if (m_SceneSerializer) {
-                header->VTable->RemovePatch(*m_SceneSerializer, data);
-            }
-            else {
-                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
+            if (header->IsSceneCommand) {
+                header->VTable->RemovePatch(*this, data);
             }
 
             m_RedoStack.push_back(offset);
@@ -145,11 +160,8 @@ namespace Quelos {
 
             header->VTable->Apply(data);
 
-            if (m_SceneSerializer) {
-                header->VTable->ApplyPatch(*m_SceneSerializer, data);
-            }
-            else {
-                QS_CORE_ERROR_TAG("UndoSystem", "SceneSerializer is null");
+            if (header->IsSceneCommand) {
+                header->VTable->ApplyPatch(*this, data);
             }
 
             m_Stack.push_back(offset);
@@ -164,6 +176,14 @@ namespace Quelos {
             }
 
             m_RedoStack.clear();
+        }
+
+        void AddSceneSerializer(const Ref<Scene>& scene, SceneSerializer* sceneSerializer) {
+            m_SceneSerializers[scene->GetAssetHandle()] = sceneSerializer;
+        }
+
+        void RemoveSceneSerializer(const Ref<Scene>& scene) {
+            m_SceneSerializers.erase(scene->GetAssetHandle());
         }
 
     private:
@@ -200,6 +220,6 @@ namespace Quelos {
         Deque<size_t> m_Stack;
         Vec<size_t> m_RedoStack;
 
-        SceneSerializer* m_SceneSerializer = nullptr;
+        HashMap<AssetHandle, SceneSerializer*> m_SceneSerializers;
     };
 }

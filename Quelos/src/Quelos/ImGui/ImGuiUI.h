@@ -407,7 +407,7 @@ namespace Quelos::UI {
         const char* assetName = nullptr;
 
         if (value) {
-            if (const AssetMetadata* meta = Project::GetEditorAssetManager()->
+            if (const AssetMetadata* meta = Project::GetAssetManager()->
                 GetAssetMetadata(value->GetAssetHandle())) {
                 assetName = meta->FilePath.filename().c_str();
             }

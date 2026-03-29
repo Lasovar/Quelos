@@ -11,20 +11,14 @@
 #include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/quaternion.hpp"
-#include "Quelos/AssetManager/AssetManager.h"
 #include "Quelos/Core/Application.h"
 
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/VertexBuffer.h"
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
-#include "Quelos/Serialization/SceneBinarySerializer.h"
-#include "Quelos/Serialization/SceneQuelSerializer.h"
 
-#include "Quelos/Serialization/Serializer.h"
-#include "Scene/SceneSerializer.h"
-
-namespace Quelos {
+namespace QuelosEditor {
     static std::vector<PosColorVertex> cubeVertices = {
         {-1.0f, 1.0f, 1.0f, 0xff000000},
         {1.0f, 1.0f, 1.0f, 0xff0000ff},
@@ -64,39 +58,16 @@ namespace Quelos {
     template <class... Ts>
     Overloaded(Ts...) -> Overloaded<Ts...>;
 
-    static SceneSerializer s_SceneSerializer;
+    EditorLayer* EditorLayer::s_Instance = nullptr;
 
     void EditorLayer::OnAttach() {
-        m_DefaultScene = CreateRef<Scene>();
-
-        //Serialization::SceneBinarySerializer::Deserialize(m_DefaultScene, "Assets/TestScene.bin");
+        s_Instance = this;
 
         m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "SandboxProject");
-
-        /*AssetHandle yuriHandle = assetManager->AddAssetToRegistry(
-            AssetType::Texture2D,
-            "Textures/minecraft.png"
-        );*/
-
-        /*
-        const Ref<Texture2D> yuriTexture = AssetManager::GetAsset<Texture2D>(AssetHandle("d0ac2067-5393-41b0-85d8-fc1d67d9ce07"));
-
-        const Actor cube = m_DefaultScene->CreateActor("Sprite");
-        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0)});
-        cube.Set(SpriteRenderer{yuriTexture});
-        */
-
-        s_SceneSerializer = SceneSerializer(m_DefaultScene, Project::GetAssetsPath() / "TestScene");
-        m_UndoSystem = std::move(UndoSystem(&s_SceneSerializer));
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
         });*/
-
-        //Serialization::SceneQuelSerializer serializer;
-        //serializer.Deserialize(m_DefaultScene, "Assets/TestScene.txt");
-
-        //Serialization::SceneQuelSerializer::Serialize(m_DefaultScene, "Assets/TestScene.txt");
 
         /*const Actor camera = m_DefaultScene->CreateActor("Camera");
         camera.Set(CameraComponent{SceneCamera()});
@@ -144,14 +115,10 @@ namespace Quelos {
                 });
             }, "RotatePlayer");*/
 
-        m_SceneWorkspace = CreateRef<SceneWorkspace>(m_DefaultScene, m_UndoSystem);
-
-        m_Workspaces.push_back(m_SceneWorkspace);
-
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
-        //Serialization::SceneBinarySerializer::Serialize(m_DefaultScene, "Assets/TestScene.bin");
+        m_ContentBrowserPanel.Init();
     }
 
     void EditorLayer::Tick(const float deltaTime) {
@@ -275,6 +242,8 @@ namespace Quelos {
 
         ImGui::ShowDemoWindow();
 
+        m_ContentBrowserPanel.OnImGuiRender(globalDockspaceID, m_EditorLayerClass);
+
         for (const auto& workspace : m_Workspaces) {
             workspace->OnImGuiRender(globalDockspaceID);
         }
@@ -365,17 +334,6 @@ namespace Quelos {
                     m_UndoSystem.Redo();
                 }
                 break;
-            case KeyCode::S:
-                if (!e.IsRepeat()) {
-                    if (m_CtrlKey) {
-                        if (m_ShiftKey) {
-                            s_SceneSerializer.BakePatches();
-                        }
-                        else {
-                            s_SceneSerializer.SerializePatches();
-                        }
-                    }
-                }
             case KeyCode::A:
                 if (m_CtrlKey && m_ShiftKey && !e.IsRepeat()) {
                     m_ProjectSerializer.Serialize();
@@ -404,6 +362,13 @@ namespace Quelos {
             return false;
         });
 
-        m_SceneWorkspace->OnEvent(event);
+        for (const auto& workspace : m_Workspaces) {
+            workspace->OnEvent(event);
+        }
+    }
+
+    void EditorLayer::OpenSceneWorkspace(const AssetHandle& handle) {
+        Ref<Scene> scene = AssetManager::GetAsset<Scene>(handle);
+        m_Workspaces.push_back(CreateRef<SceneWorkspace>(scene, m_UndoSystem));
     }
 }

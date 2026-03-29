@@ -28,8 +28,21 @@ target_link_libraries(Quelos-Editor
     PRIVATE
         Quelos
         rapidfuzz
+        assimp
 )
 
+add_dependencies(Quelos-Editor shaderc)
+
+set(SHADERC_OUT_DIR "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin")
+set_target_properties(shaderc PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${SHADERC_OUT_DIR}"
+)
+
+add_custom_command(TARGET Quelos-Editor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${BGFX_DIR}/tools/bin
+        $<TARGET_FILE_DIR:Quelos-Editor>/Tools
+)
 if (WIN32)
     target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_WINDOWS)
 elseif (APPLE)

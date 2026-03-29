@@ -37,7 +37,7 @@ namespace Quelos {
         }
     }
 
-    class Scene : public RefCounted<Scene> {
+    class Scene : public Asset {
     public:
         explicit Scene(std::string name = "Untitled Scene");
 
@@ -63,9 +63,9 @@ namespace Quelos {
         }
 
         void Tick(float deltaTime) const;
-        void StartRender(const Ref<FrameBuffer>& frameBuffer) const;
+        void StartRender(const Ref<FrameBuffer>& frameBuffer);
         void Render(uint32_t viewId) const;
-        void EndRender() const;
+        void EndRender();
 
         const std::string& GetName() const { return m_Name; }
         void SetName(const std::string_view& name) { m_Name = name; }
@@ -99,13 +99,13 @@ namespace Quelos {
         static Ref<Scene> Copy(const Ref<Scene>& scene);
 
         static Ref<Scene> GetScene(const flecs::world& world) {
-            return s_WorldToScene[world.c_ptr()]->shared_from_this();
+            return world.get<SceneRoot>().GetScene();
         }
 
-        friend class SceneBinarySerializer;
+        AssetType GetAssetType() const override { return GetStaticType(); }
+        static AssetType GetStaticType() { return AssetType::Scene; }
 
-    private:
-        static HashMap<ecs_world_t*, Scene*> s_WorldToScene;
+        friend class SceneBinarySerializer;
 
     private:
         HashMap<ActorID, Actor> m_ActorsMap;
@@ -115,6 +115,11 @@ namespace Quelos {
         std::string m_Name;
 
         flecs::entity m_SceneRoot;
+
+        flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;
+        flecs::query<const WorldTransform&, const MeshComponent&> m_RenderingQuery;
+
+        bool m_SceneRenderStarted = false;
 
         flecs::entity m_TransformUpdate;
         flecs::entity m_TransformChildUpdate;

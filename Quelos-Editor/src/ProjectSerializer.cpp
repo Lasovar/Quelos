@@ -4,7 +4,7 @@
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/QuelArchive.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     ProjectSerializer::ProjectSerializer(const Path& projectPath) {
         using namespace Serialization;
         std::string projectName = projectPath.filename().string();
@@ -119,8 +119,10 @@ namespace Quelos {
 
         Project::Load(config);
 
-        m_AssetManager = Project::GetEditorAssetManager();
+        m_AssetManager = CreateRef<EditorAssetManager>();
         m_AssetManager->DeserializeAssetRegistry();
+
+        Project::SetAssetManager(m_AssetManager);
     }
 
     ProjectSerializer::~ProjectSerializer() {

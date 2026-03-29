@@ -10,7 +10,9 @@
 #include "Quelos/Renderer/EditorCamera.h"
 #include "Quelos/Scenes/Scene.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
+
     class SceneWorkspace : public Workspace {
     public:
         explicit SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem);
@@ -20,11 +22,12 @@ namespace Quelos {
         void Tick(float deltaTime) override;
         void OnImGuiRender(ImGuiID dockspaceID) override;
 
-        void OnEvent(Event& e);
+        void OnEvent(Event& event) override;
 
     private:
         Ref<Scene> m_Scene;
         UndoSystem& m_UndoSystem;
+        SceneSerializer m_SceneSerializer;
 
         ViewportPanel m_GameViewportPanel;
         ViewportPanel m_SceneViewportPanel;
@@ -36,6 +39,10 @@ namespace Quelos {
 
         EditorCamera m_EditorCamera;
         ImGuiWindowClass m_SceneWorkspaceClass;
-        std::string m_WorkspaceID;
+
+        ImGuiID m_WorkspaceID;
+
+        bool m_CtrlKey: 1 = false;
+        bool m_ShiftKey: 1 = false;
     };
 }

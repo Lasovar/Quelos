@@ -4,6 +4,7 @@
 #include "RendererAPI.h"
 #include "Shader.h"
 #include "VertexBuffer.h"
+#include "VertexBufferLayout.h"
 #include "Quelos/Core/Window.h"
 
 namespace Quelos {
@@ -17,7 +18,7 @@ namespace Quelos {
         virtual void Submit(ShaderHandle shaderHandle, uint32_t view) = 0;
         virtual void Destroy(ShaderHandle shaderHandle) = 0;
 
-        virtual VertexBufferHandle CreateVertexBuffer(const std::vector<PosColorVertex>& vertices) = 0;
+        virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
 
         virtual IndexBufferHandle CreateIndexBuffer(const std::vector<uint16_t>& vertices) = 0;

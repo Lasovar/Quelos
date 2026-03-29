@@ -43,7 +43,7 @@ namespace Quelos {
     struct SetField {
         ComponentID ComponentId{};
         ActorID ActorId{};
-        Ref<Scene>& scene;
+        Ref<Scene>& Scene;
 
         SetFieldSerializeFn SerializeComponentFunc = nullptr;
 
@@ -53,20 +53,20 @@ namespace Quelos {
         TField After;
 
         void Apply() {
-            const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
-            const Actor actor = scene->GetActor(ActorId);
+            const Actor actor = Scene->GetActor(ActorId);
 
             SetFieldArchive archive(FieldKey, &After);
             SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
         }
 
         void Revert() {
-            const ComponentTypeInfo* componentInfo = scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
-            const Actor actor = scene->GetActor(ActorId);
+            const Actor actor = Scene->GetActor(ActorId);
 
             auto archive = SetFieldArchive(FieldKey, &Before);
             SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));

@@ -2,11 +2,10 @@
 
 #include <utility>
 
-#include "Quelos/AssetManager/AssetManagerBase.h"
-#include "Quelos/AssetManager/EditorAssetManager.h"
-#include "Quelos/AssetManager/RuntimeAssetManager.h"
 #include "Quelos/Core/Base.h"
 #include "Quelos/Core/Ref.h"
+
+#include "Quelos/AssetManager/AssetManagerBase.h"
 
 namespace Quelos {
     struct ProjectConfig {
@@ -47,7 +46,6 @@ namespace Quelos {
 
         static Ref<Project> Load(const ProjectConfig& projectConfig) {
             s_ActiveProject = CreateRef<Project>(projectConfig);
-            s_ActiveProject->m_AssetManager = CreateRef<EditorAssetManager>();
 
             if (!std::filesystem::exists(GetAssetsPath())) {
                 std::filesystem::create_directories(GetAssetsPath());
@@ -72,22 +70,19 @@ namespace Quelos {
             return s_ActiveProject->m_AssetManager;
         }
 
-        [[nodiscard]] static Ref<RuntimeAssetManager> GetRuntimeAssetManager() {
-            return RefAs<RuntimeAssetManager>(s_ActiveProject->m_AssetManager);
+        static void SetAssetManager(const Ref<AssetManagerBase>& assetManager) {
+            s_ActiveProject->m_AssetManager = assetManager;
         }
-
-        [[nodiscard]] static Ref<EditorAssetManager> GetEditorAssetManager() {
-            return RefAs<EditorAssetManager>(s_ActiveProject->m_AssetManager);
-        }
-
 
     public:
-        explicit Project(ProjectConfig  projectConfig) : m_Config(std::move(projectConfig)) {}
+        explicit Project(ProjectConfig projectConfig) : m_Config(std::move(projectConfig)) {
+        }
 
     private:
         inline static Ref<Project> s_ActiveProject;
+
     private:
         ProjectConfig m_Config;
-		Ref<AssetManagerBase> m_AssetManager;
+        Ref<AssetManagerBase> m_AssetManager;
     };
 }

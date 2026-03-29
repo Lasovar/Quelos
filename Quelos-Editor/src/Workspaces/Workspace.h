@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Quelos/Core/Event.h"
+
 namespace Quelos {
     class Workspace {
     public:
@@ -8,5 +10,7 @@ namespace Quelos {
 
         virtual void Tick(float deltaTime) = 0;
         virtual void OnImGuiRender(unsigned int dockspaceID) = 0;
+
+        virtual void OnEvent(Event& event) = 0;
     };
 }
