@@ -17,12 +17,6 @@ add_compile_definitions(BX_CONFIG_DEBUG)
 
 # MSVC-specific options
 if (MSVC)
-    add_compile_options(
-        /Zc:preprocessor
-        /Zc:__cplusplus
-        /utf-8
-    )
-
     add_compile_definitions(QS_COMPILER_MSVC)
 endif()
 

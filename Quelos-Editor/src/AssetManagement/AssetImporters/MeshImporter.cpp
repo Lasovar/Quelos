@@ -13,7 +13,7 @@ namespace QuelosEditor {
         Ref<Mesh> ImportMesh(const AssetHandle assetHandle, const AssetMetadata& metadata) {
             Assimp::Importer importer;
             const Path absolutePath = std::filesystem::absolute(metadata.FilePath);
-            const aiScene* scene = importer.ReadFile(absolutePath.c_str(),
+            const aiScene* scene = importer.ReadFile(absolutePath.string(),
                                                      aiProcess_CalcTangentSpace |
                                                      aiProcess_Triangulate |
                                                      aiProcess_JoinIdenticalVertices |
@@ -23,7 +23,7 @@ namespace QuelosEditor {
                 QS_CORE_ERROR_TAG(
                     "MeshImporter::ImportMesh",
                     "Failed to import mesh ({},{}): {}",
-                    metadata.FilePath.c_str(),
+                    metadata.FilePath.string(),
                     assetHandle.ToString(),
                     importer.GetErrorString()
                 );

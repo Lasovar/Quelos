@@ -11,15 +11,16 @@
 #include "Quelos/ImGui/ImGuiUI.h"
 
 namespace QuelosEditor {
-    void ContentBrowserPanel::DrawFolderTile(const Path& path) {
-        ImGui::PushID(path.c_str());
+    void ContentBrowserPanel::DrawDirectoryTile(const Path& path) {
+        const std::string directoryName = path.filename().string();
+        ImGui::PushID(directoryName.c_str());
         ImGui::BeginGroup();
 
         if (ImGui::ButtonEx(ICON_FA_FOLDER, ImVec2(80, 80), ImGuiButtonFlags_PressedOnDoubleClick)) {
             m_CurrentPath = path;
         }
 
-        ImGui::TextWrapped("%s", path.filename().c_str());
+        ImGui::TextWrapped("%s", directoryName.c_str());
 
         ImGui::EndGroup();
         ImGui::PopID();
@@ -107,7 +108,7 @@ namespace QuelosEditor {
         }
 
         for (auto& part : m_CurrentPath) {
-            if (strcmp(part.c_str(), ".") != 0) {
+            if (part.lexically_normal() == ".") {
                 ImGui::SameLine();
                 ImGui::Text("%s", ICON_FA_ARROW_RIGHT);
             } else {
@@ -120,9 +121,9 @@ namespace QuelosEditor {
                 accumulated.push_back('/');
             }
 
-            accumulated += part.c_str();
+            accumulated += part.string();
 
-            if (ImGui::Button(part.c_str())) {
+            if (ImGui::Button(part.string().c_str())) {
                 m_CurrentPath = accumulated;
                 break;
             }
@@ -144,8 +145,8 @@ namespace QuelosEditor {
 
         ImGui::Columns(column_count, nullptr, false);
 
-        for (auto& subfolder : directory.SubDirectories) {
-            DrawFolderTile(subfolder);
+        for (auto& subDirectory : directory.SubDirectories) {
+            DrawDirectoryTile(subDirectory);
             ImGui::NextColumn();
         }
 
@@ -157,15 +158,15 @@ namespace QuelosEditor {
         ImGui::Columns(1);
     }
 
-    void ContentBrowserPanel::DrawFolderTree() {
+    void ContentBrowserPanel::DrawDirectoryTree() {
         auto& root = m_Directories[m_RelativeRootPath];
 
-        for (auto& folder : root.SubDirectories) {
-            DrawFolderNode(folder);
+        for (auto& directory : root.SubDirectories) {
+            DrawDirectoryNode(directory);
         }
     }
 
-    void ContentBrowserPanel::DrawFolderNode(const Path& path) {
+    void ContentBrowserPanel::DrawDirectoryNode(const Path& path) {
         ImGuiTreeNodeFlags flags = 0
             | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_DrawLinesToNodes
@@ -182,7 +183,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, path.filename().c_str()),
+            UI::FormatTemp("{} {}", ICON_FA_FOLDER, path.filename().string()),
             flags
         );
 
@@ -192,7 +193,7 @@ namespace QuelosEditor {
 
         if (hasChildren && open) {
             for (auto& child : directory.SubDirectories) {
-                DrawFolderNode(child);
+                DrawDirectoryNode(child);
             }
 
             ImGui::TreePop();
@@ -211,7 +212,7 @@ namespace QuelosEditor {
                 ImVec2(sidebar_width, 0),
                 ImGuiChildFlags_ResizeX | ImGuiChildFlags_Borders)
             ) {
-                DrawFolderTree();
+                DrawDirectoryTree();
             } ImGui::EndChild();
 
             ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, 0);
@@ -246,14 +247,14 @@ namespace QuelosEditor {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = false;
                 assetEntry.Metadata = *metadata;
-                assetEntry.Name = metadata->FilePath.filename();
+                assetEntry.Name = metadata->FilePath.filename().string();
 
                 m_Directories[path].Assets.push_back(assetEntry);
             }
             else if (EditorAssetManager::IsAssetSupported(entry.path())) {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = true;
-                assetEntry.Name = entry.path().filename();
+                assetEntry.Name = entry.path().filename().string();
                 assetEntry.Metadata.FilePath = entry.path();
 
                 m_Directories[path].Assets.push_back(assetEntry);

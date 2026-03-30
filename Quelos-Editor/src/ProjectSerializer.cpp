@@ -24,10 +24,10 @@ namespace QuelosEditor {
             quelWriter.WriteField("name", projectName);
             quelWriter.CloseSection();
 
-            quelWriter.WriteField("assets", "Assets/");
-            quelWriter.WriteField("source", "Source/");
-            quelWriter.WriteField("library", "Library/");
-            quelWriter.WriteField("projectSettings", "ProjectSettings/");
+            quelWriter.WriteField("assets", "Assets");
+            quelWriter.WriteField("source", "Source");
+            quelWriter.WriteField("library", "Library");
+            quelWriter.WriteField("projectSettings", "ProjectSettings");
 
             std::ofstream projectConfig(configFilePath, std::ios::binary);
             if (projectConfig.write(buffer.data(), buffer.size())) {
@@ -54,7 +54,7 @@ namespace QuelosEditor {
         std::string_view currentField;
 
         ProjectConfig config;
-        config.ProjectPath = std::filesystem::absolute(projectPath);
+        config.ProjectPath = std::filesystem::absolute(projectPath).lexically_normal();
 
         for (auto&& parserEvent : reader.Parse()) {
             if (breakFlag) {

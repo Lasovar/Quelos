@@ -13,7 +13,7 @@ namespace Quelos {
             ".png", ".jpeg"
         };
 
-        const std::string normalized = NormalizeExt(path.extension().c_str());
+        const std::string normalized = NormalizeExt(path.extension().string());
         return s_ImportableExtensions.find(normalized) != s_ImportableExtensions.end();
     }
 
@@ -22,7 +22,7 @@ namespace Quelos {
 
         const Path assetPath = Project::GetProjectPath() / metadata.FilePath;
         stbi_uc* data = stbi_load(
-            assetPath.c_str(),
+            assetPath.string().c_str(),
             &width,
             &height,
             &channels,

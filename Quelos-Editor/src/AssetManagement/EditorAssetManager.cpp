@@ -20,7 +20,7 @@ namespace QuelosEditor {
         if (assetType == AssetType::None) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
-                "Failed to add asset '{}' to registry: unknow asset type!", assetPath.c_str()
+                "Failed to add asset '{}' to registry: unknow asset type!", assetPath.string()
             );
 
             return nullptr;

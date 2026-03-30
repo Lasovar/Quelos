@@ -28,6 +28,16 @@ target_compile_definitions(Quelos
         GLM_FORCE_LEFT_HANDED
 )
 
+if (MSVC)
+    target_compile_options(
+            Quelos
+            PUBLIC
+            /Zc:preprocessor
+            /Zc:__cplusplus
+            /utf-8
+    )
+endif ()
+
 target_link_libraries(Quelos
     PRIVATE
         glfw
@@ -38,9 +48,9 @@ target_link_libraries(Quelos
         SDL3::SDL3-static
         freetype
         libDaScript
-        xxhash
         stb_image
     PUBLIC
+        xxhash
         imgui
         stduuid
         flecs_static
