@@ -27,12 +27,12 @@ namespace QuelosEditor {
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
-        void DrawFolderTile(const Path& path);
+        void DrawDirectoryTile(const Path& path);
         void DrawAssetTile(AssetEntry& asset);
         void DrawTopBar();
         void DrawAssetGrid();
-        void DrawFolderTree();
-        void DrawFolderNode(const Path& path);
+        void DrawDirectoryTree();
+        void DrawDirectoryNode(const Path& path);
         void IterateDirectory(const std::filesystem::directory_entry& directory);
 
         void RebuildDirectoryTree();

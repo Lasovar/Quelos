@@ -43,6 +43,7 @@ add_custom_command(TARGET Quelos-Editor POST_BUILD
         ${BGFX_DIR}/tools/bin
         $<TARGET_FILE_DIR:Quelos-Editor>/Tools
 )
+
 if (WIN32)
     target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_WINDOWS)
 elseif (APPLE)

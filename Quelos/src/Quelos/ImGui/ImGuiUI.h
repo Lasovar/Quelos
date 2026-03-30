@@ -5,7 +5,7 @@
 
 #include "icons_font_awesome.h"
 
-#include "fmt/format.h"
+#include "spdlog/fmt/fmt.h"
 
 #include "glm/vec3.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -404,12 +404,12 @@ namespace Quelos::UI {
         static std::string typeName(magic_enum::enum_name(T::GetStaticType()));
         static std::string none = fmt::format("None ({})", typeName);
 
-        const char* assetName = nullptr;
+        static std::string assetName;
 
         if (value) {
             if (const AssetMetadata* meta = Project::GetAssetManager()->
                 GetAssetMetadata(value->GetAssetHandle())) {
-                assetName = meta->FilePath.filename().c_str();
+                assetName = meta->FilePath.filename().string();
             }
         }
 
@@ -434,7 +434,7 @@ namespace Quelos::UI {
         draw->AddText(
             ImVec2(min.x + 8.0f, min.y + 4.0f),
             textCol,
-            assetName ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
+            assetName.c_str() ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
         );
 
         if (ImGui::BeginDragDropTarget()) {
