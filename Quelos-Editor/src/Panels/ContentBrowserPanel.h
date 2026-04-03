@@ -14,9 +14,9 @@ namespace QuelosEditor {
     };
 
     struct DirectoryData {
-        Path DirectoryPath;
+        std::string DirectoryPath;
         Vec<AssetEntry> Assets;
-        HashSet<Path> SubDirectories;
+        HashSet<std::string> SubDirectories;
     };
 
     class ContentBrowserPanel {
@@ -38,11 +38,11 @@ namespace QuelosEditor {
         void RebuildDirectoryTree();
 
     private:
-        Path m_RootPath;
-        Path m_RelativeRootPath;
-        Path m_CurrentPath;
+        std::string m_RootPath;
+        std::string m_RelativeRootPath;
+        std::string m_CurrentPath;
 
-        OrderedMap<Path, DirectoryData> m_Directories;
+        OrderedMap<std::string, DirectoryData> m_Directories;
         bool m_QueueDirectoryTreeRebuild = false;
         Ref<EditorAssetManager> m_AssetManager;
     };

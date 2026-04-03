@@ -102,14 +102,18 @@ namespace QuelosEditor {
     void ContentBrowserPanel::DrawTopBar() {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 6));
 
-        static std::string accumulated;
-        accumulated.clear();
-
         if (ImGui::Button("Root")) {
             m_CurrentPath = m_RelativeRootPath;
         }
 
-        for (auto& part : m_CurrentPath) {
+        size_t start = 0;
+        for (size_t i = 0; i <= m_CurrentPath.size(); i++) {
+            if (i != m_CurrentPath.size() && m_CurrentPath[i] != '/') {
+                continue;
+            }
+
+            std::string_view part(m_CurrentPath.data() + start, i - start);
+
             if (part != ".") {
                 ImGui::SameLine();
                 ImGui::Text("%s", ICON_FA_ARROW_RIGHT);
@@ -119,17 +123,13 @@ namespace QuelosEditor {
 
             ImGui::SameLine();
 
-            if (!accumulated.empty()) {
-                accumulated.push_back('/');
-            }
-
-            const std::string partStr = part.generic_string();
-            accumulated += partStr;
-
-            if (ImGui::Button(partStr.c_str())) {
-                m_CurrentPath = accumulated;
+            if (ImGui::Button(UI::FormatTemp("{}", part))) {
+                const std::string_view path(m_CurrentPath.data(), i);
+                m_CurrentPath = path;
                 break;
             }
+
+            start = i + 1;
         }
 
         ImGui::PopStyleVar();
@@ -237,11 +237,11 @@ namespace QuelosEditor {
             return;
         }
 
-        const Path path = std::filesystem::relative(directory.path(), m_RootPath);
-        m_Directories[path].DirectoryPath = directory.path();
+        const std::string path = std::filesystem::relative(directory.path(), m_RootPath).generic_string();
+        m_Directories[path].DirectoryPath = path;
 
         for (auto& entry : std::filesystem::directory_iterator(directory)) {
-            const auto& relativePath = std::filesystem::relative(entry.path(), m_RootPath);
+            const std::string& relativePath = std::filesystem::relative(entry.path(), m_RootPath).generic_string();
 
             if (const auto* metadata = m_AssetManager->GetAssetMetadata(relativePath)) {
                 AssetEntry assetEntry;

@@ -7,7 +7,7 @@
 namespace Quelos {
     struct AssetMetadata {
         AssetHandle Handle;
-        std::filesystem::path FilePath = {};
+        Path FilePath = {};
         AssetType Type = AssetType::None;
 
         AssetMetadata() = default;
