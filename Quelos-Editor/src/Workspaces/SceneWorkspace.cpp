@@ -7,15 +7,13 @@
 #include "Quelos/Renderer/Renderer.h"
 
 namespace QuelosEditor {
-    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem)
-        : m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
-          m_EntityHierarchyPanel(scene, undoSystem) {
+    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem) : Workspace(scene->GetName()),
+        m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
+        m_EntityHierarchyPanel(scene, undoSystem)
+    {
         m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Actor& actor) {
             m_InspectorPanel.SetSelectedEntity(actor);
         });
-
-        m_SceneWorkspaceClass.ClassId = ImHashStr(scene->GetName().c_str());
-        m_SceneWorkspaceClass.DockingAllowUnclassed = false;
 
         m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
 
@@ -58,6 +56,9 @@ namespace QuelosEditor {
         m_Scene->Tick(deltaTime);
 
         if (m_SceneViewportPanel.ShouldDraw()) {
+            m_EditorCamera.SetViewportFocused(m_SceneViewportPanel.IsViewportFocused());
+            m_EditorCamera.SetViewportHovered(m_SceneViewportPanel.IsViewportHovered());
+
             if (m_SceneViewportPanel.ResizeIfNeeded()) {
                 const glm::vec2 size = m_SceneViewportPanel.GetViewportSize();
                 m_EditorCamera.SetViewportSize(size.x, size.y);
@@ -82,32 +83,16 @@ namespace QuelosEditor {
         }
     }
 
-    void SceneWorkspace::OnImGuiRender(const ImGuiID dockspaceID) {
-        // Force this workspace to live in the main central dock
-        if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockspaceID); node && node->CentralNode) {
-            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
-        }
-
-        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
-
-        ImGui::Begin(m_Scene->GetName().c_str(), nullptr, flags);
-
-        // Workspace-local dockspace
-        ImGui::DockSpace(m_WorkspaceID, ImVec2(0, 0), ImGuiDockNodeFlags_None, &m_SceneWorkspaceClass);
-
-        m_GameViewportPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
-        m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
-        m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
-        m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
-        m_ContentBrowserPanel.OnImGuiRender(m_WorkspaceID, m_SceneWorkspaceClass);
-
-        ImGui::End();
+    void SceneWorkspace::WorkspaceContents() {
+        m_GameViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+        m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+        m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+        m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+        m_ContentBrowserPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
     }
 
     void SceneWorkspace::OnEvent(Event& event) {
-        if (m_SceneViewportPanel.IsViewportFocused() || m_SceneViewportPanel.IsViewportHovered()) {
-            m_EditorCamera.OnEvent(event);
-        }
+        m_EditorCamera.OnEvent(event);
 
         EventDispatcher dispatcher(event);
         dispatcher.Dispatch<KeyPressedEvent>([this](const KeyPressedEvent& e) {

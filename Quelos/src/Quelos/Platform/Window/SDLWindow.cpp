@@ -232,7 +232,9 @@ namespace Quelos {
 
     void SDLWindow::PollEvents() {
         SDL_Event event;
+
         while (SDL_PollEvent(&event)) {
+            bool handled = false;
             switch (event.type) {
             case SDL_EVENT_QUIT:
                 m_ShouldClose = true;
@@ -247,30 +249,37 @@ namespace Quelos {
                 auto& app = Application::Get();
                 KeyPressedEvent e(Utils::SDLKeycodeToKeyCode(event.key.key), event.key.repeat);
                 app.RaiseEvent(e);
+                handled = e.Handled;
                 break;
             }
             case SDL_EVENT_KEY_UP: {
                 auto& app = Application::Get();
                 KeyReleasedEvent e(Utils::SDLKeycodeToKeyCode(event.key.key));
                 app.RaiseEvent(e);
+                handled = e.Handled;
                 break;
             }
             case SDL_EVENT_MOUSE_BUTTON_DOWN: {
                 auto& app = Application::Get();
                 MouseButtonPressedEvent e(Utils::SDLMouseButtonCodeToMouseButton(event.button.button));
                 app.RaiseEvent(e);
+                handled = e.Handled;
                 break;
             }
             case SDL_EVENT_MOUSE_BUTTON_UP: {
                 auto& app = Application::Get();
                 MouseButtonReleasedEvent e(Utils::SDLMouseButtonCodeToMouseButton(event.button.button));
                 app.RaiseEvent(e);
+                handled = e.Handled;
                 break;
             }
             case SDL_EVENT_MOUSE_MOTION: {
+                m_CurrentMousePosition = { event.motion.x, event.motion.y };
+
                 auto& app = Application::Get();
                 MouseMovedEvent e(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
                 app.RaiseEvent(e);
+                handled = e.Handled;
                 break;
             }
             case SDL_EVENT_MOUSE_WHEEL: {
@@ -284,13 +293,17 @@ namespace Quelos {
 
                 MouseScrolledEvent e(x, y);
                 app.RaiseEvent(e);
+                handled = e.Handled;
+
                 break;
             }
             default:
                 break;
             }
 
-            ImGui_ImplSDL3_ProcessEvent(&event);
+            if (!handled) {
+                ImGui_ImplSDL3_ProcessEvent(&event);
+            }
         }
     }
 
@@ -298,11 +311,17 @@ namespace Quelos {
         switch (cursorMode) {
         case CursorMode::Normal:
             SDL_SetWindowRelativeMouseMode(m_SDLWindow, false);
+            SDL_SetWindowMouseGrab(m_SDLWindow, false);
+            SDL_CaptureMouse(false);
             SDL_ShowCursor();
             break;
+        case CursorMode::Hidden:
         case CursorMode::Locked:
             SDL_SetWindowRelativeMouseMode(m_SDLWindow, true);
+            SDL_SetWindowMouseGrab(m_SDLWindow, true);
+            SDL_CaptureMouse(true);
             SDL_HideCursor();
+            m_LockCursorPosition = m_CurrentMousePosition;
             break;
         }
     }

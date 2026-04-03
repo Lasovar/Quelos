@@ -1,6 +1,7 @@
 #include "qspch.h"
 #include "EntityHierarchyPanel.h"
 
+#include "EditorUI.h"
 #include "imgui_internal.h"
 
 #include "Scene/Commands/CreateActorCommand.h"
@@ -9,7 +10,7 @@
 
 #include "Quelos/ImGui/icons_font_awesome.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     EntityHierarchyPanel::EntityHierarchyPanel(
         const Ref<Scene>& scene, UndoSystem& undoSystem
     ) : m_Scene(scene), m_UndoSystem(undoSystem) {
@@ -17,10 +18,7 @@ namespace Quelos {
     }
 
     void EntityHierarchyPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
-        ImGui::SetNextWindowDockID(dockspaceID, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowClass(&windowClass);
-
-        if (ImGui::Begin("Hierarchy")) {
+        if (UI::Begin("Hierarchy", dockspaceID, windowClass)) {
             if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_NoOpenOverItems)) {
                 if (ImGui::MenuItem("Create Empty Actor")) {
                     ActorID actorId = ActorID::Generate();
@@ -86,8 +84,7 @@ namespace Quelos {
                 !ImGui::IsAnyItemHovered()) {
                 SetSelectedActor({});
             }
-        }
-        ImGui::End();
+        } UI::End();
     }
 
     static bool IsDescendant(const Entity& parent, Entity candidate) {

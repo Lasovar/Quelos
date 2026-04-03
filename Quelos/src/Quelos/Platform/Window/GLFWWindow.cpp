@@ -136,8 +136,8 @@ namespace Quelos {
             GLFWWindow& window = *static_cast<GLFWWindow*>(glfwGetWindowUserPointer(handle));
 
             if (window.m_MouseMoveFirst) {
-                window.m_LastX = x;
-                window.m_LastY = y;
+                window.m_LastX = static_cast<float>(x);
+                window.m_LastY = static_cast<float>(y);
                 window.m_MouseMoveFirst = false;
 
                 MouseMovedEvent e(static_cast<float>(x), static_cast<float>(y), 0, 0);
@@ -145,11 +145,11 @@ namespace Quelos {
                 return;
             }
 
-            const float dx = static_cast<float>(x - window.m_LastX);
-            const float dy = static_cast<float>(y - window.m_LastY);
+            const auto dx = static_cast<float>(x - window.m_LastX);
+            const auto dy = static_cast<float>(y - window.m_LastY);
 
-            window.m_LastX = x;
-            window.m_LastY = y;
+            window.m_LastX = static_cast<float>(x);
+            window.m_LastY = static_cast<float>(y);
 
             MouseMovedEvent e(static_cast<float>(x), static_cast<float>(y), dx, dy);
             app.RaiseEvent(e);
@@ -170,6 +170,7 @@ namespace Quelos {
             glfwSetInputMode(m_GLFWWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             break;
         case CursorMode::Locked:
+        case CursorMode::Hidden:
             glfwSetInputMode(m_GLFWWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             m_MouseMoveFirst = true;
             break;

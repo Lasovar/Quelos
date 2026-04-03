@@ -10,9 +10,11 @@
 #include "Quelos/Project/Project.h"
 #include "Quelos/ImGui/ImGuiUI.h"
 
+#include "EditorUI.h"
+
 namespace QuelosEditor {
     void ContentBrowserPanel::DrawDirectoryTile(const Path& path) {
-        const std::string directoryName = path.filename().string();
+        const std::string directoryName = path.filename().generic_string();
         ImGui::PushID(directoryName.c_str());
         ImGui::BeginGroup();
 
@@ -108,7 +110,7 @@ namespace QuelosEditor {
         }
 
         for (auto& part : m_CurrentPath) {
-            if (part.lexically_normal() == ".") {
+            if (part != ".") {
                 ImGui::SameLine();
                 ImGui::Text("%s", ICON_FA_ARROW_RIGHT);
             } else {
@@ -121,9 +123,10 @@ namespace QuelosEditor {
                 accumulated.push_back('/');
             }
 
-            accumulated += part.string();
+            const std::string partStr = part.generic_string();
+            accumulated += partStr;
 
-            if (ImGui::Button(part.string().c_str())) {
+            if (ImGui::Button(partStr.c_str())) {
                 m_CurrentPath = accumulated;
                 break;
             }
@@ -183,7 +186,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, path.filename().string()),
+            UI::FormatTemp("{} {}", ICON_FA_FOLDER, path.filename().generic_string()),
             flags
         );
 
@@ -201,10 +204,7 @@ namespace QuelosEditor {
     }
 
     void ContentBrowserPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
-        ImGui::SetNextWindowDockID(dockspaceID, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowClass(&windowClass);
-
-        if (ImGui::Begin(UI::FormatTemp("Content Browser##{}", static_cast<void*>(this)))) {
+        if (UI::Begin("Content Browser", dockspaceID, windowClass)) {
             static float sidebar_width = 220.0f;
 
             if (ImGui::BeginChild(
@@ -224,7 +224,7 @@ namespace QuelosEditor {
                 DrawAssetGrid();
             } ImGui::EndChild();
 
-        } ImGui::End();
+        } UI::End();
 
         if (m_QueueDirectoryTreeRebuild) {
             RebuildDirectoryTree();
@@ -247,14 +247,14 @@ namespace QuelosEditor {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = false;
                 assetEntry.Metadata = *metadata;
-                assetEntry.Name = metadata->FilePath.filename().string();
+                assetEntry.Name = metadata->FilePath.filename().generic_string();
 
                 m_Directories[path].Assets.push_back(assetEntry);
             }
             else if (EditorAssetManager::IsAssetSupported(entry.path())) {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = true;
-                assetEntry.Name = entry.path().filename().string();
+                assetEntry.Name = entry.path().filename().generic_string();
                 assetEntry.Metadata.FilePath = entry.path();
 
                 m_Directories[path].Assets.push_back(assetEntry);

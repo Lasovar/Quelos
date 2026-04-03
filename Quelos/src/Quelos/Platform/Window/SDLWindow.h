@@ -30,6 +30,10 @@ namespace Quelos {
         bool ShouldClose() const override { return m_ShouldClose; }
     private:
         WindowSpecification m_Specifications;
+        CursorMode m_CurrentCursorMode;
+        glm::vec2 m_CurrentMousePosition;
+        glm::vec2 m_LockCursorPosition;
+
         bool m_ShouldClose = false;
 
         bool m_IsWayland = false;

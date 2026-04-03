@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "../../../vendor/bgfx.cmake/bgfx/3rdparty/dear-imgui/imgui.h"
 #include "Quelos/Core/Application.h"
 
 #include "Quelos/Math/Math.h"
@@ -120,37 +121,41 @@ namespace Quelos {
             return true;
         });*/
 
-        dispatcher.Dispatch<MouseButtonPressedEvent>([this](const MouseButtonPressedEvent& event) {
-            switch (event.GetMouseButton()) {
-            case MouseButton::Left:
-                m_LMB = true;
-                break;
-            case MouseButton::Right:
-                m_RMB = true;
-                Application::Get().GetWindow()->SetCursorMode(CursorMode::Locked);
-                break;
-            default:
-                break;
-            }
+        if (m_IsViewportHovered) {
+            dispatcher.Dispatch<MouseButtonPressedEvent>([this](const MouseButtonPressedEvent& event) {
+                switch (event.GetMouseButton()) {
+                case MouseButton::Left:
+                    m_LMB = true;
+                    return true;
+                case MouseButton::Right:
+                    m_RMB = true;
+                    Application::Get().GetWindow()->SetCursorMode(CursorMode::Locked);
+                    return true;
+                default:
+                    break;
+                }
 
-            return false;
-        });
+                return false;
+            });
+        }
 
-        dispatcher.Dispatch<MouseButtonReleasedEvent>([this](const MouseButtonReleasedEvent& event) {
-            switch (event.GetMouseButton()) {
-            case MouseButton::Left:
-                m_LMB = false;
-                break;
-            case MouseButton::Right:
-                m_RMB = false;
-                Application::Get().GetWindow()->SetCursorMode(CursorMode::Normal);
-                break;
-            default:
-                break;
-            }
+        if (m_LMB || m_RMB) {
+            dispatcher.Dispatch<MouseButtonReleasedEvent>([this](const MouseButtonReleasedEvent& event) {
+                switch (event.GetMouseButton()) {
+                case MouseButton::Left:
+                    m_LMB = false;
+                    return true;
+                case MouseButton::Right:
+                    m_RMB = false;
+                    Application::Get().GetWindow()->SetCursorMode(CursorMode::Normal);
+                    return true;
+                default:
+                    break;
+                }
 
-            return false;
-        });
+                return false;
+            });
+        }
 
         dispatcher.Dispatch<MouseMovedEvent>([this](const MouseMovedEvent& event) {
             const glm::vec2 mouse(event.GetX(), -event.GetY());
@@ -160,34 +165,36 @@ namespace Quelos {
             m_MouseDelta += delta;
             m_InitialMousePosition = mouse;
 
-            return false;
+            return m_RMB;
         });
 
-        dispatcher.Dispatch<KeyPressedEvent>([this](const KeyPressedEvent& event) {
-            switch (event.GetKeyCode()) {
-            case KeyCode::LeftControl:
-                m_LControl = true;
-                break;
-            case KeyCode::LeftShift:
-                m_LShift = true;
-                break;
-            case KeyCode::W:
-                m_Forward = true;
-                break;
-            case KeyCode::S:
-                m_Backwards = true;
-                break;
-            case KeyCode::A:
-                m_Left = true;
-                break;
-            case KeyCode::D:
-                m_Right = true;
-                break;
-            default: break;
-            }
+        if (m_LMB || m_RMB) {
+            dispatcher.Dispatch<KeyPressedEvent>([this](const KeyPressedEvent& event) {
+                switch (event.GetKeyCode()) {
+                case KeyCode::LeftControl:
+                    m_LControl = true;
+                    break;
+                case KeyCode::LeftShift:
+                    m_LShift = true;
+                    break;
+                case KeyCode::W:
+                    m_Forward = true;
+                    break;
+                case KeyCode::S:
+                    m_Backwards = true;
+                    break;
+                case KeyCode::A:
+                    m_Left = true;
+                    break;
+                case KeyCode::D:
+                    m_Right = true;
+                    break;
+                default: break;
+                }
 
-            return true;
-        });
+                return false;
+            });
+        }
 
         dispatcher.Dispatch<KeyReleasedEvent>([this](const KeyReleasedEvent& event) {
             switch (event.GetKeyCode()) {
@@ -212,7 +219,7 @@ namespace Quelos {
             default: break;
             }
 
-            return true;
+            return false;
         });
     }
 
