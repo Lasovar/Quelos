@@ -3,7 +3,7 @@
 #include "Quelos/Scenes/Scene.h"
 
 namespace Quelos {
-    struct SetParent {
+    struct SetEntityParent {
     public:
         void Apply() const {
             const Actor actor = Scene->GetActor(ActorId);
@@ -28,8 +28,8 @@ namespace Quelos {
             }
         }
 
-        SetParent() = default;
-        SetParent(const ActorID actorId, const ActorID parentId, const Ref<Scene>& scene) {
+        SetEntityParent() = default;
+        SetEntityParent(const ActorID actorId, const ActorID parentId, const Ref<Scene>& scene) {
             ActorId = actorId;
             NewParentId = parentId;
             Scene = scene;

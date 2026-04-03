@@ -61,6 +61,10 @@ namespace Quelos {
                 m_Deleter(m_Data);
             }
 
+            ReleaseOwnership();
+        }
+
+        void ReleaseOwnership() {
             m_Data = nullptr;
             m_Size = 0;
             m_Deleter = nullptr;
@@ -80,6 +84,10 @@ namespace Quelos {
 
         [[nodiscard]] uint64_t GetSize() const {
             return m_Size;
+        }
+
+        Deleter GetDeleter() const {
+            return m_Deleter;
         }
 
         template <typename T>

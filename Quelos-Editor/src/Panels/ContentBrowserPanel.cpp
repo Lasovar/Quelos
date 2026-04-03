@@ -13,16 +13,25 @@
 #include "EditorUI.h"
 
 namespace QuelosEditor {
-    void ContentBrowserPanel::DrawDirectoryTile(const Path& path) {
-        const std::string directoryName = path.filename().generic_string();
-        ImGui::PushID(directoryName.c_str());
+    static std::string_view filename(const std::string& path) {
+        const size_t pos = path.find_last_of("/\\");
+        if (pos == std::string_view::npos) {
+            return path;
+        }
+
+        return std::string_view(path.data() + pos + 1, path.size());
+    }
+
+    void ContentBrowserPanel::DrawDirectoryTile(const std::string& path) {
+        std::string_view directoryName = filename(path);
+        ImGui::PushID(path.c_str());
         ImGui::BeginGroup();
 
         if (ImGui::ButtonEx(ICON_FA_FOLDER, ImVec2(80, 80), ImGuiButtonFlags_PressedOnDoubleClick)) {
             m_CurrentPath = path;
         }
 
-        ImGui::TextWrapped("%s", directoryName.c_str());
+        ImGui::TextWrapped("%s", UI::FormatTemp("{}", directoryName));
 
         ImGui::EndGroup();
         ImGui::PopID();
@@ -169,7 +178,7 @@ namespace QuelosEditor {
         }
     }
 
-    void ContentBrowserPanel::DrawDirectoryNode(const Path& path) {
+    void ContentBrowserPanel::DrawDirectoryNode(const std::string& path) {
         ImGuiTreeNodeFlags flags = 0
             | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_DrawLinesToNodes
@@ -186,7 +195,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, path.filename().generic_string()),
+            UI::FormatTemp("{} {}", ICON_FA_FOLDER, filename(path)),
             flags
         );
 
@@ -270,8 +279,9 @@ namespace QuelosEditor {
 
     void ContentBrowserPanel::Init() {
         m_AssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
-        m_RootPath = Project::GetProjectPath();
-        m_RelativeRootPath = std::filesystem::relative(m_RootPath, m_RootPath);
+        const auto& rootPath = Project::GetProjectPath();
+        m_RootPath = rootPath.generic_string();
+        m_RelativeRootPath = std::filesystem::relative(rootPath, rootPath).generic_string();
 
         RebuildDirectoryTree();
 

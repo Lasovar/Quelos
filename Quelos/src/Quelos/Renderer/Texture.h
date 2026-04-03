@@ -1,8 +1,10 @@
 #pragma once
+
 #include <filesystem>
 
 #include "glm/vec2.hpp"
 #include "Quelos/AssetManager/Asset.h"
+#include "Quelos/Core/Buffer.h"
 #include "Quelos/Core/Ref.h"
 
 namespace Quelos {
@@ -98,7 +100,7 @@ namespace Quelos {
     class Texture2D : public Texture {
     public:
         static Ref<Texture2D> Create(const TextureSpecification& spec);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, BufferView data);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, Buffer data);
         static Ref<Texture2D> Create(const TextureSpecification& spec, const std::filesystem::path& texturePath);
 
         virtual void CreateFromFile(const TextureSpecification& specification,

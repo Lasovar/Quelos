@@ -136,13 +136,13 @@ namespace Quelos {
             entityPatch.StatePopBack();
         }
 
-        void Record(const SetParent& cmd) {
+        void Record(const SetEntityParent& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.ParentPatchCount++;
             entityPatch.StatePushBack(PatchState::Changed);
         }
 
-        void Remove(const SetParent& cmd) {
+        void Remove(const SetEntityParent& cmd) {
             auto& entityPatch = m_Actors[cmd.ActorId];
             entityPatch.ParentPatchCount--;
             entityPatch.StatePopBack();

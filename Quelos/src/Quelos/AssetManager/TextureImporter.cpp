@@ -40,7 +40,7 @@ namespace Quelos {
         }
 
         // SIZE * CHANNELS not sure if it's sufficient
-        const Buffer dataBuffer = Buffer::Adopt(data, width * height * channels, stbi_image_free);
+        Buffer dataBuffer = Buffer::Adopt(data, width * height * channels, stbi_image_free);
 
         TextureSpecification textureSpecs;
         textureSpecs.Width = width;
@@ -63,7 +63,7 @@ namespace Quelos {
             return nullptr;
         }
 
-        Ref<Texture2D> texture = Texture2D::Create(textureSpecs, dataBuffer.GetView());
+        Ref<Texture2D> texture = Texture2D::Create(textureSpecs, std::move(dataBuffer));
         if (texture) {
             texture->SetAssetHandle(assetHandle);
         }
