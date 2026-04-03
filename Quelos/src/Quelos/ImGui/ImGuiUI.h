@@ -6,6 +6,7 @@
 #include "icons_font_awesome.h"
 
 #include "spdlog/fmt/fmt.h"
+#include "magic_enum/magic_enum.hpp"
 
 #include "glm/vec3.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -14,13 +15,17 @@
 #include "Quelos/AssetManager/AssetManager.h"
 
 namespace Quelos::UI {
+    // Formats a string to a temporary buffer
+    // There is no guarantee that the cstr will be valid after the next call
+    // So either copy the result or use it immediately
+    // But should be good for most ImGui calls since those copy the buffer internally
     template <typename... Args>
     const char* FormatTemp(fmt::format_string<Args...> fmtStr, Args&&... args) {
         // Ring buffer for extra safety
         // (I think? cases where you're formatting more than once in a single line for some reason)
         constexpr int k_BufferCount = 4;
         thread_local fmt::memory_buffer buffers[k_BufferCount];
-        thread_local int index = 0;
+        thread_local uint32_t index = 0;
 
         auto& buffer = buffers[index++ % k_BufferCount];
         buffer.clear();
@@ -409,7 +414,7 @@ namespace Quelos::UI {
         if (value) {
             if (const AssetMetadata* meta = Project::GetAssetManager()->
                 GetAssetMetadata(value->GetAssetHandle())) {
-                assetName = meta->FilePath.filename().string();
+                assetName = meta->FilePath.filename().generic_string();
             }
         }
 
@@ -434,7 +439,7 @@ namespace Quelos::UI {
         draw->AddText(
             ImVec2(min.x + 8.0f, min.y + 4.0f),
             textCol,
-            assetName.c_str() ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
+            value ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
         );
 
         if (ImGui::BeginDragDropTarget()) {

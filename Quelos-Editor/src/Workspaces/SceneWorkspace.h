@@ -20,7 +20,7 @@ namespace QuelosEditor {
         void SelectEntity(Entity entity);
 
         void Tick(float deltaTime) override;
-        void OnImGuiRender(ImGuiID dockspaceID) override;
+        void WorkspaceContents() override;
 
         void OnEvent(Event& event) override;
 
@@ -38,9 +38,6 @@ namespace QuelosEditor {
         ContentBrowserPanel m_ContentBrowserPanel;
 
         EditorCamera m_EditorCamera;
-        ImGuiWindowClass m_SceneWorkspaceClass;
-
-        ImGuiID m_WorkspaceID;
 
         bool m_CtrlKey: 1 = false;
         bool m_ShiftKey: 1 = false;

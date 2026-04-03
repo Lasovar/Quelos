@@ -1,11 +1,12 @@
 #include "qspch.h"
 #include "ViewportPanel.h"
 
+#include "EditorUI.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     ViewportPanel::ViewportPanel(std::string  name, const uint32_t viewId, const uint32_t width, const uint32_t height)
         : m_Name(std::move(name))
     {
@@ -53,20 +54,13 @@ namespace Quelos {
     }
 
     void ViewportPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
-        ImGui::SetNextWindowDockID(dockspaceID, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowClass(&windowClass);
-
         constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
         m_ViewportVisible = false;
 
         if (m_IsEnabled) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-            if (!ImGui::Begin(m_Name.c_str(), &m_IsEnabled, flags)) {
-                ImGui::PopStyleVar(1);
-                ImGui::End();
-            }
-            else {
+            if (UI::Begin(m_Name, dockspaceID, windowClass, &m_IsEnabled, flags)) {
                 const auto viewportOffset = ImGui::GetCursorPos(); // Includes the tab bar
 
                 ImVec2 viewPortPanelSize = ImGui::GetContentRegionAvail();
@@ -77,8 +71,8 @@ namespace Quelos {
                 }
 
                 glm::vec4 uv = m_ColorAttachment->IsVFlipped()
-                                    ? glm::vec4(0.0f, 1.0f, 1.0f, 0.0f)
-                                    : glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+                                   ? glm::vec4(0.0f, 1.0f, 1.0f, 0.0f)
+                                   : glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
                     m_ColorAttachment,
@@ -101,15 +95,14 @@ namespace Quelos {
 
                 const ImGuiDockNode* node = ImGui::GetWindowDockNode();
                 m_ViewportVisible = !node /* floating window (supposedly) */ ? true : node->IsVisible;
+            } UI::End();
 
-                ImGui::End();
-                ImGui::PopStyleVar();
-            }
+            ImGui::PopStyleVar(1);
         }
     }
 
     void ViewportPanel::QueueResize(const float width, const float height) {
-        if (width == 0 || height == 0 || (width == m_ViewportSize.x && height == m_ViewportSize.y)) {
+        if (width < 1 || height < 1 || (width == m_ViewportSize.x && height == m_ViewportSize.y)) {
             return;
         }
 

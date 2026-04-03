@@ -6,7 +6,9 @@
 
 #include "UndoSystem.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
+
     using InspectorArchiveSerializeFn = void(*)(InspectorArchive&, void*);
 
     struct InspectorComponent {
@@ -34,7 +36,7 @@ namespace Quelos {
         static HashMap<RuntimeID, InspectorComponent> s_InspectorArchiveSerialize;
 
     private:
-        std::array<char, 64> m_EntityNameField;
+        std::array<char, 64> m_EntityNameField{};
 
         Actor m_SelectedActor;
         Ref<Scene> m_Scene;

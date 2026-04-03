@@ -241,7 +241,15 @@ namespace QuelosEditor {
 
         ImGui::End();
 
+        if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID); node && node->CentralNode) {
+            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
+        }
+
         ImGui::ShowDemoWindow();
+
+        if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID); node && node->CentralNode) {
+            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
+        }
 
         m_ContentBrowserPanel.OnImGuiRender(globalDockspaceID, m_EditorLayerClass);
 
@@ -370,6 +378,8 @@ namespace QuelosEditor {
 
     void EditorLayer::OpenSceneWorkspace(const AssetHandle& handle) {
         Ref<Scene> scene = AssetManager::GetAsset<Scene>(handle);
-        m_Workspaces.push_back(CreateRef<SceneWorkspace>(scene, m_UndoSystem));
+        const Ref<SceneWorkspace> sceneWorkspace = CreateRef<SceneWorkspace>(scene, m_UndoSystem);
+        m_Workspaces.push_back(sceneWorkspace);
+        sceneWorkspace->Focus();
     }
 }

@@ -6,6 +6,10 @@
 
 namespace Quelos {
     class Scene;
+}
+
+namespace QuelosEditor {
+    using namespace Quelos;
 
     using SelectionCallback = std::move_only_function<void(const Actor&)>;
 

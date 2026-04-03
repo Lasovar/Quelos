@@ -34,7 +34,10 @@ namespace Quelos {
 			UpdateProjection();
 		}
 
-		bool IsLockRotation() const { return m_LockRotation; }
+		void SetViewportHovered(const bool value) { m_IsViewportHovered = value; }
+		void SetViewportFocused(const bool value) { m_IsViewportFocused = value; }
+
+		[[nodiscard]] bool IsLockRotation() const { return m_LockRotation; }
 		void SetLockRotation(const bool value) { m_LockRotation = value; }
 
 		[[nodiscard]] const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
@@ -87,6 +90,7 @@ namespace Quelos {
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;
 
 		float m_ViewportWidth = 1280, m_ViewportHeight = 720;
+		bool m_IsViewportHovered = false, m_IsViewportFocused = false;
 		bool m_PlayerMode = false, m_LockRotation = false;
 
 		// Input

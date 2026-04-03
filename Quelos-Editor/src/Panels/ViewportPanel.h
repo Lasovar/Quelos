@@ -4,7 +4,8 @@
 
 #include "imgui.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
     class ViewportPanel {
     public:
         ViewportPanel() = default;

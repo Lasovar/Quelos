@@ -17,6 +17,7 @@ namespace Quelos {
 
 	enum class CursorMode : uint8_t {
 		Normal,
+		Hidden,
 		Locked
 	};
 

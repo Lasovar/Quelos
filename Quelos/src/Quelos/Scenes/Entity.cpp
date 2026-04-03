@@ -19,6 +19,10 @@ namespace Quelos {
     }
 
     void Entity::SetName(const std::string_view name) const {
+        if (m_ID.name().c_str() == name) {
+            return;
+        }
+
         constexpr size_t k_MaxStack = 64;
 
         const char* base = nullptr;
@@ -55,7 +59,7 @@ namespace Quelos {
                 std::string uniqueName;
 
                 do {
-                    uniqueName = std::format("{}_{}", base, i++);
+                    uniqueName = fmt::format("{}_{}", base, i++);
                 }
                 while (NameExists(world, uniqueName.c_str()));
 

@@ -306,7 +306,7 @@ namespace Quelos {
     std::optional<PatchState> CollapsePatchState(const Deque<PatchState>& patches) {
         std::optional<PatchState> lastChange = std::nullopt;
 
-        for (PatchState state : std::ranges::reverse_view(patches)) {
+        for (PatchState state : std::views::reverse(patches)) {
             if (state == PatchState::Added || state == PatchState::Removed) {
                 return state;
             }

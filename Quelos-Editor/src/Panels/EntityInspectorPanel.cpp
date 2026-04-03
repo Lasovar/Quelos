@@ -6,8 +6,9 @@
 #include "Quelos/Scenes/ComponentRegistery.h"
 #include "rapidfuzz/fuzz.hpp"
 #include "Scene/Commands/SetEntityNameCommnad.h"
+#include "EditorUI.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     HashMap<RuntimeID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{};
 
     template <typename TComponent>
@@ -132,11 +133,8 @@ namespace Quelos {
     }
 
     void EntityInspectorPanel::OnImGuiRender(const ImGuiID dockspaceID, const ImGuiWindowClass& windowClass) {
-        ImGui::SetNextWindowDockID(dockspaceID, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowClass(&windowClass);
-
         ImGui::PushID(m_SelectedActor.GetActorID());
-        if (ImGui::Begin("Entity Inspector")) {
+        if (UI::Begin("Entity Inspector", dockspaceID, windowClass)) {
             if (m_SelectedActor.IsAlive()) {
                 ImGui::Spacing();
 
@@ -260,9 +258,8 @@ namespace Quelos {
 
                 m_Scene->GetWorld().defer_end();
             }
-        }
+        } UI::End();
 
-        ImGui::End();
         ImGui::PopID();
     }
 }
