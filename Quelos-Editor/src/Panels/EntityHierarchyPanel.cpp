@@ -49,7 +49,7 @@ namespace QuelosEditor {
                     const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
 
                     if (droppedId.IsValid()) {
-                        m_UndoSystem.Push<SetParent>(droppedId, ActorID(), m_Scene);
+                        m_UndoSystem.Push<SetEntityParent>(droppedId, ActorID(), m_Scene);
                     }
                 }
 
@@ -252,14 +252,14 @@ namespace QuelosEditor {
 
                             dropped.GetInternalID().children([&](const flecs::entity child) {
                                 if (parent.IsValid()) {
-                                    m_UndoSystem.Push<SetParent>(
+                                    m_UndoSystem.Push<SetEntityParent>(
                                         child.get<ActorTag>().ID,
                                         parent.GetActorID(),
                                         m_Scene
                                     );
                                 }
                                 else {
-                                    m_UndoSystem.Push<SetParent>(
+                                    m_UndoSystem.Push<SetEntityParent>(
                                         child.get<ActorTag>().ID,
                                         ActorID(),
                                         m_Scene
@@ -268,7 +268,7 @@ namespace QuelosEditor {
                             });
                         }
 
-                        m_UndoSystem.Push<SetParent>(
+                        m_UndoSystem.Push<SetEntityParent>(
                             droppedId,
                             actor.Get<ActorTag>().ID,
                             m_Scene

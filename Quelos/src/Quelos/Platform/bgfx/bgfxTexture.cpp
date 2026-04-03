@@ -164,11 +164,19 @@ namespace Quelos {
         return flags;
     }
 
-    static bgfx::TextureHandle CreateTextureHandle(const TextureSpecification& spec, const BufferView data = BufferView{}) {
+    struct Payload {
+        Buffer::Deleter Deleter;
+    };
+
+    static bgfx::TextureHandle CreateTextureHandle(const TextureSpecification& spec, Buffer data = {}) {
         const bgfx::Memory* mem = nullptr;
 
-        if (data.size() > 1) {
-            mem = bgfx::makeRef(data.data(), data.size());
+        if (data) {
+            mem = bgfx::makeRef(data.GetData(), data.GetSize(), [](void* data, void* userData) {
+                std::bit_cast<Buffer::Deleter>(userData)(data);
+            }, std::bit_cast<void*>(data.GetDeleter()));
+
+            data.ReleaseOwnership();
         }
 
         return bgfx::createTexture2D(
@@ -188,10 +196,10 @@ namespace Quelos {
         m_Handle = CreateTextureHandle(spec);
     }
 
-    bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const BufferView data) {
+    bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, Buffer data) {
         m_Specification = spec;
 
-        m_Handle = CreateTextureHandle(spec, data);
+        m_Handle = CreateTextureHandle(spec, std::move(data));
     }
 
     bgfxTexture2D::bgfxTexture2D(const TextureSpecification& spec, const std::filesystem::path& path) {

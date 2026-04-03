@@ -41,5 +41,6 @@ using namespace std::literals::chrono_literals;
 #include <Quelos/Core/Buffer.h>
 #include <Quelos/Core/Assert.h>
 #include <Quelos/Core/Ref.h>
+#include <Quelos/Core/Buffer.h>
 #include <Quelos/Core/Log.h>
 #include <Quelos/Core/GUID.h>

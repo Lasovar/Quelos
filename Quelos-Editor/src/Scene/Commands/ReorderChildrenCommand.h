@@ -6,7 +6,7 @@
 #include "Quelos/Scenes/Scene.h"
 
 namespace Quelos {
-    struct ReorderChild : SetParent {
+    struct ReorderChild : SetEntityParent {
         void Apply() const {
             const Actor actor = Scene->GetActor(ActorId).GetInternalID();
 
@@ -35,7 +35,7 @@ namespace Quelos {
             const ActorID parentId,
             const ActorID moveAfterId,
             const Ref<Quelos::Scene>& scene
-        ) : SetParent(actorId, parentId, scene), NewNextActor(moveAfterId)
+        ) : SetEntityParent(actorId, parentId, scene), NewNextActor(moveAfterId)
         {
             bool found = false;
             ActorID prevActorId;
