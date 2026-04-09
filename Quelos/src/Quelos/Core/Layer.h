@@ -2,10 +2,9 @@
 
 #include <string>
 #include "Event.h"
-#include <Quelos/Core/Ref.h>
 
 namespace Quelos {
-	class Layer {
+	class QS_API Layer {
 	public:
 		explicit Layer(const std::string& debugName = "Layer");
 		virtual ~Layer();
@@ -18,7 +17,7 @@ namespace Quelos {
 
 		virtual void OnEvent(Event& event) {}
 
-		std::string GetName() const { return m_DebugName; }
+		[[nodiscard]] const std::string& GetName() const { return m_DebugName; }
 	private:
 		std::string m_DebugName;
 	};

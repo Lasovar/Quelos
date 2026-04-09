@@ -5,14 +5,14 @@
 #include "Base.h"
 
 namespace Quelos {
-    enum class EventType {
+    enum class QS_API EventType {
         None = 0,
         WindowClose, WindowResize,
         KeyPressed, KeyReleased,
         MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
     };
 
-    enum EventCategory
+    enum QS_API EventCategory
     {
         None = 0,
         EventCategoryApplication		= GetBit(0),
@@ -28,25 +28,24 @@ virtual const char* GetName() const override { return #type; }
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override {return category;}
 
-    class Event {
+    class QS_API Event {
     public:
         bool Handled = false;
 
-        virtual ~Event() {
-        }
+        virtual ~Event() = default;
 
-        virtual EventType GetEventType() const = 0;
-        virtual int GetCategoryFlags() const = 0;
-        virtual const char* GetName() const = 0;
-        virtual std::string ToString() const { return GetName(); }
+        [[nodiscard]] virtual EventType GetEventType() const = 0;
+        [[nodiscard]] virtual int GetCategoryFlags() const = 0;
+        [[nodiscard]] virtual const char* GetName() const = 0;
+        [[nodiscard]] virtual std::string ToString() const { return GetName(); }
 
 
-        bool IsInCategory(const EventCategory category) const {
+        [[nodiscard]] bool IsInCategory(const EventCategory category) const {
             return GetCategoryFlags() & category;
         }
     };
 
-    class EventDispatcher {
+    class QS_API EventDispatcher {
         template <typename T>
         using EventFn = std::function<bool(T&)>;
 

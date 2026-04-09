@@ -4,7 +4,7 @@ project(Quelos-Editor LANGUAGES CXX)
 
 add_executable(Quelos-Editor)
 
-target_compile_definitions(Quelos PUBLIC QUELOS_USE_SDL)
+target_compile_definitions(QuelosShared PUBLIC QUELOS_USE_SDL)
 
 file(GLOB_RECURSE QUELOS_EDITOR_SRC
     src/*.cpp
@@ -26,23 +26,34 @@ target_include_directories(Quelos-Editor
 
 target_link_libraries(Quelos-Editor
     PRIVATE
-        Quelos
+        Quelos::Shared
         rapidfuzz
         assimp
+)
+
+add_dependencies(Quelos-Editor tracy-profiler)
+set(TRACY_OUT_DIR "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin")
+set_target_properties(tracy-profiler PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${TRACY_OUT_DIR}"
 )
 
 add_dependencies(Quelos-Editor shaderc)
 
 set(SHADERC_OUT_DIR "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin")
+
 set_target_properties(shaderc PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${SHADERC_OUT_DIR}"
 )
+
 
 add_custom_command(TARGET Quelos-Editor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${BGFX_DIR}/tools/bin
         $<TARGET_FILE_DIR:Quelos-Editor>/Tools
 )
+
+target_compile_definitions(QuelosShared PUBLIC QS_ENABLE_PROFILING)
+target_compile_definitions(Quelos-Editor PUBLIC QS_ENABLE_PROFILING)
 
 if (WIN32)
     target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_WINDOWS)

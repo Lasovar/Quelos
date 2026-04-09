@@ -1,14 +1,16 @@
 #include "qspch.h"
 #include "Application.h"
 
+#include "Base.h"
 #include "Quelos/Core/Log.h"
 #include "Quelos/Core/Events/WindowEvents.h"
 
 #include "Quelos/Renderer/Renderer.h"
+#include "flecs.h"
 
 namespace Quelos {
 
-	Application* Application::s_Instance = nullptr;
+	QS_API Application* Application::s_Instance = nullptr;
 
 	Application::Application(ApplicationSpecification appSpecs)
 		: m_Specifications(appSpecs)
@@ -27,6 +29,9 @@ namespace Quelos {
 		Renderer::Init(m_Window, appSpecs.RendererAPI);
 
 		m_ImGuiLayer = PushLayer<ImGuiLayer>();
+
+		ecs_os_set_api_defaults();
+		QS_CORE_INFO("{}", static_cast<void*>(&ecs_os_api));
 	}
 
 	void Application::RaiseEvent(Event& event) {
@@ -45,23 +50,31 @@ namespace Quelos {
 		while (!m_Window->ShouldClose()) {
 			m_Window->PollEvents();
 			Tick();
+
+			QS_PROFILE_FRAME();
 		}
 	}
 
 	void Application::Tick() const {
 		Renderer::StartFrame();
 
-		for (auto& layer : m_LayerStack) {
-			layer->Tick(m_Time->DeltaTime());
+		{
+			QS_PROFILE_SCOPED_N("LayersTick");
+			for (auto& layer : m_LayerStack) {
+				layer->Tick(m_Time->DeltaTime());
+			}
 		}
 
-		m_ImGuiLayer->Begin();
+		{
+			QS_PROFILE_SCOPED_N("ImGuiRender");
+			m_ImGuiLayer->Begin();
 
-		for (auto& layer : m_LayerStack) {
-			layer->ImGuiRender();
+			for (auto& layer : m_LayerStack) {
+				layer->ImGuiRender();
+			}
+
+			m_ImGuiLayer->End();
 		}
-
-		m_ImGuiLayer->End();
 
 		Renderer::EndFrame();
 

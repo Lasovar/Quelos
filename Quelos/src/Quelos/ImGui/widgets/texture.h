@@ -4,7 +4,7 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace ImGui {
-    void Image(
+    QS_API void Image(
         const Quelos::Ref<Quelos::Texture2D>& texture,
         uint8_t flags,
         uint8_t mip,
@@ -15,7 +15,7 @@ namespace ImGui {
         const ImVec4& borderCol = ImVec4(0.0f, 0.0f, 0.0f, 0.0f)
     );
 
-    void Image(
+    QS_API void Image(
         const Quelos::Ref<Quelos::Texture2D>& texture,
         const ImVec2& size,
         const ImVec2& uv0 = ImVec2(0.0f, 0.0f),
@@ -24,7 +24,7 @@ namespace ImGui {
         const ImVec4& borderCol = ImVec4(0.0f, 0.0f, 0.0f, 0.0f)
     );
 
-    bool ImageButton(
+    QS_API bool ImageButton(
         const Quelos::Ref<Quelos::Texture2D>& texture,
         uint8_t flags,
         uint8_t mip,
@@ -35,7 +35,7 @@ namespace ImGui {
         const ImVec4& tintCol = ImVec4(1.0f, 1.0f, 1.0f, 1.0f)
     );
 
-    bool ImageButton(
+    QS_API bool ImageButton(
         const Quelos::Ref<Quelos::Texture2D>& texture,
         const ImVec2& size,
         const ImVec2& uv0 = ImVec2(0.0f, 0.0f),

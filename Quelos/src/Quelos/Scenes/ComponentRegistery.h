@@ -33,7 +33,7 @@ namespace Quelos {
         std::function<void(Serialization::QuelReadArchive& archive, void* data)> SerializeTextReadFunc = nullptr;
     };
 
-    class ComponentRegistry {
+    class QS_API ComponentRegistry {
     public:
         void RegisterBuiltinTypes(flecs::world& world);
 

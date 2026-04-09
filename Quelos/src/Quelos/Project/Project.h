@@ -8,7 +8,7 @@
 #include "Quelos/AssetManager/AssetManagerBase.h"
 
 namespace Quelos {
-    struct ProjectConfig {
+    struct QS_API ProjectConfig {
         std::string ProjectName;
 
         Path ProjectPath;
@@ -18,7 +18,7 @@ namespace Quelos {
         Path ProjectSettingsPath;
     };
 
-    class Project {
+    class QS_API Project {
     public:
         static bool IsLoaded() { return s_ActiveProject != nullptr; }
 
@@ -79,7 +79,7 @@ namespace Quelos {
         }
 
     private:
-        inline static Ref<Project> s_ActiveProject;
+        static Ref<Project> s_ActiveProject;
 
     private:
         ProjectConfig m_Config;

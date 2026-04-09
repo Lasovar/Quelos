@@ -1,11 +1,11 @@
-#include <qspch.h>
-
 #include "ImGuiLayer.h"
+
 #include <imgui.h>
+#include <qspch.h>
 #ifdef QUELOS_USE_SDL
-#include "imgui_impl_sdl3.h"
+#include "Quelos/Platform/Window/imgui_impl_sdl3.h"
 #elif QUELOS_USE_GLFW
-#include "imgui_impl_glfw.h"
+#include "Quelos/Platform/Window/imgui_impl_glfw.h"
 #endif
 
 #include <Quelos/Core/Application.h>

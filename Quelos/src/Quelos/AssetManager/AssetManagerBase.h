@@ -6,7 +6,7 @@ namespace Quelos {
 
     using AssetMap = HashMap<AssetHandle, WeakRef<Asset>>;
 
-    class AssetManagerBase {
+    class QS_API AssetManagerBase {
     public:
         [[nodiscard]] virtual Ref<Asset> GetAsset(const AssetHandle& handle) = 0;
         [[nodiscard]] virtual const AssetMetadata* GetAssetMetadata(const AssetHandle& handle) const = 0;

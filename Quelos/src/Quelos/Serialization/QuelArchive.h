@@ -35,43 +35,43 @@ constexpr bool IsSerializable = SerializableWith<T, Quelos::Serialization::Binar
 namespace Quelos::Serialization {
     struct TextArchiveValue;
 
-    struct TupleValue {
+    struct QS_API TupleValue {
         Vec<size_t> Elements;
     };
 
-    struct ArrayValue {
+    struct QS_API ArrayValue {
         Vec<size_t> Elements;
     };
 
-    struct TextArchiveValue {
+    struct QS_API TextArchiveValue {
         std::variant<ValueEvent::ValueType, TupleValue, ArrayValue> Data;
 
-        bool IsScalar() const {
+        [[nodiscard]] bool IsScalar() const {
             return std::holds_alternative<ValueEvent::ValueType>(Data);
         }
 
-        bool IsTuple() const {
+        [[nodiscard]] bool IsTuple() const {
             return std::holds_alternative<TupleValue>(Data);
         }
 
-        bool IsArray() const {
+        [[nodiscard]] bool IsArray() const {
             return std::holds_alternative<ArrayValue>(Data);
         }
 
-        const ValueEvent::ValueType& AsScalar() const {
+        [[nodiscard]] const ValueEvent::ValueType& AsScalar() const {
             return std::get<ValueEvent::ValueType>(Data);
         }
 
-        const TupleValue& AsTuple() const {
+        [[nodiscard]] const TupleValue& AsTuple() const {
             return std::get<TupleValue>(Data);
         }
 
-        const ArrayValue& AsArray() const {
+        [[nodiscard]] const ArrayValue& AsArray() const {
             return std::get<ArrayValue>(Data);
         }
     };
 
-    class QuelWriteArchive {
+    class QS_API QuelWriteArchive {
     public:
         static constexpr bool IsLoading = false;
         static constexpr bool IsSaving = true;
@@ -239,7 +239,7 @@ namespace Quelos::Serialization {
         HashSet<std::string_view>* m_FieldsToWrite = nullptr;
     };
 
-    class QuelReadArchive {
+    class QS_API QuelReadArchive {
     public:
         static constexpr bool IsLoading = true;
         static constexpr bool IsSaving = false;

@@ -26,3 +26,6 @@
 [submodule "Quelos/vendor/assimp"]
 	path = Quelos/vendor/assimp
 	url = https://github.com/Lasovar/assimp.git
+[submodule "Quelos/vendor/tracy"]
+	path = Quelos/vendor/tracy
+	url = https://github.com/Lasovar/tracy.git

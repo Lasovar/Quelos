@@ -8,11 +8,12 @@
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/AssetManager/AssetManager.h"
 #include "Quelos/AssetManager/SoftRef.h"
+#include "Quelos/Utility/Hash.h"
 
 namespace Quelos::Serialization {
-    class BinaryReader {
+    class QS_API BinaryReader {
     public:
-        explicit BinaryReader(const std::span<const std::byte>& data)
+        explicit BinaryReader(const BufferView& data)
             : m_Data(data) {
         }
 
@@ -29,22 +30,37 @@ namespace Quelos::Serialization {
             return value;
         }
 
-        std::optional<std::span<const std::byte>> ReadBytes(const size_t count) {
-            if (m_Offset + count > m_Data.size()) {
-                return std::nullopt;
+        [[nodiscard]] BufferView ReadBytes(const size_t count) {
+            if (count > m_Data.size() - m_Offset) {
+                return {};
             }
 
-            auto slice = m_Data.subspan(m_Offset, count);
+            const BufferView slice = m_Data.subspan(m_Offset, count);
             m_Offset += count;
             return slice;
         }
 
+        /// @return The remaining bytes in the buffer from the current m_Offset
+        [[nodiscard]] BufferView ReadBytesAll() {
+            if (m_Offset >= m_Data.size()) {
+                return {};
+            }
+
+            const BufferView slice = m_Data.subspan(m_Offset);
+            m_Offset = m_Data.size();
+            return slice;
+        }
+
+        [[nodiscard]] bool HasRemaining() const {
+            return m_Offset < m_Data.size();
+        }
+
     private:
-        std::span<const std::byte> m_Data;
+        BufferView m_Data;
         size_t m_Offset = 0;
     };
 
-    class BinaryWriter {
+    class QS_API BinaryWriter {
     public:
         explicit BinaryWriter(Vec<byte>& buffer)
             : m_Buffer(buffer) {
@@ -58,7 +74,7 @@ namespace Quelos::Serialization {
             m_Buffer.insert(m_Buffer.end(), ptr, ptr + sizeof(T));
         }
 
-        void WriteBytes(std::span<const std::byte> bytes) const {
+        void WriteBytes(BufferView bytes) const {
             m_Buffer.insert(m_Buffer.end(), bytes.begin(), bytes.end());
         }
 
@@ -66,7 +82,7 @@ namespace Quelos::Serialization {
         Vec<byte>& m_Buffer;
     };
 
-    class BinaryWriteArchive {
+    class QS_API BinaryWriteArchive {
     public:
         static constexpr bool IsLoading = false;
         static constexpr bool IsSaving = true;
@@ -76,33 +92,52 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void Field(std::string_view, T& value) {
-            Value(value);
+        void Field(const std::string_view name, T& value) {
+            m_Writer.Write(Hash::Fnv1a64(name));
+            WriteValue(value);
         }
 
         template <typename T>
-        void FieldVector(const std::string&, std::vector<T>& data) const {
-            m_Writer.Write(static_cast<uint32_t>(data.size()));
-            m_Writer.WriteBytes(std::as_bytes(std::span(data)));
+        void FieldVector(const std::string_view name, std::vector<T>& data) const {
+            auto bytes = std::as_bytes(std::span(data));
+            constexpr uint64_t itemSize = sizeof(T);
+
+            m_Writer.Write(Hash::Fnv1a64(name));
+            m_Writer.Write(static_cast<uint64_t>(sizeof(itemSize) + bytes.size()));
+
+            m_Writer.Write(itemSize);
+            m_Writer.WriteBytes(bytes);
         }
 
+        // Archive API... not needed for binary
         template <typename T>
-        void Value(T& value) {
+        static void Value(T&) { }
+        static void BeginTuple(std::string_view) { }
+        static void BeginTupleField(const std::string_view) { }
+        static void EndTuple() { }
+
+    private:
+        template <typename T>
+        void WriteValue(T& value) {
             if constexpr (std::is_enum_v<T>) {
-                m_Writer.Write(std::to_underlying(value));
+                using Underlying = std::underlying_type_t<T>;
+                m_Writer.Write(static_cast<uint64_t>(sizeof(Underlying)));
+                m_Writer.Write(static_cast<Underlying>(value));
             }
             else {
+                m_Writer.Write(static_cast<uint64_t>(sizeof(T)));
                 m_Writer.Write(value);
             }
         }
 
         template <typename T>
-        void Value(Ref<T>& value) {
+        void WriteValue(Ref<T>& value) {
             if constexpr (std::is_base_of_v<Asset, T>) {
                 const AssetHandle handle = value && value->GetAssetHandle()
                                                ? value->GetAssetHandle()
                                                : AssetHandle();
 
+                m_Writer.Write(static_cast<uint64_t>(sizeof(AssetHandle)));
                 m_Writer.Write(handle);
             }
             else {
@@ -111,12 +146,13 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void Value(SoftRef<T>& value) {
+        void WriteValue(SoftRef<T>& value) {
             if constexpr (std::is_base_of_v<Asset, T>) {
                 const AssetHandle handle = value && value->GetAssetHandle()
                                                ? value->GetAssetHandle()
                                                : AssetHandle();
 
+                m_Writer.Write(static_cast<uint64_t>(sizeof(AssetHandle)));
                 m_Writer.Write(handle);
             }
             else {
@@ -124,51 +160,62 @@ namespace Quelos::Serialization {
             }
         }
 
-        // Archive API... not needed for binary
-        static void BeginTuple(std::string_view) {
-        }
-
-        static void BeginTupleField(const std::string_view) {
-        }
-
-        static void EndTuple() {
-        }
-
-    private:
         BinaryWriter& m_Writer;
     };
 
-    class BinaryReadArchive {
+    class QS_API BinaryReadArchive {
     public:
         static constexpr bool IsLoading = true;
         static constexpr bool IsSaving = false;
 
     public:
-        explicit BinaryReadArchive(BinaryReader& reader) : m_Reader(reader) {
-        }
+        explicit BinaryReadArchive(HashMap<uint64_t, BufferView>& fieldsMap)
+            : m_FieldsMap(fieldsMap) { }
 
         template <typename T>
-        void Field(std::string_view, T& value) {
-            Value(value);
+        void Field(const std::string_view name, T& value) {
+            auto it = m_FieldsMap.find(Hash::Fnv1a64(name));
+            if (it == m_FieldsMap.end()) {
+                return;
+            }
+
+            BinaryReader reader(it->second);
+            ReadValue(reader, value);
         }
 
         template <typename T>
             requires(std::is_trivially_copyable_v<T>)
-        void FieldVector(const std::string&, std::vector<T>& data) {
-            const uint32_t size = m_Reader.Read<uint32_t>().value_or(0);
-            const uint32_t byteSize = size * sizeof(T);
-            const std::span<const std::byte> serializedBytes = m_Reader.ReadBytes(byteSize).value_or({});
+        void FieldVector(const std::string_view name, std::vector<T>& data) {
+            auto it = m_FieldsMap.find(Hash::Fnv1a64(name));
+            if (it == m_FieldsMap.end()) {
+                return;
+            }
 
-            data.resize(size);
-            std::memcpy(data.data(), serializedBytes.data(), byteSize);
+            BinaryReader reader(it->second);
+
+            const uint32_t size = reader.Read<uint64_t>().value_or(0);
+            if (size != sizeof(T)) {
+                return;
+            }
+
+            const BufferView serializedBytes = reader.ReadBytesAll();
+            data.resize(serializedBytes.size() / sizeof(T));
+            std::memcpy(data.data(), serializedBytes.data(), serializedBytes.size());
         }
 
+        // Archive API... not needed for binary
         template <typename T>
-        void Value(T& value) {
+        static void Value(T&) { }
+        static void BeginTuple() { }
+        static void BeginTupleField(const std::string_view) { }
+        static void EndTuple() { }
+    private:
+        template <typename T>
+        void ReadValue(BinaryReader& reader, T& value) {
             if constexpr (std::is_enum_v<T>) {
                 using Underlying = std::underlying_type_t<T>;
 
-                auto raw = m_Reader.Read<Underlying>();
+                auto raw = reader.Read<Underlying>();
                 if (!raw.has_value()) {
                     return;
                 }
@@ -176,7 +223,7 @@ namespace Quelos::Serialization {
                 value = static_cast<T>(*raw);
             }
             else {
-                std::optional<T> result = m_Reader.Read<T>();
+                std::optional<T> result = reader.Read<T>();
                 if (result.has_value()) {
                     value = std::move(*result);
                 }
@@ -184,9 +231,9 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void Value(Ref<T>& value) {
+        void ReadValue(BinaryReader& reader, Ref<T>& value) {
             if constexpr (std::is_base_of_v<Asset, T>) {
-                if (const std::optional<AssetHandle> handleResult = m_Reader.Read<AssetHandle>()) {
+                if (const std::optional<AssetHandle> handleResult = reader.Read<AssetHandle>()) {
                     value = AssetManager::GetAsset<T>(handleResult.value());
                 }
             }
@@ -196,23 +243,13 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void Value(SoftRef<T>& value) {
-            if (const std::optional<AssetHandle> handleResult = m_Reader.Read<AssetHandle>()) {
+        static void ReadValue(BinaryReader& reader, SoftRef<T>& value) {
+            if (const std::optional<AssetHandle> handleResult = reader.Read<AssetHandle>()) {
                 value.SetAssetHandle(handleResult.value());
             }
         }
 
-        // Archive API... not needed for binary
-        static void BeginTuple() {
-        }
-
-        static void BeginTupleField(const std::string_view) {
-        }
-
-        static void EndTuple() {
-        }
-
     private:
-        BinaryReader& m_Reader;
+        HashMap<uint64_t, BufferView>& m_FieldsMap;
     };
 }

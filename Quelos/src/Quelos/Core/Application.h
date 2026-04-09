@@ -20,14 +20,14 @@
 namespace Quelos {
 	class ImGuiLayer;
 
-	struct ApplicationSpecification {
+	struct QS_API ApplicationSpecification {
 		std::string Name;
 		std::filesystem::path ApplicationPath;
 		WindowSpecification WindowSpec;
 		RendererAPI RendererAPI;
 	};
 
-	class Application {
+	class QS_API Application {
 	public:
 		explicit Application(ApplicationSpecification appSpecs);
 
@@ -36,8 +36,8 @@ namespace Quelos {
 
 		[[nodiscard]] Ref<Window> GetWindow() const { return m_Window; }
 		[[nodiscard]] Ref<Time> GetTime() const { return m_Time;}
-		[[nodiscard]] std::filesystem::path GetApplicationPath() const { return m_Specifications.ApplicationPath; }
-		[[nodiscard]] ApplicationSpecification GetApplicationSpecification() const { return m_Specifications; }
+		[[nodiscard]] const Path& GetApplicationPath() const { return m_Specifications.ApplicationPath; }
+		[[nodiscard]] const ApplicationSpecification& GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
@@ -62,7 +62,7 @@ namespace Quelos {
 		bool m_IsRunning = false;
 	};
 
-	Application* CreateApplication(int argc, char** argv);
+	QS_API Application* CreateApplication(int argc, char** argv);
 
 	template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)

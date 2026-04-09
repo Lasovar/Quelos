@@ -39,8 +39,8 @@ namespace QuelosEditor {
 
     private:
         std::string m_RootPath;
-        std::string m_RelativeRootPath;
-        std::string m_CurrentPath;
+        std::string m_RelativeRootPath = ".";
+        std::string m_CurrentPath = ".";
 
         OrderedMap<std::string, DirectoryData> m_Directories;
         bool m_QueueDirectoryTreeRebuild = false;

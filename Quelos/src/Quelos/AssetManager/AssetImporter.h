@@ -18,17 +18,17 @@ namespace Quelos {
         return result;
     }
 
-    struct AssetImporterConfig {
+    struct QS_API AssetImporterConfig {
         AssetType Type;
         AssetLoaderFn LoadAsset;
         IsAssetSupportedFn IsAssetSupported;
     };
 
     namespace AssetImporter {
-        void RegisterAssetImporter(const AssetImporterConfig& config);
+        QS_API void RegisterAssetImporter(const AssetImporterConfig& config);
 
-        bool IsAssetSupported(const Path& path);
-        AssetType GetAssetType(const Path& path);
-        Ref<Asset> ImportAsset(AssetHandle assetHandle, const AssetMetadata& metadata);
+        QS_API bool IsAssetSupported(const Path& path);
+        QS_API AssetType GetAssetType(const Path& path);
+        QS_API Ref<Asset> ImportAsset(AssetHandle assetHandle, const AssetMetadata& metadata);
     }
 }

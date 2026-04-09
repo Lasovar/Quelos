@@ -2,26 +2,26 @@
 #include "Ref.h"
 
 namespace Quelos {
-	enum class WindowingBackend {
+	enum class QS_API WindowingBackend {
 		None,
 		SDL,
 		GLFW,
 	};
 
-	struct WindowSpecification {
+	struct QS_API WindowSpecification {
 		std::string Title;
 		uint32_t Width = 0;
 		uint32_t Height = 0;
 		WindowingBackend Backed = WindowingBackend::SDL;
 	};
 
-	enum class CursorMode : uint8_t {
+	enum class QS_API CursorMode : uint8_t {
 		Normal,
 		Hidden,
 		Locked
 	};
 
-	class Window : public RefCounted<Window> {
+	class QS_API Window : public RefCounted<Window> {
 	public:
 		virtual ~Window() = default;
 

@@ -2,7 +2,7 @@
 #include "Quelos/Renderer/RendererContext.h"
 
 namespace Quelos {
-    class bgfxRendererContext : public RendererContext {
+    class QS_API bgfxRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
         void Shutdown() override;

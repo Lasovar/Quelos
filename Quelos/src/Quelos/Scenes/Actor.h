@@ -8,7 +8,7 @@
 namespace Quelos {
     constexpr uint64_t k_OrderStep = 1ull << 32;
 
-    class Actor : public Entity {
+    class QS_API Actor : public Entity {
     public:
         Actor() = default;
 

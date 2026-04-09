@@ -32,7 +32,6 @@ namespace Quelos {
                    e.ensure<WorldTransform>();
                });
 
-
         m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
         m_RenderingQuery = m_World.query<const WorldTransform&, const MeshComponent&>();
 
@@ -72,6 +71,7 @@ namespace Quelos {
     }
 
     void Scene::Tick(const float deltaTime) const {
+        QS_PROFILE_SCOPED_N("Scene::Tick");
         if (!m_World.progress(deltaTime)) {
             QS_CORE_ERROR_TAG("Scene", "Failed to progress world");
         }

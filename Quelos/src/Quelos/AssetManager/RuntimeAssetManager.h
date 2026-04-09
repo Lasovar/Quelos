@@ -3,7 +3,7 @@
 #include "AssetManagerBase.h"
 
 namespace Quelos {
-    class RuntimeAssetManager : public AssetManagerBase {
+    class QS_API RuntimeAssetManager : public AssetManagerBase {
     public:
     };
 }

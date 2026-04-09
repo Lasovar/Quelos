@@ -10,7 +10,7 @@
 #include "bx/bx.h"
 
 namespace ImGui {
-    struct TextureBgfx {
+    struct QS_API TextureBgfx {
         bgfx::TextureHandle handle;
         uint8_t flags;
         uint8_t mip;
@@ -88,7 +88,7 @@ namespace ImGui {
 }
 
 namespace Quelos {
-    class bgfxImGuiState : public ImGuiState {
+    class QS_API bgfxImGuiState : public ImGuiState {
     public:
         bgfxImGuiState() = default;
 

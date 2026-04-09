@@ -7,7 +7,7 @@
 #include "Quelos/Core/Event.h"
 
 namespace Quelos {
-    class WindowClosedEvent : public Event {
+    class QS_API WindowClosedEvent : public Event {
     public:
         WindowClosedEvent() = default;
 
@@ -15,14 +15,14 @@ namespace Quelos {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
-    class WindowResizeEvent : public Event
+    class QS_API WindowResizeEvent : public Event
     {
     public:
         WindowResizeEvent(const uint32_t width, const uint32_t height)
             : m_Width(width), m_Height(height) { }
 
-        inline uint32_t GetWidth() const { return m_Width; }
-        inline uint32_t GetHeight() const { return m_Height; }
+        [[nodiscard]] uint32_t GetWidth() const { return m_Width; }
+        [[nodiscard]] uint32_t GetHeight() const { return m_Height; }
 
         [[nodiscard]]
         std::string ToString() const override {

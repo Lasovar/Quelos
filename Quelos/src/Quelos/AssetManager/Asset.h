@@ -7,7 +7,7 @@ namespace Quelos {
 
     using AssetHandle = GUID128;
 
-    enum class AssetType {
+    enum class QS_API AssetType {
         None = 0,
         Mesh,
         Texture,
@@ -21,7 +21,7 @@ namespace Quelos {
         Other
     };
 
-    class Asset : public RefCounted<Asset> {
+    class QS_API Asset : public RefCounted<Asset> {
     public:
         virtual ~Asset() = default;
         AssetHandle GetAssetHandle() const { return Handle; }

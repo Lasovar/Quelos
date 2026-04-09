@@ -3,7 +3,7 @@
 #include "Shader.h"
 
 namespace Quelos {
-    class Material {
+    class QS_API Material {
     public:
         explicit Material(const ShaderHandle& shader);
         Material(const std::string& filePathVertex, const std::string& filePathFragment);

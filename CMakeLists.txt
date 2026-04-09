@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Configurations
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -41,7 +43,6 @@ set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 
-# Core subsystems
 set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
 set(SDL_RENDER OFF CACHE BOOL "" FORCE)
 set(SDL_JOYSTICK OFF CACHE BOOL "" FORCE)
@@ -55,7 +56,6 @@ set(SDL_DBUS OFF CACHE BOOL "" FORCE)
 set(SDL_IBUS OFF CACHE BOOL "" FORCE)
 set(SDL_LIBUDEV OFF CACHE BOOL "" FORCE)
 
-# Graphics APIs
 set(SDL_OPENGL ON CACHE BOOL "" FORCE)
 set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
 
@@ -64,6 +64,7 @@ add_subdirectory(Quelos/vendor/SDL)
 add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/imgui)
 add_subdirectory(Quelos/vendor/rapidfuzz-cpp)
+add_subdirectory(Quelos/vendor/tracy)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
 
@@ -108,5 +109,7 @@ endif()
 
 # Main projects
 add_subdirectory(Quelos)
+
+add_subdirectory(Quelos/vendor/tracy/profiler)
 
 add_subdirectory(Quelos-Editor)

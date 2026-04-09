@@ -5,7 +5,7 @@
 #include "bgfx/bgfx.h"
 
 namespace Quelos {
-    class bgfxFrameBuffer : public FrameBuffer {
+    class QS_API bgfxFrameBuffer : public FrameBuffer {
     public:
         explicit bgfxFrameBuffer(uint32_t viewID, const std::vector<Ref<Texture2D>>& attachments);
 

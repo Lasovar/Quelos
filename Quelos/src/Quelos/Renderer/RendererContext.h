@@ -8,7 +8,7 @@
 #include "Quelos/Core/Window.h"
 
 namespace Quelos {
-    class RendererContext {
+    class QS_API RendererContext {
     public:
         virtual void Init(const Ref<Window>& ref, RendererAPI api) = 0;
 

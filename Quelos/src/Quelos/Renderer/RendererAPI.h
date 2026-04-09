@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Quelos {
-	enum class RendererAPI {
+	enum class QS_API RendererAPI {
 		None = 0,
 		OpenGL = 1,
 		Vulkan = 2,

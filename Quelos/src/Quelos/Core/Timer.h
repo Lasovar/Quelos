@@ -1,10 +1,9 @@
 #pragma once
 
 #include <chrono>
-#include <Quelos/Core/Ref.h>
 
 namespace Quelos {
-    class Time {
+    class QS_API Time {
     public:
         using Clock = std::chrono::steady_clock;
 

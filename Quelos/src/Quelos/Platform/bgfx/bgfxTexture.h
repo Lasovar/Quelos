@@ -5,7 +5,7 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
-    class bgfxTexture2D : public Texture2D {
+    class QS_API bgfxTexture2D : public Texture2D {
     public:
         explicit bgfxTexture2D(const TextureSpecification& spec);
         explicit bgfxTexture2D(const TextureSpecification& spec, Buffer data);

@@ -31,9 +31,9 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	specs.WindowSpec.Backed = Quelos::WindowingBackend::GLFW;
 #endif
 
-#if QUELOS_PLATFORM_WINDOWS
+#if QS_PLATFORM_WINDOWS
 	specs.RendererAPI = RendererAPI::Vulkan;
-#elif QUELOS_PLATFORM_LINUX
+#elif QS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #endif
 

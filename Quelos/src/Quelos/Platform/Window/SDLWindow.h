@@ -5,7 +5,7 @@
 class SDL_Window;
 
 namespace Quelos {
-    class SDLWindow : public Window {
+    class QS_API SDLWindow : public Window {
     public:
         explicit SDLWindow(WindowSpecification windowSpecs);
 

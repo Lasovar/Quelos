@@ -3,7 +3,7 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
-    class FrameBuffer {
+    class QS_API FrameBuffer {
     public:
         virtual ~FrameBuffer() = default;
 

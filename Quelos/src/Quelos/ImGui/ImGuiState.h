@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Quelos {
-    class ImGuiState {
+    class QS_API ImGuiState {
     public:
         virtual ~ImGuiState() = default;
 

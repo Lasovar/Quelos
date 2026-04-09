@@ -3,7 +3,7 @@
 #include "Camera.h"
 
 namespace Quelos {
-    class SceneCamera : public Camera {
+    class QS_API SceneCamera : public Camera {
     public:
         enum class ProjectionType : uint8_t { Perspective = 0, Orthographic = 1 };
 

@@ -2,7 +2,7 @@
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
-	struct PosColorVertex {
+	struct QS_API PosColorVertex {
 		float x;
 		float y;
 		float z;
@@ -17,9 +17,9 @@ namespace Quelos {
 		}
 	};
 
-	class VertexBuffer;
+	class QS_API VertexBuffer;
 
-	struct VertexBufferHandle : Handle<VertexBuffer> {
+	struct QS_API VertexBufferHandle : Handle<VertexBuffer> {
 		VertexBufferHandle() = default;
 		VertexBufferHandle(const Handle handle) {
 			Value = handle.Value;

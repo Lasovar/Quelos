@@ -3,8 +3,8 @@
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
-    class Shader;
-    struct ShaderHandle : Handle<Shader> {
+    class QS_API Shader;
+    struct QS_API ShaderHandle : Handle<Shader> {
         ShaderHandle() = default;
         ShaderHandle(const Handle shaderHandle) {
             Value = shaderHandle.Value;

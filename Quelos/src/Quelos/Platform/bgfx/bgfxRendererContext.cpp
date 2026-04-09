@@ -1,7 +1,6 @@
 #include "qspch.h"
 #include "bgfxRendererContext.h"
 
-#include "../../../../vendor/bgfx.cmake/bgfx/tools/shaderc/shaderc.h"
 #include "bgfx/bgfx.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Renderer/Shader.h"
@@ -117,9 +116,9 @@ namespace Quelos {
         bgfxInit.resolution.width = window->GetWidth();
         bgfxInit.resolution.height = window->GetHeight();
         bgfxInit.resolution.reset = BGFX_RESET_NONE;
-#if QUELOS_PLATFORM_WINDOWS
+#if QS_PLATFORM_WINDOWS
         platformData.type = bgfx::NativeWindowHandleType::Default;
-#elif QUELOS_PLATFORM_LINUX
+#elif QS_PLATFORM_LINUX
         platformData.type = window->IsWayland()
                                 ? bgfx::NativeWindowHandleType::Wayland
                                 : bgfx::NativeWindowHandleType::Default;
@@ -153,14 +152,14 @@ namespace Quelos {
 
         if (!bgfx::isValid(vsh)) {
             QS_CORE_ERROR("Vertex shader '{}' failed to load", filePathVertex);
-            return ShaderHandle(ShaderHandle::Invalid);
+            return { ShaderHandle::Invalid };
         }
 
         if (!bgfx::isValid(fsh)) {
             bgfx::destroy(vsh);
 
             QS_CORE_ERROR("Fragment shader '{}' failed to load", filePathFragment);
-            return ShaderHandle(ShaderHandle::Invalid);
+            return { ShaderHandle::Invalid };
         }
 
         bgfx::ProgramHandle handle = bgfx::createProgram(vsh, fsh, true);
@@ -185,6 +184,7 @@ namespace Quelos {
 
         if (!bgfx::isValid(handle)) {
             QS_CORE_ERROR("Failed to create VertexBuffer!");
+            return { VertexBufferHandle::Invalid };
         }
 
         return s_VertexBufferTable.Emplace(handle);
@@ -206,6 +206,7 @@ namespace Quelos {
 
         if (!bgfx::isValid(handle)) {
             QS_CORE_ERROR("Failed to create IndexBuffer!");
+            return { IndexBufferHandle::Invalid };
         }
 
         return s_IndexBufferTable.Emplace(handle);

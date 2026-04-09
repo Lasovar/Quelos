@@ -1,76 +1,140 @@
 cmake_minimum_required(VERSION 4.1.2)
 
-project(Quelos LANGUAGES CXX)
-
-add_library(Quelos STATIC)
-
-file(GLOB_RECURSE QUELOS_SRC
-    src/*.cpp
-    src/*.h
-)
-
-target_sources(Quelos PRIVATE ${QUELOS_SRC})
-
-target_precompile_headers(Quelos
-    PRIVATE
-        src/qspch.h
-)
-
-target_include_directories(Quelos
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-target_compile_definitions(Quelos
-    PUBLIC
-        GLM_ENABLE_EXPERIMENTAL
-        GLM_FORCE_QUAT_DATA_WXYZ
-        GLM_FORCE_LEFT_HANDED
-)
-
-if (MSVC)
-    target_compile_options(
-            Quelos
-            PUBLIC
-            /Zc:preprocessor
-            /Zc:__cplusplus
-            /utf-8
+function(add_quelos_module out_var path)
+    file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
+            ${path}/*.cpp
     )
-endif ()
+    set(${out_var} ${SRC} PARENT_SCOPE)
+endfunction()
 
-target_link_libraries(Quelos
-    PRIVATE
-        glfw
-        bimg
-        bimg_decode
-        bgfx
-        bx
-        SDL3::SDL3-static
-        freetype
-        libDaScript
-        stb_image
-    PUBLIC
-        xxhash
-        imgui
-        stduuid
-        flecs_static
-        glm
-        spdlog
-        magic_enum
-        ska
-)
+add_quelos_module(QUELOS_CORE_SRC src/Quelos/Core)
+add_quelos_module(QUELOS_RENDERER_SRC src/Quelos/Renderer)
+add_quelos_module(QUELOS_ASSET_MANAGER_SRC src/Quelos/AssetManager)
+add_quelos_module(QUELOS_MATH_SRC src/Quelos/Math)
+add_quelos_module(QUELOS_IMGUI_SRC src/Quelos/ImGui)
+add_quelos_module(QUELOS_PROJECT_SRC src/Quelos/Project)
+add_quelos_module(QUELOS_SCENES_SRC src/Quelos/Scenes)
+add_quelos_module(QUELOS_SERIALIZATION_SRC src/Quelos/Serialization)
+add_quelos_module(QUELOS_UTILITY_SRC src/Quelos/Utility)
 
-set_target_properties(Quelos PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED YES
-)
-
-if (WIN32)
-    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_WINDOWS)
-elseif (APPLE)
-    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_MACOS)
-elseif (UNIX)
-    target_compile_definitions(Quelos PUBLIC QUELOS_PLATFORM_LINUX)
-
-    #target_include_directories(Quelos PRIVATE ${GTK4_INCLUDE_DIRS})
+if(WIN32)
+    file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
+            src/Quelos/Platform/Windows/*.cpp
+    )
+elseif(UNIX)
+    file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
+            src/Quelos/Platform/Linux/*.cpp
+    )
 endif()
+
+add_quelos_module(QUELOS_BGFX_SOURCE src/Quelos/Platform/bgfx)
+
+file(GLOB QUELOS_SDL_SRC CONFIGURE_DEPENDS
+        src/Quelos/Platform/Window/SDLWindow.cpp
+        src/Quelos/Platform/Window/imgui_impl_sdl3.cpp
+)
+
+file(GLOB QUELOS_GLFW_SRC CONFIGURE_DEPENDS
+        src/Quelos/Platform/Window/GLFWWindow.cpp
+        src/Quelos/Platform/Window/imgui_impl_glfw.cpp
+)
+
+function(setup_quelos_target target type)
+    add_library(${target} ${type} EXCLUDE_FROM_ALL
+            ${QUELOS_CORE_SRC}
+            ${QUELOS_RENDERER_SRC}
+            ${QUELOS_ASSET_MANAGER_SRC}
+            ${QUELOS_MATH_SRC}
+            ${QUELOS_IMGUI_SRC}
+            ${QUELOS_PROJECT_SRC}
+            ${QUELOS_SCENES_SRC}
+            ${QUELOS_SERIALIZATION_SRC}
+            ${QUELOS_UTILITY_SRC}
+            ${QUELOS_PLATFORM_SRC}
+            ${QUELOS_SDL_SRC}
+            ${QUELOS_BGFX_SOURCE}
+    )
+
+    target_include_directories(${target} PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+
+    target_precompile_headers(${target} PRIVATE
+            src/qspch.h
+    )
+
+    target_compile_definitions(${target} PUBLIC
+            GLM_ENABLE_EXPERIMENTAL
+            GLM_FORCE_QUAT_DATA_WXYZ
+            GLM_FORCE_LEFT_HANDED
+    )
+
+    target_compile_features(${target} PUBLIC cxx_std_23)
+
+    if (MSVC)
+        target_compile_options(${target} PUBLIC
+                /Zc:preprocessor
+                /Zc:__cplusplus
+                /utf-8
+        )
+    endif()
+
+    if (WIN32)
+        target_compile_definitions(${target} PUBLIC QS_PLATFORM_WINDOWS)
+    elseif (APPLE)
+        target_compile_definitions(${target} PUBLIC QS_PLATFORM_MACOS)
+    elseif (UNIX)
+        target_compile_definitions(${target} PUBLIC QS_PLATFORM_LINUX)
+    endif()
+
+    target_link_libraries(${target}
+            PRIVATE
+            #glfw
+            bimg
+            bimg_decode
+            bgfx
+            bx
+            SDL3::SDL3-static
+            freetype
+            libDaScript
+            stb_image
+            TracyClient
+            PUBLIC
+            xxhash
+            imgui
+            stduuid
+            glm
+            spdlog
+            magic_enum
+            ska
+    )
+
+    target_include_directories(${target}
+            PUBLIC
+            $<TARGET_PROPERTY:TracyClient,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+
+    if(type STREQUAL "SHARED")
+        set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+        target_compile_definitions(${target}
+                PRIVATE QS_LIB_BUILD QS_LIB_SHARED
+                PUBLIC  QS_LIB_SHARED
+        )
+
+        target_link_libraries(${target} PUBLIC flecs)
+    else()
+        target_compile_definitions(${target}
+                PRIVATE QS_LIB_BUILD QS_LIB_STATIC
+                PUBLIC  QS_LIB_STATIC
+        )
+
+        target_link_libraries(${target} PUBLIC flecs_static)
+    endif()
+endfunction()
+
+setup_quelos_target(QuelosStatic STATIC)
+setup_quelos_target(QuelosShared SHARED)
+
+add_library(Quelos::Static ALIAS QuelosStatic)
+add_library(Quelos::Shared ALIAS QuelosShared)

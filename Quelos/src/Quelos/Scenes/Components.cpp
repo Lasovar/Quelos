@@ -1,5 +1,6 @@
 #include "qspch.h"
 
+#include "Components.h"
 #include "Scene.h"
 
 namespace Quelos {

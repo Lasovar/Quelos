@@ -5,7 +5,7 @@
 #include "Quelos/Renderer/Camera.h"
 
 namespace Quelos {
-	class EditorCamera : public Camera
+	class QS_API EditorCamera : public Camera
 	{
 	public:
 		EditorCamera() = default;
