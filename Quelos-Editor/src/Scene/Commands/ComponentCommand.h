@@ -63,9 +63,22 @@ namespace Quelos {
                 if (const auto* componentInfo = registry.GetSerializableComponentInfo(ComponentId)) {
                     actor.Add(componentInfo->RuntimeID);
 
-                    Serialization::BinaryReader reader(ComponentData);
-                    Serialization::BinaryReadArchive archive(reader);
+                    Serialization::BinaryReader componentBlobReader(ComponentData);
+                    static HashMap<uint64_t, BufferView> fieldsMap;
 
+                    fieldsMap.clear();
+                    while (componentBlobReader.HasRemaining()) {
+                        auto fieldHash = componentBlobReader.Read<uint64_t>();
+                        auto fieldSize = componentBlobReader.Read<uint64_t>();
+
+                        if (!fieldHash || !fieldSize) {
+                            continue;
+                        }
+
+                        fieldsMap[fieldHash.value()] = componentBlobReader.ReadBytes(fieldSize.value());
+                    }
+
+                    Serialization::BinaryReadArchive archive(fieldsMap);
                     componentInfo->SerializeBinaryReadFunc(archive, actor.GetMut(componentInfo->RuntimeID));
                 }
             }

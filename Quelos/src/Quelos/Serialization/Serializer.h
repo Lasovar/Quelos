@@ -18,7 +18,7 @@ namespace Quelos::Serialization {
         return XXH3_64bits(path.data(), path.size());
     }
 
-    struct FieldEvent {
+    struct QS_API FieldEvent {
         std::string_view Path;
 
         FieldEvent() = default;
@@ -27,11 +27,11 @@ namespace Quelos::Serialization {
             : Path(path) { }
     };
 
-    struct UnquotedString {
+    struct QS_API UnquotedString {
         std::string_view Value;
     };
 
-    struct ValueEvent {
+    struct QS_API ValueEvent {
         using ValueType = std::variant<
             char,
             float,
@@ -46,24 +46,24 @@ namespace Quelos::Serialization {
         ValueType Value;
     };
 
-    struct ComponentEvent {
+    struct QS_API ComponentEvent {
         std::string_view Name;
     };
 
-    struct SectionEvent {
+    struct QS_API SectionEvent {
         std::string_view Name;
     };
 
     // Error handling
-    struct ParseError {
+    struct QS_API ParseError {
         size_t Line = 0;
         std::string Message;
     };
 
-    struct TupleBeginEvent { };
-    struct TupleEndEvent { };
-    struct ArrayBeginEvent { };
-    struct ArrayEndEvent { };
+    struct QS_API TupleBeginEvent { };
+    struct QS_API TupleEndEvent { };
+    struct QS_API ArrayBeginEvent { };
+    struct QS_API ArrayEndEvent { };
 
     using ParserEvent = std::variant<
         SectionEvent,
@@ -79,7 +79,7 @@ namespace Quelos::Serialization {
 
     // Core
 
-    class QuelReader {
+    class QS_API QuelReader {
     public:
         QuelReader() = default;
 
@@ -95,12 +95,12 @@ namespace Quelos::Serialization {
         QuelLexer m_Lexer;
     };
 
-    enum class QuelFormatting {
+    enum class QS_API QuelFormatting {
         None,
         Indented,
     };
 
-    class QuelWriter {
+    class QS_API QuelWriter {
     public:
         virtual ~QuelWriter() = default;
 
@@ -147,7 +147,7 @@ namespace Quelos::Serialization {
         virtual void SetFormatting(QuelFormatting formatting) = 0;
     };
 
-    class StringQuelWriter : public QuelWriter {
+    class QS_API StringQuelWriter : public QuelWriter {
     public:
         StringQuelWriter() = delete;
 

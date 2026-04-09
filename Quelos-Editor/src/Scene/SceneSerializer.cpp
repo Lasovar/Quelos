@@ -4,8 +4,6 @@
 #include <ranges>
 #include <string_view>
 
-#include "Quelos/Serialization/SceneBinarySerializer.h"
-
 using namespace magic_enum::bitwise_operators;
 
 namespace Quelos {
@@ -334,7 +332,8 @@ namespace Quelos {
             std::filesystem::create_directories(patchesFolder);
         }
 
-        std::filesystem::path sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
+        std::string sceneName = m_ScenePath.filename().generic_string();
+        std::filesystem::path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -368,6 +367,8 @@ namespace Quelos {
             return;
         }
 
+        m_Scene->SetName(sceneName);
+
         const flecs::world& world = m_Scene->GetWorld();
         world.defer_begin();
 
@@ -378,18 +379,17 @@ namespace Quelos {
                 continue;
             }
 
-            ActorSnapshot actorSnapshot;
-            actorSnapshot.Data.resize(entitySnapshotSize.value());
-            const auto entitySnapshotResult = reader.ReadBytes(entitySnapshotSize.value());
-            if (!entitySnapshotResult) {
+            const auto entitySnapshotBlob = reader.ReadBytes(entitySnapshotSize.value());
+            if (entitySnapshotBlob.empty()) {
                 QS_ERROR_TAG("SceneSerializer", "Failed to read entity snapshot!");
                 continue;
             }
 
-            Span<const byte> entitySnapshot = entitySnapshotResult.value();
-            std::memcpy(actorSnapshot.Data.data(), entitySnapshot.data(), entitySnapshot.size());
+            EntitySnapshot entitySnapshot;
+            entitySnapshot.Data.resize(entitySnapshotSize.value());
+            std::memcpy(entitySnapshot.Data.data(), entitySnapshotBlob.data(), entitySnapshotBlob.size());
 
-            ActorSnapshot::Load(m_Scene, actorSnapshot);
+            EntitySnapshot::Load(m_Scene, entitySnapshot);
         }
 
         world.defer_end();
@@ -733,7 +733,7 @@ namespace Quelos {
         });
 
         for (auto& actorId : rootActors) {
-            ActorSnapshot snapshot = ActorSnapshot::Create(m_Scene, actorId);
+            EntitySnapshot snapshot = EntitySnapshot::Create(m_Scene, actorId);
             writer.Write<uint32_t>(snapshot.Data.size());
             writer.WriteBytes(std::span(snapshot.Data));
         }

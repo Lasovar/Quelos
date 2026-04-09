@@ -20,7 +20,7 @@ namespace Quelos::Serialization {
         Error
     };
 
-    inline std::string TokenTypeToString(const TokenType type) {
+    constexpr std::string TokenTypeToString(const TokenType type) {
         switch (type) {
             case TokenType::Identifier: return std::string{"Identifier"};
             case TokenType::String: return std::string{"String"};

@@ -69,13 +69,14 @@ namespace QuelosEditor {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
         });*/
 
-        /*const Actor camera = m_DefaultScene->CreateActor("Camera");
+        /*auto m_DefaultScene = CreateRef<Scene>("TestScene");
+        const Actor camera = m_DefaultScene->CreateActor("Camera");
         camera.Set(CameraComponent{SceneCamera()});
         camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
-        cubeMesh.MaterialData = CreateRef<Material>(Shader::Create("vs_cubes.bin", "fs_cubes.bin"));
+        cubeMesh.MaterialData = CreateRef<Material>("vs_cubes.bin", "fs_cubes.bin");
 
         const Actor floor = m_DefaultScene->CreateActor("Floor");
         floor.Set(LocalTransform{glm::vec3(0, 0, 0), glm::identity<glm::quat>(), glm::vec3(5, 0.5f, 5)});
@@ -103,7 +104,10 @@ namespace QuelosEditor {
         cube4.Set(LocalTransform{glm::vec3(0, 5, 0)});
         cube4.Set(cubeMesh);
         cube4.Set(CubePlayer{-10});
-        cube4.SetParent(cube);*/
+        cube4.SetParent(cube);
+
+        SceneSerializer serializer(m_DefaultScene, "Assets/TestScene");
+        serializer.BakePatches();*/
 
         /*m_DefaultScene->System<TransformComponent, CubePlayer>(
             [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {

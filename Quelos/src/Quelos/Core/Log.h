@@ -3,9 +3,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-namespace Quelos {
+#include "Ref.h"
 
-	class Log {
+namespace Quelos {
+	class QS_API Log {
 	public:
 		enum class Type : uint8_t {
 			Core = 0, Client = 1
@@ -25,11 +26,11 @@ namespace Quelos {
 
 		static void Shutdown();
 
-		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		inline static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+		static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+		static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 
 		static bool HasTag(const std::string& tag) { return s_EnabledTags.find(tag) != s_EnabledTags.end(); }
-		static std::map<std::string, TagDetails>& EnabledTags() { return s_EnabledTags; }
+		static HashMap<std::string, TagDetails>& EnabledTags() { return s_EnabledTags; }
 		static void SetDefaultTagSettings();
 
 		template<typename... Args>
@@ -70,12 +71,12 @@ namespace Quelos {
 		}
 		
 	private:
-		static std::shared_ptr<spdlog::logger> s_CoreLogger;
-		static std::shared_ptr<spdlog::logger> s_ClientLogger;
-		static std::shared_ptr<spdlog::logger> s_EditorConsoleLogger;
+		static Ref<spdlog::logger> s_CoreLogger;
+		static Ref<spdlog::logger> s_ClientLogger;
+		static Ref<spdlog::logger> s_EditorConsoleLogger;
 
-		inline static std::map<std::string, TagDetails> s_EnabledTags;
-		static std::map<std::string, TagDetails> s_DefaultTagDetails;
+		static HashMap<std::string, TagDetails> s_EnabledTags;
+		static HashMap<std::string, TagDetails> s_DefaultTagDetails;
 	};
 }
 

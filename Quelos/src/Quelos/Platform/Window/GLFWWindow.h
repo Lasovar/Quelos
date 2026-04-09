@@ -6,8 +6,7 @@
 class GLFWwindow;
 
 namespace Quelos {
-
-    class GLFWWindow : public Window {
+    class QS_API GLFWWindow : public Window {
     public:
         using EventCallbackFn = std::function<void(Event&)>;
 

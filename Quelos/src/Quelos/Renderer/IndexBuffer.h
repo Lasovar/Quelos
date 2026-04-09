@@ -3,9 +3,9 @@
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
-	class IndexBuffer;
+	class QS_API IndexBuffer;
 
-	struct IndexBufferHandle : Handle<IndexBuffer> {
+	struct QS_API IndexBufferHandle : Handle<IndexBuffer> {
 		IndexBufferHandle() = default;
 
 		IndexBufferHandle(const Handle handle) {

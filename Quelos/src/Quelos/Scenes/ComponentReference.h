@@ -19,7 +19,7 @@ namespace Quelos {
         flecs::ref<TComponent> m_Ref{};
     };
 
-    class ComponentUntypedRef {
+    class QS_API ComponentUntypedRef {
     public:
         ComponentUntypedRef() = default;
 

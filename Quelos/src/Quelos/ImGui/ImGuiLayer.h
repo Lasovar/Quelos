@@ -3,7 +3,7 @@
 #include "Quelos/Core/Layer.h"
 
 namespace Quelos {
-	class ImGuiLayer : public Layer {
+	class QS_API ImGuiLayer : public Layer {
 	public:
 		explicit ImGuiLayer(const std::string& name = "ImGui Layer")
 			: Layer(name) {}

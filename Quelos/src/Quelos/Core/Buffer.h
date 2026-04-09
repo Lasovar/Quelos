@@ -3,7 +3,7 @@
 #include "Base.h"
 
 namespace Quelos {
-    struct Buffer {
+    struct QS_API Buffer {
         using Deleter = void(*)(void*);
 
         Buffer() = default;

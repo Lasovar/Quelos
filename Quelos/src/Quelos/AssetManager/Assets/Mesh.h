@@ -6,7 +6,7 @@
 #include "Quelos/AssetManager/Asset.h"
 
 namespace Quelos {
-	class Mesh : public Asset {
+	class QS_API Mesh : public Asset {
 	public:
 		Mesh(const std::vector<PosColorVertex>& vertices, const std::vector<uint16_t>& indices);
 

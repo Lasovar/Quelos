@@ -19,7 +19,7 @@ namespace QuelosEditor {
             return path;
         }
 
-        return std::string_view(path.data() + pos + 1, path.size());
+        return { path.data() + pos + 1, path.size() };
     }
 
     void ContentBrowserPanel::DrawDirectoryTile(const std::string& path) {
@@ -229,6 +229,17 @@ namespace QuelosEditor {
             ImGui::PopStyleVar(1);
 
             if (ImGui::BeginChild("##main", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
+                if (ImGui::BeginPopupContextWindow("MainViewContext")) {
+                    if (ImGui::MenuItem(UI::FormatTemp("{} {}", ICON_FA_FILE, "Create Scene"))) {
+                        Ref<Scene> scene = CreateRef<Scene>("NewScene");
+                        SceneSerializer serializer(scene, m_CurrentPath + "/NewScene");
+                        serializer.Deserialize();
+                        m_QueueDirectoryTreeRebuild = true;
+                    }
+
+                    ImGui::EndPopup();
+                }
+
                 DrawTopBar();
                 DrawAssetGrid();
             } ImGui::EndChild();

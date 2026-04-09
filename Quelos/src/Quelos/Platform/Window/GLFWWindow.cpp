@@ -5,11 +5,11 @@
 #include "Quelos/Core/Events/InputEvents.h"
 #include "Quelos/Core/Events/WindowEvents.h"
 
-#ifdef QUELOS_PLATFORM_WINDOWS
+#ifdef QS_PLATFORM_WINDOWS
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 
-#ifdef QUELOS_PLATFORM_LINUX
+#ifdef QS_PLATFORM_LINUX
 #define GLFW_EXPOSE_NATIVE_X11
 #define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
@@ -53,11 +53,11 @@ namespace Quelos {
 
         glfwSetWindowUserPointer(m_GLFWWindow, this);
 
-#ifdef QUELOS_PLATFORM_WINDOWS
+#ifdef QS_PLATFORM_WINDOWS
         m_WindowHandle = glfwGetWin32Window(m_GLFWWindow);
         m_DisplayHandle = nullptr; //glfwGetWin32Display();
 #endif
-#ifdef QUELOS_PLATFORM_LINUX
+#ifdef QS_PLATFORM_LINUX
         if (glfwGetPlatform() == GLFW_PLATFORM_WAYLAND) {
             m_DisplayHandle = glfwGetWaylandDisplay();
             m_WindowHandle = glfwGetWaylandWindow(m_GLFWWindow);

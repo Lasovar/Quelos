@@ -6,7 +6,7 @@
 #include "SDL3/SDL.h"
 
 #include "Quelos/ImGui/ImGuiLayer.h"
-#include "Quelos/ImGui/imgui_impl_sdl3.h"
+#include "imgui_impl_sdl3.h"
 
 namespace Quelos {
     namespace Utils {
@@ -181,7 +181,7 @@ namespace Quelos {
 
         const SDL_PropertiesID windowProperties = SDL_GetWindowProperties(m_SDLWindow);
 
-#if QUELOS_PLATFORM_WINDOWS
+#if QS_PLATFORM_WINDOWS
         m_NativeWindowHandle = SDL_GetPointerProperty(
             windowProperties,
             SDL_PROP_WINDOW_WIN32_HWND_POINTER,
@@ -189,7 +189,7 @@ namespace Quelos {
         );
 
         m_DisplayHandle = nullptr;
-#elif QUELOS_PLATFORM_LINUX
+#elif QS_PLATFORM_LINUX
         m_IsWayland = SDL_GetPointerProperty(
             SDL_GetWindowProperties(m_SDLWindow),
             SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER,

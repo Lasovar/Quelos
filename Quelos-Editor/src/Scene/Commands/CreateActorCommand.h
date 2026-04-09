@@ -32,17 +32,17 @@ namespace Quelos {
         }
 
         void Revert() const {
-            ActorSnapshot::Load(Scene, Snapshot);
+            EntitySnapshot::Load(Scene, Snapshot);
         }
 
         DestroyActor() = default;
         DestroyActor(const ActorID actorId, const Ref<Scene>& scene) {
-            Snapshot = ActorSnapshot::Create(scene, actorId);
+            Snapshot = EntitySnapshot::Create(scene, actorId);
             Scene = scene;
         }
 
         ActorID ActorId;
-        ActorSnapshot Snapshot;
+        EntitySnapshot Snapshot;
         Ref<Scene> Scene;
     };
 }

@@ -69,6 +69,7 @@ namespace Quelos {
     }
 
     void Renderer::EndFrame() {
+        QS_PROFILE_SCOPED();
         bgfx::frame();
     }
 

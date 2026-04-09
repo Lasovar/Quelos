@@ -5,7 +5,7 @@
 #include "Asset.h"
 
 namespace Quelos {
-    struct AssetMetadata {
+    struct QS_API AssetMetadata {
         AssetHandle Handle;
         Path FilePath = {};
         AssetType Type = AssetType::None;

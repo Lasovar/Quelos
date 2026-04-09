@@ -10,7 +10,7 @@ namespace Quelos {
     using ActorID = GUID64;
     using RuntimeID = flecs::id_t;
 
-    class Entity {
+    class QS_API Entity {
     public:
         Entity() = default;
 

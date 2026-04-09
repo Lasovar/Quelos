@@ -6,10 +6,10 @@
 namespace Quelos {
     class Scene;
 
-    struct ActorSnapshot {
+    struct EntitySnapshot {
         Vec<byte> Data;
 
-        static ActorSnapshot Create(const Ref<Scene>& scene, ActorID actorId);
-        static Actor Load(const Ref<Scene>& scene, const ActorSnapshot& snapshot);
+        static EntitySnapshot Create(const Ref<Scene>& scene, ActorID entityId);
+        static Entity Load(const Ref<Scene>& scene, const EntitySnapshot& snapshot);
     };
 }

@@ -11,7 +11,7 @@
 namespace Quelos {
 	class Window;
 
-	class Renderer {
+	class QS_API Renderer {
 	public:
 		static bool IsInitialized();
 		static void Init(const Ref<Window>& window, RendererAPI api);

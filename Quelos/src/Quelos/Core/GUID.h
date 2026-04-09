@@ -3,7 +3,7 @@
 #include <stduuid/uuid.h>
 
 namespace Quelos {
-    struct GUID64 {
+    struct QS_API GUID64 {
     public:
         GUID64() = default;
         GUID64(const GUID64& other) = default;
@@ -24,7 +24,7 @@ namespace Quelos {
         friend struct std::hash<GUID64>;
     };
 
-    struct GUID128 {
+    struct QS_API GUID128 {
     public:
         GUID128() = default;
         GUID128(const uuids::uuid& uuid) : m_UUID(uuid) {}

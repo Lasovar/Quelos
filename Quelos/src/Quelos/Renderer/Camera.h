@@ -3,7 +3,7 @@
 #include "glm/glm.hpp"
 
 namespace Quelos {
-    class Camera {
+    class QS_API Camera {
     public:
         Camera() = default;
         explicit Camera(const glm::mat4& projection) : m_Projection(projection) {}

@@ -21,25 +21,25 @@ namespace Quelos {
 
     class Scene;
 
-    struct SceneRoot {
+    struct QS_API SceneRoot {
         SceneRoot() = default;
 
         explicit SceneRoot(Scene* scene) : m_Scene(scene) {}
-        Ref<Scene> GetScene() const;
+        [[nodiscard]] Ref<Scene> GetScene() const;
     private:
         Scene* m_Scene = nullptr;
     };
 
-    struct ActorTag {
+    struct QS_API ActorTag {
         ActorID ID;
     };
 
-    struct ChildOrder {
+    struct QS_API ChildOrder {
         uint64_t Value = 0;
     };
 
-    struct LocalTransform {
-        glm::vec3 Position;
+    struct QS_API LocalTransform {
+        glm::vec3 Position = glm::zero<glm::vec3>();
         glm::quat Rotation = glm::identity<glm::quat>();
         glm::vec3 Scale = glm::vec3(1);
 
@@ -51,11 +51,11 @@ namespace Quelos {
         }
     };
 
-    struct WorldTransform {
+    struct QS_API WorldTransform {
         glm::mat4 Value;
     };
 
-    struct CameraComponent {
+    struct QS_API CameraComponent {
         SceneCamera Camera;
 
         template <typename TArchive>
@@ -91,7 +91,7 @@ namespace Quelos {
         }
     };
 
-    struct MeshComponent {
+    struct QS_API MeshComponent {
         Ref<Mesh> MeshData;
         Ref<Material> MaterialData;
 
@@ -117,7 +117,7 @@ namespace Quelos {
         }
     };
 
-    struct SpriteRenderer {
+    struct QS_API SpriteRenderer {
         Ref<Texture2D> Texture;
 
         template <typename TArchive>

@@ -4,13 +4,12 @@
 #include <Quelos/Core/Ref.h>
 
 #include "Actor.h"
-#include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
 
 namespace Quelos {
-    enum class SystemGroup : uint8_t {
+    enum class QS_API SystemGroup : uint8_t {
         OnStart,
         OnLoad,
         PostLoad,
@@ -37,7 +36,7 @@ namespace Quelos {
         }
     }
 
-    class Scene : public Asset {
+    class QS_API Scene : public Asset {
     public:
         explicit Scene(std::string name = "Untitled Scene");
 
@@ -84,7 +83,7 @@ namespace Quelos {
 
         Actor GetActor(const ActorID actorId) {
             if (!actorId) {
-                return Actor(m_SceneRoot, actorId);
+                return { m_SceneRoot, actorId };
             }
 
             const auto it = m_ActorsMap.find(actorId);

@@ -8,7 +8,7 @@
 #include "Quelos/Core/Ref.h"
 
 namespace Quelos {
-    enum class ImageFormat {
+    enum class QS_API ImageFormat {
         None = 0,
         RED8UN,
         RED8UI,
@@ -36,29 +36,29 @@ namespace Quelos {
         Depth = DEPTH24STENCIL8,
     };
 
-    enum class TextureWrap {
+    enum class QS_API TextureWrap {
         Clamp,
         Repeat
     };
 
-    enum class TextureFilter {
+    enum class QS_API TextureFilter {
         Linear,
         Nearest,
         Anisotropic,
     };
 
-    enum class TextureType {
+    enum class QS_API TextureType {
         Texture2D,
         TextureCube
     };
 
-    enum class TextureRenderTarget {
+    enum class QS_API TextureRenderTarget {
         Off,
         ReadWrite,
         WriteOnly
     };
 
-    enum class RenderTargetMSAA {
+    enum class QS_API RenderTargetMSAA {
         None,
         MSAA_X2,
         MSAA_X4,
@@ -66,7 +66,7 @@ namespace Quelos {
         MSAA_X16,
     };
 
-    struct TextureSpecification {
+    struct QS_API TextureSpecification {
         ImageFormat Format = ImageFormat::RGBA;
         uint32_t Width = 1;
         uint32_t Height = 1;
@@ -78,7 +78,7 @@ namespace Quelos {
         RenderTargetMSAA MSAAType = RenderTargetMSAA::None;
     };
 
-    class Texture : public Asset {
+    class QS_API Texture : public Asset {
     public:
         ~Texture() override = default;
 
@@ -97,7 +97,7 @@ namespace Quelos {
         virtual uint16_t GetTextureHandle() const = 0;
     };
 
-    class Texture2D : public Texture {
+    class QS_API Texture2D : public Texture {
     public:
         static Ref<Texture2D> Create(const TextureSpecification& spec);
         static Ref<Texture2D> Create(const TextureSpecification& spec, Buffer data);

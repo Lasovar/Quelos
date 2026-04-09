@@ -2,7 +2,7 @@
 #include <cstdint>
 
 namespace Quelos {
-    enum class ShaderDataType : uint8_t {
+    enum class QS_API ShaderDataType : uint8_t {
         Float, Float2, Float3, Float4,
         Mat3, Mat4,
 
@@ -100,7 +100,7 @@ namespace Quelos {
         }
     }
 
-    enum class VertexAttribute : uint8_t {
+    enum class QS_API VertexAttribute : uint8_t {
         Position,
         Normal,
         Tangent,
@@ -126,7 +126,7 @@ namespace Quelos {
         Count
     };
 
-    struct BufferElement {
+    struct QS_API BufferElement {
         ShaderDataType Type;
         VertexAttribute Attribute;
         uint16_t Offset;
@@ -134,8 +134,8 @@ namespace Quelos {
 
     constexpr uint32_t k_MaxElements = 18;
 
-    struct VertexLayout {
-        std::array<BufferElement, k_MaxElements> Elements;
+    struct QS_API VertexLayout {
+        std::array<BufferElement, k_MaxElements> Elements{};
         uint8_t Count = 0;
         uint16_t Stride = 0;
 

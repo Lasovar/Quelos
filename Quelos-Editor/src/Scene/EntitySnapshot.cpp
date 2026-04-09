@@ -4,13 +4,13 @@
 #include "Quelos/Scenes/Scene.h"
 
 namespace Quelos {
-    static void SnapshotActor(
+    static void SnapshotEntity(
         Serialization::BinaryWriter& writer,
         ComponentRegistry& registry,
         flecs::world& world,
-        const Actor& actor
+        const Entity& actor
     ) {
-        writer.Write(actor.GetActorID());
+        writer.Write(actor.Get<ActorTag>().ID);
 
         const std::string_view name = actor.GetName();
 
@@ -25,8 +25,8 @@ namespace Quelos {
         uint32_t componentCount = 0;
 
         ActorID parentId;
-        if (const Actor parent = actor.GetParent(); parent.IsValid()) {
-            parentId = parent.GetActorID();
+        if (const Entity parent = actor.GetParent(); parent.IsValid()) {
+            parentId = parent.Get<ActorTag>().ID;
         }
 
         writer.Write(parentId);
@@ -63,22 +63,22 @@ namespace Quelos {
 
         writer.Write(static_cast<uint32_t>(world.count(flecs::ChildOf, actor.GetInternalID())));
         actor.GetInternalID().children([&](const flecs::entity child) {
-            SnapshotActor(writer, registry, world, child);
+            SnapshotEntity(writer, registry, world, child);
         });
     }
 
-    ActorSnapshot ActorSnapshot::Create(const Ref<Scene>& scene, const ActorID actorId) {
-        ActorSnapshot snapshot;
+    EntitySnapshot EntitySnapshot::Create(const Ref<Scene>& scene, const ActorID entityId) {
+        EntitySnapshot snapshot;
 
-        const Actor entity = scene->GetActor(actorId);
+        const Actor entity = scene->GetActor(entityId);
         Serialization::BinaryWriter writer(snapshot.Data);
 
-        SnapshotActor(writer, scene->GetComponentRegistry(), scene->GetWorld(), entity);
+        SnapshotEntity(writer, scene->GetComponentRegistry(), scene->GetWorld(), entity);
 
         return snapshot;
     }
 
-    static Actor LoadActor(
+    static Entity LoadEntity(
         const Ref<Scene>& scene,
         Serialization::BinaryReader& reader,
         ComponentRegistry& registry,
@@ -98,8 +98,8 @@ namespace Quelos {
 
         std::string_view name;
         if (const std::optional<uint32_t> nameLength = reader.Read<uint32_t>()) {
-            if (const auto nameBytes = reader.ReadBytes(*nameLength)) {
-                name = std::string_view(reinterpret_cast<const char*>(nameBytes.value().data()), nameBytes->size());
+            if (auto nameBytes = reader.ReadBytes(*nameLength); !nameBytes.empty()) {
+                name = std::string_view(reinterpret_cast<const char*>(nameBytes.data()), nameBytes.size());
             }
         }
 
@@ -177,16 +177,14 @@ namespace Quelos {
                     continue;
                 }
 
-                const auto blobResult = reader.ReadBytes(blobSize.value());
-                if (!blobResult) {
+                const auto componentBlob = reader.ReadBytes(blobSize.value());
+                if (componentBlob.empty()) {
                     QS_ERROR_TAG(
                         "EntitySnapshot::Load",
                         "Couldn't read component '{}({})' blob",
                         typeInfo->Name, static_cast<uint64_t>(typeInfo->Guid)
                     );
                 }
-
-                std::span<const std::byte> blob = blobResult.value();
 
                 // Allocate component
                 void* componentPtr = ecs_ensure_id(
@@ -207,8 +205,30 @@ namespace Quelos {
                 }
 
                 // Deserialize
-                Serialization::BinaryReader subReader(blob);
-                Serialization::BinaryReadArchive archive(subReader);
+                Serialization::BinaryReader componentBlobReader(componentBlob);
+                static HashMap<uint64_t, BufferView> fieldsMap;
+
+                fieldsMap.clear();
+                while (componentBlobReader.HasRemaining()) {
+                    auto fieldHash = componentBlobReader.Read<uint64_t>();
+                    auto fieldSize = componentBlobReader.Read<uint64_t>();
+
+                    if (!fieldHash || !fieldSize) {
+                        QS_CORE_ERROR_TAG(
+                            "EntitySnapshot::LoadEntity",
+                            "Failed to read field data for component {}! invalid field hash or size",
+                            typeInfo->Name
+                        );
+
+                        break;
+                    }
+
+                    fieldsMap[fieldHash.value()] = componentBlobReader.ReadBytes(fieldSize.value());
+                }
+
+                QS_INFO("Field map built for component {} with fields: {}", typeInfo->Name, fieldsMap.size());
+
+                Serialization::BinaryReadArchive archive(fieldsMap);
                 typeInfo->SerializeBinaryReadFunc(archive, componentPtr);
             }
         }
@@ -225,14 +245,14 @@ namespace Quelos {
         }
 
         for (uint32_t i = 0; i < childCountResult.value(); i++) {
-            LoadActor(scene, reader, registry, world);
+            LoadEntity(scene, reader, registry, world);
         }
 
         return entity;
     }
 
-    Actor ActorSnapshot::Load(const Ref<Scene>& scene, const ActorSnapshot& snapshot) {
+    Entity EntitySnapshot::Load(const Ref<Scene>& scene, const EntitySnapshot& snapshot) {
         Serialization::BinaryReader reader(snapshot.Data);
-        return LoadActor(scene, reader, scene->GetComponentRegistry(), scene->GetWorld());
+        return LoadEntity(scene, reader, scene->GetComponentRegistry(), scene->GetWorld());
     }
 }

@@ -3,7 +3,7 @@
 #include "AssetMetadata.h"
 
 namespace Quelos {
-    class AssetRegistry {
+    class QS_API AssetRegistry {
     public:
         [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const;
         [[nodiscard]] bool IsAssetPathValid(const Path& path) const;
