@@ -98,6 +98,7 @@ add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)
 add_subdirectory(Quelos/vendor/magic_enum)
 add_subdirectory(Quelos/vendor/ska)
+add_subdirectory(Quelos/vendor/unordered_dense)
 add_subdirectory(Quelos/vendor/stb_image)
 
 if (MSVC)

@@ -120,6 +120,7 @@ function(setup_quelos_target target type)
             spdlog
             magic_enum
             ska
+            unordered_dense
     )
 
     target_include_directories(${target}

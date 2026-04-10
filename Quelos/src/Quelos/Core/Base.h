@@ -1,12 +1,13 @@
 #pragma once
 
-#include <map>
 #include <deque>
 #include <span>
 
 // can't compile ska without this... MSVC throws an exception that std doesn't contain std::out_of_range without this
-#include <stdexcept>
-#include "ska/flat_hash_map.hpp"
+#include "Quelos/Utility/FlatMap.h"
+#include "Quelos/Utility/OrderedVec.h"
+#include "Quelos/Utility/OrderedSet.h"
+#include "unordered_dense.h"
 
 #include <filesystem>
 
@@ -106,13 +107,19 @@ namespace Quelos {
 
 
     template <typename TKey, typename TValue>
-    using HashMap = ska::flat_hash_map<TKey, TValue>;
+    using HashMap = ankerl::unordered_dense::map<TKey, TValue>;
 
     template <typename TKey, typename TValue>
-    using OrderedMap = std::map<TKey, TValue>;
+    using SegmentedHashMap = ankerl::unordered_dense::segmented_map<TKey, TValue>;
+
+    template <typename TKey, typename TValue>
+    using OrderedMap = FlatMap<TKey, TValue>;
 
     template <typename TValue>
-    using HashSet = ska::flat_hash_set<TValue>;
+    using HashSet = ankerl::unordered_dense::set<TValue>;
+
+    template <typename TValue>
+    using SegmentedHashSet = ankerl::unordered_dense::segmented_set<TValue>;
 
     template <typename T>
     using Deque = std::deque<T>;
