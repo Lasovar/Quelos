@@ -33,8 +33,8 @@ namespace Quelos {
         [[nodiscard]] bool IsValid() const noexcept { return !m_UUID.is_nil(); }
 
         operator bool() const { return IsValid(); }
-        bool operator==(const GUID128& other) const { return m_UUID == other.m_UUID; }
-        bool operator!=(const GUID128& other) const { return m_UUID != other.m_UUID; }
+        bool operator==(const GUID128& other) const noexcept { return m_UUID == other.m_UUID; }
+        bool operator!=(const GUID128& other) const noexcept { return m_UUID != other.m_UUID; }
 
         [[nodiscard]] std::string ToString() const;
         [[nodiscard]] std::string ToFormattedString() const;

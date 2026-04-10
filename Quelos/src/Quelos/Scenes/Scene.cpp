@@ -21,7 +21,7 @@ namespace Quelos {
         m_ComponentRegistry.RegisterBuiltinTypes(m_World);
 
         m_SceneRoot = m_World.entity<SceneRoot>("Root")
-                             .add<ActorTag>()
+                             .add<EntityID>()
                              .add(flecs::OrderedChildren);
 
         m_SceneRoot.set(SceneRoot { this });
@@ -122,7 +122,22 @@ namespace Quelos {
 
         const Actor actor = { CreateEntity(guid, entityName), guid };
         actor.Add<ActorTag>();
+        SetActorParentToRoot(actor);
         m_ActorsMap[guid] = actor;
+        return actor;
+    }
+
+    Actor Scene::CreateActor(const EntityID& guid, const std::string_view entityName, const EntityID parent) {
+        const Actor actor = CreateActor(guid, entityName);
+        if (parent) {
+            auto it = m_EntitiesMap.find(parent);
+            if (it != m_EntitiesMap.end()) {
+                actor.SetParent({ it->second, parent });
+            } else {
+                SetActorParentToRoot(actor);
+            }
+        }
+
         return actor;
     }
 
@@ -140,6 +155,22 @@ namespace Quelos {
         const Entity entity(entityId);
         entity.SetName(entityName);
         m_EntitiesMap[guid] = entity;
+        return entity;
+    }
+
+    Entity Scene::CreateEntity(const EntityID& guid, const std::string_view entityName, EntityID parent) {
+        const Entity entity = CreateEntity(guid, entityName);
+        if (parent) {
+            const auto it = m_EntitiesMap.find(parent);
+            if (it != m_EntitiesMap.end()) {
+                entity.SetParent(it->second);
+            } else {
+                entity.RemoveParent();
+            }
+        } else {
+            entity.RemoveParent();
+        }
+
         return entity;
     }
 

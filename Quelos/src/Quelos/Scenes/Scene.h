@@ -71,9 +71,11 @@ namespace Quelos {
 
         Actor CreateActor(std::string_view entityName);
         Actor CreateActor(const EntityID& guid, std::string_view entityName);
+        Actor CreateActor(const EntityID& guid, std::string_view entityName, EntityID parent);
 
         Entity CreateEntity(std::string_view entityName);
         Entity CreateEntity(const EntityID& guid, std::string_view entityName);
+        Entity CreateEntity(const EntityID& guid, std::string_view entityName, EntityID parent);
         void DestroyEntity(EntityID entityId);
 
         Entity GetSceneRoot() const { return m_SceneRoot; }

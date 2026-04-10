@@ -37,7 +37,7 @@ namespace Quelos {
     public:
         void RegisterBuiltinTypes(flecs::world& world);
 
-        QS_API static constexpr ComponentID GetComponentID(const std::string_view& typeName) {
+        static constexpr ComponentID GetComponentID(const std::string_view& typeName) {
             return ComponentID(XXH3_64bits(typeName.data(), typeName.size()));
         }
 

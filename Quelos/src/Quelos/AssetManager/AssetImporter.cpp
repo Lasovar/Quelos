@@ -18,7 +18,7 @@ namespace Quelos {
         if (it == s_AssetLoaders.end()) {
             QS_CORE_ERROR_TAG(
                 "AssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",
-                metadata.FilePath.string()
+                metadata.FilePath
             );
 
             return nullptr;

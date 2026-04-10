@@ -84,6 +84,8 @@ namespace Quelos {
         SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath);
         ~SceneSerializer() = default;
 
+        bool EnsureSceneExists() const;
+
         void Deserialize();
 
         void SerializePatches();

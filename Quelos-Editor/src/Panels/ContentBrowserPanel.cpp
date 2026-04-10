@@ -13,17 +13,9 @@
 #include "EditorUI.h"
 
 namespace QuelosEditor {
-    static std::string_view filename(const std::string& path) {
-        const size_t pos = path.find_last_of("/\\");
-        if (pos == std::string_view::npos) {
-            return path;
-        }
-
-        return { path.data() + pos + 1, path.size() };
-    }
 
     void ContentBrowserPanel::DrawDirectoryTile(const std::string& path) {
-        std::string_view directoryName = filename(path);
+        std::string_view directoryName = UI::Filename(path);
         ImGui::PushID(path.c_str());
         ImGui::BeginGroup();
 
@@ -195,7 +187,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, filename(path)),
+            UI::FormatTemp("{} {}", ICON_FA_FOLDER, UI::Filename(path)),
             flags
         );
 
@@ -267,7 +259,7 @@ namespace QuelosEditor {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = false;
                 assetEntry.Metadata = *metadata;
-                assetEntry.Name = metadata->FilePath.filename().generic_string();
+                assetEntry.Name = UI::Filename(metadata->FilePath);
 
                 m_Directories[path].Assets.push_back(assetEntry);
             }
@@ -275,7 +267,7 @@ namespace QuelosEditor {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = true;
                 assetEntry.Name = entry.path().filename().generic_string();
-                assetEntry.Metadata.FilePath = entry.path();
+                assetEntry.Metadata.FilePath = entry.path().generic_string();
 
                 m_Directories[path].Assets.push_back(assetEntry);
             }

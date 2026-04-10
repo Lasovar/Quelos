@@ -317,23 +317,48 @@ namespace Quelos {
         return lastChange;
     }
 
-    void SceneSerializer::Deserialize() {
-        if (!std::filesystem::is_directory(m_ScenePath)) {
-            if (std::filesystem::exists(m_ScenePath)) {
-                QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
-                return;
+    bool SceneSerializer::EnsureSceneExists() const {
+        if (!std::filesystem::exists(m_ScenePath)) {
+            std::error_code errorCode;
+            std::filesystem::create_directories(m_ScenePath, errorCode);
+            if (errorCode) {
+                QS_ERROR_TAG("SceneSerializer", "Failed to create scene folder at {}: {}",
+                    m_ScenePath.string(), errorCode.message());
+                return false;
             }
-
-            std::filesystem::create_directories(m_ScenePath);
+        } else {
+            if (!std::filesystem::is_directory(m_ScenePath)) {
+                QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
+                return false;
+            }
         }
 
-        std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
+        Path patchesFolder = m_ScenePath / ScenePatchesFolder;
         if (!std::filesystem::exists(patchesFolder)) {
             std::filesystem::create_directories(patchesFolder);
         }
 
         std::string sceneName = m_ScenePath.filename().generic_string();
-        std::filesystem::path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+        Path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+
+        if (!std::filesystem::exists(sceneFilePath)) {
+            std::ofstream create(sceneFilePath, std::ios::binary);
+            SceneHeader sceneHeader;
+            create.write(reinterpret_cast<const char*>(&sceneHeader), sizeof(SceneHeader));
+        }
+
+        return true;
+    }
+
+    void SceneSerializer::Deserialize() {
+        if (!EnsureSceneExists()) {
+            return;
+        }
+
+        Path patchesFolder = m_ScenePath / ScenePatchesFolder;
+
+        std::string sceneName = m_ScenePath.filename().generic_string();
+        Path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -489,6 +514,10 @@ namespace Quelos {
     }
 
     void SceneSerializer::SerializePatches() {
+        if (!EnsureSceneExists()) {
+            return;
+        }
+
         flecs::world& world = m_Scene->GetWorld();
         ComponentRegistry& registry = m_Scene->GetComponentRegistry();
 
@@ -707,6 +736,11 @@ namespace Quelos {
     }
 
     void SceneSerializer::BakePatches() const {
+        if (!EnsureSceneExists()) {
+            QS_INFO_TAG("SCeneSerializer::BakePatches", "Could not ensure scene directory");
+            return;
+        }
+
         flecs::world& world = m_Scene->GetWorld();
         ComponentRegistry& registry = m_Scene->GetComponentRegistry();
         const auto& types = registry.GetSerializableComponents();

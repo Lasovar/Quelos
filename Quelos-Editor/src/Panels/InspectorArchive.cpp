@@ -28,7 +28,6 @@ namespace Quelos {
             );
 
             startedEditing = false;
-            QS_CORE_INFO("HELLO");
         }
     }
 

@@ -31,11 +31,21 @@ target_link_libraries(Quelos-Editor
         assimp
 )
 
-add_dependencies(Quelos-Editor tracy-profiler)
-set(TRACY_OUT_DIR "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin")
-set_target_properties(tracy-profiler PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${TRACY_OUT_DIR}"
+include(ExternalProject)
+
+set(TRACY_OUT_DIR "${CMAKE_BINARY_DIR}/Tools/bin")
+
+ExternalProject_Add(tracy_profiler
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/Quelos/vendor/tracy/profiler
+
+        CMAKE_ARGS
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${TRACY_OUT_DIR}
+
+        BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
+        INSTALL_COMMAND ""
 )
+
 
 add_dependencies(Quelos-Editor shaderc)
 

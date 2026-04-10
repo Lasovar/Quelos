@@ -21,22 +21,34 @@ if(WIN32)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
             src/Quelos/Platform/Windows/*.cpp
     )
+elseif(APPLE)
+    file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
+            src/Quelos/Platform/Linux/*.cpp
+    )
 elseif(UNIX)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
             src/Quelos/Platform/Linux/*.cpp
     )
 endif()
 
-add_quelos_module(QUELOS_BGFX_SOURCE src/Quelos/Platform/bgfx)
+add_quelos_module(QUELOS_BGFX_SRC src/Quelos/Platform/bgfx)
 
-file(GLOB QUELOS_SDL_SRC CONFIGURE_DEPENDS
+set(QUELOS_SDL_SRC
         src/Quelos/Platform/Window/SDLWindow.cpp
         src/Quelos/Platform/Window/imgui_impl_sdl3.cpp
 )
 
-file(GLOB QUELOS_GLFW_SRC CONFIGURE_DEPENDS
+set(QUELOS_GLFW_SRC
         src/Quelos/Platform/Window/GLFWWindow.cpp
         src/Quelos/Platform/Window/imgui_impl_glfw.cpp
+)
+
+set(IMGUI_SRC
+        vendor/imgui/imgui.cpp
+        vendor/imgui/imgui_draw.cpp
+        vendor/imgui/imgui_tables.cpp
+        vendor/imgui/imgui_widgets.cpp
+        vendor/imgui/imgui_demo.cpp
 )
 
 function(setup_quelos_target target type)
@@ -45,6 +57,7 @@ function(setup_quelos_target target type)
             ${QUELOS_RENDERER_SRC}
             ${QUELOS_ASSET_MANAGER_SRC}
             ${QUELOS_MATH_SRC}
+            ${IMGUI_SRC}
             ${QUELOS_IMGUI_SRC}
             ${QUELOS_PROJECT_SRC}
             ${QUELOS_SCENES_SRC}
@@ -52,11 +65,12 @@ function(setup_quelos_target target type)
             ${QUELOS_UTILITY_SRC}
             ${QUELOS_PLATFORM_SRC}
             ${QUELOS_SDL_SRC}
-            ${QUELOS_BGFX_SOURCE}
+            ${QUELOS_BGFX_SRC}
     )
 
     target_include_directories(${target} PUBLIC
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui
     )
 
     target_precompile_headers(${target} PRIVATE
@@ -101,7 +115,6 @@ function(setup_quelos_target target type)
             TracyClient
             PUBLIC
             xxhash
-            imgui
             stduuid
             glm
             spdlog

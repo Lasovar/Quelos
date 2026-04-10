@@ -3,7 +3,6 @@
 
 #include "EditorUI.h"
 #include "Quelos/ImGui/widgets/texture.h"
-#include "imgui.h"
 #include "imgui_internal.h"
 
 namespace QuelosEditor {

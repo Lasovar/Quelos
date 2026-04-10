@@ -7,11 +7,11 @@
 namespace Quelos {
     struct QS_API AssetMetadata {
         AssetHandle Handle;
-        Path FilePath = {};
+        std::string FilePath = {};
         AssetType Type = AssetType::None;
 
         AssetMetadata() = default;
-        AssetMetadata(const AssetHandle handle, Path path, const AssetType assetType)
+        AssetMetadata(const AssetHandle handle, std::string path, const AssetType assetType)
             : Handle(handle), FilePath(std::move(path)), Type(assetType) {}
 
         operator bool() const { return !Handle || Type != AssetType::None; }

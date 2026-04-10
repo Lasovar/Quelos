@@ -54,7 +54,7 @@ namespace QuelosEditor {
         std::string_view currentField;
 
         ProjectConfig config;
-        config.ProjectPath = std::filesystem::absolute(projectPath).lexically_normal();
+        config.ProjectPath = std::filesystem::absolute(projectPath).generic_string();
 
         for (auto&& parserEvent : reader.Parse()) {
             if (breakFlag) {

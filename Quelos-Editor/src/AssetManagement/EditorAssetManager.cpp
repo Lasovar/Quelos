@@ -28,7 +28,7 @@ namespace QuelosEditor {
 
         const AssetMetadata assetMetadata = {
             handle,
-            std::filesystem::relative(assetPath, projectPath),
+            std::filesystem::relative(assetPath, projectPath).generic_string(),
             assetType
         };
 
@@ -96,7 +96,7 @@ namespace QuelosEditor {
 
         if (!asset) {
             QS_CORE_ERROR_TAG("AssetManager::GetAsset", "Failed to load asset with handle {}, path: '{}'",
-                              handle.ToString(), metadata.FilePath.string());
+                              handle.ToString(), metadata.FilePath);
             return nullptr;
         }
 
@@ -140,9 +140,8 @@ namespace QuelosEditor {
             writer.Write(SectionEvent{magic_enum::enum_name(metadata.Type)});
             writer.CloseSection();
             writer.WriteField("handle", UnquotedString{handle.ToString()});
-            writer.WriteField("path", metadata.FilePath.string());
+            writer.WriteField("path", metadata.FilePath);
         }
-
 
         if (std::ofstream file(assetRegistryPath, std::ios::binary); file) {
             file.write(buffer.c_str(), buffer.size());
@@ -207,7 +206,7 @@ namespace QuelosEditor {
                             metadata.Handle = AssetHandle(*valueResult);
                         }
                         else if (currentField == "path") {
-                            metadata.FilePath = Path{*valueResult};
+                            metadata.FilePath = *valueResult;
                         }
                     }
                 }
