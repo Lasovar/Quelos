@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "../../../vendor/bgfx.cmake/bgfx/3rdparty/dear-imgui/imgui.h"
 #include "Quelos/Core/Application.h"
 
 #include "Quelos/Math/Math.h"

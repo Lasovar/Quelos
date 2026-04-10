@@ -62,7 +62,6 @@ set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
 add_subdirectory(Quelos/vendor/SDL)
 
 add_subdirectory(Quelos/vendor/GLFW)
-add_subdirectory(Quelos/vendor/imgui)
 add_subdirectory(Quelos/vendor/rapidfuzz-cpp)
 add_subdirectory(Quelos/vendor/tracy)
 add_subdirectory(Quelos/vendor/freetype)
@@ -102,14 +101,10 @@ add_subdirectory(Quelos/vendor/ska)
 add_subdirectory(Quelos/vendor/stb_image)
 
 if (MSVC)
-    add_compile_options(
-            /await:strict
-    )
+    add_compile_options(/await:strict)
+    add_compile_options(/permissive-)
 endif()
 
 # Main projects
 add_subdirectory(Quelos)
-
-add_subdirectory(Quelos/vendor/tracy/profiler)
-
 add_subdirectory(Quelos-Editor)

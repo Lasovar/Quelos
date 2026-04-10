@@ -23,7 +23,7 @@ namespace QuelosEditor {
                 QS_CORE_ERROR_TAG(
                     "MeshImporter::ImportMesh",
                     "Failed to import mesh ({},{}): {}",
-                    metadata.FilePath.string(),
+                    metadata.FilePath,
                     assetHandle.ToString(),
                     importer.GetErrorString()
                 );

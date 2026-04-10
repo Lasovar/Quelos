@@ -36,6 +36,15 @@ namespace Quelos::UI {
         return buffer.data();
     }
 
+    static std::string_view Filename(const std::string& path) {
+        const size_t pos = path.find_last_of("/\\");
+        if (pos == std::string_view::npos) {
+            return path;
+        }
+
+        return { path.data() + pos + 1, path.size() };
+    }
+
     inline bool EditFloat(
         const std::string& label,
         float& value,
@@ -414,7 +423,7 @@ namespace Quelos::UI {
         if (value) {
             if (const AssetMetadata* meta = Project::GetAssetManager()->
                 GetAssetMetadata(value->GetAssetHandle())) {
-                assetName = meta->FilePath.filename().generic_string();
+                assetName = Filename(meta->FilePath);
             }
         }
 

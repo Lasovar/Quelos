@@ -1,6 +1,5 @@
 #include "ImGuiLayer.h"
 
-#include <imgui.h>
 #include <qspch.h>
 #ifdef QUELOS_USE_SDL
 #include "Quelos/Platform/Window/imgui_impl_sdl3.h"

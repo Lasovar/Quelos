@@ -28,6 +28,13 @@
     #endif
 #endif
 
+#ifdef IMGUI_API
+#undef IMGUI_API
+#endif
+#define IMGUI_API QS_API
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+
 #ifdef QS_ENABLE_PROFILING
 #ifndef TRACY_ENABLE
 #define TRACY_ENABLE
