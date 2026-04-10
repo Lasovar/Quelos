@@ -261,7 +261,7 @@ namespace QuelosEditor {
                 assetEntry.Metadata = *metadata;
                 assetEntry.Name = UI::Filename(metadata->FilePath);
 
-                m_Directories[path].Assets.push_back(assetEntry);
+                m_Directories[path].Assets.insert(assetEntry);
             }
             else if (EditorAssetManager::IsAssetSupported(entry.path())) {
                 AssetEntry assetEntry;
@@ -269,7 +269,7 @@ namespace QuelosEditor {
                 assetEntry.Name = entry.path().filename().generic_string();
                 assetEntry.Metadata.FilePath = entry.path().generic_string();
 
-                m_Directories[path].Assets.push_back(assetEntry);
+                m_Directories[path].Assets.insert(assetEntry);
             }
             else if (entry.is_directory() && entry.path() != Project::GetLibraryPath() && entry.path() !=
                 Project::GetProjectSettingsPath()) {

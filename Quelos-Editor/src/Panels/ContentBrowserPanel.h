@@ -11,12 +11,20 @@ namespace QuelosEditor {
         bool IsImportable = false;
         AssetMetadata Metadata;
         std::string Name;
+
+        struct Compare {
+            using is_transparent = void;
+
+            constexpr bool operator()(const AssetEntry& a, const AssetEntry& b) const {
+                return a.Name < b.Name;
+            }
+        };
     };
 
     struct DirectoryData {
         std::string DirectoryPath;
-        Vec<AssetEntry> Assets;
-        HashSet<std::string> SubDirectories;
+        OrderedSet<AssetEntry, AssetEntry::Compare> Assets;
+        OrderedSet<std::string> SubDirectories;
     };
 
     class ContentBrowserPanel {
