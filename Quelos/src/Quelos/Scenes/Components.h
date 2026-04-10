@@ -14,7 +14,7 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
-    using ActorID = GUID64;
+    using EntityID = GUID64;
 
     class IndexBuffer;
     class VertexBuffer;
@@ -30,9 +30,7 @@ namespace Quelos {
         Scene* m_Scene = nullptr;
     };
 
-    struct QS_API ActorTag {
-        ActorID ID;
-    };
+    struct QS_API ActorTag { };
 
     struct QS_API ChildOrder {
         uint64_t Value = 0;

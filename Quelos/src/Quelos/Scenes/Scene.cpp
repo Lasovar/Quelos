@@ -110,30 +110,40 @@ namespace Quelos {
     }
 
     Actor Scene::CreateActor(const std::string_view entityName) {
-        const ActorID guid = ActorID::Generate();
+        const EntityID guid = EntityID::Generate();
         return CreateActor(guid, entityName);
     }
 
-    Actor Scene::CreateActor(const ActorID& guid, const std::string_view entityName) {
+    Actor Scene::CreateActor(const EntityID& guid, const std::string_view entityName) {
         auto it = m_ActorsMap.find(guid);
         if (it != m_ActorsMap.end()) {
             return it->second;
         }
 
-        const flecs::entity entityId = m_World.entity()
-                                              .set(ActorTag(guid))
-                                              .add<ChildOrder>()
-                                              .add(flecs::OrderedChildren);
-
-        const Actor actor(entityId, guid);
-        actor.SetName(entityName);
-        actor.OrderBack(Actor(m_SceneRoot, ActorID()));
-
+        const Actor actor = { CreateEntity(guid, entityName), guid };
+        actor.Add<ActorTag>();
         m_ActorsMap[guid] = actor;
         return actor;
     }
 
-    void Scene::DestroyEntity(const ActorID entityId) {
+    Entity Scene::CreateEntity(const std::string_view entityName) {
+        const EntityID guid = EntityID::Generate();
+        return CreateEntity(guid, entityName);
+    }
+
+    Entity Scene::CreateEntity(const EntityID& guid, const std::string_view entityName) {
+        const flecs::entity entityId = m_World.entity()
+                                              .set(guid)
+                                              .add<ChildOrder>()
+                                              .add(flecs::OrderedChildren);
+
+        const Entity entity(entityId);
+        entity.SetName(entityName);
+        m_EntitiesMap[guid] = entity;
+        return entity;
+    }
+
+    void Scene::DestroyEntity(const EntityID entityId) {
         const auto entity = m_ActorsMap[entityId];
         entity.Destroy();
         m_ActorsMap.erase(entityId);

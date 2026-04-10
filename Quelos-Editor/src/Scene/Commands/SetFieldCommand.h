@@ -42,7 +42,7 @@ namespace Quelos {
     template <typename TField>
     struct SetField {
         ComponentID ComponentId{};
-        ActorID ActorId{};
+        EntityID ActorId{};
         Ref<Scene>& Scene;
 
         SetFieldSerializeFn SerializeComponentFunc = nullptr;

@@ -210,7 +210,7 @@ namespace Quelos {
         void PushBackToContainer(size_t childIndex);
 
     private:
-        HashMap<ActorID, ActorPatch> m_Actors{};
+        HashMap<EntityID, ActorPatch> m_Actors{};
 
         enum class ParserState : uint8_t {
             None = 0,
@@ -236,8 +236,8 @@ namespace Quelos {
         Actor m_CurrentEntity;
         std::string_view m_CurrentEntityName;
         std::string_view m_CurrentEntityState;
-        ActorID m_CurrentEntityID{};
-        ActorID m_CurrentParentID{};
+        EntityID m_CurrentEntityID{};
+        EntityID m_CurrentParentID{};
 
         bool m_SkipToNextSection = false;
         bool m_SkipToNextComponent = false;
@@ -250,7 +250,7 @@ namespace Quelos {
 
         HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
 
-        HashMap<ActorID, Vec<ChildEntry>> m_ParentPairsToResolve;
+        HashMap<EntityID, Vec<ChildEntry>> m_ParentPairsToResolve;
 
         Vec<Serialization::TextArchiveValue> m_ValuePool;
         Vec<Pair<std::string_view, size_t>> m_FieldTable;

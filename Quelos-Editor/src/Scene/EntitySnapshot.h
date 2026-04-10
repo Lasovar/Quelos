@@ -9,7 +9,7 @@ namespace Quelos {
     struct EntitySnapshot {
         Vec<byte> Data;
 
-        static EntitySnapshot Create(const Ref<Scene>& scene, ActorID entityId);
+        static EntitySnapshot Create(const Ref<Scene>& scene, EntityID entityId);
         static Entity Load(const Ref<Scene>& scene, const EntitySnapshot& snapshot);
     };
 }

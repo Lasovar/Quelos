@@ -29,9 +29,6 @@ namespace Quelos {
 		Renderer::Init(m_Window, appSpecs.RendererAPI);
 
 		m_ImGuiLayer = PushLayer<ImGuiLayer>();
-
-		ecs_os_set_api_defaults();
-		QS_CORE_INFO("{}", static_cast<void*>(&ecs_os_api));
 	}
 
 	void Application::RaiseEvent(Event& event) {

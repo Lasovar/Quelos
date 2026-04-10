@@ -16,12 +16,12 @@ namespace Quelos {
         }
 
         CreateActor() = default;
-        CreateActor(const ActorID guid64, const Ref<Scene>& scene) {
+        CreateActor(const EntityID guid64, const Ref<Scene>& scene) {
             ActorId = guid64;
             Scene = scene;
         }
 
-        ActorID ActorId{};
+        EntityID ActorId{};
         Ref<Scene> Scene;
     };
 
@@ -36,12 +36,12 @@ namespace Quelos {
         }
 
         DestroyActor() = default;
-        DestroyActor(const ActorID actorId, const Ref<Scene>& scene) {
+        DestroyActor(const EntityID actorId, const Ref<Scene>& scene) {
             Snapshot = EntitySnapshot::Create(scene, actorId);
             Scene = scene;
         }
 
-        ActorID ActorId;
+        EntityID ActorId;
         EntitySnapshot Snapshot;
         Ref<Scene> Scene;
     };

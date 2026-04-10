@@ -12,18 +12,20 @@ namespace Quelos {
     public:
         Actor() = default;
 
-        Actor(const flecs::entity id, const ActorID actorId) : Entity(id), m_ActorId(actorId) {
+        Actor(const flecs::entity id, const EntityID actorId) : Entity(id), m_EntityId(actorId) {
         }
 
+        Actor(const Entity entity, const EntityID entityId) : Entity(entity), m_EntityId(entityId) { }
+
         Actor(const Entity entity) : Entity(entity) {
-            if (auto* actorTag = entity.TryGet<ActorTag>()) {
-                m_ActorId = actorTag->ID;
+            if (auto* id = entity.TryGet<EntityID>()) {
+                m_EntityId = *id;
             }
         }
 
         Actor(const flecs::entity id) : Entity(id) {
-            if (auto* actorTag = id.try_get<ActorTag>()) {
-                m_ActorId = actorTag->ID;
+            if (auto* entityId = id.try_get<EntityID>()) {
+                m_EntityId = *entityId;
             }
         }
 
@@ -35,12 +37,12 @@ namespace Quelos {
             }
         }
 
-        Actor GetParent() const {
+        [[nodiscard]] Actor GetParent() const {
             return m_ID.parent();
         }
 
         void RemoveParent() const {
-            SetParent(Actor(m_ID.world().singleton<SceneRoot>(), ActorID()));
+            SetParent(Actor(m_ID.world().singleton<SceneRoot>(), EntityID()));
         }
 
         void OrderBefore(const Actor target) const {
@@ -66,7 +68,7 @@ namespace Quelos {
             m_ID.add(flecs::ChildOf, parent);
             m_ID.set<ChildOrder>({newOrder});
 
-            Actor(parent, ActorID()).IndexChildOrders();
+            Actor(parent, EntityID()).IndexChildOrders();
         }
 
         void OrderAfter(const Actor target) const {
@@ -92,7 +94,7 @@ namespace Quelos {
             m_ID.add(flecs::ChildOf, parent);
             m_ID.set<ChildOrder>({newOrder});
 
-            Actor(parent, ActorID()).IndexChildOrders();
+            Actor(parent, EntityID()).IndexChildOrders();
         }
 
 
@@ -170,10 +172,10 @@ namespace Quelos {
             m_ID.set_child_order(ids.data(), ids.size());
         }
 
-        ActorID GetActorID() const { return m_ActorId; }
+        EntityID GetActorID() const { return m_EntityId; }
 
     private:
-        ActorID m_ActorId;
+        EntityID m_EntityId;
     };
 }
 
