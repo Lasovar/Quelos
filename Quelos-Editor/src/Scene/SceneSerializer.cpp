@@ -130,7 +130,7 @@ namespace Quelos {
                 }
                 else if (m_CurrentField == "guid") {
                     if (std::holds_alternative<std::string_view>(e.Value)) {
-                        m_CurrentEntityID = ActorID(std::get<std::string_view>(e.Value));
+                        m_CurrentEntityID = EntityID(std::get<std::string_view>(e.Value));
                     }
                 }
                 else if (m_CurrentField == "state") {
@@ -143,9 +143,9 @@ namespace Quelos {
                         if (std::holds_alternative<std::string_view>(e.Value)) {
                             const auto parentValue = std::get<std::string_view>(e.Value);
 
-                            ActorID parentId = {};
+                            EntityID parentId = {};
                             if (parentValue != "root") {
-                                parentId = ActorID(parentValue);
+                                parentId = EntityID(parentValue);
                             }
 
                             m_CurrentParentID = parentId;
@@ -723,12 +723,12 @@ namespace Quelos {
 
         writer.Write(header);
 
-        Vec<ActorID> rootActors;
+        Vec<EntityID> rootActors;
         rootActors.reserve(header.EntityCount);
 
         sceneRoot.GetInternalID().children([&rootActors](const flecs::entity child) {
-            if (auto* actorTag = child.try_get<ActorTag>()) {
-                rootActors.push_back(actorTag->ID);
+            if (auto* actorTag = child.try_get<EntityID>()) {
+                rootActors.push_back(*actorTag);
             }
         });
 

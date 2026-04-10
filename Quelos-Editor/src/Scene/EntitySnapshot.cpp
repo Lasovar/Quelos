@@ -10,7 +10,7 @@ namespace Quelos {
         flecs::world& world,
         const Entity& actor
     ) {
-        writer.Write(actor.Get<ActorTag>().ID);
+        writer.Write(actor.Get<EntityID>());
 
         const std::string_view name = actor.GetName();
 
@@ -24,9 +24,9 @@ namespace Quelos {
         Serialization::BinaryWriter entityComponentWriter(entityComponentsBuffer);
         uint32_t componentCount = 0;
 
-        ActorID parentId;
+        EntityID parentId;
         if (const Entity parent = actor.GetParent(); parent.IsValid()) {
-            parentId = parent.Get<ActorTag>().ID;
+            parentId = parent.Get<EntityID>();
         }
 
         writer.Write(parentId);
@@ -67,7 +67,7 @@ namespace Quelos {
         });
     }
 
-    EntitySnapshot EntitySnapshot::Create(const Ref<Scene>& scene, const ActorID entityId) {
+    EntitySnapshot EntitySnapshot::Create(const Ref<Scene>& scene, const EntityID entityId) {
         EntitySnapshot snapshot;
 
         const Actor entity = scene->GetActor(entityId);
@@ -84,7 +84,7 @@ namespace Quelos {
         ComponentRegistry& registry,
         flecs::world& world
     ) {
-        const auto actorIdResult = reader.Read<ActorID>();
+        const auto actorIdResult = reader.Read<EntityID>();
         if (!actorIdResult) {
             QS_ERROR_TAG(
                 "EntitySnapshot::Load",
@@ -94,7 +94,7 @@ namespace Quelos {
             return {};
         }
 
-        ActorID actorId = actorIdResult.value();
+        EntityID actorId = actorIdResult.value();
 
         std::string_view name;
         if (const std::optional<uint32_t> nameLength = reader.Read<uint32_t>()) {
@@ -115,7 +115,7 @@ namespace Quelos {
 
         const Actor entity = scene->CreateActor(actorId, name);
 
-        if (const auto parentIdResult = reader.Read<ActorID>(); !parentIdResult) {
+        if (const auto parentIdResult = reader.Read<EntityID>(); !parentIdResult) {
             QS_ERROR_TAG(
                 "EntitySnapshot::Load",
                 "Couldn't read parent ActorID in actor '{}({})!",
@@ -124,7 +124,7 @@ namespace Quelos {
             );
         }
         else {
-            if (ActorID parentId = parentIdResult.value()) {
+            if (EntityID parentId = parentIdResult.value()) {
                 Actor parent = scene->GetActor(parentId);
                 entity.SetParent(parent);
             }
@@ -144,7 +144,7 @@ namespace Quelos {
         }
         else {
             for (uint32_t i = 0; i < componentCount.value(); i++) {
-                const auto guidResult = reader.Read<ActorID>();
+                const auto guidResult = reader.Read<EntityID>();
                 if (!guidResult) {
                     QS_ERROR_TAG("EntitySnapshot::Load", "Unknown component type in scene!");
                     continue;
@@ -225,8 +225,6 @@ namespace Quelos {
 
                     fieldsMap[fieldHash.value()] = componentBlobReader.ReadBytes(fieldSize.value());
                 }
-
-                QS_INFO("Field map built for component {} with fields: {}", typeInfo->Name, fieldsMap.size());
 
                 Serialization::BinaryReadArchive archive(fieldsMap);
                 typeInfo->SerializeBinaryReadFunc(archive, componentPtr);

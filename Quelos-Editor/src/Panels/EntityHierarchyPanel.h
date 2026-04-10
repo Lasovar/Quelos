@@ -48,9 +48,9 @@ namespace QuelosEditor {
         HashSet<Entity> m_OpenEntities;
 
         bool m_RequestReorder = false;
-        ActorID m_ReorderTargetParent;
-        ActorID m_ReorderTargetAfter;
-        ActorID m_ReorderTarget;
+        EntityID m_ReorderTargetParent;
+        EntityID m_ReorderTargetAfter;
+        EntityID m_ReorderTarget;
 
         Actor m_SelectedActor;
     };

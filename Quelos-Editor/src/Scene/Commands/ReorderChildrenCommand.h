@@ -31,20 +31,20 @@ namespace Quelos {
 
         ReorderChild() = default;
         ReorderChild(
-            const ActorID actorId,
-            const ActorID parentId,
-            const ActorID moveAfterId,
+            const EntityID actorId,
+            const EntityID parentId,
+            const EntityID moveAfterId,
             const Ref<Quelos::Scene>& scene
         ) : SetEntityParent(actorId, parentId, scene), NewNextActor(moveAfterId)
         {
             bool found = false;
-            ActorID prevActorId;
+            EntityID prevActorId;
             Scene->GetActor(PreviousParentId).GetInternalID().children([&](const flecs::entity entity) {
                 if (found) {
                     return;
                 }
 
-                const ActorID childId = entity.get<ActorTag>().ID;
+                const EntityID childId = entity.get<EntityID>();
                 if (childId == ActorId) {
                     found = true;
                     PreviousNextActor = prevActorId;
@@ -54,7 +54,7 @@ namespace Quelos {
             });
         }
 
-        ActorID NewNextActor;
-        ActorID PreviousNextActor;
+        EntityID NewNextActor;
+        EntityID PreviousNextActor;
     };
 }

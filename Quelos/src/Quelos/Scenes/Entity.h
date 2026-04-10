@@ -7,7 +7,7 @@
 #include "ComponentReference.h"
 
 namespace Quelos {
-    using ActorID = GUID64;
+    using EntityID = GUID64;
     using RuntimeID = flecs::id_t;
 
     class QS_API Entity {

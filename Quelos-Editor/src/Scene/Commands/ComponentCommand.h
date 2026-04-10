@@ -6,7 +6,7 @@
 namespace Quelos {
     class AddComponentCommand {
     public:
-        AddComponentCommand(const ActorID& actorId, Ref<Scene>& scene, const ComponentID& componentId)
+        AddComponentCommand(const EntityID& actorId, Ref<Scene>& scene, const ComponentID& componentId)
             : ActorId(actorId), Scene(scene), ComponentId(componentId) { }
 
         void Apply() const {
@@ -29,7 +29,7 @@ namespace Quelos {
             }
         }
 
-        ActorID ActorId;
+        EntityID ActorId;
         Ref<Scene>& Scene;
 
         ComponentID ComponentId;
@@ -37,7 +37,7 @@ namespace Quelos {
 
     class RemoveComponentCommand {
     public:
-        RemoveComponentCommand(const ActorID& actorId, Ref<Scene>& scene, const ComponentID& componentId)
+        RemoveComponentCommand(const EntityID& actorId, Ref<Scene>& scene, const ComponentID& componentId)
             : ActorId(actorId), Scene(scene), ComponentId(componentId) { }
 
         void Apply() {
@@ -84,7 +84,7 @@ namespace Quelos {
             }
         }
 
-        ActorID ActorId;
+        EntityID ActorId;
         Ref<Scene> Scene;
         Vec<byte> ComponentData;
 

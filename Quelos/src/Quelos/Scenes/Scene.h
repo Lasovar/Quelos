@@ -70,8 +70,11 @@ namespace Quelos {
         void SetName(const std::string_view& name) { m_Name = name; }
 
         Actor CreateActor(std::string_view entityName);
-        Actor CreateActor(const ActorID& guid, std::string_view entityName);
-        void DestroyEntity(ActorID entityId);
+        Actor CreateActor(const EntityID& guid, std::string_view entityName);
+
+        Entity CreateEntity(std::string_view entityName);
+        Entity CreateEntity(const EntityID& guid, std::string_view entityName);
+        void DestroyEntity(EntityID entityId);
 
         Entity GetSceneRoot() const { return m_SceneRoot; }
         void SetActorParentToRoot(const Actor& actor) const;
@@ -81,7 +84,7 @@ namespace Quelos {
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
 
-        Actor GetActor(const ActorID actorId) {
+        Actor GetActor(const EntityID actorId) {
             if (!actorId) {
                 return { m_SceneRoot, actorId };
             }
@@ -107,7 +110,9 @@ namespace Quelos {
         friend class SceneBinarySerializer;
 
     private:
-        HashMap<ActorID, Actor> m_ActorsMap;
+        HashMap<EntityID, Actor> m_ActorsMap;
+        HashMap<EntityID, Entity> m_EntitiesMap;
+
         ComponentRegistry m_ComponentRegistry;
 
         flecs::world m_World;

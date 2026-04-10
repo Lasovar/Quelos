@@ -21,7 +21,7 @@ namespace QuelosEditor {
         if (UI::Begin("Hierarchy", dockspaceID, windowClass)) {
             if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_NoOpenOverItems)) {
                 if (ImGui::MenuItem("Create Empty Actor")) {
-                    ActorID actorId = ActorID::Generate();
+                    EntityID actorId = EntityID::Generate();
                     m_UndoSystem.Push<CreateActor>(actorId, m_Scene);
                     SetSelectedActor(m_Scene->GetActor(actorId));
                 }
@@ -46,10 +46,10 @@ namespace QuelosEditor {
 
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
-                    const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
+                    const EntityID droppedId = *static_cast<EntityID*>(payload->Data);
 
                     if (droppedId.IsValid()) {
-                        m_UndoSystem.Push<SetEntityParent>(droppedId, ActorID(), m_Scene);
+                        m_UndoSystem.Push<SetEntityParent>(droppedId, EntityID(), m_Scene);
                     }
                 }
 
@@ -217,7 +217,7 @@ namespace QuelosEditor {
             if (ImGui::MenuItem("Create Child")) { }
 
             if (ImGui::MenuItem("Delete")) {
-                m_UndoSystem.Push<DestroyActor>(actor.Get<ActorTag>().ID, m_Scene);
+                m_UndoSystem.Push<DestroyActor>(actor.Get<EntityID>(), m_Scene);
             }
 
             if (ImGui::MenuItem("Rename")) { }
@@ -226,12 +226,12 @@ namespace QuelosEditor {
         }
 
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-            ActorID dragged = actor.Get<ActorTag>().ID;
+            EntityID dragged = actor.Get<EntityID>();
 
             ImGui::SetDragDropPayload(
                 "ACTOR",
                 &dragged,
-                sizeof(ActorID)
+                sizeof(EntityID)
             );
 
             ImGui::Text("%s", actor.GetName());
@@ -241,7 +241,7 @@ namespace QuelosEditor {
 
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
-                const ActorID droppedId = *static_cast<ActorID*>(payload->Data);
+                const EntityID droppedId = *static_cast<EntityID*>(payload->Data);
 
                 if (droppedId.IsValid()) {
                     const Actor dropped = m_Scene->GetActor(droppedId);
@@ -253,15 +253,15 @@ namespace QuelosEditor {
                             dropped.GetInternalID().children([&](const flecs::entity child) {
                                 if (parent.IsValid()) {
                                     m_UndoSystem.Push<SetEntityParent>(
-                                        child.get<ActorTag>().ID,
+                                        child.get<EntityID>(),
                                         parent.GetActorID(),
                                         m_Scene
                                     );
                                 }
                                 else {
                                     m_UndoSystem.Push<SetEntityParent>(
-                                        child.get<ActorTag>().ID,
-                                        ActorID(),
+                                        child.get<EntityID>(),
+                                        EntityID(),
                                         m_Scene
                                     );
                                 }
@@ -270,7 +270,7 @@ namespace QuelosEditor {
 
                         m_UndoSystem.Push<SetEntityParent>(
                             droppedId,
-                            actor.Get<ActorTag>().ID,
+                            actor.Get<EntityID>(),
                             m_Scene
                         );
                     }
@@ -291,11 +291,11 @@ namespace QuelosEditor {
 
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
-                    const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
+                    const EntityID draggedId = *static_cast<EntityID*>(payload->Data);
                     const Actor dragged = m_Scene->GetActor(draggedId);
 
                     if (actor != dragged && !IsDescendant(dragged, actor)) {
-                        m_ReorderTargetParent = actor.Get<ActorTag>().ID;
+                        m_ReorderTargetParent = actor.Get<EntityID>();
                         m_ReorderTarget = dragged.GetActorID();
                         m_ReorderTargetAfter = {};
 
@@ -324,7 +324,7 @@ namespace QuelosEditor {
 
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ACTOR")) {
-                const ActorID draggedId = *static_cast<ActorID*>(payload->Data);
+                const EntityID draggedId = *static_cast<EntityID*>(payload->Data);
                 const Actor dragged = m_Scene->GetActor(draggedId);
 
                 if (actor != dragged && !IsDescendant(dragged, actor)) {
