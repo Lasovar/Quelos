@@ -210,7 +210,7 @@ namespace Quelos {
 
                 case ImTextureStatus_WantUpdates:
                     {
-                        const auto tex = bx::bitCast<ImGui::TextureBgfx>(texData->GetTexID());
+                        const auto tex = std::bit_cast<ImGui::TextureBgfx>(texData->GetTexID());
 
                         for (const ImTextureRect& rect : texData->Updates) {
                             const uint32_t bpp = texData->BytesPerPixel;
@@ -312,7 +312,7 @@ namespace Quelos {
                     const ImTextureID texId = cmd->GetTexID();
 
                     if (ImTextureID_Invalid != texId) {
-                        const auto tex = bx::bitCast<ImGui::TextureBgfx>(texId);
+                        const auto tex = std::bit_cast<ImGui::TextureBgfx>(texId);
 
                         state |= 0 != (IMGUI_FLAGS_ALPHA_BLEND & tex.flags)
                                      ? BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA)

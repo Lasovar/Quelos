@@ -48,7 +48,7 @@ namespace Quelos {
     };
 
     struct ActorPatch {
-        OrderedMap<ComponentID, ComponentPatch> Components;
+        SortedMap<ComponentID, ComponentPatch> Components;
         uint32_t ParentPatchCount = 0;
         Deque<PatchState> PatchStates;
 

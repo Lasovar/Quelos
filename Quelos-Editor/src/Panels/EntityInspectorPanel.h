@@ -29,7 +29,7 @@ namespace QuelosEditor {
 
         void ClearSelectedEntity() { m_SelectedActor = {}; }
 
-        bool ComponentHeader(const char* label, RuntimeID runtimeId, bool& open);
+        bool ComponentHeader(const char* label, RuntimeID runtimeId);
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
@@ -37,6 +37,7 @@ namespace QuelosEditor {
 
     private:
         std::array<char, 64> m_EntityNameField{};
+        HashMap<Entity, HashSet<RuntimeID>> m_ExpandedComponents;
 
         Actor m_SelectedActor;
         Ref<Scene> m_Scene;

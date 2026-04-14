@@ -3,20 +3,32 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
+    class FrameBuffer;
+
+    struct QS_API FrameBufferHandle : Handle<FrameBuffer> {
+        FrameBufferHandle() = default;
+        FrameBufferHandle(const Handle handle) : Handle(handle) {}
+    };
+
     class QS_API FrameBuffer {
     public:
-        virtual ~FrameBuffer() = default;
+        FrameBuffer(const FrameBufferHandle handle) : m_Handle(handle) {}
+        ~FrameBuffer() = default;
 
-        virtual void Bind() = 0;
+        void Bind() const;
 
-        [[nodiscard]] virtual uint32_t GetWidth() const = 0;
-        [[nodiscard]] virtual uint32_t GetHeight() const = 0;
+        [[nodiscard]] uint32_t GetWidth() const;
+        [[nodiscard]] uint32_t GetHeight() const;
 
-        virtual void SetViewID(uint32_t viewID) = 0;
-        [[nodiscard]] virtual uint32_t GetViewID() const = 0;
+        void SetViewID(uint32_t viewID) const;
+        [[nodiscard]] uint32_t GetViewID() const;
 
-        virtual void Resize(uint32_t width, uint32_t height) = 0;
+        void Resize(uint32_t width, uint32_t height) const;
+        [[nodiscard]] FrameBufferHandle GetHandle() const { return m_Handle; }
+
     public:
-        static Ref<FrameBuffer> CreateFrameBuffer(uint32_t viewID, const std::vector<Ref<Texture2D>>& attachments);
+        static Ref<FrameBuffer> Create(uint32_t viewID, const Span<Ref<Texture2D>>& attachments);
+    private:
+        FrameBufferHandle m_Handle;
     };
 }

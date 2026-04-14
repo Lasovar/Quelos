@@ -1,10 +1,17 @@
 #include "qspch.h"
 #include "ImGuiState.h"
 
-#include "Quelos/Platform/bgfx/ImGui/bgfxImGuiState.h"
-
 namespace Quelos {
+    static ImGuiStateFactory s_StateFactory = nullptr;
+    void ImGuiState::Register(const ImGuiStateFactory imGuiStateFactory) {
+        s_StateFactory = imGuiStateFactory;
+    }
+
     Ref<ImGuiState> ImGuiState::Create() {
-        return CreateRef<bgfxImGuiState>();
+        if (!s_StateFactory) {
+            return nullptr;
+        }
+
+        return s_StateFactory();
     }
 }

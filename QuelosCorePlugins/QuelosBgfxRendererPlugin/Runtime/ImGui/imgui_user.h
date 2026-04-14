@@ -42,10 +42,10 @@ namespace ImGui
 
 } // namespace ImGui
 
-#include "../../../ImGui/widgets/color_picker.h"
-#include "../../../ImGui/widgets/color_wheel.h"
-#include "../../../ImGui/widgets/dock.h"
-#include "../../../ImGui/widgets/file_list.h"
-#include "../../../ImGui/widgets/gizmo.h"
-#include "../../../ImGui/widgets/markdown.h"
-#include "../../../ImGui/widgets/range_slider.h"
+#include "Quelos/ImGui/widgets/color_picker.h"
+#include "Quelos/ImGui/widgets/color_wheel.h"
+#include "Quelos/ImGui/widgets/dock.h"
+#include "Quelos/ImGui/widgets/file_list.h"
+#include "Quelos/ImGui/widgets/gizmo.h"
+#include "Quelos/ImGui/widgets/markdown.h"
+#include "Quelos/ImGui/widgets/range_slider.h"

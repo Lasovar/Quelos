@@ -1,11 +1,14 @@
 #pragma once
 
+#include "FrameBuffer.h"
 #include "IndexBuffer.h"
 #include "RendererAPI.h"
 #include "Shader.h"
+#include "Texture.h"
 #include "VertexBuffer.h"
 #include "VertexBufferLayout.h"
 #include "Quelos/Core/Window.h"
+#include "Quelos/Scenes/Components.h"
 
 namespace Quelos {
     class QS_API RendererContext {
@@ -14,21 +17,62 @@ namespace Quelos {
 
         virtual ~RendererContext() = default;
 
+        virtual bool HomogenousDepth() = 0;
+
+        virtual void StartFrame() = 0;
+        virtual void EndFrame() = 0;
+
+        virtual void StartSceneRender(
+            FrameBufferHandle frameBuffer,
+            const glm::mat4& view,
+            const glm::mat4& projection
+        ) = 0;
+
+        virtual void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) = 0;
+
+        virtual void Reset(uint32_t width, uint32_t height) = 0;
+
         virtual ShaderHandle CreateShader(const std::string& filePathVertex, const std::string& filePathFragment) = 0;
         virtual void Submit(ShaderHandle shaderHandle, uint32_t view) = 0;
         virtual void Destroy(ShaderHandle shaderHandle) = 0;
 
         virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
+        virtual void Destroy(VertexBufferHandle vertexBufferHandle) = 0;
 
         virtual IndexBufferHandle CreateIndexBuffer(const std::vector<uint16_t>& vertices) = 0;
         virtual void BindIndexBuffer(IndexBufferHandle indexBufferHandle) = 0;
-
-        virtual void Destroy(VertexBufferHandle vertexBufferHandle) = 0;
         virtual void Destroy(IndexBufferHandle indexBufferHandle) = 0;
-        virtual void Shutdown() = 0;
 
-    public:
-        static Ref<RendererContext> Create();
+        // Texture
+        virtual TextureHandle CreateTexture(const TextureSpecification& spec) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) = 0;
+
+        virtual bool TextureIsVFlipped() = 0;
+
+        virtual void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) = 0;
+        virtual const TextureSpecification* GetSpecification(TextureHandle textureHandle) = 0;
+        virtual uint16_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
+
+        virtual void Bind(TextureHandle textureHandle) = 0;
+        virtual void Destroy(TextureHandle textureHandle) = 0;
+
+        // Frame Buffer
+        virtual FrameBufferHandle CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) = 0;
+
+        virtual uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) = 0;
+        virtual uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) = 0;
+        virtual glm::uvec2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) = 0;
+
+        virtual void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) = 0;
+        virtual uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) = 0;
+
+        virtual void FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) = 0;
+
+        virtual void Bind(FrameBufferHandle frameBufferHandle) = 0;
+        virtual void Destroy(FrameBufferHandle frameBufferHandle) = 0;
+
+        virtual void Shutdown() = 0;
     };
 }

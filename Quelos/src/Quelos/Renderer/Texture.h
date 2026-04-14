@@ -6,6 +6,7 @@
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Core/Buffer.h"
 #include "Quelos/Core/Ref.h"
+#include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
     enum class QS_API ImageFormat {
@@ -78,6 +79,15 @@ namespace Quelos {
         RenderTargetMSAA MSAAType = RenderTargetMSAA::None;
     };
 
+    class Texture;
+
+    struct TextureHandle : Handle<Texture> {
+        TextureHandle() = default;
+        TextureHandle(const Handle handle) : Handle(handle) {}
+
+        [[nodiscard]] uint16_t GetNativeHandle() const;
+    };
+
     class QS_API Texture : public Asset {
     public:
         ~Texture() override = default;
@@ -94,26 +104,34 @@ namespace Quelos {
         static AssetType GetStaticType() { return AssetType::Texture; }
         AssetType GetAssetType() const override { return GetStaticType(); }
 
-        virtual uint16_t GetTextureHandle() const = 0;
+        virtual TextureHandle GetHandle() const = 0;
     };
 
     class QS_API Texture2D : public Texture {
     public:
+        Texture2D(const TextureHandle& handle) : m_Handle(handle) {}
+        ~Texture2D() override;
+
         static Ref<Texture2D> Create(const TextureSpecification& spec);
         static Ref<Texture2D> Create(const TextureSpecification& spec, Buffer data);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, const std::filesystem::path& texturePath);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, const Path& texturePath);
 
-        virtual void CreateFromFile(const TextureSpecification& specification,
-                                    const std::filesystem::path& filepath) = 0;
-
-        virtual void Resize(const glm::uvec2& size) = 0;
-        virtual void Resize(uint32_t width, uint32_t height) = 0;
-
-        virtual const std::filesystem::path& GetPath() const = 0;
+    public:
+        void Resize(const glm::uvec2& size) const;
+        void Resize(uint32_t width, uint32_t height) const;
 
         static AssetType GetStaticType() { return AssetType::Texture2D; }
         AssetType GetAssetType() const override { return GetStaticType(); }
 
         TextureType GetType() const override { return TextureType::Texture2D; }
+        ImageFormat GetFormat() const override;
+        uint32_t GetWidth() const override;
+        uint32_t GetHeight() const override;
+        glm::uvec2 GetSize() const override;
+        bool IsVFlipped() const override;
+        TextureHandle GetHandle() const override { return m_Handle; }
+
+    private:
+        TextureHandle m_Handle;
     };
 }

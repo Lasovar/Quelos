@@ -62,8 +62,8 @@ namespace QuelosEditor {
 
     static const char* s_AddComponentPopupName = "AddComponentPopup";
 
-    bool EntityInspectorPanel::ComponentHeader(const char* label, RuntimeID runtimeId, bool& open) {
-        ImGuiStyle& style = ImGui::GetStyle();
+    bool EntityInspectorPanel::ComponentHeader(const char* label, RuntimeID runtimeId) {
+        const ImGuiStyle& style = ImGui::GetStyle();
 
         float height = ImGui::GetFrameHeight();
         float width = ImGui::GetContentRegionAvail().x - height - 3.0f;
@@ -71,14 +71,23 @@ namespace QuelosEditor {
         ImVec2 pos = ImGui::GetCursorScreenPos();
 
         ImGui::InvisibleButton(label, {width, height});
-        bool hovered = ImGui::IsItemHovered();
-        bool clicked = ImGui::IsItemClicked();
+        const bool hovered = ImGui::IsItemHovered();
+        const bool clicked = ImGui::IsItemClicked();
 
-        if (clicked)
-            open = !open;
+        auto& state = m_ExpandedComponents[m_SelectedActor];
+
+        if (clicked) {
+            if (state.contains(runtimeId)) {
+                state.erase(runtimeId);
+            } else {
+                state.emplace(runtimeId);
+            }
+        }
+
+        const bool open = state.contains(runtimeId);
 
         // background
-        ImU32 col = ImGui::GetColorU32(hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+        const ImU32 col = ImGui::GetColorU32(hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
 
         ImGui::GetWindowDrawList()->AddRectFilled(
             pos,
@@ -171,7 +180,7 @@ namespace QuelosEditor {
 
                 m_Scene->GetWorld().defer_begin();
 
-                m_SelectedActor.GetInternalID().each([this](const flecs::id runtimeId) {
+                m_SelectedActor.GetInternalID().each([&](const flecs::id runtimeId) {
                     const auto it = s_InspectorArchiveSerialize.find(runtimeId);
                     if (it == s_InspectorArchiveSerialize.end()) {
                         return;
@@ -181,8 +190,7 @@ namespace QuelosEditor {
 
                     const InspectorComponent& inspectorComponent = it->second;
 
-                    static bool open = true;
-                    if (ComponentHeader(inspectorComponent.ComponentName.c_str(), runtimeId, open)) {
+                    if (ComponentHeader(inspectorComponent.ComponentName.c_str(), runtimeId)) {
                         InspectorArchive archive(
                             m_SelectedActor,
                             runtimeId,

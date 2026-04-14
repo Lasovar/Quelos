@@ -33,10 +33,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Dependencies
-set(BGFX_LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
-set(BGFX_BUILD_TOOLS ON)
-set(BGFX_BUILD_TOOLS_SHADER ON)
-add_subdirectory(Quelos/vendor/bgfx.cmake)
 
 # SDL configuration
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -108,4 +104,6 @@ endif()
 
 # Main projects
 add_subdirectory(Quelos)
+
+add_subdirectory(QuelosCorePlugins/QuelosBgfxRendererPlugin)
 add_subdirectory(Quelos-Editor)

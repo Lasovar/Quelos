@@ -13,7 +13,7 @@ namespace ImGui {
     };
 
 	ImTextureID toId(const Quelos::Ref<Quelos::Texture>& texture, const uint8_t _flags, const uint8_t _mip) {
-		const uint16_t handle = texture->GetTextureHandle();
+		const uint16_t handle = texture->GetHandle().GetNativeHandle();
 
 		const QuelosTexture tex {
 			.handle = handle,
