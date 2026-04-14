@@ -34,7 +34,8 @@ namespace QuelosEditor {
 
             m_DepthAttachment = Texture2D::Create(depthSpec);
 
-            m_FrameBuffer = FrameBuffer::CreateFrameBuffer(viewId, {m_ColorAttachment, m_DepthAttachment});
+            std::array attachments{m_ColorAttachment, m_DepthAttachment};
+            m_FrameBuffer = FrameBuffer::Create(viewId, attachments);
         }
     }
 

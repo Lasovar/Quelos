@@ -13,8 +13,6 @@ namespace QuelosEditor {
         std::string Name;
 
         struct Compare {
-            using is_transparent = void;
-
             constexpr bool operator()(const AssetEntry& a, const AssetEntry& b) const {
                 return a.Name < b.Name;
             }
@@ -22,9 +20,8 @@ namespace QuelosEditor {
     };
 
     struct DirectoryData {
-        std::string DirectoryPath;
-        OrderedSet<AssetEntry, AssetEntry::Compare> Assets;
-        OrderedSet<std::string> SubDirectories;
+        SortedSet<AssetEntry, AssetEntry::Compare> Assets;
+        SortedSet<std::string> SubDirectories;
     };
 
     class ContentBrowserPanel {
@@ -50,7 +47,7 @@ namespace QuelosEditor {
         std::string m_RelativeRootPath = ".";
         std::string m_CurrentPath = ".";
 
-        OrderedMap<std::string, DirectoryData> m_Directories;
+        SortedMap<std::string, DirectoryData> m_Directories;
         bool m_QueueDirectoryTreeRebuild = false;
         Ref<EditorAssetManager> m_AssetManager;
     };

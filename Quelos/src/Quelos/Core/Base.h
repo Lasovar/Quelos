@@ -5,8 +5,9 @@
 
 // can't compile ska without this... MSVC throws an exception that std doesn't contain std::out_of_range without this
 #include "Quelos/Utility/FlatMap.h"
-#include "Quelos/Utility/OrderedVec.h"
-#include "Quelos/Utility/OrderedSet.h"
+#include "Quelos/Utility/SortedVec.h"
+#include "Quelos/Utility/SortedSet.h"
+#include "Quelos/Utility/SmallVec.h"
 #include "unordered_dense.h"
 
 #include <filesystem>
@@ -113,7 +114,7 @@ namespace Quelos {
     using SegmentedHashMap = ankerl::unordered_dense::segmented_map<TKey, TValue>;
 
     template <typename TKey, typename TValue>
-    using OrderedMap = FlatMap<TKey, TValue>;
+    using SortedMap = FlatMap<TKey, TValue>;
 
     template <typename TValue>
     using HashSet = ankerl::unordered_dense::set<TValue>;

@@ -9,6 +9,8 @@
 
 #include <EditorLayer.h>
 
+#include "Quelos/Plugin/PluginAPI.h"
+
 class QuelosEditorApp : public Quelos::Application {
 public:
 	QuelosEditorApp(Quelos::ApplicationSpecification appSpecs)
@@ -16,6 +18,8 @@ public:
 
 	}
 };
+
+extern "C" void RegisterBgfxRendererPlugin(Quelos::PluginContext& pluginContext);
 
 Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	ApplicationSpecification specs;
@@ -36,6 +40,9 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #elif QS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #endif
+
+	PluginContext context;
+	RegisterBgfxRendererPlugin(context);
 
 	const auto app = new QuelosEditorApp(specs);
 	app->PushLayer<QuelosEditor::EditorLayer>();

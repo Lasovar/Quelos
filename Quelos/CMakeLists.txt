@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 4.1.2)
 
 function(add_quelos_module out_var path)
     file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
-            ${path}/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/${path}/*.cpp
     )
     set(${out_var} ${SRC} PARENT_SCOPE)
+    message(STATUS "Module ${path}: ${SRC}")
 endfunction()
 
 add_quelos_module(QUELOS_CORE_SRC src/Quelos/Core)
@@ -19,36 +20,34 @@ add_quelos_module(QUELOS_UTILITY_SRC src/Quelos/Utility)
 
 if(WIN32)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
-            src/Quelos/Platform/Windows/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Windows/*.cpp
     )
 elseif(APPLE)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
-            src/Quelos/Platform/Linux/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Linux/*.cpp
     )
 elseif(UNIX)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
-            src/Quelos/Platform/Linux/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Linux/*.cpp
     )
 endif()
 
-add_quelos_module(QUELOS_BGFX_SRC src/Quelos/Platform/bgfx)
-
 set(QUELOS_SDL_SRC
-        src/Quelos/Platform/Window/SDLWindow.cpp
-        src/Quelos/Platform/Window/imgui_impl_sdl3.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Window/SDLWindow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Window/imgui_impl_sdl3.cpp
 )
 
 set(QUELOS_GLFW_SRC
-        src/Quelos/Platform/Window/GLFWWindow.cpp
-        src/Quelos/Platform/Window/imgui_impl_glfw.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Window/GLFWWindow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Window/imgui_impl_glfw.cpp
 )
 
 set(IMGUI_SRC
-        vendor/imgui/imgui.cpp
-        vendor/imgui/imgui_draw.cpp
-        vendor/imgui/imgui_tables.cpp
-        vendor/imgui/imgui_widgets.cpp
-        vendor/imgui/imgui_demo.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui_tables.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui_widgets.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui_demo.cpp
 )
 
 function(setup_quelos_target target type)
@@ -65,16 +64,20 @@ function(setup_quelos_target target type)
             ${QUELOS_UTILITY_SRC}
             ${QUELOS_PLATFORM_SRC}
             ${QUELOS_SDL_SRC}
-            ${QUELOS_BGFX_SRC}
     )
 
     target_include_directories(${target} PUBLIC
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-            ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/magic_enum>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/stduuid>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/unordered_dense>
     )
 
     target_precompile_headers(${target} PRIVATE
-            src/qspch.h
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/qspch.h>
     )
 
     target_compile_definitions(${target} PUBLIC
@@ -104,23 +107,12 @@ function(setup_quelos_target target type)
     target_link_libraries(${target}
             PRIVATE
             #glfw
-            bimg
-            bimg_decode
-            bgfx
-            bx
             SDL3::SDL3-static
             freetype
             libDaScript
             stb_image
             TracyClient
-            PUBLIC
             xxhash
-            stduuid
-            glm
-            spdlog
-            magic_enum
-            ska
-            unordered_dense
     )
 
     target_include_directories(${target}
@@ -137,6 +129,51 @@ function(setup_quelos_target target type)
         )
 
         target_link_libraries(${target} PUBLIC flecs)
+
+        install(TARGETS ${target}
+                EXPORT QuelosTargets
+                RUNTIME DESTINATION lib
+                LIBRARY DESTINATION lib
+                ARCHIVE DESTINATION lib
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY src/
+                DESTINATION include
+                COMPONENT QuelosSDK
+        )
+
+        install(EXPORT QuelosTargets
+                FILE QuelosTargets.cmake
+                NAMESPACE Quelos::
+                DESTINATION cmake
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/glm/
+                DESTINATION include/glm
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/spdlog/
+                DESTINATION include/spdlog
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/magic_enum/
+                DESTINATION include/magic_enum
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/stduuid/
+                DESTINATION include/stduuid
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/unordered_dense/
+                DESTINATION include/unordered_dense
+                COMPONENT QuelosSDK
+        )
     else()
         target_compile_definitions(${target}
                 PRIVATE QS_LIB_BUILD QS_LIB_STATIC

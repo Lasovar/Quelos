@@ -27,6 +27,7 @@ target_include_directories(Quelos-Editor
 target_link_libraries(Quelos-Editor
     PRIVATE
         Quelos::Shared
+        QuelosBgfxRendererPlugin
         rapidfuzz
         assimp
 )
@@ -47,23 +48,23 @@ ExternalProject_Add(tracy_profiler
 )
 
 
-add_dependencies(Quelos-Editor shaderc)
-
-set(SHADERC_OUT_DIR "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin")
-
-set_target_properties(shaderc PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${SHADERC_OUT_DIR}"
-)
-
-
-add_custom_command(TARGET Quelos-Editor POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${BGFX_DIR}/tools/bin
-        $<TARGET_FILE_DIR:Quelos-Editor>/Tools
-)
-
 target_compile_definitions(QuelosShared PUBLIC QS_ENABLE_PROFILING)
 target_compile_definitions(Quelos-Editor PUBLIC QS_ENABLE_PROFILING)
+
+# Quelos Engine SDK
+set(QUELOS_SDK_OUTPUT_DIR
+        "${CMAKE_BINARY_DIR}/bin/EngineSDK"
+)
+
+add_custom_target(QuelosSDK
+        COMMAND ${CMAKE_COMMAND}
+        --install ${CMAKE_BINARY_DIR}
+        --prefix ${QUELOS_SDK_OUTPUT_DIR}
+        --component QuelosSDK
+)
+
+add_dependencies(QuelosSDK QuelosShared)
+add_dependencies(Quelos-Editor QuelosSDK)
 
 if (WIN32)
     target_compile_definitions(Quelos-Editor PRIVATE QUELOS_EDITOR_PLATFORM_WINDOWS)

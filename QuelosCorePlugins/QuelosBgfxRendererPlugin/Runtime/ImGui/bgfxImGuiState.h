@@ -23,8 +23,7 @@ namespace ImGui {
 	///
 	inline ImTextureID toId(bgfx::TextureHandle _handle, uint8_t _flags, uint8_t _mip)
 	{
-		TextureBgfx tex
-		{
+		TextureBgfx tex {
 			.handle = _handle,
 			.flags  = _flags,
 			.mip    = _mip,

@@ -250,7 +250,6 @@ namespace QuelosEditor {
         }
 
         const std::string path = std::filesystem::relative(directory.path(), m_RootPath).generic_string();
-        m_Directories[path].DirectoryPath = path;
 
         for (auto& entry : std::filesystem::directory_iterator(directory)) {
             const std::string& relativePath = std::filesystem::relative(entry.path(), m_RootPath).generic_string();

@@ -1,7 +1,5 @@
 #include "SceneCamera.h"
 
-#include "bgfx/bgfx.h"
-
 #include "Quelos/Math/Math.h"
 
 namespace Quelos {

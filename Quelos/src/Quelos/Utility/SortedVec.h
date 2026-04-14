@@ -7,7 +7,7 @@
 
 namespace Quelos {
     template <typename T, typename Compare = DefaultCompare<T>>
-    class OrderedVec {
+    class SortedVec {
     public:
         using container_type = std::vector<T>;
         using iterator = typename container_type::iterator;

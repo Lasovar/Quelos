@@ -1,6 +1,9 @@
 #pragma once
+#include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
+    class ImGuiState;
+
     class QS_API ImGuiState {
     public:
         virtual ~ImGuiState() = default;
@@ -10,7 +13,9 @@ namespace Quelos {
 
         virtual void BeginFrame(uint32_t viewId) = 0;
         virtual void EndFrame() = 0;
+
     public:
+        static void Register(ImGuiStateFactory imGuiStateFactory);
         static Ref<ImGuiState> Create();
     };
 }

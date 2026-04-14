@@ -3,7 +3,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/quaternion.hpp"
 
-#include "bgfx/bgfx.h"
+#include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos::Math {
     glm::mat4 OrthographicMatrix(
@@ -14,7 +14,7 @@ namespace Quelos::Math {
         const float zNear,
         const float zFar
     ) {
-        const glm::mat4 projection = bgfx::getCaps()->homogeneousDepth
+        const glm::mat4 projection = Renderer::HomogenousDepth()
                                          ? glm::orthoLH_NO(
                                              left,
                                              right,
@@ -36,7 +36,7 @@ namespace Quelos::Math {
     }
 
     glm::mat4 PerspectiveMatrix(const float fov, const float aspectRatio, const float nearClip, const float farClip) {
-        const glm::mat4 projection = bgfx::getCaps()->homogeneousDepth
+        const glm::mat4 projection = Renderer::HomogenousDepth()
                                          ? glm::perspectiveLH_NO(
                                              fov,
                                              aspectRatio,
