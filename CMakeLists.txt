@@ -58,21 +58,9 @@ set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
 add_subdirectory(Quelos/vendor/SDL)
 
 add_subdirectory(Quelos/vendor/GLFW)
-add_subdirectory(Quelos/vendor/rapidfuzz-cpp)
 add_subdirectory(Quelos/vendor/tracy)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
-
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
-set(ASSIMP_BUILD_MINIZIP ON)
-set(ASSIMP_HUNTER_ENABLED OFF)
-set(BUILD_SHARED_LIBS OFF)
-set(ASSIMP_INSTALL OFF)
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_BUILD_FBX_IMPORTER ON)
-add_subdirectory(Quelos/vendor/assimp)
 
 # Daslang options
 set(DAS_GLFW_DISABLED ON CACHE BOOL "" FORCE)
@@ -102,8 +90,22 @@ if (MSVC)
     add_compile_options(/permissive-)
 endif()
 
-# Main projects
+# Core
 add_subdirectory(Quelos)
+
+# Editor
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
+set(ASSIMP_BUILD_MINIZIP ON)
+set(ASSIMP_HUNTER_ENABLED OFF)
+set(BUILD_SHARED_LIBS OFF)
+set(ASSIMP_INSTALL OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_FBX_IMPORTER ON)
+add_subdirectory(Quelos-Editor/vendor/assimp)
+
+add_subdirectory(Quelos-Editor/vendor/rapidfuzz-cpp)
 
 add_subdirectory(QuelosCorePlugins/QuelosBgfxRendererPlugin)
 add_subdirectory(Quelos-Editor)
