@@ -24,7 +24,7 @@
 	path = Quelos/vendor/freetype
 	url = https://github.com/Lasovar/freetype.git
 [submodule "Quelos/vendor/assimp"]
-	path = Quelos/vendor/assimp
+	path = Quelos-Editor/vendor/assimp
 	url = https://github.com/Lasovar/assimp.git
 [submodule "Quelos/vendor/tracy"]
 	path = Quelos/vendor/tracy
