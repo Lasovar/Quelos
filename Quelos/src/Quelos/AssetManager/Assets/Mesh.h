@@ -4,26 +4,36 @@
 #include <Quelos/Renderer/IndexBuffer.h>
 
 #include "Quelos/AssetManager/Asset.h"
+#include "Quelos/Serialization/Serializer.h"
 
 namespace Quelos {
+	class Model;
+
 	class QS_API Mesh : public Asset {
 	public:
-		Mesh(const std::vector<PosColorVertex>& vertices, const std::vector<uint16_t>& indices);
+		Mesh(Vec<Vertex> vertices, Vec<uint16_t> indices, const Ref<Model>& model, std::string name = "");
 
-		std::vector<PosColorVertex>& GetVertices() { return m_Vertices; }
-		std::vector<uint16_t>& GetIndices() { return m_Indices; }
+		Vec<Vertex>& GetVertices() { return m_Vertices; }
+		Vec<uint16_t>& GetIndices() { return m_Indices; }
 
 		[[nodiscard]] VertexBufferHandle GetVertexBuffer() const { return m_VertexBuffer; }
 		[[nodiscard]] IndexBufferHandle GetIndexBuffer() const { return m_IndexBuffer; }
 
-		AssetType GetAssetType() const override { return GetStaticType(); }
-		static AssetType GetStaticType() { return AssetType::Mesh; }
+		const AssetType& GetAssetType() const override { return GetStaticType(); }
+		const std::string& GetName() { return m_Name; }
+		static const AssetType& GetStaticType() { return s_AssetType; }
 
 	private:
 		VertexBufferHandle m_VertexBuffer;
 		IndexBufferHandle m_IndexBuffer;
 
-		std::vector<PosColorVertex> m_Vertices;
-		std::vector<uint16_t> m_Indices;
+		Ref<Model> m_Model;
+		std::string m_Name;
+
+		Vec<Vertex> m_Vertices;
+		Vec<uint16_t> m_Indices;
+
+	private:
+		static AssetType s_AssetType;
 	};
 }

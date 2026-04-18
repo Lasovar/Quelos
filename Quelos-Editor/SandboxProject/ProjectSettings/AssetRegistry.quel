@@ -2,10 +2,18 @@
 handle = 42e09d58-d526-4cbe-b275-80d95d0b9ada
 path = "Assets/TestScene"
 
-[Texture2D]
-handle = 742c43af-4f1e-4bd5-8d2a-7130c426e1fe
-path = "Assets/Textures/yuri.png"
+[Quelos.Scene]
+handle = fa481eed-75fd-40c1-a646-e845648b118e
+path = "Assets/NewScene"
 
-[Texture2D]
-handle = d0ac2067-5393-41b0-85d8-fc1d67d9ce07
+[Quelos.Model]
+handle = 2521039b-5db4-4eb0-9139-1048ccae6949
+path = "Assets/Meshes/Cube.fbx"
+
+[Quelos.Texture2D]
+handle = 6437571e-866a-461f-b6d3-822e7ab55a87
 path = "Assets/Textures/minecraft.png"
+
+[Quelos.Texture2D]
+handle = 70be76dd-f4c9-4ae0-ab85-5dab76194ef8
+path = "Assets/Textures/yuri.png"

@@ -23,6 +23,7 @@ namespace Quelos {
     struct SerializableComponentInfo {
         RuntimeID RuntimeID{};
         ComponentID Guid{};
+        std::string FullName;
         std::string Name;
         size_t Size = 0;
 
@@ -139,7 +140,8 @@ namespace Quelos {
                 SerializableComponentInfo serializableInfo;
                 serializableInfo.Guid = componentId;
                 serializableInfo.RuntimeID = info.RuntimeID;
-                serializableInfo.Name = TypeName<TComponent>();
+                serializableInfo.FullName = TypeNameDisplay<TComponent>();
+                serializableInfo.Name = TypeNameShort<TComponent>();
                 serializableInfo.Size = info.Size;
 
                 serializableInfo.SerializeBinaryWriteFunc = [](Serialization::BinaryWriteArchive& bArchive, void* data) {
@@ -168,7 +170,7 @@ namespace Quelos {
         template <typename... TComponent>
         void RegisterComponent(flecs::world& world) {
             ([&] {
-                RegisterComponent<TComponent>(world, GetComponentID(TypeName<TComponent>()));
+                RegisterComponent<TComponent>(world, GetComponentID(TypeNameDisplay<TComponent>()));
             }(), ...);
         }
 

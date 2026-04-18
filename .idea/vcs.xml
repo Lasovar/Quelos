@@ -2,9 +2,9 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quelos-Editor/vendor/assimp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/GLFW" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/SDL" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Quelos/vendor/assimp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/daScript" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/flecs" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/freetype" vcs="Git" />

@@ -11,34 +11,34 @@ namespace Quelos {
     struct QS_API ProjectConfig {
         std::string ProjectName;
 
-        Path ProjectPath;
-        Path AssetsPath;
-        Path SourcePath;
-        Path LibraryPath;
-        Path ProjectSettingsPath;
+        OsPath ProjectPath;
+        OsPath AssetsPath;
+        OsPath SourcePath;
+        OsPath LibraryPath;
+        OsPath ProjectSettingsPath;
     };
 
     class QS_API Project {
     public:
         static bool IsLoaded() { return s_ActiveProject != nullptr; }
 
-        static const Path& GetProjectPath() {
+        static const OsPath& GetProjectPath() {
             return s_ActiveProject->m_Config.ProjectPath;
         }
 
-        static const Path& GetProjectSettingsPath() {
+        static const OsPath& GetProjectSettingsPath() {
             return s_ActiveProject->m_Config.ProjectSettingsPath;
         }
 
-        static const Path& GetAssetsPath() {
+        static const OsPath& GetAssetsPath() {
             return s_ActiveProject->m_Config.AssetsPath;
         }
 
-        static const Path& GetSourcePath() {
+        static const OsPath& GetSourcePath() {
             return s_ActiveProject->m_Config.SourcePath;
         }
 
-        static const Path& GetLibraryPath() {
+        static const OsPath& GetLibraryPath() {
             return s_ActiveProject->m_Config.LibraryPath;
         }
 

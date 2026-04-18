@@ -16,6 +16,8 @@ namespace Quelos {
         [[nodiscard]] virtual bool IsAssetLoaded(const AssetHandle& handle) const = 0;
         [[nodiscard]] virtual bool IsAssetHandleValid(const AssetHandle& handle) const = 0;
 
+        [[nodiscard]] virtual Vec<const AssetMetadata*> FindAssetsOfType(const AssetType& type) const = 0;
+
         virtual ~AssetManagerBase() = default;
     };
 }

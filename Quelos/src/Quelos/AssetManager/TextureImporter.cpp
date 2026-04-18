@@ -8,19 +8,18 @@
 #include "TextureImporter.h"
 
 namespace Quelos {
-    bool TextureImporter::IsAssetSupported(const Path& path) {
-        static HashSet<std::string> s_ImportableExtensions = {
+    bool TextureImporter::IsAssetSupported(const std::string_view path) {
+        static HashSet<std::string_view> s_ImportableExtensions = {
             ".png", ".jpeg"
         };
 
-        const std::string normalized = NormalizeExt(path.extension().string());
-        return s_ImportableExtensions.find(normalized) != s_ImportableExtensions.end();
+        return s_ImportableExtensions.find(Extension(path)) != s_ImportableExtensions.end();
     }
 
     Ref<Texture2D> TextureImporter::ImportTexture2D(AssetHandle assetHandle, const AssetMetadata& metadata) {
         int width, height, channels;
 
-        const Path assetPath = Project::GetProjectPath() / metadata.FilePath;
+        const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
         stbi_uc* data = stbi_load(
             assetPath.string().c_str(),
             &width,

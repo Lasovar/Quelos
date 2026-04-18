@@ -4,6 +4,9 @@
 #include "Renderer.h"
 
 namespace Quelos {
+    AssetType Texture::s_AssetType = Quelos::GetAssetType<Texture>();
+    AssetType Texture2D::s_AssetType = Quelos::GetAssetType<Texture2D>();
+
     uint16_t TextureHandle::GetNativeHandle() const {
         return Renderer::TextureGetNativeHandle(*this);
     }
@@ -20,7 +23,7 @@ namespace Quelos {
         return CreateRef<Texture2D>(Renderer::CreateTexture(spec, std::move(data)));
     }
 
-    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const Path& texturePath) {
+    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const OsPath& texturePath) {
         return CreateRef<Texture2D>(Renderer::CreateTexture(spec, texturePath));
     }
 

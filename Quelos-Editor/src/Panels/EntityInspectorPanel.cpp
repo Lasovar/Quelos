@@ -31,7 +31,7 @@ namespace QuelosEditor {
         TComponent::Serialize(beatifyFieldNames, pseudoComponent);
 
         componentMap[world.id<TComponent>()] = {
-            inspectorSerialize, setFieldSerialize, std::string(TypeName<TComponent>()), formattedFields
+            inspectorSerialize, setFieldSerialize, BeautifyLabel(TypeNameShort<TComponent>()), formattedFields
         };
     }
 
@@ -215,9 +215,8 @@ namespace QuelosEditor {
 
                 if (ImGui::BeginPopup(s_AddComponentPopupName)) {
                     struct ComponentResult {
-                        std::string Item;
-                        float Score;
-                        ComponentID ComponentId;
+                        const SerializableComponentInfo* Info;
+                        double Score;
                     };
 
                     static Vec<ComponentResult> results;
@@ -225,19 +224,25 @@ namespace QuelosEditor {
 
                     ComponentRegistry& componentRegistry = m_Scene->GetComponentRegistry();
 
-                    static char buffer[128] = "";
-                    ImGui::InputText(UI::FormatTemp("{}##componentSearch", ICON_FA_SEARCH), buffer, sizeof(buffer));
+                    static fmt::memory_buffer buffer;
+                    buffer.clear();
+                    ImGui::InputText(
+                        UI::FormatTemp("{}##componentSearch", ICON_FA_SEARCH),
+                        buffer.data(), buffer.capacity()
+                    );
 
-                    std::string query = /*Normalize*/(buffer);
+                    const std::string_view query = buffer.data();
 
-                    if (!query.empty()) {
-                        for (auto& comp : componentRegistry.GetSerializableComponents()) {
-                            std::string nameNorm = /*Normalize*/(comp.Name);
+                    for (auto& comp : componentRegistry.GetSerializableComponents()) {
+                        std::string_view name = comp.Name;
+                        const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
+                        const double pathScore = std::max({
+                            rapidfuzz::fuzz::partial_ratio(query, comp.FullName),
+                            rapidfuzz::fuzz::token_set_ratio(query, comp.FullName)
+                        });
 
-                            float score = rapidfuzz::fuzz::partial_ratio(query, nameNorm);
-                            if (score > 50.0f) {
-                                results.push_back({comp.Name, score, comp.Guid});
-                            }
+                        if (double score = 0.7f * nameScore + 0.3f * pathScore; score > 50.0f) {
+                            results.push_back({&comp, score});
                         }
                     }
 
@@ -248,11 +253,16 @@ namespace QuelosEditor {
                         );
 
                         for (auto& result : results) {
-                            if (ImGui::Selectable(result.Item.c_str())) {
+                            if (ImGui::Selectable(
+                                UI::FormatTemp(
+                                    "{} ({})",
+                                    result.Info->Name.c_str(), result.Info->FullName)
+                                )
+                            ) {
                                 m_UndoSystem.Push<AddComponentCommand>(
                                     m_SelectedActor.GetActorID(),
                                     m_Scene,
-                                    result.ComponentId
+                                    result.Info->Guid
                                 );
 
                                 ImGui::CloseCurrentPopup();

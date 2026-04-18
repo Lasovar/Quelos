@@ -6,14 +6,14 @@ namespace Quelos {
         return m_AssetMetadata.find(handle) != m_AssetMetadata.end();
     }
 
-    bool AssetRegistry::IsAssetPathValid(const Path& path) const {
+    bool AssetRegistry::IsAssetPathValid(const std::string_view path) const {
         return std::ranges::any_of(
             m_AssetMetadata | std::views::values,
             [&path](const AssetMetadata& metadata) { return metadata.FilePath == path; }
         );
     }
 
-    const AssetMetadata* AssetRegistry::GetAssetMetadata(const Path& path) const {
+    const AssetMetadata* AssetRegistry::GetAssetMetadata(const std::string_view path) const {
         auto values = m_AssetMetadata | std::views::values;
         const auto it = std::ranges::find_if(
             values,

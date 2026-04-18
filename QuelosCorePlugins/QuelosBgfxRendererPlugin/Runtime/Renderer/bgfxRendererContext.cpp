@@ -32,8 +32,8 @@ namespace Quelos {
         }
 
         static bgfx::ShaderHandle LoadShader(const std::string& fileName) {
-            Path shaderPath;
-            const Path& assets = "Assets/";
+            OsPath shaderPath;
+            const OsPath& assets = "Assets/";
 
             switch (bgfx::getRendererType()) {
             case bgfx::RendererType::Noop:

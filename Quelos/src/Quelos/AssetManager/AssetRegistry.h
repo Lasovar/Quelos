@@ -9,13 +9,14 @@ namespace Quelos {
         AssetRegistry() : m_AssetMetadata(100) {}
 
         [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const;
-        [[nodiscard]] bool IsAssetPathValid(const Path& path) const;
-        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const Path& path) const;
+        [[nodiscard]] bool IsAssetPathValid(std::string_view path) const;
+        [[nodiscard]] const AssetMetadata* GetAssetMetadata(std::string_view path) const;
         [[nodiscard]] const AssetMetadata* GetAssetMetadata(const AssetHandle& handle) const;
 
         void RemoveAsset(AssetHandle assetHandle);
 
         HashMap<AssetHandle, AssetMetadata>& GetAssetsMetadata() {return m_AssetMetadata; }
+        [[nodiscard]] const HashMap<AssetHandle, AssetMetadata>& GetAssetsMetadata() const {return m_AssetMetadata; }
 
     private:
         HashMap<AssetHandle, AssetMetadata> m_AssetMetadata;

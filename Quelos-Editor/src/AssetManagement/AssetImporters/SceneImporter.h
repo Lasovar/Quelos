@@ -9,11 +9,11 @@ namespace QuelosEditor {
     using namespace Quelos;
 
     namespace SceneImporter {
-        bool IsAssetSupported(const Path& assetPath);
+        bool IsAssetSupported(std::string_view assetPath);
         Ref<Scene> ImportScene(AssetHandle assetHandle, const AssetMetadata& metadata);
 
         inline AssetImporterConfig GetImporterConfig() {
-            return { AssetType::Scene, ImportScene, IsAssetSupported };
+            return { GetAssetType<Scene>(), ImportScene, IsAssetSupported };
         }
     }
 }

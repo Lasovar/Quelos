@@ -36,7 +36,7 @@ namespace Quelos {
 
 		[[nodiscard]] Ref<Window> GetWindow() const { return m_Window; }
 		[[nodiscard]] Ref<Time> GetTime() const { return m_Time;}
-		[[nodiscard]] const Path& GetApplicationPath() const { return m_Specifications.ApplicationPath; }
+		[[nodiscard]] const OsPath& GetApplicationPath() const { return m_Specifications.ApplicationPath; }
 		[[nodiscard]] const ApplicationSpecification& GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>

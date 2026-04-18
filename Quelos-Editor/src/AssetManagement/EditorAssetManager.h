@@ -13,17 +13,21 @@ namespace QuelosEditor {
         [[nodiscard]] Ref<Asset> GetAsset(const AssetHandle& handle) override;
         void UnloadAsset(AssetHandle assetHandle) override;
 
-        [[nodiscard]] const AssetMetadata* GetAssetMetadata(const Path& path) const;
+        [[nodiscard]] const AssetMetadata* GetAssetMetadata(std::string_view path) const;
         [[nodiscard]] const AssetMetadata* GetAssetMetadata(const AssetHandle& assetHandle) const override;
 
         [[nodiscard]] bool IsAssetHandleValid(const AssetHandle& handle) const override;
-        [[nodiscard]] bool IsAssetPathValid(const Path& path) const;
+        [[nodiscard]] bool IsAssetPathValid(std::string_view path) const;
 
-        [[nodiscard]] static bool IsAssetSupported(const Path& path);
+        [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(const AssetType& type) const override;
+
+        [[nodiscard]] static bool IsAssetSupported(std::string_view path);
 
         [[nodiscard]] bool IsAssetLoaded(const AssetHandle& handle) const override;
-        const AssetMetadata* AddAssetToRegistry(const Path& assetPath);
+        const AssetMetadata* AddAssetToRegistry(std::string_view assetPath);
         void RemoveAssetFromRegistry(const AssetHandle& assetHandle);
+        
+        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath);
 
         void CleanupAssetMap();
 

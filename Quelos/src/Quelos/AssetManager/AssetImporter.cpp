@@ -6,11 +6,39 @@
 
 namespace Quelos {
     static HashMap<AssetType, AssetImporterConfig> s_AssetLoaders = {
-        { AssetType::Texture2D, TextureImporter::GetImporterConfig() }
+        { Texture2D::GetStaticType(), TextureImporter::GetImporterConfig() }
     };
 
     void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
         s_AssetLoaders[config.Type] = config;
+    }
+    
+    std::optional<AssetHandle> AssetImporter::ReadAssetHandle(const std::string_view assetPath) {
+        const AssetType type = GetAssetType(assetPath);
+        if (!type) {
+            return std::nullopt;
+        }
+        
+        const auto it = s_AssetLoaders.find(type);
+        if (it != s_AssetLoaders.end() && it->second.ReadAssetHandle) {
+            return it->second.ReadAssetHandle(assetPath);
+        }
+        
+        return std::nullopt;
+    }
+    
+    bool AssetImporter::WriteAssetHandle(const std::string_view assetPath, const AssetHandle& handle) {
+        const AssetType type = GetAssetType(assetPath);
+        if (!type) {
+            return false;
+        }
+        
+        const auto it = s_AssetLoaders.find(type);
+        if (it != s_AssetLoaders.end() && it->second.WriteAssetHandle) {
+            return it->second.WriteAssetHandle(assetPath, handle);
+        }
+        
+        return false;
     }
 
     Ref<Asset> AssetImporter::ImportAsset(const AssetHandle assetHandle, const AssetMetadata& metadata) {
@@ -27,7 +55,7 @@ namespace Quelos {
         return it->second.LoadAsset(assetHandle, metadata);
     }
 
-    bool AssetImporter::IsAssetSupported(const Path& path) {
+    bool AssetImporter::IsAssetSupported(const std::string_view path) {
         return std::ranges::any_of(s_AssetLoaders | std::views::values,
             [&path](const AssetImporterConfig& importerConfig) {
                 return importerConfig.IsAssetSupported(path);
@@ -35,13 +63,13 @@ namespace Quelos {
         );
     }
 
-    AssetType AssetImporter::GetAssetType(const Path& path) {
+    const AssetType& AssetImporter::GetAssetType(const std::string_view path) {
         for (auto & importerConfig : s_AssetLoaders | std::views::values) {
             if (importerConfig.IsAssetSupported(path)) {
                 return importerConfig.Type;
             }
         }
 
-        return AssetType::None;
+        return AssetType::Invalid;
     }
 }

@@ -7,10 +7,10 @@
 namespace Quelos {
     namespace TextureImporter {
         QS_API Ref<Texture2D> ImportTexture2D(AssetHandle assetHandle, const AssetMetadata& metadata);
-        QS_API bool IsAssetSupported(const Path& path);
+        QS_API bool IsAssetSupported(std::string_view path);
 
         inline AssetImporterConfig GetImporterConfig() {
-            return {AssetType::Texture2D, ImportTexture2D, IsAssetSupported};
+            return {Texture2D::GetStaticType(), ImportTexture2D, IsAssetSupported};
         }
     }
 }

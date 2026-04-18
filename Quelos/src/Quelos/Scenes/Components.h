@@ -91,26 +91,14 @@ namespace Quelos {
 
     struct QS_API MeshComponent {
         Ref<Mesh> MeshData;
-        Ref<Material> MaterialData;
+        Ref<Material> MaterialData = CreateRef<Material>("vs_mesh.bin", "fs_mesh.bin");
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshComponent& data) {
-            if constexpr (TArchive::IsSaving) {
-                auto& vertices = data.MeshData->GetVertices();
-                auto& indices = data.MeshData->GetIndices();
+            archive.Field("mesh", data.MeshData);
 
-                archive.FieldVector("vertices", vertices);
-                archive.FieldVector("indices", indices);
-            }
-            else {
-                std::vector<PosColorVertex> vertices;
-                archive.FieldVector("vertices", vertices);
-
-                std::vector<uint16_t> indices;
-                archive.FieldVector("indices", indices);
-
-                data.MeshData = CreateRef<Mesh>(std::move(vertices), std::move(indices));
-                data.MaterialData = CreateRef<Material>("vs_cubes.bin", "fs_cubes.bin");
+            if constexpr (TArchive::IsLoading) {
+                data.MaterialData = CreateRef<Material>("vs_mesh.bin", "fs_mesh.bin");
             }
         }
     };

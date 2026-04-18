@@ -1,7 +1,7 @@
 #include "qspch.h"
 #include "InspectorArchive.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     void InspectorArchive::DrawField(std::string_view name, float& value) {
         static float startValue = 0.0f;
         static bool startedEditing = false;
