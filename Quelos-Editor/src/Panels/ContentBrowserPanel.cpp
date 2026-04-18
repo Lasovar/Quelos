@@ -61,12 +61,12 @@ namespace QuelosEditor {
             }
 
             if (asset.IsImportable && ImGui::MenuItem("Import")) {
-                const AssetMetadata* metadata = m_AssetManager->AddAssetToRegistry(
+                const Vec<const AssetMetadata*> assetsMetadata = m_AssetManager->ProcessAssetRegistration(
                     asset.Metadata.FilePath
                 );
 
-                if (metadata && metadata->Handle) {
-                    asset.Metadata = *metadata;
+                if (!assetsMetadata.empty() && assetsMetadata[0] && assetsMetadata[0]->Handle) {
+                    asset.Metadata = *assetsMetadata[0];
                     asset.IsImportable = false;
                     m_QueueDirectoryTreeRebuild = true;
                 }

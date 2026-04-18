@@ -151,6 +151,7 @@ namespace QuelosEditor {
                                                      aiProcess_CalcTangentSpace |
                                                      aiProcess_Triangulate |
                                                      aiProcess_JoinIdenticalVertices |
+                                                     aiProcess_FlipWindingOrder |
                                                      aiProcess_SortByPType);
 
             if (!scene || !scene->mRootNode) {
