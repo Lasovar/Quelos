@@ -36,7 +36,7 @@ namespace Quelos::UI {
         return buffer.data();
     }
 
-    static std::string_view Filename(const std::string& path) {
+    static std::string_view Filename(const std::string_view path) {
         const size_t pos = path.find_last_of("/\\");
         if (pos == std::string_view::npos) {
             return path;

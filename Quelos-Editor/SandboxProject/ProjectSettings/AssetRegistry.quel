@@ -6,10 +6,6 @@ path = "Assets/TestScene"
 handle = fa481eed-75fd-40c1-a646-e845648b118e
 path = "Assets/NewScene"
 
-[Quelos.Model]
-handle = 2521039b-5db4-4eb0-9139-1048ccae6949
-path = "Assets/Meshes/Cube.fbx"
-
 [Quelos.Texture2D]
 handle = 6437571e-866a-461f-b6d3-822e7ab55a87
 path = "Assets/Textures/minecraft.png"
@@ -17,3 +13,13 @@ path = "Assets/Textures/minecraft.png"
 [Quelos.Texture2D]
 handle = 70be76dd-f4c9-4ae0-ab85-5dab76194ef8
 path = "Assets/Textures/yuri.png"
+
+[Quelos.Model]
+handle = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
+path = "Assets/Meshes/Cube.fbx"
+
+[Quelos.Mesh]
+handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
+path = "Assets/Meshes/Cube.fbx"
+parent = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
+virtualPath = "meshes/Cube.001"

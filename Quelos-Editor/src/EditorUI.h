@@ -52,7 +52,7 @@ namespace QuelosEditor {
             if (value) {
                 if (const AssetMetadata* meta = Project::GetAssetManager()->
                     GetAssetMetadata(value->GetAssetHandle())) {
-                    assetName = Filename(meta->FilePath);
+                    assetName = meta->ParentHandle ? Filename(meta->VirtualPath) : Filename(meta->FilePath);
                 }
             }
 
@@ -115,8 +115,9 @@ namespace QuelosEditor {
             // Search Popup
             if (ImGui::BeginPopup("AssetSearchPopup")) {
                 struct AssetSearchResult {
-                    const AssetMetadata* Metadata;
-                    double Score;
+                    const AssetMetadata* Metadata = nullptr;
+                    std::string_view Name{};
+                    double Score = 0.0f;
                 };
 
                 static Vec<AssetSearchResult> results;
@@ -132,7 +133,10 @@ namespace QuelosEditor {
 
                 const std::string_view query = buffer.data();
                 for (const AssetMetadata* metadata : searchAssetMetadata) {
-                    std::string_view name = Filename(metadata->FilePath);
+                    std::string_view name = metadata->ParentHandle
+                                                ? Filename(metadata->VirtualPath)
+                                                : Filename(metadata->FilePath);
+
                     const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
                     const double pathScore = std::max({
                         rapidfuzz::fuzz::partial_ratio(query, metadata->FilePath),
@@ -140,7 +144,7 @@ namespace QuelosEditor {
                     });
 
                     if (double score = 0.7f * nameScore + 0.3f * pathScore; score > 30.0f) {
-                        results.push_back({metadata, score});
+                        results.push_back({metadata, name, score});
                     }
                 }
 
@@ -151,7 +155,7 @@ namespace QuelosEditor {
                     );
 
                     for (auto& result : results) {
-                        if (ImGui::Selectable(FormatTemp("{}", Filename(result.Metadata->FilePath)))) {
+                        if (ImGui::Selectable(FormatTemp("{}", Filename(result.Name)))) {
                             Ref<T> newAsset = AssetManager::GetAsset<T>(result.Metadata->Handle);
 
                             if (newAsset) {
