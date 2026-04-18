@@ -1,0 +1,80 @@
+#pragma once
+
+#include "AssetMetadata.h"
+#include <functional>
+
+namespace Quelos {
+    class AssetManagerBase;
+
+    using RegisterAdditionalAssetsFn = Vec<AssetMetadata>(*)(
+        std::string_view assetPath,
+        const AssetMetadata& mainAssetMetadata,
+        void* userData
+    );
+
+    using ResolveSubAssetFn = Ref<Asset>(*)(
+        const AssetHandle& subAssetHandle,
+        const AssetMetadata& subAssetMetadata,
+        void* userData
+    );
+
+    using HandlesAssetTypeFn = bool(*)(const AssetType& type, void* userData);
+
+    struct AssetRegistryExtensionFunctions {
+        RegisterAdditionalAssetsFn RegisterAdditionalAssets;
+        ResolveSubAssetFn ResolveSubAsset;
+        HandlesAssetTypeFn HandlesAssetType;
+        void* UserData;
+    };
+
+    class AssetRegistryExtensions {
+    public:
+        static void RegisterExtension(const AssetRegistryExtensionFunctions& functions);
+
+        static Vec<AssetMetadata> ProcessAssetRegistration(
+            std::string_view assetPath,
+            const AssetMetadata& mainAssetMetadata
+        );
+
+        static Ref<Asset> ResolveSubAsset(
+            const AssetHandle& subAssetHandle,
+            const AssetMetadata& subAssetMetadata
+        );
+    };
+
+    // Template helper for creating extension function tables
+    template<typename T>
+    struct AssetRegistryExtension {
+        static Vec<AssetMetadata> RegisterAdditionalAssets(
+            const std::string_view assetPath,
+            const AssetMetadata& mainAssetMetadata,
+            void* userData
+        ) {
+            T* instance = static_cast<T*>(userData);
+            return instance->RegisterAdditionalAssets(assetPath, mainAssetMetadata);
+        }
+        
+        static Ref<Asset> ResolveSubAsset(
+            const AssetHandle& subAssetHandle,
+            const AssetMetadata& subAssetMetadata,
+            void* userData
+        ) {
+            T* instance = static_cast<T*>(userData);
+            return instance->ResolveSubAsset(subAssetHandle, subAssetMetadata);
+        }
+        
+        static bool HandlesAssetType(const AssetType& type, void* userData) {
+            T* instance = static_cast<T*>(userData);
+            return instance->HandlesAssetType(type);
+        }
+        
+        static AssetRegistryExtensionFunctions Create(T& instance) {
+            return {
+                RegisterAdditionalAssets,
+                ResolveSubAsset,
+                HandlesAssetType,
+                &instance
+            };
+        }
+    };
+}

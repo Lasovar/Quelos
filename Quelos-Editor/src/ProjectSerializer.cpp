@@ -1,14 +1,15 @@
 #include "qspch.h"
 #include "ProjectSerializer.h"
 
+#include "Quelos/AssetManager/Assets/Model.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/QuelArchive.h"
 
 namespace QuelosEditor {
-    ProjectSerializer::ProjectSerializer(const Path& projectPath) {
+    ProjectSerializer::ProjectSerializer(const OsPath& projectPath) {
         using namespace Serialization;
         std::string projectName = projectPath.filename().string();
-        Path configFilePath = projectPath / (projectName + ".quel");
+        OsPath configFilePath = projectPath / (projectName + ".quel");
 
         if (!std::filesystem::exists(projectPath)) {
             std::filesystem::create_directories(projectPath);

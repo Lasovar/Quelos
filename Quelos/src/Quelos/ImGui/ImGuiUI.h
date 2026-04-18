@@ -42,7 +42,7 @@ namespace Quelos::UI {
             return path;
         }
 
-        return { path.data() + pos + 1, path.size() };
+        return { path.data() + pos + 1, path.size() - (pos + 1) };
     }
 
     inline bool EditFloat(
@@ -385,117 +385,6 @@ namespace Quelos::UI {
 
         ImGui::Columns(1);
 
-        ImGui::PopID();
-
-        ImGui::Spacing();
-
-        return changed;
-    }
-
-    template <typename T>
-        requires (std::is_base_of_v<Asset, T>)
-    bool EditAsset(const std::string& label, Ref<T>& value) {
-        bool changed = false;
-
-        ImGui::PushID(label.c_str());
-
-        // Layout
-        ImGui::Columns(2, nullptr, false);
-        ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
-
-        ImGui::TextUnformatted(label.c_str());
-        ImGui::NextColumn();
-
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-
-        // Frame style
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
-
-        ImGui::BeginGroup();
-
-        // Asset display name
-        static std::string typeName(magic_enum::enum_name(T::GetStaticType()));
-        static std::string none = fmt::format("None ({})", typeName);
-
-        static std::string assetName;
-
-        if (value) {
-            if (const AssetMetadata* meta = Project::GetAssetManager()->
-                GetAssetMetadata(value->GetAssetHandle())) {
-                assetName = Filename(meta->FilePath);
-            }
-        }
-
-        constexpr float resetButtonSize = 30.0f;
-        const ImVec2 size = {ImGui::GetContentRegionAvail().x - resetButtonSize * 2.0f, ImGui::GetFrameHeight()};
-
-        ImGui::Dummy(size);
-
-        ImDrawList* draw = ImGui::GetWindowDrawList();
-        const ImVec2 min = ImGui::GetItemRectMin();
-        const ImVec2 max = ImGui::GetItemRectMax();
-
-        const ImU32 bg = ImGui::GetColorU32(ImGuiCol_FrameBg);
-        const ImU32 border = ImGui::GetColorU32(ImGuiCol_Border);
-        const ImU32 textCol = ImGui::GetColorU32(ImGuiCol_Text);
-
-        // Draw frame
-        draw->AddRectFilled(min, max, bg, 0.0f);
-        draw->AddRect(min, max, border, 0.0f);
-
-        // Text
-        draw->AddText(
-            ImVec2(min.x + 8.0f, min.y + 4.0f),
-            textCol,
-            value ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
-        );
-
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(typeName.c_str())) {
-                if (const AssetHandle handle = *static_cast<const AssetHandle*>(payload->Data)) {
-                    Ref<T> newAsset = AssetManager::GetAsset<T>(handle);
-
-                    if (newAsset) {
-                        value = newAsset;
-                        changed = true;
-                    }
-                }
-            }
-
-            ImGui::EndDragDropTarget();
-        }
-
-        ImGui::SameLine();
-
-        // Reset button
-        if (ImGui::Button(ICON_FA_TRASH, ImVec2(resetButtonSize, 0.0f))) {
-            value.reset();
-            changed = true;
-        }
-
-        ImGui::SameLine();
-
-        // Search button
-        if (ImGui::Button("...", ImVec2(resetButtonSize, 0.0f))) {
-            ImGui::OpenPopup("AssetSearchPopup");
-        }
-
-        // Search Popup
-        if (ImGui::BeginPopup("AssetSearchPopup")) {
-            ImGui::Text("Search not implemented yet");
-
-            // TODO: implement a fuzzy asset search
-
-            ImGui::EndPopup();
-        }
-
-        ImGui::EndGroup();
-
-        ImGui::PopStyleVar(2);
-        ImGui::PopItemWidth();
-
-        ImGui::Columns(1);
         ImGui::PopID();
 
         ImGui::Spacing();

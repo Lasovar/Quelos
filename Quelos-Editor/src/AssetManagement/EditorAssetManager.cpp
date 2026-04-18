@@ -1,38 +1,91 @@
 #include "qspch.h"
 #include "EditorAssetManager.h"
 
-#include "AssetImporters/MeshImporter.h"
+#include "AssetImporters/MaterialAssetRegistryExtension.h"
+#include "AssetImporters/ModelAssetRegistryExtension.h"
+#include "AssetImporters/ModelImporter.h"
 #include "AssetImporters/SceneImporter.h"
 #include "Quelos/AssetManager/AssetImporter.h"
+#include "Quelos/AssetManager/AssetRegistryExtensions.h"
 #include "magic_enum/magic_enum.hpp"
 #include "Quelos/Core/Formatters.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
 
 namespace QuelosEditor {
-    static const Path k_AssetRegistryFilename = "AssetRegistry.quel";
+    static const OsPath k_AssetRegistryFilename = "AssetRegistry.quel";
 
-    const AssetMetadata* EditorAssetManager::AddAssetToRegistry(const Path& assetPath) {
-        const AssetHandle handle = AssetHandle::Generate();
-        const Path& projectPath = Project::GetProjectPath();
+    const AssetMetadata* EditorAssetManager::AddAssetToRegistry(const std::string_view assetPath) {
+        if (const AssetMetadata* metadata = m_AssetRegistry.GetAssetMetadata(assetPath)) {
+            return metadata;
+        }
 
-        const AssetType assetType = AssetImporter::GetAssetType(assetPath);
-        if (assetType == AssetType::None) {
+        OsPath asset(assetPath);
+        if (asset.is_absolute()) {
+            asset = std::filesystem::relative(asset, Project::GetProjectPath());
+        }
+
+        const std::string relativePath = asset.generic_string();
+
+        const AssetType assetType = AssetImporter::GetAssetType(relativePath);
+        if (!assetType) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
-                "Failed to add asset '{}' to registry: unknow asset type!", assetPath.string()
+                "Failed to add asset '{}' to registry: unknown asset type!", assetPath
             );
 
             return nullptr;
         }
 
+        AssetHandle handle;
+        const std::optional<AssetHandle> existingHandle = AssetImporter::ReadAssetHandle(relativePath);
+        
+        if (existingHandle) {
+            handle = *existingHandle;
+            QS_CORE_INFO_TAG(
+                "EditorAssetManager::AddAssetToRegistry",
+                "Using existing asset handle {} for '{}'",
+                handle.ToString(), assetPath
+            );
+        } else {
+            handle = AssetHandle::Generate();
+            QS_CORE_INFO_TAG(
+                "EditorAssetManager::AddAssetToRegistry",
+                "Generated new asset handle {} for '{}'",
+                handle.ToString(), assetPath
+            );
+            
+            AssetImporter::WriteAssetHandle(relativePath, handle);
+        }
+
         const AssetMetadata assetMetadata = {
             handle,
-            std::filesystem::relative(assetPath, projectPath).generic_string(),
+            relativePath,
             assetType
         };
 
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
+    }
+
+    Vec<const AssetMetadata*> EditorAssetManager::ProcessAssetRegistration(const std::string_view assetPath) {
+        Vec<const AssetMetadata*> registeredAssets;
+
+        const AssetMetadata* mainAsset = AddAssetToRegistry(assetPath);
+        if (!mainAsset) {
+            return registeredAssets;
+        }
+        registeredAssets.push_back(mainAsset);
+
+        const Vec<AssetMetadata> additionalAssets = AssetRegistryExtensions::ProcessAssetRegistration(
+            assetPath, *mainAsset
+        );
+
+        for (const auto& additionalAsset : additionalAssets) {
+            const AssetMetadata* addedMetadata = &(m_AssetRegistry.GetAssetsMetadata()[additionalAsset.Handle] = additionalAsset);
+            registeredAssets.push_back(addedMetadata);
+        }
+
+        return registeredAssets;
     }
 
     void EditorAssetManager::RemoveAssetFromRegistry(const AssetHandle& assetHandle) {
@@ -58,11 +111,24 @@ namespace QuelosEditor {
         return m_AssetRegistry.IsAssetHandleValid(handle);
     }
 
-    bool EditorAssetManager::IsAssetPathValid(const Path& path) const {
+    bool EditorAssetManager::IsAssetPathValid(const std::string_view path) const {
         return m_AssetRegistry.IsAssetPathValid(path);
     }
 
-    bool EditorAssetManager::IsAssetSupported(const Path& path) {
+    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetType& type) const {
+        Vec<const AssetMetadata*> results;
+
+        const HashMap<GUID128, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
+        for (const AssetMetadata& metadata : assetsMetadata | std::views::values) {
+            if (metadata.Type == type) {
+                results.push_back(&metadata);
+            }
+        }
+
+        return results;
+    }
+
+    bool EditorAssetManager::IsAssetSupported(const std::string_view path) {
         return AssetImporter::IsAssetSupported(path);
     }
 
@@ -75,8 +141,12 @@ namespace QuelosEditor {
     }
 
     EditorAssetManager::EditorAssetManager() {
+        MaterialAssetRegistryExtension::Register();
+
+        AssetImporter::RegisterAssetImporter(ModelImporter::GetImporterConfig());
+        ModelAssetRegistryExtension::Register();
+
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
-        //AssetImporter::RegisterAssetImporter(QuelosEditor::MeshImporter::GetImporterConfig());
     }
 
     Ref<Asset> EditorAssetManager::GetAsset(const AssetHandle& handle) {
@@ -92,6 +162,19 @@ namespace QuelosEditor {
         }
 
         const AssetMetadata& metadata = *m_AssetRegistry.GetAssetMetadata(handle);
+        
+        if (metadata.IsSubAsset()) {
+            if (Ref<Asset> subAsset = AssetRegistryExtensions::ResolveSubAsset(handle, metadata)) {
+                m_LoadedAssets[handle] = subAsset;
+                return subAsset;
+            }
+            
+            QS_CORE_ERROR_TAG("AssetManager::GetAsset", 
+                              "Failed to resolve sub-asset {} with parent {}", 
+                              handle.ToString(), metadata.ParentHandle.ToString());
+            return nullptr;
+        }
+
         Ref<Asset> asset = AssetImporter::ImportAsset(handle, metadata);
 
         if (!asset) {
@@ -113,7 +196,7 @@ namespace QuelosEditor {
         m_LoadedAssets.erase(assetHandle);
     }
 
-    const AssetMetadata* EditorAssetManager::GetAssetMetadata(const Path& path) const {
+    const AssetMetadata* EditorAssetManager::GetAssetMetadata(const std::string_view path) const {
         if (!IsAssetPathValid(path)) {
             return nullptr;
         }
@@ -132,15 +215,19 @@ namespace QuelosEditor {
     void EditorAssetManager::SerializeAssetRegistry() {
         using namespace Serialization;
 
-        Path assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
+        OsPath assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
 
         std::string buffer;
         StringQuelWriter writer(buffer);
         for (auto& [handle, metadata] : m_AssetRegistry.GetAssetsMetadata()) {
-            writer.Write(SectionEvent{magic_enum::enum_name(metadata.Type)});
+            writer.Write(SectionEvent{metadata.Type.GetName()});
             writer.CloseSection();
             writer.WriteField("handle", UnquotedString{handle.ToString()});
             writer.WriteField("path", metadata.FilePath);
+            if (metadata.IsSubAsset()) {
+                writer.WriteField("parent", UnquotedString{metadata.ParentHandle.ToFormattedString()});
+                writer.WriteField("virtualPath", metadata.VirtualPath);
+            }
         }
 
         if (std::ofstream file(assetRegistryPath, std::ios::binary); file) {
@@ -158,7 +245,7 @@ namespace QuelosEditor {
     void EditorAssetManager::DeserializeAssetRegistry() {
         using namespace Serialization;
 
-        Path assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
+        OsPath assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
         std::ifstream file(assetRegistryPath, std::ios::binary | std::ios::ate);
         if (!file) {
             QS_CORE_ERROR_TAG(
@@ -193,8 +280,8 @@ namespace QuelosEditor {
                         metadata = {};
                     }
 
-                    if (auto assetTypeResult = magic_enum::enum_cast<AssetType>(e.Name)) {
-                        metadata.Type = assetTypeResult.value();
+                    if (const AssetType assetTypeResult = GetAssetType(std::string(e.Name))) {
+                        metadata.Type = assetTypeResult;
                     }
                 }
                 else if constexpr (std::is_same_v<T, FieldEvent>) {
@@ -207,6 +294,12 @@ namespace QuelosEditor {
                         }
                         else if (currentField == "path") {
                             metadata.FilePath = *valueResult;
+                        }
+                        else if (currentField == "parent") {
+                            metadata.ParentHandle = AssetHandle(*valueResult);
+                        }
+                        else if (currentField == "virtualPath") {
+                            metadata.VirtualPath = *valueResult;
                         }
                     }
                 }

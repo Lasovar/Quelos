@@ -9,7 +9,7 @@ namespace QuelosEditor {
     class ProjectSerializer {
     public:
         ProjectSerializer() = default;
-        explicit ProjectSerializer(const Path& projectPath);
+        explicit ProjectSerializer(const OsPath& projectPath);
 
         ~ProjectSerializer();
 

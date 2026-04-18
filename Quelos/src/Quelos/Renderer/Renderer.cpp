@@ -146,7 +146,7 @@ namespace Quelos {
         return s_RendererContext->CreateTexture(spec, std::move(data));
     }
 
-    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const Path& path) {
+    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const OsPath& path) {
         return s_RendererContext->CreateTexture(spec, path);
     }
 

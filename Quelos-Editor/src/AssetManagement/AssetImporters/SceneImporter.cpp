@@ -4,18 +4,17 @@
 
 namespace QuelosEditor {
     namespace SceneImporter {
-        bool IsAssetSupported(const Path& assetPath) {
-            if (!std::filesystem::is_directory(assetPath)) {
+        bool IsAssetSupported(const std::string_view assetPath) {
+            const OsPath path = Project::GetProjectPath() / assetPath;
+            if (!std::filesystem::is_directory(path)) {
                 return false;
             }
 
-            for (auto& entry : std::filesystem::directory_iterator(assetPath)) {
-                if (entry.path().extension() == SceneSerializer::SceneFileExtension) {
-                    return true;
-                }
-            }
-
-            return false;
+            return std::ranges::any_of(
+                std::filesystem::directory_iterator(path),
+                [](const auto& entry) {
+                    return entry.path().extension() == SceneSerializer::SceneFileExtension;
+                });
         }
 
         Ref<Scene> ImportScene(const AssetHandle assetHandle, const AssetMetadata& metadata) {

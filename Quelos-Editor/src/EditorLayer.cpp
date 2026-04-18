@@ -119,7 +119,6 @@ namespace QuelosEditor {
                 });
             }, "RotatePlayer");*/
 
-
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 

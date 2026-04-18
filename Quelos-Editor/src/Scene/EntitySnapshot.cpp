@@ -171,7 +171,7 @@ namespace Quelos {
                     QS_ERROR_TAG(
                         "EntitySnapshot::Load",
                         "Couldn't read component '{}({})' blob size",
-                        typeInfo->Name, static_cast<uint64_t>(typeInfo->Guid)
+                        typeInfo->FullName, static_cast<uint64_t>(typeInfo->Guid)
                     );
 
                     continue;
@@ -182,7 +182,7 @@ namespace Quelos {
                     QS_ERROR_TAG(
                         "EntitySnapshot::Load",
                         "Couldn't read component '{}({})' blob",
-                        typeInfo->Name, static_cast<uint64_t>(typeInfo->Guid)
+                        typeInfo->FullName, static_cast<uint64_t>(typeInfo->Guid)
                     );
                 }
 
@@ -198,7 +198,7 @@ namespace Quelos {
                     QS_ERROR_TAG(
                         "EntitySnapshot::Load",
                         "Failed to ensure component '{}({})'!",
-                        typeInfo->Name, static_cast<uint64_t>(typeInfo->Guid)
+                        typeInfo->FullName, static_cast<uint64_t>(typeInfo->Guid)
                     );
 
                     continue;
@@ -217,7 +217,7 @@ namespace Quelos {
                         QS_CORE_ERROR_TAG(
                             "EntitySnapshot::LoadEntity",
                             "Failed to read field data for component {}! invalid field hash or size",
-                            typeInfo->Name
+                            typeInfo->FullName
                         );
 
                         break;

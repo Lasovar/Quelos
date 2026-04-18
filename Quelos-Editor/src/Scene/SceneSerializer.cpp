@@ -35,7 +35,7 @@ namespace Quelos {
         return PatchState::Changed;
     }
 
-    SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath)
+    SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const OsPath& sceneFolderPath)
         : m_Scene(scene), m_ScenePath(Project::GetProjectPath() / sceneFolderPath) { }
 
     void SceneSerializer::DeserializeComponentData() {
@@ -333,13 +333,13 @@ namespace Quelos {
             }
         }
 
-        Path patchesFolder = m_ScenePath / ScenePatchesFolder;
+        OsPath patchesFolder = m_ScenePath / ScenePatchesFolder;
         if (!std::filesystem::exists(patchesFolder)) {
             std::filesystem::create_directories(patchesFolder);
         }
 
         std::string sceneName = m_ScenePath.filename().generic_string();
-        Path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -355,10 +355,10 @@ namespace Quelos {
             return;
         }
 
-        Path patchesFolder = m_ScenePath / ScenePatchesFolder;
+        OsPath patchesFolder = m_ScenePath / ScenePatchesFolder;
 
         std::string sceneName = m_ScenePath.filename().generic_string();
-        Path sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -687,7 +687,7 @@ namespace Quelos {
                     continue;
                 }
 
-                quelWriter.Write(ComponentEvent{info->Name});
+                quelWriter.Write(ComponentEvent{info->FullName});
 
                 PatchState compPatchState = CollapsePatchState(compPatch.PatchStates).value();
                 if (compPatchState == PatchState::Removed) {

@@ -5,7 +5,7 @@
 
 namespace Quelos::Utility {
     Buffer ReadFile(const std::filesystem::path& relativeFilePath) {
-        const Path filePath = Project::GetProjectPath() / relativeFilePath;
+        const OsPath filePath = Project::GetProjectPath() / relativeFilePath;
 
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
         if (!file.is_open()) {

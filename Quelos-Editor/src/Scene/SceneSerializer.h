@@ -81,7 +81,7 @@ namespace Quelos {
         static inline const std::string ScenePatchFileExtension = ".qpatch";
     public:
         SceneSerializer() = default;
-        SceneSerializer(const Ref<Scene>& scene, const Path& sceneFolderPath);
+        SceneSerializer(const Ref<Scene>& scene, const OsPath& sceneFolderPath);
         ~SceneSerializer() = default;
 
         bool EnsureSceneExists() const;

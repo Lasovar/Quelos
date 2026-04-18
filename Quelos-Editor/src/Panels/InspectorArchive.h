@@ -6,21 +6,65 @@
 #include "UndoSystem.h"
 
 #include "Quelos/ImGui/ImGuiUI.h"
+#include "EditorUI.h"
 
-namespace Quelos {
-    inline std::string BeautifyLabel(std::string label) {
+namespace QuelosEditor {
+    inline std::string BeautifyLabel(std::string_view label) {
         if (label.rfind("m_", 0) == 0) {
-            label.erase(0, 2);
-        }
-        else if (!label.empty() && label[0] == '_') {
-            label.erase(0, 1);
-        }
-
-        if (!label.empty()) {
-            label[0] = static_cast<char>(std::toupper(label[0]));
+            label.remove_prefix(2);
+        } else if (!label.empty() && label[0] == '_') {
+            label.remove_prefix(1);
         }
 
-        return label;
+        std::string result;
+        result.reserve(label.size() + 4); // small buffer padding
+
+        auto is_upper = [](const char c) { return std::isupper(static_cast<unsigned char>(c)); };
+        auto is_lower = [](const char c) { return std::islower(static_cast<unsigned char>(c)); };
+
+        for (size_t i = 0; i < label.size(); ++i) {
+            const char c = label[i];
+
+            if (c == '_' || c == ' ') {
+                if (!result.empty() && result.back() != ' ') {
+                    result.push_back(' ');
+                }
+
+                continue;
+            }
+
+            // Detect case
+            if (i > 0) {
+                const char prev = label[i - 1];
+
+                if (
+                    (is_lower(prev) && is_upper(c)) ||                       // labelName
+                    (is_upper(prev) && is_upper(c) &&                        // XMLParser -> XML Parser
+                     i + 1 < label.size() && is_lower(label[i + 1]))
+                ) {
+                    if (!result.empty() && result.back() != ' ') {
+                        result.push_back(' ');
+                    }
+                }
+            }
+
+            result.push_back(c);
+        }
+
+        // Capitalize words
+        bool new_word = true;
+        for (char& c : result) {
+            if (c == ' ') {
+                new_word = true;
+            } else if (new_word) {
+                c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+                new_word = false;
+            } else {
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            }
+        }
+
+        return result;
     }
 
     class BeatifyFieldNamesArchive {
@@ -118,7 +162,7 @@ namespace Quelos {
         void DrawField(std::string_view name, glm::vec3& value);
         void DrawField(std::string_view name, glm::quat& value);
 
-        const std::string& GetFormattedFieldName(const std::string_view name) const {
+        [[nodiscard]] const std::string& GetFormattedFieldName(const std::string_view name) const {
             return m_FormattedFieldNames.at(Serialization::GetPathID(name));
         }
 

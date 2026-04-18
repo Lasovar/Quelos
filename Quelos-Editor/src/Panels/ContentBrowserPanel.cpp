@@ -77,7 +77,7 @@ namespace QuelosEditor {
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             //TODO: OpenAsset(asset.Metadata.Handle);
-            if (asset.Metadata.Type == AssetType::Scene) {
+            if (asset.Metadata.Type == Scene::GetStaticType()) {
                 EditorLayer::Get().OpenSceneWorkspace(asset.Metadata.Handle);
             }
         }
@@ -85,7 +85,7 @@ namespace QuelosEditor {
         // Drag & Drop
         if (!asset.IsImportable && ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload(
-                std::string(magic_enum::enum_name(asset.Metadata.Type)).c_str(),
+                asset.Metadata.Type.GetName().c_str(),
                 &asset.Metadata.Handle, sizeof(AssetHandle)
             );
 
@@ -262,11 +262,11 @@ namespace QuelosEditor {
 
                 m_Directories[path].Assets.insert(assetEntry);
             }
-            else if (EditorAssetManager::IsAssetSupported(entry.path())) {
+            else if (EditorAssetManager::IsAssetSupported(relativePath)) {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = true;
-                assetEntry.Name = entry.path().filename().generic_string();
-                assetEntry.Metadata.FilePath = entry.path().generic_string();
+                assetEntry.Name = UI::Filename(relativePath);
+                assetEntry.Metadata.FilePath = relativePath;
 
                 m_Directories[path].Assets.insert(assetEntry);
             }

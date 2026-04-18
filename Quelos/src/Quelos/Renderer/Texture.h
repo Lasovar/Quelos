@@ -101,10 +101,12 @@ namespace Quelos {
 
         virtual TextureType GetType() const = 0;
 
-        static AssetType GetStaticType() { return AssetType::Texture; }
-        AssetType GetAssetType() const override { return GetStaticType(); }
+        static const AssetType& GetStaticType() { return s_AssetType; }
+        const AssetType& GetAssetType() const override { return s_AssetType; }
 
         virtual TextureHandle GetHandle() const = 0;
+    private:
+        static AssetType s_AssetType;
     };
 
     class QS_API Texture2D : public Texture {
@@ -114,14 +116,14 @@ namespace Quelos {
 
         static Ref<Texture2D> Create(const TextureSpecification& spec);
         static Ref<Texture2D> Create(const TextureSpecification& spec, Buffer data);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, const Path& texturePath);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
 
     public:
         void Resize(const glm::uvec2& size) const;
         void Resize(uint32_t width, uint32_t height) const;
 
-        static AssetType GetStaticType() { return AssetType::Texture2D; }
-        AssetType GetAssetType() const override { return GetStaticType(); }
+        static const AssetType& GetStaticType() { return s_AssetType; }
+        const AssetType& GetAssetType() const override { return s_AssetType; }
 
         TextureType GetType() const override { return TextureType::Texture2D; }
         ImageFormat GetFormat() const override;
@@ -133,5 +135,7 @@ namespace Quelos {
 
     private:
         TextureHandle m_Handle;
+    private:
+        static AssetType s_AssetType;
     };
 }
