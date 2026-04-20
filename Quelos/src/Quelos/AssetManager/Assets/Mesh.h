@@ -21,7 +21,10 @@ namespace Quelos {
 
 		const AssetType& GetAssetType() const override { return GetStaticType(); }
 		const std::string& GetName() { return m_Name; }
-		static const AssetType& GetStaticType() { return s_AssetType; }
+		static const AssetType& GetStaticType() {
+			static AssetType assetType = Quelos::GetAssetType<Mesh>();
+			return assetType;
+		}
 
 	private:
 		VertexBufferHandle m_VertexBuffer;
@@ -32,8 +35,5 @@ namespace Quelos {
 
 		Vec<Vertex> m_Vertices;
 		Vec<uint16_t> m_Indices;
-
-	private:
-		static AssetType s_AssetType;
 	};
 }

@@ -29,6 +29,7 @@ target_link_libraries(QuelosBgfxRendererPlugin PRIVATE
 
 target_include_directories(QuelosBgfxRendererPlugin PRIVATE Runtime)
 
+target_compile_definitions(QuelosBgfxRendererPlugin PRIVATE QS_PLUGIN_LIB_BUILD)
 
 add_dependencies(QuelosBgfxRendererPlugin shaderc)
 
@@ -39,7 +40,14 @@ set_target_properties(shaderc PROPERTIES
 )
 
 add_custom_command(TARGET QuelosBgfxRendererPlugin POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         ${BGFX_DIR}/tools/bin
         $<TARGET_FILE_DIR:QuelosBgfxRendererPlugin>/Tools
 )
+
+add_custom_command(TARGET QuelosBgfxRendererPlugin POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${BGFX_DIR}/src/bgfx_shader.sh
+        ${SHADERC_OUT_DIR}
+)
+

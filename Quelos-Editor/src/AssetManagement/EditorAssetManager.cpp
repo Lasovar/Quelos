@@ -6,6 +6,7 @@
 #include "EditorAssetImporter.h"
 #include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
+#include "Quelos/AssetManager/TextureImporter.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
 
@@ -140,6 +141,7 @@ namespace QuelosEditor {
         ModelImporter::Initialize();
         ShaderImporter::Initialize();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
+        AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
     }
 
     Ref<Asset> EditorAssetManager::GetAsset(const AssetHandle& handle) {

@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 
 project(tiny-process-library)
 
-if(CMAKE_SOURCE_DIR STREQUAL ".")
-  option(BUILD_TESTING "set ON to build library tests" ON)
-else()
-  option(BUILD_TESTING "set ON to build library tests" OFF)
-endif()
-
 add_library(tiny-process-library process.cpp)
 add_library(tiny-process-library::tiny-process-library ALIAS tiny-process-library)
 
@@ -58,9 +52,4 @@ if(CMAKE_SOURCE_DIR STREQUAL ".")
   )
 
   install(FILES process.hpp DESTINATION include)
-endif()
-
-if(BUILD_TESTING)
-  enable_testing()
-  add_subdirectory(tests)
 endif()

@@ -22,6 +22,8 @@ namespace Quelos {
     private:
         uint64_t m_Value = 0;
         std::string m_Name;
+
+        friend class std::hash<AssetType>;
     };
 
     class QS_API Asset : public RefCounted<Asset> {
@@ -36,15 +38,13 @@ namespace Quelos {
         AssetHandle Handle;
     };
 
+    QS_API AssetType GetAssetType(std::string name);
+
     template <typename  T>
     requires (std::is_base_of_v<Asset, T> && !std::same_as<std::remove_cvref_t<T>, Asset>)
     constexpr AssetType GetAssetType() {
         std::string assetTypeName = TypeNameDisplay<T>();
-        return { Hash::Fnv1a64(assetTypeName), assetTypeName };
-    }
-
-    constexpr AssetType GetAssetType(std::string name) {
-        return { Hash::Fnv1a64(name), std::move(name) };
+        return GetAssetType(std::move(assetTypeName));
     }
 }
 
@@ -52,6 +52,6 @@ namespace Quelos {
 template<>
 struct std::hash<Quelos::AssetType> {
     std::size_t operator()(const Quelos::AssetType& assetType) const noexcept {
-        return assetType;
+        return assetType.m_Value;
     }
 };

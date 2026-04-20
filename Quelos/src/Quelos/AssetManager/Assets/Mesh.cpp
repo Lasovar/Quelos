@@ -4,8 +4,6 @@
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
-	AssetType Mesh::s_AssetType = Quelos::GetAssetType<Mesh>();
-
 	Mesh::Mesh(Vec<Vertex> vertices, Vec<uint16_t> indices, const Ref<Model>& model, std::string name) :
 		m_Model(model),
 		m_Name(std::move(name)),

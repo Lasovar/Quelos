@@ -38,6 +38,10 @@ namespace Quelos::Serialization {
         }
     }
 
+    PathID GetPathID(const std::string_view path) {
+        return XXH3_64bits(path.data(), path.size());
+    }
+
     Generator<ParserEvent> QuelReader::Parse() {
         Token token = m_Lexer.Next();
 

@@ -114,7 +114,7 @@ namespace Quelos {
         constexpr std::string_view key = "TypeName<";
         constexpr size_t start = p.find(key) + key.size();
         constexpr size_t end = p.rfind('>');
-        constexpr std::string_view name = p.substr(start, end - start);
+        std::string_view name = p.substr(start, end - start);
         while (true) {
             const size_t pos = name.find(' ');
             if (pos == std::string_view::npos) {

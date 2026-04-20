@@ -31,8 +31,8 @@ namespace Quelos {
             break;
         }
 
-        std::string shadercPath = Application::Get().GetApplicationPath() / "Tools/bin/shaderc";
-        std::string sourcePath = Project::GetProjectPath() / desc->sourcePath;
+        std::string shadercPath = (Application::Get().GetApplicationPath() / "Tools/bin/shaderc").generic_string();
+        std::string sourcePath = (Project::GetProjectPath() / desc->sourcePath).generic_string();
         std::string includePath = std::string(FS::Parent(shadercPath));
 
         std::string vertexBinaryPath = fmt::format("{}/vs_{}.bin", sourcePath, FS::Stem(sourcePath));

@@ -1,9 +1,10 @@
 #pragma once
 #include "bgfx/bgfx.h"
+#include "Quelos/Plugin/PluginAPI.h"
 #include "Quelos/Renderer/RendererContext.h"
 
 namespace Quelos {
-    class QS_API bgfxRendererContext : public RendererContext {
+    class QS_PLUGIN_API bgfxRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
 

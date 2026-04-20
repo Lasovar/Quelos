@@ -3,8 +3,6 @@
 
 namespace Quelos {
 
-    AssetType Shader::s_AssetType = Quelos::GetAssetType<Shader>();
-
     void ShaderHandle::Submit(const uint32_t viewId) const {
         Renderer::Submit(*this, viewId);
     }

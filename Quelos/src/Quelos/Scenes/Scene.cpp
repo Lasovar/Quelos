@@ -15,8 +15,6 @@
 namespace Quelos {
     class WindowResizeEvent;
 
-    AssetType Scene::s_AssetType = Quelos::GetAssetType<Scene>();
-
     Scene::Scene(std::string name)
         : m_Name(std::move(name)
     ) {

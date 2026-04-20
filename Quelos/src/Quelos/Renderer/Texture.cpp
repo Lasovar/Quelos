@@ -4,9 +4,6 @@
 #include "Renderer.h"
 
 namespace Quelos {
-    AssetType Texture::s_AssetType = Quelos::GetAssetType<Texture>();
-    AssetType Texture2D::s_AssetType = Quelos::GetAssetType<Texture2D>();
-
     uint16_t TextureHandle::GetNativeHandle() const {
         return Renderer::TextureGetNativeHandle(*this);
     }
