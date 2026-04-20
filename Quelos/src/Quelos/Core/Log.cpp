@@ -7,12 +7,12 @@
 #define QS_HAS_CONSOLE 1
 
 namespace Quelos {
-	QS_API Ref<spdlog::logger> Log::s_CoreLogger;
-	QS_API Ref<spdlog::logger> Log::s_ClientLogger;
-	QS_API HashMap<std::string, Log::TagDetails> Log::s_EnabledTags;
-	QS_API Ref<spdlog::logger> Log::s_EditorConsoleLogger;
+	Ref<spdlog::logger> Log::s_CoreLogger;
+	Ref<spdlog::logger> Log::s_ClientLogger;
+	HashMap<std::string, Log::TagDetails> Log::s_EnabledTags;
+	Ref<spdlog::logger> Log::s_EditorConsoleLogger;
 
-	QS_API HashMap<std::string, Log::TagDetails> Log::s_DefaultTagDetails = {
+	HashMap<std::string, Log::TagDetails> Log::s_DefaultTagDetails = {
 		{ "Core",              TagDetails{  true, Level::Trace } },
 		{ "GLFW",              TagDetails{  true, Level::Error } },
 		{ "Memory",            TagDetails{  true, Level::Error } },
@@ -60,7 +60,7 @@ namespace Quelos {
 #if QS_HAS_CONSOLE
 		quelosSinks[1]->set_pattern("%^[%T] %n: %v%$");
 		appSinks[1]->set_pattern("%^[%T] %n: %v%$");
-		for (auto sink : editorConsoleSinks)
+		for (const auto& sink : editorConsoleSinks)
 			sink->set_pattern("%^%v%$");
 #endif
 

@@ -37,6 +37,8 @@ namespace Quelos {
 
         std::string vertexBinaryPath = fmt::format("{}/vs_{}.bin", sourcePath, FS::Stem(sourcePath));
 
+        Vec<std::string> messages;
+        Vec<std::string> errors;
 
         Process vertex(
             {
@@ -45,16 +47,40 @@ namespace Quelos {
                 "-o", vertexBinaryPath,
                 "--type", "vertex",
                 "--profile", profileType,
-                "-i", includePath
+                "-i", includePath,
+#ifdef QS_PLATFORM_MACOS
+                "--platform", "osx"
+#endif
             },
             "",
-            [](const char* bytes, const size_t count) {
-                QS_INFO_TAG("bgfxShaderCompiler::vertex", "{}", std::string_view(bytes, count));
+            [&messages](const char* bytes, const size_t count) {
+                if (!bytes || !count) {
+                    return;
+                }
+
+                messages.emplace_back(bytes, count);
             },
-            [](const char* bytes, const size_t count) {
-                QS_ERROR_TAG("bgfxShaderCompiler::vertex", "{}", std::string_view(bytes, count));
+            [&errors](const char* bytes, const size_t count) {
+                if (!bytes || !count) {
+                    return;
+                }
+
+                errors.emplace_back(bytes, count);
             }
         );
+
+        const int vCode = vertex.get_exit_status();
+
+        for (auto& message : messages) {
+            QS_INFO_TAG("CompileBgfx::vertex", message);
+        }
+
+        for (auto& error : errors) {
+            QS_INFO_TAG("CompileBgfx::vertex", error);
+        }
+
+        messages.clear();
+        errors.clear();
 
         std::string fragmentBinaryPath = fmt::format("{}/fs_{}.bin", sourcePath, FS::Stem(sourcePath));
         Process fragment(
@@ -64,19 +90,37 @@ namespace Quelos {
                 "-o", fragmentBinaryPath,
                 "--type", "fragment",
                 "--profile", profileType,
-                "-i", includePath
+                "-i", includePath,
+#ifdef QS_PLATFORM_MACOS
+                "--platform", "osx"
+#endif
             },
             "",
-            [](const char* bytes, const size_t count) {
-                QS_INFO_TAG("bgfxShaderCompiler::fragment", "{}", std::string_view(bytes, count));
+            [&messages](const char* bytes, const size_t count) {
+                if (!bytes || !count) {
+                    return;
+                }
+
+                messages.emplace_back(bytes, count);
             },
-            [](const char* bytes, const size_t count) {
-                QS_ERROR_TAG("bgfxShaderCompiler::fragment", "{}", std::string_view(bytes, count));
+            [&errors](const char* bytes, const size_t count) {
+                if (!bytes || !count) {
+                    return;
+                }
+
+                errors.emplace_back(bytes, count);
             }
         );
 
-        const int vCode = vertex.get_exit_status();
         const int fCode = fragment.get_exit_status();
+
+        for (auto& message : messages) {
+            QS_INFO_TAG("CompileBgfx::fragment", message);
+        }
+
+        for (auto& error : errors) {
+            QS_INFO_TAG("CompileBgfx::fragment", error);
+        }
 
         if (vCode || fCode) {
             return {

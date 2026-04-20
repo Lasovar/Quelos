@@ -222,6 +222,18 @@ namespace Quelos {
                 nullptr
             );
         }
+#elif QS_PLATFORM_MACOS
+        m_NativeWindowHandle = SDL_GetPointerProperty(
+            windowProperties,
+            SDL_PROP_WINDOW_COCOA_WINDOW_POINTER,
+            nullptr
+        );
+
+        m_DisplayHandle =  SDL_GetPointerProperty(
+            windowProperties,
+            SDL_PROP_WINDOW_COCOA_METAL_VIEW_TAG_NUMBER,
+            nullptr
+        );
 #endif
     }
 

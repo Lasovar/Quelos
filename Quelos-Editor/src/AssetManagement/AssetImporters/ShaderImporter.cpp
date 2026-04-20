@@ -81,7 +81,7 @@ namespace QuelosEditor {
                                        handle = AssetHandle(std::get<std::string_view>(event.Value));
                                    }
                                },
-                               [](auto e) {
+                               []([[maybe_unused]] auto& e) {
                                }
                            }, parserEvent);
             }
@@ -110,7 +110,10 @@ namespace QuelosEditor {
 
         Ref<Shader> Import(const AssetHandle handle, const AssetMetadata& metadata) {
             Buffer vertexBuffer, fragmentBuffer;
-            CompileShader(metadata.FilePath, vertexBuffer, fragmentBuffer);
+            if (!CompileShader(metadata.FilePath, vertexBuffer, fragmentBuffer)) {
+                return nullptr;
+            }
+
             Ref<Shader> shader = CreateRef<Shader>(
                 std::move(vertexBuffer),
                 std::move(fragmentBuffer),

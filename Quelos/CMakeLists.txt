@@ -108,8 +108,8 @@ function(setup_quelos_target target type)
             PRIVATE
             #glfw
             SDL3::SDL3-static
-            freetype
             libDaScript
+            freetype
             stb_image
             TracyClient
             xxhash
@@ -128,7 +128,10 @@ function(setup_quelos_target target type)
                 PUBLIC  QS_LIB_SHARED
         )
 
-        target_link_libraries(${target} PUBLIC flecs)
+        target_link_libraries(${target}
+                PUBLIC
+                flecs
+        )
 
         install(TARGETS ${target}
                 EXPORT QuelosTargets
@@ -180,7 +183,10 @@ function(setup_quelos_target target type)
                 PUBLIC  QS_LIB_STATIC
         )
 
-        target_link_libraries(${target} PUBLIC flecs_static)
+        target_link_libraries(${target}
+                PUBLIC
+                flecs_static
+        )
     endif()
 endfunction()
 
