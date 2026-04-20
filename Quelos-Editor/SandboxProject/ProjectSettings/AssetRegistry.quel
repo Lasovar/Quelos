@@ -23,3 +23,7 @@ handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
 path = "Assets/Meshes/Cube.fbx"
 parent = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
 virtualPath = "meshes/Cube.001"
+
+[Quelos.Shader]
+handle = af5fda92-37f9-42e3-a189-3a5388090a14
+path = "Assets/shaders/mesh.qshader"

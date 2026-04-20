@@ -91,14 +91,14 @@ namespace Quelos {
 
     struct QS_API MeshComponent {
         Ref<Mesh> MeshData;
-        Ref<Material> MaterialData = CreateRef<Material>("vs_mesh.bin", "fs_mesh.bin");
+        Ref<Material> MaterialData = CreateRef<Material>();
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshComponent& data) {
             archive.Field("mesh", data.MeshData);
 
             if constexpr (TArchive::IsLoading) {
-                data.MaterialData = CreateRef<Material>("vs_mesh.bin", "fs_mesh.bin");
+                data.MaterialData = CreateRef<Material>();
             }
         }
     };

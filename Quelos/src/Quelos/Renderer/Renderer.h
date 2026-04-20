@@ -40,7 +40,8 @@ namespace Quelos {
 		static void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform);
 
 		// Renderer Context API
-        static ShaderHandle CreateShader(const std::string& filePathVertex, const std::string& filePathFragment);
+        static ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);
+        static bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment);
 		static void Submit(ShaderHandle handle, uint32_t view);
 		static void Destroy(ShaderHandle shaderHandle);
 

@@ -18,6 +18,14 @@ namespace QuelosEditor {
         HashMap<Serialization::PathID, std::string> FormattedFieldNames;
     };
 
+    using DrawComponentInspector = void(*)(void*);
+
+    struct CustomInspector {
+        std::string ComponentName;
+        ComponentID ComponentId;
+        DrawComponentInspector DrawFn = nullptr;
+    };
+
     class EntityInspectorPanel {
     public:
         explicit EntityInspectorPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
@@ -25,6 +33,11 @@ namespace QuelosEditor {
         void SetSelectedEntity(const Actor& entity) {
             m_SelectedActor = entity;
             std::snprintf(m_EntityNameField.data(), m_EntityNameField.size(), "%s", entity.GetName());
+        }
+
+        void RegisterCustomInspector(const CustomInspector& customInspector) {
+            m_CustomInspectors[m_Scene->GetComponentRegistry().GetComponentInfo(customInspector.ComponentId)->RuntimeID]
+                = customInspector;
         }
 
         void ClearSelectedEntity() { m_SelectedActor = {}; }
@@ -38,6 +51,7 @@ namespace QuelosEditor {
     private:
         std::array<char, 64> m_EntityNameField{};
         HashMap<Entity, HashSet<RuntimeID>> m_ExpandedComponents;
+        HashMap<RuntimeID, CustomInspector> m_CustomInspectors;
 
         Actor m_SelectedActor;
         Ref<Scene> m_Scene;

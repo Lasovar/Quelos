@@ -11,11 +11,12 @@
 #include "Quelos/ImGui/ImGuiUI.h"
 
 #include "EditorUI.h"
+#include "Quelos/Utility/FileSystem.h"
 
 namespace QuelosEditor {
 
     void ContentBrowserPanel::DrawDirectoryTile(const std::string& path) {
-        std::string_view directoryName = UI::Filename(path);
+        std::string_view directoryName = FS::Filename(path);
         ImGui::PushID(path.c_str());
         ImGui::BeginGroup();
 
@@ -187,7 +188,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, UI::Filename(path)),
+            UI::FormatTemp("{} {}", ICON_FA_FOLDER, FS::Filename(path)),
             flags
         );
 
@@ -258,14 +259,14 @@ namespace QuelosEditor {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = false;
                 assetEntry.Metadata = *metadata;
-                assetEntry.Name = UI::Filename(metadata->FilePath);
+                assetEntry.Name = FS::Filename(metadata->FilePath);
 
                 m_Directories[path].Assets.insert(assetEntry);
             }
             else if (EditorAssetManager::IsAssetSupported(relativePath)) {
                 AssetEntry assetEntry;
                 assetEntry.IsImportable = true;
-                assetEntry.Name = UI::Filename(relativePath);
+                assetEntry.Name = FS::Filename(relativePath);
                 assetEntry.Metadata.FilePath = relativePath;
 
                 m_Directories[path].Assets.insert(assetEntry);

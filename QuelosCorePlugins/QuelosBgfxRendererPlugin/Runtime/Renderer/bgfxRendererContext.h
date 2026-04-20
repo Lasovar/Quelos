@@ -24,7 +24,8 @@ namespace Quelos {
 
         void Shutdown() override;
 
-        ShaderHandle CreateShader(const std::string& filePathVertex, const std::string& filePathFragment) override;
+        ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
+        bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) override;
         void Submit(ShaderHandle shaderHandle, uint32_t view) override;
         void Destroy(ShaderHandle shaderHandle) override;
 

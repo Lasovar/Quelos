@@ -38,6 +38,12 @@ namespace Quelos {
     public:
         void RegisterBuiltinTypes(flecs::world& world);
 
+        template <typename T>
+        static constexpr ComponentID GetComponentID() {
+            const std::string typeName = TypeNameDisplay<T>();
+            return ComponentID(XXH3_64bits(typeName.data(), typeName.size()));
+        }
+
         static constexpr ComponentID GetComponentID(const std::string_view& typeName) {
             return ComponentID(XXH3_64bits(typeName.data(), typeName.size()));
         }

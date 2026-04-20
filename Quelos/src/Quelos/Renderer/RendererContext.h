@@ -32,7 +32,8 @@ namespace Quelos {
 
         virtual void Reset(uint32_t width, uint32_t height) = 0;
 
-        virtual ShaderHandle CreateShader(const std::string& filePathVertex, const std::string& filePathFragment) = 0;
+        virtual ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) = 0;
+        virtual bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) = 0;
         virtual void Submit(ShaderHandle shaderHandle, uint32_t view) = 0;
         virtual void Destroy(ShaderHandle shaderHandle) = 0;
 

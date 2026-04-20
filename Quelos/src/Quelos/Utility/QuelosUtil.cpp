@@ -21,7 +21,7 @@ namespace Quelos::Utility {
         Buffer buffer = Buffer::Allocate(size);
 
         file.seekg(0, std::ios::beg);
-        file.read(reinterpret_cast<char*>(buffer.GetData()), size);
+        file.read(reinterpret_cast<char*>(buffer.data()), size);
 
         if (!file) {
             QS_CORE_ERROR_TAG("Utility::ReadFile", "Failed to read file '{}'", filePath.string());

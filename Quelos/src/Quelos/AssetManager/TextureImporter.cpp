@@ -13,7 +13,7 @@ namespace Quelos {
             ".png", ".jpeg"
         };
 
-        return s_ImportableExtensions.find(Extension(path)) != s_ImportableExtensions.end();
+        return s_ImportableExtensions.find(FS::Extension(path)) != s_ImportableExtensions.end();
     }
 
     Ref<Texture2D> TextureImporter::ImportTexture2D(AssetHandle assetHandle, const AssetMetadata& metadata) {

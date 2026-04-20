@@ -1,10 +1,10 @@
-#include "Quelos/Core/Base.h"
-
 #include "Quelos/Plugin/PluginAPI.h"
 #include "Quelos/Renderer/Renderer.h"
 
 #include "Renderer/bgfxRendererContext.h"
 #include "ImGui/bgfxImGuiState.h"
+
+#include "Quelos/Core/Log.h"
 
 QS_PLUGIN_EXPORT void RegisterBgfxRendererPlugin(Quelos::PluginContext& pluginContext) {
     Quelos::Renderer::RegisterRendererContext({
@@ -16,4 +16,3 @@ QS_PLUGIN_EXPORT void RegisterBgfxRendererPlugin(Quelos::PluginContext& pluginCo
         }
     });
 }
-

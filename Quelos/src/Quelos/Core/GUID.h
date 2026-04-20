@@ -2,6 +2,8 @@
 
 #include <stduuid/uuid.h>
 
+#include "Quelos/Core/Base.h"
+
 namespace Quelos {
     struct QS_API GUID64 {
     public:

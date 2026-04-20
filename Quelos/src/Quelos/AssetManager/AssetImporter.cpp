@@ -12,34 +12,6 @@ namespace Quelos {
     void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
         s_AssetLoaders[config.Type] = config;
     }
-    
-    std::optional<AssetHandle> AssetImporter::ReadAssetHandle(const std::string_view assetPath) {
-        const AssetType type = GetAssetType(assetPath);
-        if (!type) {
-            return std::nullopt;
-        }
-        
-        const auto it = s_AssetLoaders.find(type);
-        if (it != s_AssetLoaders.end() && it->second.ReadAssetHandle) {
-            return it->second.ReadAssetHandle(assetPath);
-        }
-        
-        return std::nullopt;
-    }
-    
-    bool AssetImporter::WriteAssetHandle(const std::string_view assetPath, const AssetHandle& handle) {
-        const AssetType type = GetAssetType(assetPath);
-        if (!type) {
-            return false;
-        }
-        
-        const auto it = s_AssetLoaders.find(type);
-        if (it != s_AssetLoaders.end() && it->second.WriteAssetHandle) {
-            return it->second.WriteAssetHandle(assetPath, handle);
-        }
-        
-        return false;
-    }
 
     Ref<Asset> AssetImporter::ImportAsset(const AssetHandle assetHandle, const AssetMetadata& metadata) {
         const auto it = s_AssetLoaders.find(metadata.Type);

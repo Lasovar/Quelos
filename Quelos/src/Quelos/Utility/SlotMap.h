@@ -144,8 +144,10 @@ namespace Quelos {
         }
 
         Generator<THandle> GetAllHandles() {
-            for (int i = 0; i < m_Slots.size(); ++i) {
-                co_yield THandle::Create(i, m_Slots[i].Generation);
+            for (size_t i = 0; i < m_Slots.size(); i++) {
+                if (m_Slots[i].Alive) {
+                    co_yield THandle::Create(i, m_Slots[i].Generation);
+                }
             }
         }
 

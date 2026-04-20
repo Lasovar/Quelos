@@ -35,7 +35,7 @@ namespace Quelos {
 
         Buffer& operator=(Buffer&& other) noexcept {
             if (this != &other) {
-                Release();
+                release();
 
                 m_Data = other.m_Data;
                 m_Size = other.m_Size;
@@ -53,45 +53,45 @@ namespace Quelos {
         Buffer& operator=(const Buffer&) = delete;
 
         ~Buffer() {
-            Release();
+            release();
         }
 
-        void Release() {
+        void release() {
             if (m_Data && m_Deleter) {
                 m_Deleter(m_Data);
             }
 
-            ReleaseOwnership();
+            release_ownership();
         }
 
-        void ReleaseOwnership() {
+        void release_ownership() {
             m_Data = nullptr;
             m_Size = 0;
             m_Deleter = nullptr;
         }
 
-        [[nodiscard]] BufferView GetView() const {
+        [[nodiscard]] BufferView view() const {
             return { m_Data, m_Size };
         }
 
-        MutBufferView GetMutView() {
+        MutBufferView mut_view() {
             return { m_Data, m_Size };
         }
 
-        [[nodiscard]] byte* GetData() const {
+        [[nodiscard]] byte* data() const {
             return m_Data;
         }
 
-        [[nodiscard]] uint64_t GetSize() const {
+        [[nodiscard]] uint64_t size() const {
             return m_Size;
         }
 
-        Deleter GetDeleter() const {
+        Deleter deleter() const {
             return m_Deleter;
         }
 
         template <typename T>
-        T* As() {
+        T* as() {
             if (!m_Data) {
                 return nullptr;
             }
@@ -104,7 +104,7 @@ namespace Quelos {
         }
 
         template <typename T>
-        const T* As() const {
+        const T* as() const {
             if (!m_Data) {
                 return nullptr;
             }
@@ -118,7 +118,7 @@ namespace Quelos {
 
 
         template <typename T>
-        std::optional<T> AsValue(const uint64_t offset = 0) {
+        std::optional<T> as_value(const uint64_t offset = 0) {
             if (offset + sizeof(T) > m_Size) {
                 return std::nullopt;
             }

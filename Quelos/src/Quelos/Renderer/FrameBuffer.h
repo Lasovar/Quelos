@@ -13,7 +13,7 @@ namespace Quelos {
     class QS_API FrameBuffer {
     public:
         FrameBuffer(const FrameBufferHandle handle) : m_Handle(handle) {}
-        ~FrameBuffer() = default;
+        ~FrameBuffer();
 
         void Bind() const;
 

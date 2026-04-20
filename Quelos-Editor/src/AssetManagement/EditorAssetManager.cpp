@@ -1,14 +1,11 @@
 #include "qspch.h"
 #include "EditorAssetManager.h"
 
-#include "AssetImporters/MaterialAssetRegistryExtension.h"
-#include "AssetImporters/ModelAssetRegistryExtension.h"
 #include "AssetImporters/ModelImporter.h"
 #include "AssetImporters/SceneImporter.h"
-#include "Quelos/AssetManager/AssetImporter.h"
+#include "EditorAssetImporter.h"
+#include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
-#include "magic_enum/magic_enum.hpp"
-#include "Quelos/Core/Formatters.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
 
@@ -38,10 +35,9 @@ namespace QuelosEditor {
         }
 
         AssetHandle handle;
-        const std::optional<AssetHandle> existingHandle = AssetImporter::ReadAssetHandle(relativePath);
-        
-        if (existingHandle) {
-            handle = *existingHandle;
+
+        if (const AssetHandle existingHandle = EditorAssetImporter::ReadAssetHandle(relativePath)) {
+            handle = existingHandle;
             QS_CORE_INFO_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
                 "Using existing asset handle {} for '{}'",
@@ -55,7 +51,7 @@ namespace QuelosEditor {
                 handle.ToString(), assetPath
             );
             
-            AssetImporter::WriteAssetHandle(relativePath, handle);
+            EditorAssetImporter::WriteAssetHandle(relativePath, handle);
         }
 
         const AssetMetadata assetMetadata = {
@@ -141,11 +137,8 @@ namespace QuelosEditor {
     }
 
     EditorAssetManager::EditorAssetManager() {
-        MaterialAssetRegistryExtension::Register();
-
-        AssetImporter::RegisterAssetImporter(ModelImporter::GetImporterConfig());
-        ModelAssetRegistryExtension::Register();
-
+        ModelImporter::Initialize();
+        ShaderImporter::Initialize();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
     }
 
