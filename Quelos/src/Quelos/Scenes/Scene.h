@@ -106,8 +106,11 @@ namespace Quelos {
             return world.get<SceneRoot>().GetScene();
         }
 
-        const AssetType& GetAssetType() const override { return s_AssetType; }
-        static const AssetType& GetStaticType() { return s_AssetType; }
+        const AssetType& GetAssetType() const override { return GetStaticType(); }
+        static const AssetType& GetStaticType() {
+            static AssetType assetType = Quelos::GetAssetType<Scene>();
+            return assetType;
+        }
 
         friend class SceneBinarySerializer;
 
@@ -129,7 +132,5 @@ namespace Quelos {
 
         flecs::entity m_TransformUpdate;
         flecs::entity m_TransformChildUpdate;
-    private:
-        static AssetType s_AssetType;
     };
 }

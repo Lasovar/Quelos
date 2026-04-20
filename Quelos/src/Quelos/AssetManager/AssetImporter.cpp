@@ -5,16 +5,18 @@
 #include "magic_enum/magic_enum.hpp"
 
 namespace Quelos {
-    static HashMap<AssetType, AssetImporterConfig> s_AssetLoaders = {
-        { Texture2D::GetStaticType(), TextureImporter::GetImporterConfig() }
-    };
+    static HashMap<AssetType, AssetImporterConfig> s_AssetLoaders;
 
     void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
+        auto& importers = s_AssetLoaders;
         s_AssetLoaders[config.Type] = config;
+        int x = 0;
     }
 
     Ref<Asset> AssetImporter::ImportAsset(const AssetHandle assetHandle, const AssetMetadata& metadata) {
         const auto it = s_AssetLoaders.find(metadata.Type);
+        auto& importers = s_AssetLoaders;
+
         if (it == s_AssetLoaders.end()) {
             QS_CORE_ERROR_TAG(
                 "AssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",

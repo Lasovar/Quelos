@@ -123,7 +123,8 @@ namespace QuelosEditor {
         }
 
         bool IsAssetSupported(const std::string_view assetPath) {
-            return FS::Extension(assetPath) == ".qshader";
+            std::string_view extension = FS::Extension(assetPath);
+            return extension == ".qshader";
         }
 
         void RecompileShader(const Ref<Shader>& shader) {

@@ -31,9 +31,10 @@ namespace Quelos {
         ShaderHandle m_ShaderHandle;
 
     public:
-        const AssetType& GetAssetType() const override { return s_AssetType; }
-        static const AssetType& GetStaticType() { return s_AssetType; }
-    private:
-        static AssetType s_AssetType;
+        const AssetType& GetAssetType() const override { return GetStaticType(); }
+        static const AssetType& GetStaticType() {
+            static AssetType s_AssetType = Quelos::GetAssetType<Shader>();
+            return s_AssetType;
+        }
     };
 }

@@ -101,12 +101,15 @@ namespace Quelos {
 
         virtual TextureType GetType() const = 0;
 
-        static const AssetType& GetStaticType() { return s_AssetType; }
-        const AssetType& GetAssetType() const override { return s_AssetType; }
+        static const AssetType& GetStaticType() {
+            static AssetType s_AssetType = Quelos::GetAssetType<Texture>();
+            return s_AssetType;
+        }
+
+        const AssetType& GetAssetType() const override { return GetStaticType(); }
 
         virtual TextureHandle GetHandle() const = 0;
     private:
-        static AssetType s_AssetType;
     };
 
     class QS_API Texture2D : public Texture {
@@ -122,8 +125,12 @@ namespace Quelos {
         void Resize(const glm::uvec2& size) const;
         void Resize(uint32_t width, uint32_t height) const;
 
-        static const AssetType& GetStaticType() { return s_AssetType; }
-        const AssetType& GetAssetType() const override { return s_AssetType; }
+        static const AssetType& GetStaticType() {
+            static AssetType s_AssetType = Quelos::GetAssetType<Texture2D>();
+            return s_AssetType;
+        }
+
+        const AssetType& GetAssetType() const override { return GetStaticType(); }
 
         TextureType GetType() const override { return TextureType::Texture2D; }
         ImageFormat GetFormat() const override;
@@ -135,7 +142,5 @@ namespace Quelos {
 
     private:
         TextureHandle m_Handle;
-    private:
-        static AssetType s_AssetType;
     };
 }

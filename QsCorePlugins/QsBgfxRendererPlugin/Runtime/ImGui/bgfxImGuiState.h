@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui_user.h"
 
+#include "Quelos/Plugin/PluginAPI.h"
 #include "bgfx/bgfx.h"
 
 #include "bx/bx.h"
@@ -87,7 +88,7 @@ namespace ImGui {
 }
 
 namespace Quelos {
-    class QS_API bgfxImGuiState : public ImGuiState {
+    class QS_PLUGIN_API bgfxImGuiState : public ImGuiState {
     public:
         bgfxImGuiState() = default;
 

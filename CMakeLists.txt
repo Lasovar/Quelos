@@ -107,5 +107,5 @@ add_subdirectory(Quelos-Editor/vendor/assimp)
 
 add_subdirectory(Quelos-Editor/vendor/rapidfuzz-cpp)
 
-add_subdirectory(QuelosCorePlugins/QuelosBgfxRendererPlugin)
+add_subdirectory(QsCorePlugins/QsBgfxRendererPlugin)
 add_subdirectory(Quelos-Editor)

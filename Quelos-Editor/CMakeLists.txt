@@ -36,6 +36,7 @@ include(ExternalProject)
 
 set(TRACY_OUT_DIR "${CMAKE_BINARY_DIR}/Tools/bin")
 
+#[[
 ExternalProject_Add(tracy_profiler
         SOURCE_DIR ${CMAKE_SOURCE_DIR}/Quelos/vendor/tracy/profiler
 
@@ -46,6 +47,7 @@ ExternalProject_Add(tracy_profiler
         BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ""
 )
+]]
 
 
 target_compile_definitions(QuelosShared PUBLIC QS_ENABLE_PROFILING)

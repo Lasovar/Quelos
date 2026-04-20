@@ -20,14 +20,14 @@ namespace Quelos {
 
     using HandlesAssetTypeFn = bool(*)(const AssetType& type, void* userData);
 
-    struct AssetRegistryExtensionFunctions {
+    struct QS_API AssetRegistryExtensionFunctions {
         RegisterAdditionalAssetsFn RegisterAdditionalAssets;
         ResolveSubAssetFn ResolveSubAsset;
         HandlesAssetTypeFn HandlesAssetType;
         void* UserData;
     };
 
-    class AssetRegistryExtensions {
+    class QS_API AssetRegistryExtensions {
     public:
         static void RegisterExtension(const AssetRegistryExtensionFunctions& functions);
 
