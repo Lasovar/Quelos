@@ -102,8 +102,12 @@ namespace Quelos {
         return s_RendererContext->HomogenousDepth();
     }
 
-    ShaderHandle Renderer::CreateShader(const std::string& filePathVertex, const std::string& filePathFragment) {
-        return s_RendererContext->CreateShader(filePathVertex, filePathFragment);
+    ShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+        return s_RendererContext->CreateShader(std::move(vertex), std::move(fragment), name);
+    }
+
+    bool Renderer::RecreateShader(const ShaderHandle handle, Buffer vertex, Buffer fragment) {
+        return s_RendererContext->RecreateShader(handle, std::move(vertex), std::move(fragment));
     }
 
     void Renderer::Submit(const ShaderHandle handle, const uint32_t view) {

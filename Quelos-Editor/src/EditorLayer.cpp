@@ -8,6 +8,7 @@
 
 #include "imgui_internal.h"
 #include "ProjectSerializer.h"
+#include "AssetManagement/AssetImporters/ShaderImporter.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/quaternion.hpp"
@@ -50,15 +51,9 @@ namespace QuelosEditor {
         float Timer = 0.0f;
     };
 
-    template <class... Ts>
-    struct Overloaded : Ts... {
-        using Ts::operator()...;
-    };
-
-    template <class... Ts>
-    Overloaded(Ts...) -> Overloaded<Ts...>;
-
     EditorLayer* EditorLayer::s_Instance = nullptr;
+    HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
+    Vec<Ref<Shader>> EditorLayer::s_ShaderRecompilationStack;
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
@@ -119,13 +114,25 @@ namespace QuelosEditor {
                 });
             }, "RotatePlayer");*/
 
+        Ref<Shader> compiledShader = AssetManager::GetAsset<Shader>(AssetHandle("af5fda92-37f9-42e3-a189-3a5388090a14"));
+
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
         m_ContentBrowserPanel.Init();
     }
 
+    void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {
+        s_ShaderCompilers[rendererName] = compiler;
+    }
+
     void EditorLayer::Tick(const float deltaTime) {
+        for (auto& shader : s_ShaderRecompilationStack) {
+            ShaderImporter::RecompileShader(shader);
+        }
+
+        s_ShaderRecompilationStack.clear();
+
         for (const auto& workspace : m_Workspaces) {
             workspace->Tick(deltaTime);
         }

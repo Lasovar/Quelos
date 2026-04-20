@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quelos/ImGui/ImGuiUI.h"
+#include "Quelos/Utility/FileSystem.h"
 #include "rapidfuzz/fuzz.hpp"
 
 namespace QuelosEditor {
@@ -52,7 +53,7 @@ namespace QuelosEditor {
             if (value) {
                 if (const AssetMetadata* meta = Project::GetAssetManager()->
                     GetAssetMetadata(value->GetAssetHandle())) {
-                    assetName = meta->ParentHandle ? Filename(meta->VirtualPath) : Filename(meta->FilePath);
+                    assetName = meta->ParentHandle ? FS::Filename(meta->VirtualPath) : FS::Filename(meta->FilePath);
                 }
             }
 
@@ -134,8 +135,8 @@ namespace QuelosEditor {
                 const std::string_view query = buffer.data();
                 for (const AssetMetadata* metadata : searchAssetMetadata) {
                     std::string_view name = metadata->ParentHandle
-                                                ? Filename(metadata->VirtualPath)
-                                                : Filename(metadata->FilePath);
+                                                ? FS::Filename(metadata->VirtualPath)
+                                                : FS::Filename(metadata->FilePath);
 
                     const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
                     const double pathScore = std::max({
@@ -155,7 +156,7 @@ namespace QuelosEditor {
                     );
 
                     for (auto& result : results) {
-                        if (ImGui::Selectable(FormatTemp("{}", Filename(result.Name)))) {
+                        if (ImGui::Selectable(FormatTemp("{}", FS::Filename(result.Name)))) {
                             Ref<T> newAsset = AssetManager::GetAsset<T>(result.Metadata->Handle);
 
                             if (newAsset) {

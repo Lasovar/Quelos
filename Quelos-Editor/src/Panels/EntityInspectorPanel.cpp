@@ -1,5 +1,6 @@
 #include "EntityInspectorPanel.h"
 
+#include "EditorLayer.h"
 #include "imgui.h"
 #include "InspectorArchive.h"
 
@@ -57,6 +58,20 @@ namespace QuelosEditor {
         : m_Scene(scene), m_UndoSystem(undoSystem) {
         if (s_InspectorArchiveSerialize.empty()) {
             RegisterComponents(AllComponents{}, m_Scene->GetWorld(), s_InspectorArchiveSerialize);
+
+            static auto meshInspector = [](void* meshComponentData) {
+                const MeshComponent& meshComponent = *static_cast<MeshComponent*>(meshComponentData);
+
+                if (ImGui::Button("Recompile Shader")) {
+                    EditorLayer::RecompilerShader(meshComponent.MaterialData->GetShader());
+                }
+            };
+
+            RegisterCustomInspector(CustomInspector {
+                std::string(TypeNameShort<MeshComponent>()),
+                ComponentRegistry::GetComponentID<MeshComponent>(),
+                meshInspector
+            });
         }
     }
 
@@ -181,6 +196,18 @@ namespace QuelosEditor {
                 m_Scene->GetWorld().defer_begin();
 
                 m_SelectedActor.GetInternalID().each([&](const flecs::id runtimeId) {
+
+                    auto customInspector = m_CustomInspectors.find(runtimeId);
+                    if (customInspector != m_CustomInspectors.end()) {
+                        ImGui::PushID(runtimeId);
+                        if (ComponentHeader(customInspector->second.ComponentName.c_str(), runtimeId)) {
+                            customInspector->second.DrawFn(m_SelectedActor.GetMut(runtimeId));
+                        }
+                        ImGui::PopID();
+
+                        return;
+                    }
+
                     const auto it = s_InspectorArchiveSerialize.find(runtimeId);
                     if (it == s_InspectorArchiveSerialize.end()) {
                         return;

@@ -36,15 +36,6 @@ namespace Quelos::UI {
         return buffer.data();
     }
 
-    static std::string_view Filename(const std::string_view path) {
-        const size_t pos = path.find_last_of("/\\");
-        if (pos == std::string_view::npos) {
-            return path;
-        }
-
-        return { path.data() + pos + 1, path.size() - (pos + 1) };
-    }
-
     inline bool EditFloat(
         const std::string& label,
         float& value,

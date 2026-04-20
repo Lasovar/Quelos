@@ -1,20 +1,27 @@
 #include "qspch.h"
 #include "ModelImporter.h"
 
-#include "assimp/Importer.hpp"
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
-#include "Quelos/AssetManager/Assets/Model.h"
-#include "Quelos/Serialization/Serializer.h"
+#include "magic_enum/magic_enum.hpp"
+
+#include "Quelos/Project/Project.h"
+#include "Quelos/AssetManager/Assets/Mesh.h"
+#include "Quelos/AssetManager/AssetRegistryExtensions.h"
+
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
+#include "AssetManagement/EditorAssetImporter.h"
+#include "Quelos/Utility/FileSystem.h"
 
 namespace QuelosEditor {
     using namespace Quelos;
 
-    static glm::vec3 ToGlmVec3(const aiVector3D& vec) {
-        return { vec.x, vec.y, vec.z };
-    }
-
     namespace ModelImporter {
+        static glm::vec3 ToGlmVec3(const aiVector3D& vec) {
+            return { vec.x, vec.y, vec.z };
+        }
+
         static void SerializeModelMetadata(const Ref<Model>& model, const OsPath& path) {
             using namespace Serialization;
 
@@ -53,11 +60,11 @@ namespace QuelosEditor {
             file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
         }
 
-        static std::optional<ModelMetadata> DeserializeModelMetadata(const OsPath& path) {
+        static ModelMetadata DeserializeModelMetadata(const OsPath& path) {
             using namespace Serialization;
 
             if (!std::filesystem::exists(path)) {
-                return std::nullopt;
+                return {};
             }
 
             std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -68,24 +75,24 @@ namespace QuelosEditor {
                     path.generic_string()
                 );
 
-                return std::nullopt;
+                return {};
             }
 
-            const size_t fileSize = file.tellg();
+            const std::streamsize fileSize = file.tellg();
             file.seekg(0);
 
             std::string assetRegistryBuffer;
             assetRegistryBuffer.resize(fileSize);
-            file.read(assetRegistryBuffer.data(), static_cast<std::streamsize>(fileSize));
+            file.read(assetRegistryBuffer.data(), fileSize);
 
             QuelReader reader(assetRegistryBuffer);
+            std::string_view currentSection;
+            std::string_view currentField;
 
             ModelMetadata modelMetadata;
-            std::string_view currentField;
             MeshMetadata meshMetadata;
             MaterialMetadata materialMetadata;
-            std::string currentSection;
-            
+
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit([&]<typename TEvent>(const TEvent& e) {
                     using T = std::decay_t<TEvent>;
@@ -140,21 +147,24 @@ namespace QuelosEditor {
         }
 
         bool IsAssetSupported(const std::string_view path) {
-            return Extension(path) == ".fbx";
+            const std::string_view extension = FS::Extension(path);
+            return extension == ".fbx" || extension == ".obj" || extension == ".gltf" || extension == ".glb";
         }
 
         Ref<Model> ImportModel(const AssetHandle assetHandle, const AssetMetadata& metadata) {
-            Assimp::Importer importer;
             const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
+            
+            Assimp::Importer importer;
+            const aiScene* scene = importer.ReadFile(
+                absolutePath.string().c_str(),
+                aiProcess_CalcTangentSpace |
+                aiProcess_Triangulate |
+                aiProcess_JoinIdenticalVertices |
+                aiProcess_MakeLeftHanded |
+                aiProcess_SortByPType
+            );
 
-            const aiScene* scene = importer.ReadFile(absolutePath.string(),
-                                                     aiProcess_CalcTangentSpace |
-                                                     aiProcess_Triangulate |
-                                                     aiProcess_JoinIdenticalVertices |
-                                                     aiProcess_FlipWindingOrder |
-                                                     aiProcess_SortByPType);
-
-            if (!scene || !scene->mRootNode) {
+            if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
                 QS_CORE_ERROR_TAG(
                     "MeshImporter::ImportMesh",
                     "Failed to import mesh ({},{}): {}",
@@ -166,16 +176,13 @@ namespace QuelosEditor {
                 return nullptr;
             }
 
-            ModelMetadata modelMetadata;
-            if (const std::optional<ModelMetadata> existingMetadata = DeserializeModelMetadata(absolutePath.string() + ".quel")) {
-                modelMetadata = *existingMetadata;
-            }
-
             Ref<Model> model = CreateRef<Model>();
             model->SetAssetHandle(assetHandle);
 
             Vec<Ref<Mesh>>& meshes = model->GetMeshes();
             meshes.resize(scene->mNumMeshes);
+
+            ModelMetadata modelMetadata = DeserializeModelMetadata(absolutePath.string() + ".quel");
 
             for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
                 const aiMesh* mesh = scene->mMeshes[i];
@@ -244,23 +251,24 @@ namespace QuelosEditor {
                 meshes[i] = modelMesh;
             }
 
+            // Save metadata with any new handles
             SerializeModelMetadata(model, absolutePath.string() + ".quel");
 
             return model;
         }
 
-        std::optional<AssetHandle> ReadAssetHandle(const std::string_view assetPath) {
+        AssetHandle ReadAssetHandle(std::string_view assetPath) {
             using namespace Serialization;
 
             std::string quelPath = std::string(assetPath) + ".quel";
-            
+
             if (!std::filesystem::exists(quelPath)) {
-                return std::nullopt;
+                return {};
             }
 
             std::ifstream file(quelPath, std::ios::binary | std::ios::ate);
             if (!file) {
-                return std::nullopt;
+                return {};
             }
 
             const size_t fileSize = file.tellg();
@@ -273,7 +281,7 @@ namespace QuelosEditor {
             QuelReader reader(buffer);
 
             std::string_view currentField;
-            std::optional<AssetHandle> modelHandle;
+            AssetHandle modelHandle;
 
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit([&]<typename TEvent>(const TEvent& e) {
@@ -303,7 +311,7 @@ namespace QuelosEditor {
             return modelHandle;
         }
 
-        bool WriteAssetHandle(const std::string_view assetPath, const AssetHandle& handle) {
+        bool WriteAssetHandle(std::string_view assetPath, const AssetHandle& handle) {
             using namespace Serialization;
 
             std::string quelPath = std::string(assetPath) + ".quel";
@@ -340,7 +348,7 @@ namespace QuelosEditor {
             QuelReader reader(buffer);
             std::string newBuffer;
             StringQuelWriter writer(newBuffer);
-            
+
             std::string_view currentField;
             bool handleUpdated = false;
 
@@ -373,6 +381,124 @@ namespace QuelosEditor {
 
             outFile.write(newBuffer.data(), static_cast<std::streamsize>(newBuffer.size()));
             return true;
+        }
+
+        Vec<AssetMetadata> RegisterModelSubAssets(
+            const std::string_view assetPath,
+            const AssetMetadata& modelMetadata
+        ) {
+            Vec<AssetMetadata> subAssets;
+
+            // Load model metadata to get sub-asset information
+            std::string absolutePath = (Project::GetProjectPath() / assetPath).generic_string();
+            ModelMetadata metadata = DeserializeModelMetadata(absolutePath + ".quel");
+
+            // Register mesh sub-assets
+            for (const auto& meshMeta : metadata.MeshesMetadata) {
+                AssetMetadata meshMetadata = {
+                    meshMeta.Handle,
+                    modelMetadata.FilePath,
+                    Mesh::GetStaticType(),
+                    modelMetadata.Handle,
+                    meshMeta.Name
+                };
+                subAssets.push_back(meshMetadata);
+            }
+
+            // Register material sub-assets
+            /* TODO:
+            for (const auto& materialMeta : metadata.MaterialsMetadata) {
+                AssetMetadata materialMetadata = {
+                    materialMeta.Handle,
+                    modelMetadata.FilePath,
+                    Material::GetStaticType(),
+                    modelMetadata.Handle,
+                    materialMeta.Name
+                };
+                subAssets.push_back(materialMetadata);
+            }
+            */
+
+            return subAssets;
+        }
+
+        Ref<Asset> ResolveMeshSubAsset(
+            const AssetHandle& meshHandle,
+            const AssetMetadata& meshMetadata
+        ) {
+            // Load the parent model and extract the mesh
+            const Ref<Model> model = AssetManager::GetAsset<Model>(meshMetadata.ParentHandle);
+            if (!model) {
+                return nullptr;
+            }
+
+            const Vec<Ref<Mesh>>& meshes = model->GetMeshes();
+
+            for (const auto& mesh : meshes) {
+                if (mesh->GetAssetHandle() == meshHandle) {
+                    return mesh;
+                }
+            }
+
+            return nullptr;
+        }
+
+        // Asset registry extension implementations
+        Vec<AssetMetadata> RegisterAdditionalAssets(
+            std::string_view assetPath,
+            const AssetMetadata& mainAssetMetadata,
+            void* userData
+        ) {
+            if (mainAssetMetadata.Type != Model::GetStaticType()) {
+                return {};
+            }
+
+            return RegisterModelSubAssets(assetPath, mainAssetMetadata);
+        }
+
+        Ref<Asset> ResolveSubAsset(
+            const AssetHandle& subAssetHandle,
+            const AssetMetadata& subAssetMetadata,
+            void* userData
+        ) {
+            if (subAssetMetadata.Type == Mesh::GetStaticType()) {
+                return ResolveMeshSubAsset(subAssetHandle, subAssetMetadata);
+            }
+
+            return nullptr;
+        }
+
+        bool HandlesAssetType(const AssetType& type, void* userData) {
+            return type == Model::GetStaticType() || type == Mesh::GetStaticType()/* || type == Material::GetStaticType()*/;
+        }
+
+        // Registration helpers
+        EditorAssetImporterConfig GetImporterConfig() {
+            return {
+                Model::GetStaticType(),
+                ImportModel,
+                IsAssetSupported,
+                ReadAssetHandle,
+                WriteAssetHandle
+            };
+        }
+
+        AssetRegistryExtensionFunctions GetRegistryExtensionFunctions() {
+            return {
+                RegisterAdditionalAssets,
+                ResolveSubAsset,
+                HandlesAssetType,
+                nullptr
+            };
+        }
+
+        void Initialize() {
+            // Register with editor asset importer
+            EditorAssetImporter::RegisterAssetImporter(GetImporterConfig());
+
+            // Register asset registry extension
+            const auto extensionFunctions = GetRegistryExtensionFunctions();
+            AssetRegistryExtensions::RegisterExtension(extensionFunctions);
         }
     }
 }

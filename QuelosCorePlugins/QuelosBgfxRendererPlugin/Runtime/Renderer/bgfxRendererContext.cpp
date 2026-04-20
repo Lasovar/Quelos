@@ -31,42 +31,19 @@ namespace Quelos {
             return bgfx::RendererType::Noop;
         }
 
-        static bgfx::ShaderHandle LoadShader(const std::string& fileName) {
-            OsPath shaderPath;
-            const OsPath& assets = "Assets/";
+        static bgfx::ShaderHandle LoadShader(Buffer shader, const std::string& name) {
+            const bgfx::Memory* mem = bgfx::makeRef(
+                shader.data(), shader.size(),
+                [](void* data, void* userData) { std::bit_cast<Buffer::Deleter>(userData)(data); },
+                std::bit_cast<void*>(shader.deleter())
+            );
 
-            switch (bgfx::getRendererType()) {
-            case bgfx::RendererType::Noop:
-            case bgfx::RendererType::Direct3D11:
-            case bgfx::RendererType::Direct3D12: shaderPath = assets / "shaders/dx11/";
-                break;
-            case bgfx::RendererType::Gnm: shaderPath = assets / "shaders/pssl/";
-                break;
-            case bgfx::RendererType::Metal: shaderPath = assets / "shaders/metal/";
-                break;
-            case bgfx::RendererType::OpenGL: shaderPath = assets / "shaders/glsl/";
-                break;
-            case bgfx::RendererType::OpenGLES: shaderPath = assets / "shaders/essl/";
-                break;
-            case bgfx::RendererType::Vulkan: shaderPath = assets / "shaders/spirv/";
-                break;
-            case bgfx::RendererType::Agc:
-            case bgfx::RendererType::Nvn:
-            case bgfx::RendererType::WebGPU:
-            case bgfx::RendererType::Count:
-                break;
-            }
+            shader.release_ownership();
 
-            if (const Buffer data = ReadFile(shaderPath / fileName); data) {
-                const bgfx::Memory* mem = bgfx::copy(data.GetData(), data.GetSize());
+            const bgfx::ShaderHandle handle = bgfx::createShader(mem);
+            bgfx::setName(handle, name.c_str(), static_cast<int32_t>(name.length()));
 
-                const bgfx::ShaderHandle handle = bgfx::createShader(mem);
-                bgfx::setName(handle, fileName.c_str(), static_cast<int32_t>(fileName.length()));
-
-                return handle;
-            }
-
-            return BGFX_INVALID_HANDLE;
+            return handle;
         }
 
         bgfx::AttribType::Enum ToBGFX(const ShaderDataType type) {
@@ -136,7 +113,7 @@ namespace Quelos {
 
             bx::DefaultAllocator allocator;
             if (const Buffer data = Utility::ReadFile(filePath); !data) {
-                bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.GetData(), data.GetSize());
+                bimg::ImageContainer* imageContainer = bimg::imageParse(&allocator, data.data(), data.size());
                 if (imageContainer != nullptr) {
                     if (orientation) {
                         *orientation = imageContainer->m_orientation;
@@ -288,11 +265,11 @@ namespace Quelos {
             const bgfx::Memory* mem = nullptr;
 
             if (data) {
-                mem = bgfx::makeRef(data.GetData(), data.GetSize(), [](void* data, void* userData) {
+                mem = bgfx::makeRef(data.data(), data.size(), [](void* data, void* userData) {
                     std::bit_cast<Buffer::Deleter>(userData)(data);
-                }, std::bit_cast<void*>(data.GetDeleter()));
+                }, std::bit_cast<void*>(data.deleter()));
 
-                data.ReleaseOwnership();
+                data.release_ownership();
             }
 
             return bgfx::createTexture2D(
@@ -326,9 +303,14 @@ namespace Quelos {
         uint32_t Height = 0;
     };
 
+    struct ShaderData {
+        bgfx::ProgramHandle Handle = BGFX_INVALID_HANDLE;
+        std::string Name;
+    };
+
     static ResourceTable<bgfx::VertexBufferHandle, VertexBuffer> s_VertexBufferTable;
     static ResourceTable<bgfx::IndexBufferHandle, IndexBuffer> s_IndexBufferTable;
-    static ResourceTable<bgfx::ProgramHandle, Shader> s_ShaderTable;
+    static ResourceTable<ShaderData, Shader> s_ShaderTable;
     static ResourceTable<TextureData, Texture> s_TextureDataTable;
     static ResourceTable<FrameBufferData, FrameBuffer> s_FrameBufferTable;
 
@@ -382,13 +364,14 @@ namespace Quelos {
         bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
     }
 
-    void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) {
+    void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh,
+                                         const WorldTransform& transform) {
         bgfx::setTransform(glm::value_ptr(transform.Value));
 
         BindVertexBuffer(mesh.MeshData->GetVertexBuffer(), 0);
         BindIndexBuffer(mesh.MeshData->GetIndexBuffer());
 
-        Submit(mesh.MaterialData->GetShader(), viewID);
+        Submit(mesh.MaterialData->GetShaderHandle(), viewID);
     }
 
     void bgfxRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -396,48 +379,84 @@ namespace Quelos {
     }
 
     void bgfxRendererContext::Shutdown() {
-        for (auto&& vertexBufferHandle : s_VertexBufferTable.GetAllHandles()) {
-            Destroy(vertexBufferHandle);
-        }
-
-        for (auto&& indexBufferHandle : s_IndexBufferTable.GetAllHandles()) {
-            Destroy(indexBufferHandle);
-        }
-
-        for (auto&& shaderHandle : s_ShaderTable.GetAllHandles()) {
-            Destroy(shaderHandle);
-        }
-
         bgfx::shutdown();
     }
 
-    ShaderHandle bgfxRendererContext::CreateShader(const std::string& filePathVertex,
-                                                   const std::string& filePathFragment) {
-        const bgfx::ShaderHandle vsh = Utility::LoadShader(filePathVertex);
-        const bgfx::ShaderHandle fsh = Utility::LoadShader(filePathFragment);
+    ShaderHandle bgfxRendererContext::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+        const bgfx::ShaderHandle vsh = Utility::LoadShader(std::move(vertex), name);
+        const bgfx::ShaderHandle fsh = Utility::LoadShader(std::move(fragment), name);
 
         if (!bgfx::isValid(vsh)) {
-            QS_CORE_ERROR("Vertex shader '{}' failed to load", filePathVertex);
+            QS_CORE_ERROR_TAG(
+                "bgfxRendererContext::CreateShader",
+                "Vertex shader '{}' failed to load",
+                name
+            );
+
             return {ShaderHandle::Invalid};
         }
 
         if (!bgfx::isValid(fsh)) {
             bgfx::destroy(vsh);
 
-            QS_CORE_ERROR("Fragment shader '{}' failed to load", filePathFragment);
+            QS_CORE_ERROR_TAG(
+                "bgfxRendererContext::CreateShader",
+                "Fragment shader '{}' failed to load",
+                name
+            );
+
             return {ShaderHandle::Invalid};
         }
 
         bgfx::ProgramHandle handle = bgfx::createProgram(vsh, fsh, true);
-        return s_ShaderTable.Emplace(handle);
+        return s_ShaderTable.Emplace(ShaderData{handle, name});
+    }
+
+    bool bgfxRendererContext::RecreateShader(const ShaderHandle handle, Buffer vertex, Buffer fragment) {
+        auto* shader = s_ShaderTable.Get(handle);
+
+        const bgfx::ShaderHandle vsh = Utility::LoadShader(std::move(vertex), shader->Name);
+        const bgfx::ShaderHandle fsh = Utility::LoadShader(std::move(fragment), shader->Name);
+
+        if (!bgfx::isValid(vsh)) {
+            QS_CORE_ERROR_TAG(
+                "bgfxRendererContext::RecreateShader",
+                "Vertex shader '{}' failed to load",
+                shader->Name
+            );
+
+            return false;
+        }
+
+        if (!bgfx::isValid(fsh)) {
+            bgfx::destroy(vsh);
+
+            QS_CORE_ERROR_TAG(
+                "bgfxRendererContext::RecreateShader",
+                "Fragment shader '{}' failed to load",
+                shader->Name
+            );
+
+            return false;
+        }
+
+        const bgfx::ProgramHandle bgfxHandle = bgfx::createProgram(vsh, fsh, true);
+
+        if (bgfx::isValid(shader->Handle)) {
+            bgfx::destroy(shader->Handle);
+        }
+
+        shader->Handle = bgfxHandle;
+        return true;
     }
 
     void bgfxRendererContext::Submit(const ShaderHandle shaderHandle, const uint32_t view) {
-        bgfx::submit(view, *s_ShaderTable.Get(shaderHandle));
+        bgfx::submit(view, s_ShaderTable.Get(shaderHandle)->Handle);
     }
 
     void bgfxRendererContext::Destroy(const ShaderHandle shaderHandle) {
-        bgfx::destroy(*s_ShaderTable.Get(shaderHandle));
+        bgfx::destroy(s_ShaderTable.Get(shaderHandle)->Handle);
+        s_ShaderTable.Erase(shaderHandle);
     }
 
     VertexBufferHandle bgfxRendererContext::CreateVertexBuffer(const BufferView vertices,
@@ -499,8 +518,7 @@ namespace Quelos {
     }
 
     TextureHandle bgfxRendererContext::CreateTexture(const TextureSpecification& spec,
-        const std::filesystem::path& path) {
-
+                                                     const std::filesystem::path& path) {
         bgfx::TextureInfo info{};
         bimg::Orientation::Enum orientation;
 
@@ -533,7 +551,8 @@ namespace Quelos {
         return &textureData->Specification;
     }
 
-    void bgfxRendererContext::TextureResize(const TextureHandle textureHandle, const uint32_t width, const uint32_t height) {
+    void bgfxRendererContext::TextureResize(const TextureHandle textureHandle, const uint32_t width,
+                                            const uint32_t height) {
         TextureData* textureData = s_TextureDataTable.Get(textureHandle);
         if (!textureData) [[unlikely]] {
             QS_CORE_ERROR_TAG(
@@ -570,12 +589,13 @@ namespace Quelos {
 
     void bgfxRendererContext::Destroy(const TextureHandle textureHandle) {
         bgfx::destroy(s_TextureDataTable.Get(textureHandle)->Handle);
+        s_TextureDataTable.Erase(textureHandle);
     }
 
     FrameBufferHandle bgfxRendererContext::CreateFrameBuffer(uint32_t viewID, const Span<TextureHandle> attachments) {
         if (attachments.empty()) {
             QS_CORE_ERROR("bgfxRendererContext::CreateFrameBuffer", "Creating a FrameBuffer with no attachments!");
-            return { FrameBufferHandle::Invalid };
+            return {FrameBufferHandle::Invalid};
         }
 
         FrameBufferData frameBufferData;
@@ -597,7 +617,7 @@ namespace Quelos {
                     "Invalid texture handle while trying to create frame buffer!"
                 );
 
-                return { FrameBufferHandle::Invalid };
+                return {FrameBufferHandle::Invalid};
             }
 
             frameBufferData.Width = textureData->Specification.Width;
@@ -609,11 +629,11 @@ namespace Quelos {
         frameBufferData.Handle = bgfx::createFrameBuffer(
             static_cast<uint8_t>(bgfxAttachments.size()),
             bgfxAttachments.data(),
-            false
+            true
         );
 
         if (!bgfx::isValid(frameBufferData.Handle)) {
-            return { FrameBufferHandle::Invalid };
+            return {FrameBufferHandle::Invalid};
         }
 
         return s_FrameBufferTable.Emplace(frameBufferData);
@@ -739,6 +759,7 @@ namespace Quelos {
 
     void bgfxRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {
         bgfx::destroy(s_FrameBufferTable.Get(frameBufferHandle)->Handle);
+        s_FrameBufferTable.Erase(frameBufferHandle);
     }
 
     bgfx::TextureHandle bgfxRendererContext::GetBgfxTextureHandle(const TextureHandle handle) {

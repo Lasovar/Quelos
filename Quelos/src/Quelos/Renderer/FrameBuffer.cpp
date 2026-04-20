@@ -4,6 +4,10 @@
 #include "Renderer.h"
 
 namespace Quelos {
+    FrameBuffer::~FrameBuffer() {
+        Renderer::Destroy(m_Handle);
+    }
+
     void FrameBuffer::Bind() const {
         Renderer::Bind(m_Handle);
     }

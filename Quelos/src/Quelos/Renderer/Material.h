@@ -5,12 +5,12 @@
 namespace Quelos {
     class QS_API Material {
     public:
-        explicit Material(const ShaderHandle& shader);
-        Material(const std::string& filePathVertex, const std::string& filePathFragment);
+        explicit Material();
 
-        [[nodiscard]] ShaderHandle GetShader() const;
+        [[nodiscard]] const Ref<Shader>& GetShader() const { return m_Shader; }
+        [[nodiscard]] ShaderHandle GetShaderHandle() const;
 
     private:
-        ShaderHandle m_Shader;
+        Ref<Shader> m_Shader;
     };
 }
