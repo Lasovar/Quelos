@@ -11,7 +11,7 @@ namespace Quelos {
 namespace QuelosEditor {
     using namespace Quelos;
 
-    using SelectionCallback = std::move_only_function<void(const Actor&)>;
+    using SelectionCallback = std::function<void(const Actor&)>;
 
     class EntityHierarchyPanel {
     public:

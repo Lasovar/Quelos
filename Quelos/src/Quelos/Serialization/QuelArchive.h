@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <variant>
+#include <charconv>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"

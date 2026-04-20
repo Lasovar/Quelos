@@ -1,5 +1,7 @@
 #include "GUID.h"
 
+#include <charconv>
+
 #include "xxhash.h"
 
 namespace Quelos {
