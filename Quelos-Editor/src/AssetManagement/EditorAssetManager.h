@@ -46,7 +46,7 @@ namespace QuelosEditor {
         AssetRegistry m_AssetRegistry;
         AssetMap m_LoadedAssets;
 
-        Scope<efsw::FileWatcher> m_FileWatcher;
+        efsw::FileWatcher m_FileWatcher;
         HashMap<efsw::WatchID, AssetHandle> m_WatchedAssets;
     };
 }
