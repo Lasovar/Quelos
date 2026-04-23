@@ -33,7 +33,7 @@ namespace Quelos {
 
         std::string shadercPath = (Application::Get().GetApplicationPath() / "Tools/bin/shaderc").generic_string();
         std::string sourcePath = (Project::GetProjectPath() / desc->sourcePath).generic_string();
-        std::string handle =  fmt::format("{:016X}", std::bit_cast<fmt::detail::uint128_t>(desc->assetHandle));;
+        std::string handle =  fmt::format("{:016X}", std::bit_cast<fmt::detail::uint128_t>(desc->assetHandle.Bytes));
         std::string includePath = std::string(FS::Parent(shadercPath));
 
         OsPath shaderBinariesPath = Project::GetLibraryPath() / "Shaders";

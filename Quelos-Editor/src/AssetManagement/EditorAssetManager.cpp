@@ -61,7 +61,7 @@ namespace QuelosEditor {
             assetType
         };
 
-        efsw::WatchID watchId = m_FileWatcher->addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+        efsw::WatchID watchId = m_FileWatcher.addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
         m_WatchedAssets[watchId] = assetMetadata.Handle;
 
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
@@ -142,8 +142,6 @@ namespace QuelosEditor {
     }
 
     EditorAssetManager::EditorAssetManager() {
-        m_FileWatcher = CreateScope<efsw::FileWatcher>(true);
-
         ModelImporter::Initialize();
         ShaderImporter::Initialize();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
@@ -316,11 +314,11 @@ namespace QuelosEditor {
                 continue;
             }
 
-            efsw::WatchID watchId = m_FileWatcher->addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+            efsw::WatchID watchId = m_FileWatcher.addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
             m_WatchedAssets[watchId] = assetMetadata.Handle;
         }
 
-        m_FileWatcher->watch();
+        m_FileWatcher.watch();
     }
 
     void EditorAssetManager::handleFileAction(const efsw::WatchID watchId, const std::string& dir,

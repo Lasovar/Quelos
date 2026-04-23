@@ -12,12 +12,16 @@ extern "C" {
         uint64_t Size = 0;
     } QS_Buffer;
 
+    typedef struct QS_AssetHandle {
+        unsigned char Bytes[16];
+    } QS_AssetHandle;
+
     typedef struct QS_ShaderCompileDesc {
         const char* sourcePath;
         const char* entryPoint;
         const char* stage;
         const char* defines;
-        char assetHandle[16];
+        QS_AssetHandle assetHandle;
     } QS_ShaderCompileDesc;
 
     typedef enum QS_ShaderOutputType

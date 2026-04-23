@@ -95,7 +95,7 @@ namespace QuelosEditor {
             compileDesc.sourcePath = path.c_str();
             auto bytes = handle.AsBytes();
             for (uint32_t i = 0; i < bytes.size(); i++) {
-                compileDesc.assetHandle[i] = static_cast<char>(bytes[i]);
+                compileDesc.assetHandle.Bytes[i] = static_cast<char>(bytes[i]);
             }
 
             const QS_ShaderOutputArray shaderArray = compiler.Compile(&compileDesc);
