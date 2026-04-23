@@ -58,7 +58,7 @@ namespace QuelosEditor {
     void EditorLayer::OnAttach() {
         s_Instance = this;
 
-        m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "SandboxProject");
+        m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
