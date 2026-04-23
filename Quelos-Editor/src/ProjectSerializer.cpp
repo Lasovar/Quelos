@@ -8,11 +8,12 @@
 namespace QuelosEditor {
     ProjectSerializer::ProjectSerializer(const OsPath& projectPath) {
         using namespace Serialization;
-        std::string projectName = projectPath.filename().string();
-        OsPath configFilePath = projectPath / (projectName + ".quel");
+        auto absolutePath = std::filesystem::absolute(projectPath);
+        std::string projectName = absolutePath.filename().generic_string();
+        OsPath configFilePath = absolutePath / (projectName + ".quel");
 
-        if (!std::filesystem::exists(projectPath)) {
-            std::filesystem::create_directories(projectPath);
+        if (!std::filesystem::exists(absolutePath)) {
+            std::filesystem::create_directories(absolutePath);
         }
 
         if (!std::filesystem::exists(configFilePath)) {
@@ -55,7 +56,7 @@ namespace QuelosEditor {
         std::string_view currentField;
 
         ProjectConfig config;
-        config.ProjectPath = std::filesystem::absolute(projectPath).generic_string();
+        config.ProjectPath = absolutePath;
 
         for (auto&& parserEvent : reader.Parse()) {
             if (breakFlag) {

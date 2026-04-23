@@ -3,10 +3,12 @@
 #include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/AssetManager/AssetRegistry.h"
 
+#include "efsw/FileWatcherGeneric.hpp"
+
 namespace QuelosEditor {
     using namespace Quelos;
 
-    class EditorAssetManager : public AssetManagerBase {
+    class EditorAssetManager : public AssetManagerBase, public efsw::FileWatchListener {
     public:
         EditorAssetManager();
 
@@ -33,8 +35,18 @@ namespace QuelosEditor {
 
         void SerializeAssetRegistry();
         void DeserializeAssetRegistry();
+
+        // File watch listener implementation
+        void handleFileAction(efsw::WatchID watchId, const std::string& dir, const std::string& filename,
+            efsw::Action action, std::string oldFilename) override;
+    private:
+        static void ReimportAsset(Ref<Asset>& asset, const AssetMetadata* assetMetadata);
+
     private:
         AssetRegistry m_AssetRegistry;
         AssetMap m_LoadedAssets;
+
+        Scope<efsw::FileWatcher> m_FileWatcher;
+        HashMap<efsw::WatchID, AssetHandle> m_WatchedAssets;
     };
 }

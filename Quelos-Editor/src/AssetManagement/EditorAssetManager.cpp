@@ -61,6 +61,9 @@ namespace QuelosEditor {
             assetType
         };
 
+        efsw::WatchID watchId = m_FileWatcher->addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+        m_WatchedAssets[watchId] = assetMetadata.Handle;
+
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
     }
 
@@ -87,6 +90,7 @@ namespace QuelosEditor {
 
     void EditorAssetManager::RemoveAssetFromRegistry(const AssetHandle& assetHandle) {
         m_AssetRegistry.RemoveAsset(assetHandle);
+        m_WatchedAssets.erase(assetHandle);
     }
 
     void EditorAssetManager::CleanupAssetMap() {
@@ -138,6 +142,8 @@ namespace QuelosEditor {
     }
 
     EditorAssetManager::EditorAssetManager() {
+        m_FileWatcher = CreateScope<efsw::FileWatcher>(true);
+
         ModelImporter::Initialize();
         ShaderImporter::Initialize();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
@@ -304,5 +310,44 @@ namespace QuelosEditor {
         if (metadata.Handle) {
             assetsMetadata[metadata.Handle] = metadata;
         }
+
+        for (auto& assetMetadata : assetsMetadata | std::views::values) {
+            if (assetMetadata.ParentHandle) {
+                continue;
+            }
+
+            efsw::WatchID watchId = m_FileWatcher->addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+            m_WatchedAssets[watchId] = assetMetadata.Handle;
+        }
+
+        m_FileWatcher->watch();
+    }
+
+    void EditorAssetManager::handleFileAction(const efsw::WatchID watchId, const std::string& dir,
+        const std::string& filename, const efsw::Action action, std::string oldFilename) {
+        switch (action) {
+        case efsw::Action::Add:
+        case efsw::Action::Delete:
+            break;
+        case efsw::Action::Modified: {
+            const auto it = m_WatchedAssets.find(watchId);
+            if (it != m_WatchedAssets.end()) {
+                const AssetHandle handle = it->second;
+                const auto assetLoaded = m_LoadedAssets.find(handle);
+                if (assetLoaded != m_LoadedAssets.end()) {
+                    if (auto asset = assetLoaded->second.lock()) {
+                        ReimportAsset(asset, m_AssetRegistry.GetAssetMetadata(handle));
+                    }
+                }
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    void EditorAssetManager::ReimportAsset(Ref<Asset>& asset, const AssetMetadata* assetMetadata) {
+        EditorAssetImporter::TryReimportAsset(asset, assetMetadata);
     }
 }

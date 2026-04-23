@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 4.1.2)
 
 project(Quelos-Editor LANGUAGES CXX)
 
+add_subdirectory(vendor/efsw)
+
 add_executable(Quelos-Editor)
 
 target_compile_definitions(QuelosShared PUBLIC QUELOS_USE_SDL)
@@ -13,11 +15,11 @@ file(GLOB_RECURSE QUELOS_EDITOR_SRC
 
 target_sources(Quelos-Editor PRIVATE ${QUELOS_EDITOR_SRC})
 
-add_custom_command(TARGET Quelos-Editor POST_BUILD
+#[[add_custom_command(TARGET Quelos-Editor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Quelos-Editor/SandboxProject
         $<TARGET_FILE_DIR:Quelos-Editor>/SandboxProject
-)
+)]]
 
 target_include_directories(Quelos-Editor
     PRIVATE
@@ -30,6 +32,7 @@ target_link_libraries(Quelos-Editor
         QuelosBgfxRendererPlugin
         rapidfuzz
         assimp
+        efsw-static
 )
 
 include(ExternalProject)

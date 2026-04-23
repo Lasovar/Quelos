@@ -151,6 +151,10 @@ namespace QuelosEditor {
             return extension == ".fbx" || extension == ".obj" || extension == ".gltf" || extension == ".glb";
         }
 
+        void ReimportModel(Ref<Asset>& model, const AssetMetadata& metadata) {
+
+        }
+
         Ref<Model> ImportModel(const AssetHandle assetHandle, const AssetMetadata& metadata) {
             const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
             
@@ -478,6 +482,7 @@ namespace QuelosEditor {
                 Model::GetStaticType(),
                 ImportModel,
                 IsAssetSupported,
+                ReimportModel,
                 ReadAssetHandle,
                 WriteAssetHandle
             };

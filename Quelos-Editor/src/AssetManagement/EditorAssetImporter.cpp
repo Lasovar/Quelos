@@ -78,4 +78,16 @@ namespace QuelosEditor {
         
         return false;
     }
+
+    void EditorAssetImporter::TryReimportAsset(Ref<Asset>& asset, const AssetMetadata* assetMetadata) {
+        if (!assetMetadata) {
+            return;
+        }
+
+        if (const auto it = s_EditorAssetLoaders.find(assetMetadata->Type); it != s_EditorAssetLoaders.end()) {
+            if (it->second.ReimportAsset) {
+                it->second.ReimportAsset(asset, *assetMetadata);
+            }
+        }
+    }
 }

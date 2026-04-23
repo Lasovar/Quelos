@@ -33,10 +33,15 @@ namespace Quelos {
 
         std::string shadercPath = (Application::Get().GetApplicationPath() / "Tools/bin/shaderc").generic_string();
         std::string sourcePath = (Project::GetProjectPath() / desc->sourcePath).generic_string();
+        std::string handle =  fmt::format("{:016X}", std::bit_cast<fmt::detail::uint128_t>(desc->assetHandle));;
         std::string includePath = std::string(FS::Parent(shadercPath));
 
-        std::string vertexBinaryPath = fmt::format("{}/vs_{}.bin", sourcePath, FS::Stem(sourcePath));
+        OsPath shaderBinariesPath = Project::GetLibraryPath() / "Shaders";
 
+        std::filesystem::create_directories(shaderBinariesPath);
+        std::string shaderBinariesString = shaderBinariesPath.generic_string();
+
+        std::string vertexBinaryPath = fmt::format("{}/vs_{}.sb", shaderBinariesString, handle);
         Vec<std::string> messages;
         Vec<std::string> errors;
 
@@ -82,7 +87,7 @@ namespace Quelos {
         messages.clear();
         errors.clear();
 
-        std::string fragmentBinaryPath = fmt::format("{}/fs_{}.bin", sourcePath, FS::Stem(sourcePath));
+        std::string fragmentBinaryPath = fmt::format("{}/fs_{}.sb", shaderBinariesString, handle);
         Process fragment(
             {
                 shadercPath,

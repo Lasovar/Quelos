@@ -12,9 +12,6 @@
 
 #include "Quelos/ImGui/ImGuiLayer.h"
 
-#include "Quelos/AssetManager/AssetManagerBase.h"
-#include "../../../../Quelos-Editor/src/AssetManagement/EditorAssetManager.h"
-#include "Quelos/AssetManager/RuntimeAssetManager.h"
 #include "Quelos/Renderer/RendererAPI.h"
 
 namespace Quelos {

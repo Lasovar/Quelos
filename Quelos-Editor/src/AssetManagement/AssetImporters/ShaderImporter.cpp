@@ -89,10 +89,15 @@ namespace QuelosEditor {
             return handle;
         }
 
-        bool CompileShader(const std::string& path, Buffer& vertexBuffer, Buffer& fragmentBuffer) {
+        bool CompileShader(const std::string& path, const AssetHandle handle, Buffer& vertexBuffer, Buffer& fragmentBuffer) {
             const QS_ShaderCompiler compiler = EditorLayer::GetShaderCompiler();
             QS_ShaderCompileDesc compileDesc;
             compileDesc.sourcePath = path.c_str();
+            auto bytes = handle.AsBytes();
+            for (uint32_t i = 0; i < bytes.size(); i++) {
+                compileDesc.assetHandle[i] = static_cast<char>(bytes[i]);
+            }
+
             const QS_ShaderOutputArray shaderArray = compiler.Compile(&compileDesc);
 
             const QS_Buffer vertexOutput = shaderArray.Outputs[QS_SHADER_OUTPUT_VERTEX];
@@ -110,7 +115,7 @@ namespace QuelosEditor {
 
         Ref<Shader> Import(const AssetHandle handle, const AssetMetadata& metadata) {
             Buffer vertexBuffer, fragmentBuffer;
-            if (!CompileShader(metadata.FilePath, vertexBuffer, fragmentBuffer)) {
+            if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer,  fragmentBuffer)) {
                 return nullptr;
             }
 
@@ -123,6 +128,10 @@ namespace QuelosEditor {
             shader->SetAssetHandle(handle);
 
             return shader;
+        }
+
+        void Reimport(Ref<Asset>& shader, const AssetMetadata& metadata) {
+            RecompileShader(RefAs<Shader>(shader));
         }
 
         bool IsAssetSupported(const std::string_view assetPath) {
@@ -163,7 +172,7 @@ namespace QuelosEditor {
             }
 
             Buffer vertexBuffer, fragmentBuffer;
-            CompileShader(metadata->FilePath, vertexBuffer, fragmentBuffer);
+            CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer);
             shader->Recreate(std::move(vertexBuffer), std::move(fragmentBuffer));
         }
 
@@ -185,6 +194,7 @@ namespace QuelosEditor {
                 Shader::GetStaticType(),
                 Import,
                 IsAssetSupported,
+                Reimport,
                 ReadAssetHandle,
                 WriteAssetHandle
             };

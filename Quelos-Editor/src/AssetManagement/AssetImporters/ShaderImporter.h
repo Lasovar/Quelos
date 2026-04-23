@@ -12,6 +12,7 @@ namespace QuelosEditor {
 
         void RecompileShader(const Ref<Shader>& shader);
         Ref<Shader> Import(AssetHandle handle, const AssetMetadata& metadata);
+        void Reimport(const Ref<Asset>& shader, const AssetMetadata& metadata);
 
         AssetHandle ReadAssetHandle(std::string_view assetPath);
         bool WriteAssetHandle(std::string_view assetPath, const AssetHandle& handle);

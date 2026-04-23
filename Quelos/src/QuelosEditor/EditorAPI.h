@@ -17,6 +17,7 @@ extern "C" {
         const char* entryPoint;
         const char* stage;
         const char* defines;
+        char assetHandle[16];
     } QS_ShaderCompileDesc;
 
     typedef enum QS_ShaderOutputType
