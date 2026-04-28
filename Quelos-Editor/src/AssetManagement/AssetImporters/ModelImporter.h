@@ -15,16 +15,16 @@ namespace QuelosEditor {
         // Model metadata structures
         struct MeshMetadata {
             std::string Name;
-            AssetHandle Handle;
+            AssetID Handle;
         };
 
         struct MaterialMetadata {
             std::string Name;
-            AssetHandle Handle;
+            AssetID Handle;
         };
 
         struct ModelMetadata {
-            AssetHandle ModelHandle;
+            AssetID ModelHandle;
             Vec<MeshMetadata> MeshesMetadata;
             Vec<MaterialMetadata> MaterialsMetadata;
         };
@@ -32,11 +32,11 @@ namespace QuelosEditor {
         // Core importer functions
         bool IsAssetSupported(std::string_view path);
         void ReimportModel(Ref<Asset>& model, const AssetMetadata& metadata);
-        Ref<Model> ImportModel(AssetHandle assetHandle, const AssetMetadata& metadata);
+        bool ImportModel(void* dataSlot, const AssetMetadata& metadata);
         
         // Metadata handling for .quel files
-        AssetHandle ReadAssetHandle(std::string_view assetPath);
-        bool WriteAssetHandle(std::string_view assetPath, const AssetHandle& handle);
+        AssetID ReadAssetHandle(std::string_view assetPath);
+        bool WriteAssetHandle(std::string_view assetPath, const AssetID& handle);
         
         // Multi-asset registration (editor-only)
         Vec<AssetMetadata> RegisterModelSubAssets(
@@ -46,7 +46,7 @@ namespace QuelosEditor {
         
         // Sub-asset resolution (editor-only)
         Ref<Asset> ResolveMeshSubAsset(
-            const AssetHandle& meshHandle,
+            const AssetID& meshHandle,
             const AssetMetadata& meshMetadata
         );
 
@@ -57,8 +57,8 @@ namespace QuelosEditor {
             void* userData
         );
         
-        Ref<Asset> ResolveSubAsset(
-            const AssetHandle& subAssetHandle,
+        bool ResolveSubAsset(
+            void* dataSlot,
             const AssetMetadata& subAssetMetadata,
             void* userData
         );

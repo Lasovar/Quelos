@@ -14,7 +14,7 @@ namespace QuelosEditor {
             );
         }
 
-        static bool SerializeHandle(const OsPath& path, AssetHandle handle) {
+        static bool SerializeHandle(const OsPath& path, AssetID handle) {
             using namespace Serialization;
 
             std::ofstream file(path, std::ios::binary);
@@ -38,7 +38,7 @@ namespace QuelosEditor {
             return true;
         }
 
-        static AssetHandle DeserializeHandle(const OsPath& path) {
+        static AssetID DeserializeHandle(const OsPath& path) {
             using namespace Serialization;
 
             if (!std::filesystem::exists(path)) {
@@ -67,7 +67,7 @@ namespace QuelosEditor {
             std::string_view currentSection;
             std::string_view currentField;
 
-            AssetHandle handle;
+            AssetID handle;
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit(Overloaded{
                                [&](const SectionEvent& event) {
@@ -78,7 +78,7 @@ namespace QuelosEditor {
                                },
                                [&](const ValueEvent& event) {
                                    if (currentSection == "Shader" && currentField == "handle") {
-                                       handle = AssetHandle(std::get<std::string_view>(event.Value));
+                                       handle = AssetID(std::get<std::string_view>(event.Value));
                                    }
                                },
                                []([[maybe_unused]] auto& e) {
@@ -89,7 +89,7 @@ namespace QuelosEditor {
             return handle;
         }
 
-        bool CompileShader(const std::string& path, const AssetHandle handle, Buffer& vertexBuffer, Buffer& fragmentBuffer) {
+        bool CompileShader(const std::string& path, const AssetID handle, Buffer& vertexBuffer, Buffer& fragmentBuffer) {
             const QS_ShaderCompiler compiler = EditorLayer::GetShaderCompiler();
             QS_ShaderCompileDesc compileDesc;
             compileDesc.sourcePath = path.c_str();
@@ -113,25 +113,25 @@ namespace QuelosEditor {
             return true;
         }
 
-        Ref<Shader> Import(const AssetHandle handle, const AssetMetadata& metadata) {
+        bool Import(void* dataSlot, const AssetMetadata& metadata) {
             Buffer vertexBuffer, fragmentBuffer;
             if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer,  fragmentBuffer)) {
-                return nullptr;
+                return false;
             }
 
-            Ref<Shader> shader = CreateRef<Shader>(
+            auto* shader = new (dataSlot) Shader(
                 std::move(vertexBuffer),
                 std::move(fragmentBuffer),
                 std::string(FS::Filename(metadata.FilePath))
             );
 
-            shader->SetAssetHandle(handle);
+            shader->SetAssetID(metadata.Handle);
 
             return shader;
         }
 
-        void Reimport(Ref<Asset>& shader, const AssetMetadata& metadata) {
-            RecompileShader(RefAs<Shader>(shader));
+        bool Reimport(void* shader, [[maybe_unused]] const AssetMetadata& metadata) {
+            return RecompileShader(static_cast<Shader*>(shader));
         }
 
         bool IsAssetSupported(const std::string_view assetPath) {
@@ -139,14 +139,14 @@ namespace QuelosEditor {
             return extension == ".qshader";
         }
 
-        void RecompileShader(const Ref<Shader>& shader) {
-            if (!shader || !shader->GetAssetHandle()) {
+        bool RecompileShader(const Shader* shader) {
+            if (!shader || !shader->GetAssetID()) {
                 QS_ERROR_TAG(
                     "ShaderImporter::RecompileShader",
                     "Failed to recompile shader: invalid shader asset!"
                 );
 
-                return;
+                return false;
             }
 
             const Ref<EditorAssetManager> assetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
@@ -157,10 +157,10 @@ namespace QuelosEditor {
                     shader->GetName()
                 );
 
-                return;
+                return false;
             }
 
-            const AssetMetadata* metadata = assetManager->GetAssetMetadata(shader->GetAssetHandle());
+            const AssetMetadata* metadata = assetManager->GetAssetMetadata(shader->GetAssetID());
             if (!metadata) {
                 QS_ERROR_TAG(
                     "ShaderImporter::RecompileShader",
@@ -168,20 +168,21 @@ namespace QuelosEditor {
                     shader->GetName()
                 );
 
-                return;
+                return false;
             }
 
             Buffer vertexBuffer, fragmentBuffer;
             CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer);
             shader->Recreate(std::move(vertexBuffer), std::move(fragmentBuffer));
+            return true;
         }
 
 
-        AssetHandle ReadAssetHandle(const std::string_view assetPath) {
+        AssetID ReadAssetHandle(const std::string_view assetPath) {
             return DeserializeHandle(GetMetadataPath(assetPath));
         }
 
-        bool WriteAssetHandle(const std::string_view assetPath, const AssetHandle& handle) {
+        bool WriteAssetHandle(const std::string_view assetPath, const AssetID& handle) {
             return SerializeHandle(GetMetadataPath(assetPath), handle);
         }
 

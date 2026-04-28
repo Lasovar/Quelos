@@ -5,37 +5,38 @@
 #include "Quelos/Utility/Hash.h"
 
 namespace Quelos {
-    using AssetHandle = GUID128;
+    using AssetID = GUID128;
+    using AssetTypeID = uint64_t;
 
     struct QS_API AssetType {
         AssetType() = default;
-        AssetType(const uint64_t value, std::string name) : m_Value(value), m_Name(std::move(name)) {}
+        AssetType(const AssetTypeID value, std::string name) : m_Value(value), m_Name(std::move(name)) {}
 
         [[nodiscard]] const std::string& GetName() const { return m_Name; }
 
-        operator uint64_t() const { return m_Value; }
+        operator AssetTypeID() const { return m_Value; }
         bool operator==(const AssetType& other) const { return m_Value == other.m_Value; }
         bool operator!=(const AssetType& other) const { return m_Value != other.m_Value; }
 
     public:
         static const AssetType Invalid;
     private:
-        uint64_t m_Value = 0;
+        AssetTypeID m_Value = 0;
         std::string m_Name;
 
         friend class std::hash<AssetType>;
     };
 
-    class QS_API Asset : public RefCounted<Asset> {
+    class QS_API Asset {
     public:
         virtual ~Asset() = default;
-        AssetHandle GetAssetHandle() const { return Handle; }
-        void SetAssetHandle(const AssetHandle handle) { Handle = handle; }
+        AssetID GetAssetID() const { return Handle; }
+        void SetAssetID(const AssetID handle) { Handle = handle; }
 
         static const AssetType& GetStaticType() { return AssetType::Invalid; }
         virtual const AssetType& GetAssetType() const = 0;
     protected:
-        AssetHandle Handle;
+        AssetID Handle;
     };
 
     QS_API AssetType GetAssetType(std::string name);

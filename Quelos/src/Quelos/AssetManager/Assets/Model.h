@@ -5,8 +5,9 @@
 namespace Quelos {
     class QS_API Model : public Asset {
     public:
-        void AddMesh(const Ref<Mesh>& mesh) { m_Meshes.push_back(mesh); }
-        Vec<Ref<Mesh>>& GetMeshes() { return m_Meshes; }
+        void AddMesh(const MeshData& mesh) { m_Meshes.push_back(mesh); }
+        const Deque<MeshData>& GetMeshes() const { return m_Meshes; }
+        Deque<MeshData>& GetMeshes() { return m_Meshes; }
 
         static const AssetType& GetStaticType() {
             static AssetType s_AssetType = Quelos::GetAssetType<Model>();
@@ -14,7 +15,6 @@ namespace Quelos {
         }
         const AssetType& GetAssetType() const override { return GetStaticType(); }
     private:
-        Vec<Ref<Mesh>> m_Meshes;
-    private:
+        Deque<MeshData> m_Meshes;
     };
 }

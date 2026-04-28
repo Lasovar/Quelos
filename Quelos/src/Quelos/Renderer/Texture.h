@@ -109,11 +109,11 @@ namespace Quelos {
         const AssetType& GetAssetType() const override { return GetStaticType(); }
 
         virtual TextureHandle GetHandle() const = 0;
-    private:
     };
 
     class QS_API Texture2D : public Texture {
     public:
+        Texture2D(const TextureSpecification& spec, Buffer data);
         Texture2D(const TextureHandle& handle) : m_Handle(handle) {}
         ~Texture2D() override;
 

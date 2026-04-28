@@ -1,6 +1,14 @@
 [Model]
-handle = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
+handle = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 
 [Mesh]
 handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
 name = "Cube.001"
+
+[Mesh]
+handle = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
+name = "Icosphere"
+
+[Mesh]
+handle = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
+name = "Suzanne"

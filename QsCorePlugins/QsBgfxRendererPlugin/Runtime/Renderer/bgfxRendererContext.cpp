@@ -485,7 +485,7 @@ namespace Quelos {
         s_VertexBufferTable.Erase(vertexBufferHandle);
     }
 
-    IndexBufferHandle bgfxRendererContext::CreateIndexBuffer(const std::vector<uint16_t>& indices) {
+    IndexBufferHandle bgfxRendererContext::CreateIndexBuffer(const Span<uint16_t> indices) {
         const bgfx::IndexBufferHandle handle = bgfx::createIndexBuffer(
             bgfx::makeRef(indices.data(), indices.size() * sizeof(uint16_t))
         );

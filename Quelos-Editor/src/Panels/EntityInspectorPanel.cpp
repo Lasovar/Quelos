@@ -67,11 +67,11 @@ namespace QuelosEditor {
                 }
             };
 
-            RegisterCustomInspector(CustomInspector {
+            /*RegisterCustomInspector(CustomInspector {
                 std::string(TypeNameShort<MeshComponent>()),
                 ComponentRegistry::GetComponentID<MeshComponent>(),
                 meshInspector
-            });
+            });*/
         }
     }
 

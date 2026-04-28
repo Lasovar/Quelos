@@ -8,6 +8,7 @@
 
 #include "imgui_internal.h"
 #include "ProjectSerializer.h"
+#include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "glm/gtc/type_ptr.hpp"
@@ -53,7 +54,7 @@ namespace QuelosEditor {
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
     HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
-    Vec<Ref<Shader>> EditorLayer::s_ShaderRecompilationStack;
+    Vec<AssetRef<Shader>> EditorLayer::s_ShaderRecompilationStack;
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
@@ -117,7 +118,7 @@ namespace QuelosEditor {
         const uint64_t texture2DType = Hash::Fnv1a64("Quelos.Texture2D");
         const uint64_t textureType = Hash::Fnv1a64(TypeNameDisplay<Texture2D>());
 
-        Ref<Shader> compiledShader = AssetManager::GetAsset<Shader>(AssetHandle("af5fda92-37f9-42e3-a189-3a5388090a14"));
+        AssetRef<Shader> compiledShader = AssetRef<Shader>(AssetID("af5fda92-37f9-42e3-a189-3a5388090a14"));
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
@@ -131,7 +132,7 @@ namespace QuelosEditor {
 
     void EditorLayer::Tick(const float deltaTime) {
         for (auto& shader : s_ShaderRecompilationStack) {
-            ShaderImporter::RecompileShader(shader);
+            ShaderImporter::RecompileShader(shader.TryGet());
         }
 
         s_ShaderRecompilationStack.clear();
@@ -389,8 +390,8 @@ namespace QuelosEditor {
         }
     }
 
-    void EditorLayer::OpenSceneWorkspace(const AssetHandle& handle) {
-        Ref<Scene> scene = AssetManager::GetAsset<Scene>(handle);
+    void EditorLayer::OpenSceneWorkspace(const AssetID& handle) {
+        Ref<Scene> scene = SceneImporter::ImportScene(handle, *Project::GetAssetManager()->GetAssetMetadata(handle));
         const Ref<SceneWorkspace> sceneWorkspace = CreateRef<SceneWorkspace>(scene, m_UndoSystem);
         m_Workspaces.push_back(sceneWorkspace);
         sceneWorkspace->Focus();

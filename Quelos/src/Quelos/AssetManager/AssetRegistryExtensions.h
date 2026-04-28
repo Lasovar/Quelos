@@ -12,8 +12,8 @@ namespace Quelos {
         void* userData
     );
 
-    using ResolveSubAssetFn = Ref<Asset>(*)(
-        const AssetHandle& subAssetHandle,
+    using ResolveSubAssetFn = bool(*)(
+        void* dataSlot,
         const AssetMetadata& subAssetMetadata,
         void* userData
     );
@@ -36,8 +36,8 @@ namespace Quelos {
             const AssetMetadata& mainAssetMetadata
         );
 
-        static Ref<Asset> ResolveSubAsset(
-            const AssetHandle& subAssetHandle,
+        static bool ResolveSubAsset(
+            void* dataSlot,
             const AssetMetadata& subAssetMetadata
         );
     };
@@ -54,13 +54,13 @@ namespace Quelos {
             return instance->RegisterAdditionalAssets(assetPath, mainAssetMetadata);
         }
         
-        static Ref<Asset> ResolveSubAsset(
-            const AssetHandle& subAssetHandle,
+        static bool ResolveSubAsset(
+            void* dataSlot,
             const AssetMetadata& subAssetMetadata,
             void* userData
         ) {
             T* instance = static_cast<T*>(userData);
-            return instance->ResolveSubAsset(subAssetHandle, subAssetMetadata);
+            return instance->ResolveSubAsset(dataSlot, subAssetMetadata);
         }
         
         static bool HandlesAssetType(const AssetType& type, void* userData) {

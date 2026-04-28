@@ -105,7 +105,7 @@ namespace Quelos {
 
                 header->VTable->ApplyPatch = [](UndoSystem& undoSystem, void* commandData) {
                     T* cmd = static_cast<T*>(commandData);
-                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetHandle());
+                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetID());
                     if (it != undoSystem.m_SceneSerializers.end()) {
                         if (SceneSerializer* sceneSerializer = it->second) {
                             sceneSerializer->Record(*cmd);
@@ -115,7 +115,7 @@ namespace Quelos {
 
                 header->VTable->RemovePatch = [](UndoSystem& undoSystem, void* commandData) {
                     T* cmd = static_cast<T*>(commandData);
-                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetHandle());
+                    auto it = undoSystem.m_SceneSerializers.find(cmd->Scene->GetAssetID());
                     if (it != undoSystem.m_SceneSerializers.end()) {
                         if (SceneSerializer* sceneSerializer = it->second) {
                             sceneSerializer->Remove(*cmd);
@@ -179,11 +179,11 @@ namespace Quelos {
         }
 
         void AddSceneSerializer(const Ref<Scene>& scene, SceneSerializer* sceneSerializer) {
-            m_SceneSerializers[scene->GetAssetHandle()] = sceneSerializer;
+            m_SceneSerializers[scene->GetAssetID()] = sceneSerializer;
         }
 
         void RemoveSceneSerializer(const Ref<Scene>& scene) {
-            m_SceneSerializers.erase(scene->GetAssetHandle());
+            m_SceneSerializers.erase(scene->GetAssetID());
         }
 
     private:
@@ -220,6 +220,6 @@ namespace Quelos {
         Deque<size_t> m_Stack;
         Vec<size_t> m_RedoStack;
 
-        HashMap<AssetHandle, SceneSerializer*> m_SceneSerializers;
+        HashMap<AssetID, SceneSerializer*> m_SceneSerializers;
     };
 }

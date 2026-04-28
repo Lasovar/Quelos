@@ -90,7 +90,7 @@ namespace Quelos {
     };
 
     struct QS_API MeshComponent {
-        Ref<Mesh> MeshData;
+        AssetRef<Mesh> MeshData;
         Ref<Material> MaterialData = CreateRef<Material>();
 
         template <typename TArchive>
@@ -104,7 +104,7 @@ namespace Quelos {
     };
 
     struct QS_API SpriteRenderer {
-        Ref<Texture2D> Texture;
+        AssetRef<Texture2D> Texture;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, SpriteRenderer& data) {

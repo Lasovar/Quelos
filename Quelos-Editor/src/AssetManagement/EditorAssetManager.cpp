@@ -23,7 +23,7 @@ namespace QuelosEditor {
             asset = std::filesystem::relative(asset, Project::GetProjectPath());
         }
 
-        const std::string relativePath = asset.generic_string();
+        const std::string relativePath = asset.lexically_normal().generic_string();
 
         const AssetType assetType = AssetImporter::GetAssetType(relativePath);
         if (!assetType) {
@@ -35,23 +35,24 @@ namespace QuelosEditor {
             return nullptr;
         }
 
-        AssetHandle handle;
+        AssetID handle;
 
-        if (const AssetHandle existingHandle = EditorAssetImporter::ReadAssetHandle(relativePath)) {
+        if (const AssetID existingHandle = EditorAssetImporter::ReadAssetHandle(relativePath)) {
             handle = existingHandle;
             QS_CORE_INFO_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
                 "Using existing asset handle {} for '{}'",
                 handle.ToString(), assetPath
             );
-        } else {
-            handle = AssetHandle::Generate();
+        }
+        else {
+            handle = AssetID::Generate();
             QS_CORE_INFO_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
                 "Generated new asset handle {} for '{}'",
                 handle.ToString(), assetPath
             );
-            
+
             EditorAssetImporter::WriteAssetHandle(relativePath, handle);
         }
 
@@ -61,7 +62,8 @@ namespace QuelosEditor {
             assetType
         };
 
-        efsw::WatchID watchId = m_FileWatcher.addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+        efsw::WatchID watchId = m_FileWatcher.addWatch(
+            (Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
         m_WatchedAssets[watchId] = assetMetadata.Handle;
 
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
@@ -81,21 +83,167 @@ namespace QuelosEditor {
         );
 
         for (const auto& additionalAsset : additionalAssets) {
-            const AssetMetadata* addedMetadata = &(m_AssetRegistry.GetAssetsMetadata()[additionalAsset.Handle] = additionalAsset);
+            const AssetMetadata* addedMetadata = &(m_AssetRegistry.GetAssetsMetadata()[additionalAsset.Handle] =
+                additionalAsset);
             registeredAssets.push_back(addedMetadata);
         }
 
         return registeredAssets;
     }
 
-    void EditorAssetManager::RemoveAssetFromRegistry(const AssetHandle& assetHandle) {
+    void EditorAssetManager::RemoveAssetFromRegistry(const AssetID& assetHandle) {
         m_AssetRegistry.RemoveAsset(assetHandle);
         m_WatchedAssets.erase(assetHandle);
     }
 
+    void EditorAssetManager::Reimport(const AssetID assetId) {
+        const auto assetLoaded = m_LoadedAssets.find(assetId);
+        if (assetLoaded != m_LoadedAssets.end()) {
+            const auto assetHandle = assetLoaded->second;
+            const auto poolIt = m_AssetPools.find(assetHandle.Type);
+            if (poolIt == m_AssetPools.end()) {
+                return;
+            }
+
+            if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
+                EditorAssetImporter::TryReimportAsset(
+                    pool.GetSlotData(pool.Data, assetHandle),
+                    m_AssetRegistry.GetAssetMetadata(assetId)
+                );
+            }
+        }
+    }
+
+    UntypedAssetHandle EditorAssetManager::Acquire(const AssetID assetId) {
+        if (!IsAssetHandleValid(assetId)) {
+            QS_CORE_ERROR_TAG("AssetManager", "Invalid asset handle {}", assetId.ToString());
+            return {};
+        }
+
+        if (const auto it = m_LoadedAssets.find(assetId); it != m_LoadedAssets.end()) {
+            if (IsAlive(it->second)) {
+                return it->second;
+            }
+
+            m_LoadedAssets.erase(it);
+        }
+
+        const AssetMetadata& metadata = *m_AssetRegistry.GetAssetMetadata(assetId);
+
+        const auto it = m_AssetPools.find(metadata.Type);
+        if (it == m_AssetPools.end()) {
+            QS_ERROR_TAG(
+                "EditorAssetManager::Acquire",
+                "No suitable asset pool found for asset type '{}'!",
+                metadata.Type.GetName()
+            );
+
+            return {};
+        }
+
+        const auto pool = it->second;
+        const UntypedAssetHandle assetHandle = pool.Allocate(pool.Data);
+        void* slotData = pool.GetSlotData(pool.Data, assetHandle);
+
+        if (metadata.IsSubAsset()) {
+            if (AssetRegistryExtensions::ResolveSubAsset(slotData, metadata)) {
+                pool.SetConstructed(pool.Data, assetHandle, true);
+                m_LoadedAssets[assetId] = assetHandle;
+                return assetHandle;
+            }
+
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager::Acquire",
+                "Failed to resolve sub-asset {} with parent {}",
+                assetId.ToString(), metadata.ParentId.ToString()
+            );
+
+            pool.DestroyAt(pool.Data, assetHandle);
+            return {};
+        }
+
+        if (!AssetImporter::ImportAsset(slotData, metadata)) {
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager::Acquire",
+                "Failed to load asset with handle {}, path: '{}'",
+                assetId.ToString(), metadata.FilePath
+            );
+
+            pool.DestroyAt(pool.Data, assetHandle);
+            return {};
+        }
+
+        pool.SetConstructed(pool.Data, assetHandle, true);
+        m_LoadedAssets[assetId] = assetHandle;
+        return assetHandle;
+    }
+
+    void EditorAssetManager::Release(const UntypedAssetHandle assetHandle) {
+        const auto it = m_AssetPools.find(assetHandle.Type);
+        if (it == m_AssetPools.end()) {
+            return;
+        }
+
+        const auto pool = it->second;
+        pool.DestroyAt(pool.Data, assetHandle);
+    }
+
+    void EditorAssetManager::Release(const AssetID assetId) {
+        const auto it = m_LoadedAssets.find(assetId);
+        if (it == m_LoadedAssets.end()) {
+            return;
+        }
+
+        Release(it->second);
+        m_LoadedAssets.erase(it);
+    }
+
+    bool EditorAssetManager::IsAlive(const UntypedAssetHandle handle) {
+        if (!handle.IsValid()) {
+            return false;
+        }
+
+        const auto it = m_AssetPools.find(handle.Type);
+        if (it == m_AssetPools.end()) {
+            return false;
+        }
+
+        const auto& pool = it->second;
+        return pool.IsValid(pool.Data, handle);
+    }
+
+    void EditorAssetManager::IncRef(const UntypedAssetHandle handle) {
+        if (!handle.IsValid()) {
+            return;
+        }
+
+        const auto it = m_AssetPools.find(handle.Type);
+        if (it == m_AssetPools.end()) {
+            return;
+        }
+
+        const auto& pool = it->second;
+        pool.IncRef(pool.Data, handle);
+    }
+
+    void EditorAssetManager::DecRef(const UntypedAssetHandle handle) {
+        if (!handle.IsValid()) {
+            return;
+        }
+
+        const auto it = m_AssetPools.find(handle.Type);
+        if (it == m_AssetPools.end()) {
+            return;
+        }
+
+        const auto& pool = it->second;
+        pool.IncRef(pool.Data, handle);
+    }
+
     void EditorAssetManager::CleanupAssetMap() {
+        // TODO: Is this even safe??
         for (auto it = m_LoadedAssets.begin(); it != m_LoadedAssets.end();) {
-            if (it->second.expired()) {
+            if (!IsAlive(it->second)) {
                 it = m_LoadedAssets.erase(it);
             }
             else {
@@ -104,7 +252,7 @@ namespace QuelosEditor {
         }
     }
 
-    bool EditorAssetManager::IsAssetHandleValid(const AssetHandle& handle) const {
+    bool EditorAssetManager::IsAssetHandleValid(const AssetID& handle) const {
         if (!handle) {
             return false;
         }
@@ -116,10 +264,10 @@ namespace QuelosEditor {
         return m_AssetRegistry.IsAssetPathValid(path);
     }
 
-    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetType& type) const {
+    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetTypeID type) const {
         Vec<const AssetMetadata*> results;
 
-        const HashMap<GUID128, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
+        const HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
         for (const AssetMetadata& metadata : assetsMetadata | std::views::values) {
             if (metadata.Type == type) {
                 results.push_back(&metadata);
@@ -133,7 +281,7 @@ namespace QuelosEditor {
         return AssetImporter::IsAssetSupported(path);
     }
 
-    bool EditorAssetManager::IsAssetLoaded(const AssetHandle& handle) const {
+    bool EditorAssetManager::IsAssetLoaded(const AssetID& handle) const {
         if (!handle) {
             return false;
         }
@@ -143,51 +291,16 @@ namespace QuelosEditor {
 
     EditorAssetManager::EditorAssetManager() {
         ModelImporter::Initialize();
+        RegisterType<Model>();
+        RegisterType<Mesh>();
         ShaderImporter::Initialize();
+        RegisterType<Shader>();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
         AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
+        RegisterType<Texture2D>();
     }
 
-    Ref<Asset> EditorAssetManager::GetAsset(const AssetHandle& handle) {
-        if (!IsAssetHandleValid(handle)) {
-            QS_CORE_ERROR_TAG("AssetManager", "Invalid asset handle {}", handle.ToString());
-            return nullptr;
-        }
-
-        if (IsAssetLoaded(handle)) {
-            if (auto existing = m_LoadedAssets.at(handle).lock()) {
-                return existing;
-            }
-        }
-
-        const AssetMetadata& metadata = *m_AssetRegistry.GetAssetMetadata(handle);
-        
-        if (metadata.IsSubAsset()) {
-            if (Ref<Asset> subAsset = AssetRegistryExtensions::ResolveSubAsset(handle, metadata)) {
-                m_LoadedAssets[handle] = subAsset;
-                return subAsset;
-            }
-            
-            QS_CORE_ERROR_TAG("AssetManager::GetAsset", 
-                              "Failed to resolve sub-asset {} with parent {}", 
-                              handle.ToString(), metadata.ParentHandle.ToString());
-            return nullptr;
-        }
-
-        Ref<Asset> asset = AssetImporter::ImportAsset(handle, metadata);
-
-        if (!asset) {
-            QS_CORE_ERROR_TAG("AssetManager::GetAsset", "Failed to load asset with handle {}, path: '{}'",
-                              handle.ToString(), metadata.FilePath);
-            return nullptr;
-        }
-
-        m_LoadedAssets[handle] = asset;
-
-        return asset;
-    }
-
-    void EditorAssetManager::UnloadAsset(const AssetHandle assetHandle) {
+    void EditorAssetManager::UnloadAsset(const AssetID assetHandle) {
         if (!IsAssetHandleValid(assetHandle)) {
             return;
         }
@@ -203,11 +316,7 @@ namespace QuelosEditor {
         return m_AssetRegistry.GetAssetMetadata(path);
     }
 
-    const AssetMetadata* EditorAssetManager::GetAssetMetadata(const AssetHandle& assetHandle) const {
-        if (!IsAssetHandleValid(assetHandle)) {
-            return nullptr;
-        }
-
+    const AssetMetadata* EditorAssetManager::GetAssetMetadata(const AssetID& assetHandle) const {
         return m_AssetRegistry.GetAssetMetadata(assetHandle);
     }
 
@@ -222,11 +331,10 @@ namespace QuelosEditor {
             writer.Write(SectionEvent{metadata.Type.GetName()});
             writer.CloseSection();
             writer.WriteField("handle", UnquotedString{handle.ToString()});
-            writer.WriteField("path", metadata.FilePath);
             if (metadata.IsSubAsset()) {
-                writer.WriteField("parent", UnquotedString{metadata.ParentHandle.ToFormattedString()});
-                writer.WriteField("virtualPath", metadata.VirtualPath);
+                writer.WriteField("parent", UnquotedString{metadata.ParentId.ToFormattedString()});
             }
+            writer.WriteField("path", metadata.FilePath);
         }
 
         if (std::ofstream file(assetRegistryPath, std::ios::binary); file) {
@@ -268,7 +376,7 @@ namespace QuelosEditor {
         AssetMetadata metadata;
         std::string_view currentField;
 
-        HashMap<AssetHandle, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
+        HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
         for (auto&& parserEvent : reader.Parse()) {
             std::visit([&]<typename TEvent>(const TEvent& e) {
                 using T = std::decay_t<TEvent>;
@@ -289,16 +397,13 @@ namespace QuelosEditor {
                 else if constexpr (std::is_same_v<T, ValueEvent>) {
                     if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
                         if (currentField == "handle") {
-                            metadata.Handle = AssetHandle(*valueResult);
+                            metadata.Handle = AssetID(*valueResult);
                         }
                         else if (currentField == "path") {
                             metadata.FilePath = *valueResult;
                         }
                         else if (currentField == "parent") {
-                            metadata.ParentHandle = AssetHandle(*valueResult);
-                        }
-                        else if (currentField == "virtualPath") {
-                            metadata.VirtualPath = *valueResult;
+                            metadata.ParentId = AssetID(*valueResult);
                         }
                     }
                 }
@@ -310,11 +415,12 @@ namespace QuelosEditor {
         }
 
         for (auto& assetMetadata : assetsMetadata | std::views::values) {
-            if (assetMetadata.ParentHandle) {
+            if (assetMetadata.ParentId) {
                 continue;
             }
 
-            efsw::WatchID watchId = m_FileWatcher.addWatch((Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
+            efsw::WatchID watchId = m_FileWatcher.addWatch(
+                (Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
             m_WatchedAssets[watchId] = assetMetadata.Handle;
         }
 
@@ -322,7 +428,8 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::handleFileAction(const efsw::WatchID watchId, const std::string& dir,
-        const std::string& filename, const efsw::Action action, std::string oldFilename) {
+                                              const std::string& filename, const efsw::Action action,
+                                              std::string oldFilename) {
         switch (action) {
         case efsw::Action::Add:
         case efsw::Action::Delete:
@@ -330,11 +437,20 @@ namespace QuelosEditor {
         case efsw::Action::Modified: {
             const auto it = m_WatchedAssets.find(watchId);
             if (it != m_WatchedAssets.end()) {
-                const AssetHandle handle = it->second;
+                const AssetID handle = it->second;
                 const auto assetLoaded = m_LoadedAssets.find(handle);
                 if (assetLoaded != m_LoadedAssets.end()) {
-                    if (auto asset = assetLoaded->second.lock()) {
-                        ReimportAsset(asset, m_AssetRegistry.GetAssetMetadata(handle));
+                    const auto assetHandle = assetLoaded->second;
+                    const auto poolIt = m_AssetPools.find(assetHandle.Type);
+                    if (poolIt == m_AssetPools.end()) {
+                        break;
+                    }
+
+                    if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
+                        EditorAssetImporter::TryReimportAsset(
+                            pool.GetSlotData(pool.Data, assetHandle),
+                            m_AssetRegistry.GetAssetMetadata(handle)
+                        );
                     }
                 }
             }
@@ -343,9 +459,5 @@ namespace QuelosEditor {
         default:
             break;
         }
-    }
-
-    void EditorAssetManager::ReimportAsset(Ref<Asset>& asset, const AssetMetadata* assetMetadata) {
-        EditorAssetImporter::TryReimportAsset(asset, assetMetadata);
     }
 }

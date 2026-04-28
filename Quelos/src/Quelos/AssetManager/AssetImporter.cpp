@@ -5,28 +5,26 @@
 #include "magic_enum/magic_enum.hpp"
 
 namespace Quelos {
-    static HashMap<AssetType, AssetImporterConfig> s_AssetLoaders;
+    static HashMap<AssetTypeID, AssetImporterConfig> s_AssetLoaders;
 
     void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
-        auto& importers = s_AssetLoaders;
         s_AssetLoaders[config.Type] = config;
-        int x = 0;
     }
 
-    Ref<Asset> AssetImporter::ImportAsset(const AssetHandle assetHandle, const AssetMetadata& metadata) {
-        const auto it = s_AssetLoaders.find(metadata.Type);
-        auto& importers = s_AssetLoaders;
+    bool AssetImporter::ImportAsset(void* data, const AssetMetadata& metadata) {
+        QS_PROFILE_SCOPED_N("AssetImporter::ImportAsset");
 
+        const auto it = s_AssetLoaders.find(metadata.Type);
         if (it == s_AssetLoaders.end()) {
             QS_CORE_ERROR_TAG(
                 "AssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",
                 metadata.FilePath
             );
 
-            return nullptr;
+            return false;
         }
 
-        return it->second.LoadAsset(assetHandle, metadata);
+        return it->second.ImportAsset(data, metadata);
     }
 
     bool AssetImporter::IsAssetSupported(const std::string_view path) {

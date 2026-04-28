@@ -34,9 +34,9 @@ namespace QuelosEditor {
         void UI_Toolbar();
         void OnEvent(Event& event) override;
 
-        void OpenSceneWorkspace(const AssetHandle& handle);
+        void OpenSceneWorkspace(const AssetID& handle);
 
-        static void RecompilerShader(const Ref<Shader>& shader) {
+        static void RecompilerShader(const AssetRef<Shader>& shader) {
             s_ShaderRecompilationStack.push_back(shader);
         }
 
@@ -83,6 +83,6 @@ namespace QuelosEditor {
 
         // SHADER
         static HashMap<const char*, QS_ShaderCompiler> s_ShaderCompilers;
-        static Vec<Ref<Shader>> s_ShaderRecompilationStack;
+        static Vec<AssetRef<Shader>> s_ShaderRecompilationStack;
     };
 }

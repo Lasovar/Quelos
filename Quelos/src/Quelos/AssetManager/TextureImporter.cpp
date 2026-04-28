@@ -1,6 +1,5 @@
 #include "qspch.h"
 
-#include "AssetImporter.h"
 #include "stb_image.h"
 #include "Quelos/Core/Buffer.h"
 #include "Quelos/Project/Project.h"
@@ -16,7 +15,7 @@ namespace Quelos {
         return s_ImportableExtensions.find(FS::Extension(path)) != s_ImportableExtensions.end();
     }
 
-    Ref<Texture2D> TextureImporter::ImportTexture2D(AssetHandle assetHandle, const AssetMetadata& metadata) {
+    bool TextureImporter::ImportTexture2D(void* dataSlot, const AssetMetadata& metadata) {
         int width, height, channels;
 
         const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
@@ -35,7 +34,7 @@ namespace Quelos {
                 stbi_failure_reason()
             );
 
-            return nullptr;
+            return false;
         }
 
         // SIZE * CHANNELS not sure if it's sufficient
@@ -59,14 +58,12 @@ namespace Quelos {
                 assetPath.string(), channels
             );
 
-            return nullptr;
+            return false;
         }
 
-        Ref<Texture2D> texture = Texture2D::Create(textureSpecs, std::move(dataBuffer));
-        if (texture) {
-            texture->SetAssetHandle(assetHandle);
-        }
+        auto* texture = new(dataSlot) Texture2D(textureSpecs, std::move(dataBuffer));
+        texture->SetAssetID(metadata.Handle);
 
-        return texture;
+        return true;
     }
 }

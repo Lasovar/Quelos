@@ -216,7 +216,7 @@ namespace Quelos {
 	}
 }
 
-template <>
+/*template <>
 struct fmt::formatter<glm::vec2> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
@@ -270,6 +270,6 @@ struct fmt::formatter<glm::mat4> {
 			"\t [{3.x}, {3.y}, {3.z}, {3.w}]]",
 			m[0], m[1], m[2], m[3]);
 	}
-};
+};*/
 
 

@@ -37,7 +37,7 @@ namespace QuelosEditor {
         return AssetType::Invalid;
     }
 
-    Ref<Asset> EditorAssetImporter::ImportAsset(AssetHandle assetHandle, const AssetMetadata& metadata) {
+    bool EditorAssetImporter::ImportAsset(void* dataSlot, const AssetMetadata& metadata) {
         const auto it = s_EditorAssetLoaders.find(metadata.Type);
         if (it == s_EditorAssetLoaders.end()) {
             QS_CORE_ERROR_TAG(
@@ -45,13 +45,13 @@ namespace QuelosEditor {
                 metadata.FilePath
             );
 
-            return nullptr;
+            return false;
         }
 
-        return it->second.LoadAsset(assetHandle, metadata);
+        return it->second.LoadAsset(dataSlot, metadata);
     }
 
-    AssetHandle EditorAssetImporter::ReadAssetHandle(std::string_view assetPath) {
+    AssetID EditorAssetImporter::ReadAssetHandle(const std::string_view assetPath) {
         const AssetType type = GetAssetType(assetPath);
         if (!type) {
             return {};
@@ -65,7 +65,7 @@ namespace QuelosEditor {
         return {};
     }
 
-    bool EditorAssetImporter::WriteAssetHandle(std::string_view assetPath, const AssetHandle& handle) {
+    bool EditorAssetImporter::WriteAssetHandle(std::string_view assetPath, const AssetID& handle) {
         const AssetType type = GetAssetType(assetPath);
         if (!type) {
             return false;
@@ -79,14 +79,14 @@ namespace QuelosEditor {
         return false;
     }
 
-    void EditorAssetImporter::TryReimportAsset(Ref<Asset>& asset, const AssetMetadata* assetMetadata) {
+    void EditorAssetImporter::TryReimportAsset(void* dataSlot, const AssetMetadata* assetMetadata) {
         if (!assetMetadata) {
             return;
         }
 
         if (const auto it = s_EditorAssetLoaders.find(assetMetadata->Type); it != s_EditorAssetLoaders.end()) {
             if (it->second.ReimportAsset) {
-                it->second.ReimportAsset(asset, *assetMetadata);
+                it->second.ReimportAsset(dataSlot, *assetMetadata);
             }
         }
     }

@@ -61,6 +61,13 @@ namespace QuelosEditor {
                 }
             }
 
+            if (asset.IsImportable && ImGui::MenuItem("Reimport")) {
+                if (asset.Metadata.Handle) {
+                    m_AssetManager->Reimport(asset.Metadata.Handle);
+                    m_QueueDirectoryTreeRebuild = true;
+                }
+            }
+
             if (asset.IsImportable && ImGui::MenuItem("Import")) {
                 const Vec<const AssetMetadata*> assetsMetadata = m_AssetManager->ProcessAssetRegistration(
                     asset.Metadata.FilePath
@@ -87,7 +94,7 @@ namespace QuelosEditor {
         if (!asset.IsImportable && ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload(
                 asset.Metadata.Type.GetName().c_str(),
-                &asset.Metadata.Handle, sizeof(AssetHandle)
+                &asset.Metadata.Handle, sizeof(AssetID)
             );
 
             ImGui::TextUnformatted(asset.Name.c_str());

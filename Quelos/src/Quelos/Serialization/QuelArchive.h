@@ -179,26 +179,13 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void WriteComplex(const std::string_view name, const Ref<T>& value) {
-            if constexpr (std::is_base_of_v<Asset, T>) {
-                const AssetHandle handle = value && value->GetAssetHandle()
-                                               ? value->GetAssetHandle()
-                                               : AssetHandle();
-
-                m_Writer.WriteField(name, UnquotedString {handle.ToFormattedString() });
-            }
-            else {
-                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
-            }
+        void WriteComplex(const std::string_view name, const AssetRef<T>& value) {
+            m_Writer.WriteField(name, UnquotedString {value.GetAssetID().ToFormattedString() });
         }
 
         template <typename T>
         void WriteComplex(const std::string_view name, const SoftRef<T>& value) {
-            const AssetHandle handle = value && value->GetAssetHandle()
-                                           ? value->GetAssetHandle()
-                                           : AssetHandle();
-
-            m_Writer.WriteField(name, UnquotedString {handle.ToFormattedString() });
+            m_Writer.WriteField(name, UnquotedString {value.GetAssetID().ToFormattedString() });
         }
 
         template <typename T>
@@ -443,24 +430,19 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        bool TryConvert(const TextArchiveValue& src, Ref<T>& value) {
-            if constexpr (std::is_base_of_v<Asset, T>) {
-                if (src.IsScalar()) {
-                    const auto scalar = src.AsScalar();
-                    if (const auto* assetHandle = std::get_if<std::string_view>(&scalar)) {
-                        if (const AssetHandle handle(*assetHandle); handle) {
-                            value = AssetManager::GetAsset<T>(handle);
-                        }
-
-                        return true;
+        bool TryConvert(const TextArchiveValue& src, AssetRef<T>& value) {
+            if (src.IsScalar()) {
+                const auto scalar = src.AsScalar();
+                if (const auto* assetHandle = std::get_if<std::string_view>(&scalar)) {
+                    if (const AssetID handle(*assetHandle); handle) {
+                        value = AssetRef<T>(handle);
                     }
-                }
 
-                return false;
+                    return true;
+                }
             }
-            else {
-                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
-            }
+
+            return false;
 
             return false;
         }
@@ -470,7 +452,7 @@ namespace Quelos::Serialization {
             if (src.IsScalar()) {
                 const auto scalar = src.AsScalar();
                 if (const auto* assetHandle = std::get_if<std::string_view>(&scalar)) {
-                    value.SetAssetHandle(AssetHandle(*assetHandle));
+                    value = SoftRef<T>(AssetID(*assetHandle));
                     return true;
                 }
             }

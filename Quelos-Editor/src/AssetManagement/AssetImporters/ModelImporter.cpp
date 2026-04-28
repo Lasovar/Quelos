@@ -22,7 +22,7 @@ namespace QuelosEditor {
             return { vec.x, vec.y, vec.z };
         }
 
-        static void SerializeModelMetadata(const Ref<Model>& model, const OsPath& path) {
+        static void SerializeModelMetadata(const Model& model, const OsPath& path) {
             using namespace Serialization;
 
             std::ofstream file(path, std::ios::binary);
@@ -40,13 +40,13 @@ namespace QuelosEditor {
             StringQuelWriter writer(buffer);
             writer.Write(SectionEvent { "Model" });
             writer.CloseSection();
-            writer.WriteField("handle", UnquotedString { model->GetAssetHandle().ToFormattedString() });
+            writer.WriteField("handle", UnquotedString { model.GetAssetID().ToFormattedString() });
 
-            for (auto& mesh : model->GetMeshes()) {
+            for (const auto& mesh : model.GetMeshes()) {
                 writer.Write(SectionEvent { "Mesh" });
                 writer.CloseSection();
-                writer.WriteField("handle", UnquotedString { mesh->GetAssetHandle().ToFormattedString() });
-                writer.WriteField("name", mesh->GetName());
+                writer.WriteField("handle", UnquotedString { mesh.AssetId.ToFormattedString() });
+                writer.WriteField("name", mesh.Name);
             }
 
             // TODO: Serialize materials when Model supports them
@@ -116,10 +116,10 @@ namespace QuelosEditor {
                         if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
                             if (currentField == "handle") {
                                 if (currentSection == "Mesh") {
-                                    meshMetadata.Handle = AssetHandle(*valueResult);
+                                    meshMetadata.Handle = AssetID(*valueResult);
                                 }
                                 else if (currentSection == "Material") {
-                                    materialMetadata.Handle = AssetHandle(*valueResult);
+                                    materialMetadata.Handle = AssetID(*valueResult);
                                 }
                             }
                             else if (currentField == "name") {
@@ -151,11 +151,7 @@ namespace QuelosEditor {
             return extension == ".fbx" || extension == ".obj" || extension == ".gltf" || extension == ".glb";
         }
 
-        void ReimportModel(Ref<Asset>& model, const AssetMetadata& metadata) {
-
-        }
-
-        Ref<Model> ImportModel(const AssetHandle assetHandle, const AssetMetadata& metadata) {
+        bool ImportModel(void* dataSlot, const AssetMetadata& metadata) {
             const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
             
             Assimp::Importer importer;
@@ -173,17 +169,17 @@ namespace QuelosEditor {
                     "MeshImporter::ImportMesh",
                     "Failed to import mesh ({},{}): {}",
                     metadata.FilePath,
-                    assetHandle.ToString(),
+                    metadata.Handle.ToString(),
                     importer.GetErrorString()
                 );
 
-                return nullptr;
+                return false;
             }
 
-            Ref<Model> model = CreateRef<Model>();
-            model->SetAssetHandle(assetHandle);
+            auto model = new(dataSlot) Model;
+            model->SetAssetID(metadata.Handle);
 
-            Vec<Ref<Mesh>>& meshes = model->GetMeshes();
+            Deque<MeshData>& meshes = model->GetMeshes();
             meshes.resize(scene->mNumMeshes);
 
             ModelMetadata modelMetadata = DeserializeModelMetadata(absolutePath.string() + ".quel");
@@ -194,9 +190,12 @@ namespace QuelosEditor {
                     continue;
                 }
 
-                Vec<Vertex> vertices(mesh->mNumVertices);
+                MeshData& modelMesh = meshes[i];
+                modelMesh.Name = mesh->mName.C_Str();
+
+                modelMesh.Vertices.resize(mesh->mNumVertices);
                 for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; vertexIndex++) {
-                    auto& vertex = vertices[vertexIndex];
+                    auto& vertex = modelMesh.Vertices[vertexIndex];
                     vertex.Position = ToGlmVec3(mesh->mVertices[vertexIndex]);
 
                     if (mesh->HasNormals()) {
@@ -212,7 +211,7 @@ namespace QuelosEditor {
                     }
                 }
 
-                Vec<uint16_t> indices;
+                Vec<uint16_t>& indices = modelMesh.Indices;
                 indices.reserve(mesh->mNumFaces * 3);
                 for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; faceIndex++) {
                     const aiFace& face = mesh->mFaces[faceIndex];
@@ -221,13 +220,6 @@ namespace QuelosEditor {
                     }
                 }
 
-                const Ref<Mesh> modelMesh = CreateRef<Mesh>(
-                    std::move(vertices),
-                    std::move(indices),
-                    model,
-                    mesh->mName.C_Str()
-                );
-
                 auto it = std::ranges::find_if(
                     modelMetadata.MeshesMetadata,
                     [&](const MeshMetadata& meta) {
@@ -235,15 +227,15 @@ namespace QuelosEditor {
                     });
 
                 if (it != modelMetadata.MeshesMetadata.end()) {
-                    modelMesh->SetAssetHandle(it->Handle);
+                    modelMesh.AssetId = it->Handle;
                     QS_CORE_INFO_TAG(
                         "ModelImporter",
                         "Using existing mesh handle {} for mesh '{}'",
                         it->Handle.ToString(), mesh->mName.C_Str()
                     );
                 } else {
-                    AssetHandle newHandle = AssetHandle::Generate();
-                    modelMesh->SetAssetHandle(newHandle);
+                    AssetID newHandle = AssetID::Generate();
+                    modelMesh.AssetId = newHandle;
                     QS_CORE_INFO_TAG(
                         "ModelImporter",
                         "Generated new mesh handle {} for mesh '{}'",
@@ -251,26 +243,24 @@ namespace QuelosEditor {
                         mesh->mName.C_Str()
                     );
                 }
-
-                meshes[i] = modelMesh;
             }
 
             // Save metadata with any new handles
-            SerializeModelMetadata(model, absolutePath.string() + ".quel");
+            SerializeModelMetadata(*model, absolutePath.string() + ".quel");
 
             return model;
         }
 
-        AssetHandle ReadAssetHandle(std::string_view assetPath) {
+        AssetID ReadAssetHandle(std::string_view assetPath) {
             using namespace Serialization;
 
-            std::string quelPath = std::string(assetPath) + ".quel";
+            const OsPath absolutePath = Project::GetProjectPath() / fmt::format("{}{}", assetPath, ".quel");
 
-            if (!std::filesystem::exists(quelPath)) {
+            if (!std::filesystem::exists(absolutePath)) {
                 return {};
             }
 
-            std::ifstream file(quelPath, std::ios::binary | std::ios::ate);
+            std::ifstream file(absolutePath, std::ios::binary | std::ios::ate);
             if (!file) {
                 return {};
             }
@@ -285,7 +275,7 @@ namespace QuelosEditor {
             QuelReader reader(buffer);
 
             std::string_view currentField;
-            AssetHandle modelHandle;
+            AssetID modelHandle;
 
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit([&]<typename TEvent>(const TEvent& e) {
@@ -300,7 +290,7 @@ namespace QuelosEditor {
                     else if constexpr (std::is_same_v<T, ValueEvent>) {
                         if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
                             if (currentField == "handle") {
-                                modelHandle = AssetHandle(*valueResult);
+                                modelHandle = AssetID(*valueResult);
                             }
                         }
                     }
@@ -315,13 +305,13 @@ namespace QuelosEditor {
             return modelHandle;
         }
 
-        bool WriteAssetHandle(std::string_view assetPath, const AssetHandle& handle) {
+        bool WriteAssetHandle(std::string_view assetPath, const AssetID& handle) {
             using namespace Serialization;
 
-            std::string quelPath = std::string(assetPath) + ".quel";
+            const OsPath absolutePath = Project::GetProjectPath() / fmt::format("{}{}", assetPath, ".quel");
 
-            if (!std::filesystem::exists(quelPath)) {
-                std::ofstream file(quelPath, std::ios::binary);
+            if (!std::filesystem::exists(absolutePath)) {
+                std::ofstream file(absolutePath, std::ios::binary);
                 if (!file) {
                     return false;
                 }
@@ -336,7 +326,7 @@ namespace QuelosEditor {
                 return true;
             }
 
-            std::ifstream inFile(quelPath, std::ios::binary | std::ios::ate);
+            std::ifstream inFile(absolutePath, std::ios::binary | std::ios::ate);
             if (!inFile) {
                 return false;
             }
@@ -378,7 +368,7 @@ namespace QuelosEditor {
                 }, parserEvent);
             }
 
-            std::ofstream outFile(quelPath, std::ios::binary);
+            std::ofstream outFile(absolutePath, std::ios::binary);
             if (!outFile) {
                 return false;
             }
@@ -401,10 +391,9 @@ namespace QuelosEditor {
             for (const auto& meshMeta : metadata.MeshesMetadata) {
                 AssetMetadata meshMetadata = {
                     meshMeta.Handle,
-                    modelMetadata.FilePath,
+                    fmt::format("{}/Meshes/{}", modelMetadata.FilePath, meshMeta.Name),
                     Mesh::GetStaticType(),
                     modelMetadata.Handle,
-                    meshMeta.Name
                 };
                 subAssets.push_back(meshMetadata);
             }
@@ -426,25 +415,24 @@ namespace QuelosEditor {
             return subAssets;
         }
 
-        Ref<Asset> ResolveMeshSubAsset(
-            const AssetHandle& meshHandle,
+        bool ResolveMeshSubAsset(
+            void* dataSlot,
             const AssetMetadata& meshMetadata
         ) {
             // Load the parent model and extract the mesh
-            const Ref<Model> model = AssetManager::GetAsset<Model>(meshMetadata.ParentHandle);
+            const AssetRef<Model> model(meshMetadata.ParentId);
             if (!model) {
-                return nullptr;
+                return false;
             }
 
-            const Vec<Ref<Mesh>>& meshes = model->GetMeshes();
-
-            for (const auto& mesh : meshes) {
-                if (mesh->GetAssetHandle() == meshHandle) {
-                    return mesh;
+            for (MeshData& mesh : model->GetMeshes()) {
+                if (mesh.AssetId == meshMetadata.Handle) {
+                    new (dataSlot) Mesh(&mesh);
+                    return true;
                 }
             }
 
-            return nullptr;
+            return false;
         }
 
         // Asset registry extension implementations
@@ -460,16 +448,16 @@ namespace QuelosEditor {
             return RegisterModelSubAssets(assetPath, mainAssetMetadata);
         }
 
-        Ref<Asset> ResolveSubAsset(
-            const AssetHandle& subAssetHandle,
+        bool ResolveSubAsset(
+            void* dataSlot,
             const AssetMetadata& subAssetMetadata,
             void* userData
         ) {
             if (subAssetMetadata.Type == Mesh::GetStaticType()) {
-                return ResolveMeshSubAsset(subAssetHandle, subAssetMetadata);
+                return ResolveMeshSubAsset(dataSlot, subAssetMetadata);
             }
 
-            return nullptr;
+            return false;
         }
 
         bool HandlesAssetType(const AssetType& type, void* userData) {
@@ -482,7 +470,7 @@ namespace QuelosEditor {
                 Model::GetStaticType(),
                 ImportModel,
                 IsAssetSupported,
-                ReimportModel,
+                ImportModel,
                 ReadAssetHandle,
                 WriteAssetHandle
             };
