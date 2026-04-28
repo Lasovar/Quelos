@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Quelos/AssetManager/AssetRef.h"
 #include "Quelos/ImGui/ImGuiUI.h"
 #include "Quelos/Utility/FileSystem.h"
 #include "rapidfuzz/fuzz.hpp"
@@ -24,7 +25,7 @@ namespace QuelosEditor {
 
         template <typename T>
             requires (std::is_base_of_v<Asset, T>)
-        bool EditAsset(const std::string& label, Ref<T>& value) {
+        bool EditAsset(const std::string& label, AssetRef<T>& value) {
             bool changed = false;
 
             ImGui::PushID(label.c_str());
@@ -33,14 +34,15 @@ namespace QuelosEditor {
             ImGui::Columns(2, nullptr, false);
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
 
+            // Frame style
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+
+            ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(label.c_str());
             ImGui::NextColumn();
 
             ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-
-            // Frame style
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
 
             ImGui::BeginGroup();
 
@@ -50,10 +52,11 @@ namespace QuelosEditor {
 
             static std::string assetName;
 
+            // TODO: Maybe find a way to cache this instead of calling it every frame?
             if (value) {
                 if (const AssetMetadata* meta = Project::GetAssetManager()->
-                    GetAssetMetadata(value->GetAssetHandle())) {
-                    assetName = meta->ParentHandle ? FS::Filename(meta->VirtualPath) : FS::Filename(meta->FilePath);
+                    GetAssetMetadata(value.GetAssetID())) {
+                    assetName = FS::Filename(meta->FilePath);
                 }
             }
 
@@ -83,8 +86,8 @@ namespace QuelosEditor {
 
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(typeName.c_str())) {
-                    if (const AssetHandle handle = *static_cast<const AssetHandle*>(payload->Data)) {
-                        Ref<T> newAsset = AssetManager::GetAsset<T>(handle);
+                    if (const AssetID handle = *static_cast<const AssetID*>(payload->Data)) {
+                        AssetRef<T> newAsset(handle);
 
                         if (newAsset) {
                             value = newAsset;
@@ -100,7 +103,7 @@ namespace QuelosEditor {
 
             // Reset button
             if (ImGui::Button(ICON_FA_TRASH, ImVec2(resetButtonSize, 0.0f))) {
-                value.reset();
+                value = {};
                 changed = true;
             }
 
@@ -134,9 +137,7 @@ namespace QuelosEditor {
 
                 const std::string_view query = buffer.data();
                 for (const AssetMetadata* metadata : searchAssetMetadata) {
-                    std::string_view name = metadata->ParentHandle
-                                                ? FS::Filename(metadata->VirtualPath)
-                                                : FS::Filename(metadata->FilePath);
+                    std::string_view name = FS::Filename(metadata->FilePath);
 
                     const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
                     const double pathScore = std::max({
@@ -144,7 +145,7 @@ namespace QuelosEditor {
                         rapidfuzz::fuzz::token_set_ratio(query, metadata->FilePath)
                     });
 
-                    if (double score = 0.7f * nameScore + 0.3f * pathScore; score > 30.0f) {
+                    if (double score = 0.8f * nameScore + 0.2f * pathScore; score > 10.0f) {
                         results.push_back({metadata, name, score});
                     }
                 }
@@ -154,18 +155,25 @@ namespace QuelosEditor {
                         results,
                         [](const AssetSearchResult& a, const AssetSearchResult& b) { return a.Score > b.Score; }
                     );
+                }
+                else {
+                    for (const AssetMetadata* metadata : searchAssetMetadata) {
+                        std::string_view name = FS::Filename(metadata->FilePath);
 
-                    for (auto& result : results) {
-                        if (ImGui::Selectable(FormatTemp("{}", FS::Filename(result.Name)))) {
-                            Ref<T> newAsset = AssetManager::GetAsset<T>(result.Metadata->Handle);
+                        results.push_back({metadata, name, 0});
+                    }
+                }
 
-                            if (newAsset) {
-                                value = newAsset;
-                                changed = true;
-                            }
+                for (auto& result : results) {
+                    if (ImGui::Selectable(FormatTemp("{}", FS::Filename(result.Name)))) {
+                        AssetRef<T> newAsset(result.Metadata->Handle);
 
-                            ImGui::CloseCurrentPopup();
+                        if (newAsset) {
+                            value = newAsset;
+                            changed = true;
                         }
+
+                        ImGui::CloseCurrentPopup();
                     }
                 }
 

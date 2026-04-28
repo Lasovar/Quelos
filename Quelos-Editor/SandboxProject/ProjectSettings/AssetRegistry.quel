@@ -1,7 +1,3 @@
-[Scene]
-handle = 42e09d58-d526-4cbe-b275-80d95d0b9ada
-path = "Assets/TestScene"
-
 [Quelos.Scene]
 handle = fa481eed-75fd-40c1-a646-e845648b118e
 path = "Assets/NewScene"
@@ -14,16 +10,25 @@ path = "Assets/Textures/minecraft.png"
 handle = 70be76dd-f4c9-4ae0-ab85-5dab76194ef8
 path = "Assets/Textures/yuri.png"
 
+[Quelos.Shader]
+handle = af5fda92-37f9-42e3-a189-3a5388090a14
+path = "Assets/shaders/mesh.qshader"
+
 [Quelos.Model]
-handle = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
+handle = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 path = "Assets/Meshes/Cube.fbx"
 
 [Quelos.Mesh]
 handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
-path = "Assets/Meshes/Cube.fbx"
-parent = 3a70fbdb-98e9-4554-acd9-6ecf93c60cc6
-virtualPath = "meshes/Cube.001"
+parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
+path = "Assets/Meshes/Cube.fbx/Meshes/Cube.001"
 
-[Quelos.Shader]
-handle = af5fda92-37f9-42e3-a189-3a5388090a14
-path = "Assets/shaders/mesh.qshader"
+[Quelos.Mesh]
+handle = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
+parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
+path = "Assets/Meshes/Cube.fbx/Meshes/Icosphere"
+
+[Quelos.Mesh]
+handle = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
+parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
+path = "Assets/Meshes/Cube.fbx/Meshes/Suzanne"

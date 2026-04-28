@@ -1,9 +1,9 @@
 [actor guid=AEAEFF27FF7F9294 name="MeshAssetTest" state=added]
 
 @Quelos.MeshComponent
-mesh = 34f0b084-42c2-4c26-87d5-366a344b13cd
+mesh = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
 
 @Quelos.LocalTransform
 position = (0,0,0)
-rotation = (1,0,0,0)
-scale = (1,1,1)
+rotation = (1,1.2,0,0)
+scale = (5,5,5)

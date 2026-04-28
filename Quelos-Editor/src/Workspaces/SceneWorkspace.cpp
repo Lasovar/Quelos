@@ -23,7 +23,7 @@ namespace QuelosEditor {
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
 
         const AssetMetadata* metadata = RefAs<EditorAssetManager>(
-            Project::GetAssetManager())->GetAssetMetadata(m_Scene->GetAssetHandle()
+            Project::GetAssetManager())->GetAssetMetadata(m_Scene->GetAssetID()
         );
 
         if (!metadata) {
@@ -31,7 +31,7 @@ namespace QuelosEditor {
                 "SceneWorkspace",
                 "Failed to get scene metadata for scene '{}'({})",
                 scene->GetName(),
-                scene->GetAssetHandle().ToString()
+                scene->GetAssetID().ToString()
             );
 
             return;

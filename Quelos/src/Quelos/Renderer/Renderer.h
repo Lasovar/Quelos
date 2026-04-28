@@ -49,7 +49,7 @@ namespace Quelos {
 		static void BindVertexBuffer(VertexBufferHandle handle, uint32_t stream);
 		static void Destroy(VertexBufferHandle vertexBufferHandle);
 
-		static IndexBufferHandle CreateIndexBuffer(const std::vector<uint16_t>& indices);
+		static IndexBufferHandle CreateIndexBuffer(Span<uint16_t> indices);
 		static void BindIndexBuffer(IndexBufferHandle handle);
 		static void Destroy(IndexBufferHandle indexBufferHandle);
 

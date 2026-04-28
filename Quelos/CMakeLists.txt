@@ -24,7 +24,7 @@ if(WIN32)
     )
 elseif(APPLE)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Linux/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Mac/*.cpp
     )
 elseif(UNIX)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS

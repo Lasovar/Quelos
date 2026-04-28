@@ -10,10 +10,11 @@ namespace QuelosEditor {
 
     namespace SceneImporter {
         bool IsAssetSupported(std::string_view assetPath);
-        Ref<Scene> ImportScene(AssetHandle assetHandle, const AssetMetadata& metadata);
+        Ref<Scene> ImportScene(AssetID assetHandle, const AssetMetadata& metadata);
 
         inline AssetImporterConfig GetImporterConfig() {
-            return { GetAssetType<Scene>(), ImportScene, IsAssetSupported };
+            // TODO: Should not really import a scene as a normal asset
+            return { Scene::GetStaticType(), nullptr, IsAssetSupported };
         }
     }
 }

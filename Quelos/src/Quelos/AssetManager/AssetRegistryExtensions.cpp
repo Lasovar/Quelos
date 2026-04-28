@@ -39,19 +39,17 @@ namespace Quelos {
         return additionalAssets;
     }
 
-    Ref<Asset> AssetRegistryExtensions::ResolveSubAsset(
-        const AssetHandle& subAssetHandle,
+    bool AssetRegistryExtensions::ResolveSubAsset(
+        void* dataSlot,
         const AssetMetadata& subAssetMetadata
     ) {
-        for (size_t i = 0; i < m_ExtensionCount; ++i) {
+        for (size_t i = 0; i < m_ExtensionCount; i++) {
             const auto& extension = m_Extensions[i];
             if (extension.HandlesAssetType(subAssetMetadata.Type, extension.UserData)) {
-                if (Ref<Asset> asset = extension.ResolveSubAsset(subAssetHandle, subAssetMetadata, extension.UserData)) {
-                    return asset;
-                }
+                return extension.ResolveSubAsset(dataSlot, subAssetMetadata, extension.UserData);
             }
         }
         
-        return nullptr;
+        return false;
     }
 }

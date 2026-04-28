@@ -4,7 +4,7 @@
 #include "AssetMetadata.h"
 
 namespace Quelos {
-    using AssetLoaderFn = std::function<Ref<Asset>(AssetHandle, const AssetMetadata&)>;
+    using AssetLoaderFn = std::function<bool(void*, const AssetMetadata&)>;
     using IsAssetSupportedFn = std::function<bool(std::string_view)>;
 
     inline std::string NormalizeExt(const std::string_view ext) {
@@ -20,7 +20,7 @@ namespace Quelos {
 
     struct QS_API AssetImporterConfig {
         AssetType Type = {};
-        AssetLoaderFn LoadAsset;
+        AssetLoaderFn ImportAsset;
         IsAssetSupportedFn IsAssetSupported;
     };
 
@@ -29,6 +29,6 @@ namespace Quelos {
 
         QS_API bool IsAssetSupported(std::string_view path);
         QS_API const AssetType& GetAssetType(std::string_view path);
-        QS_API Ref<Asset> ImportAsset(AssetHandle assetHandle, const AssetMetadata& metadata);
+        QS_API bool ImportAsset(void* data, const AssetMetadata& metadata);
     }
 }

@@ -36,7 +36,7 @@ namespace Quelos {
         }
     }
 
-    class QS_API Scene : public Asset {
+    class QS_API Scene : public Asset, public std::enable_shared_from_this<Scene> {
     public:
         explicit Scene(std::string name = "Untitled Scene");
 

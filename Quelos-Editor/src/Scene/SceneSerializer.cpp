@@ -682,6 +682,11 @@ namespace Quelos {
                     continue;
                 }
 
+                PatchState compPatchState = CollapsePatchState(compPatch.PatchStates).value();
+                if (compPatchState == PatchState::Removed && patchState == PatchState::Added) {
+                    continue;
+                }
+
                 const SerializableComponentInfo* info = registry.GetSerializableComponentInfo(componentId);
                 if (!info) {
                     continue;
@@ -689,7 +694,6 @@ namespace Quelos {
 
                 quelWriter.Write(ComponentEvent{info->FullName});
 
-                PatchState compPatchState = CollapsePatchState(compPatch.PatchStates).value();
                 if (compPatchState == PatchState::Removed) {
                     quelWriter.WriteField("state", UnquotedString{GetStateName(compPatchState)});
                     continue;

@@ -8,6 +8,10 @@ namespace Quelos {
         return Renderer::TextureGetNativeHandle(*this);
     }
 
+    Texture2D::Texture2D(const TextureSpecification& spec, Buffer data) {
+        m_Handle = Renderer::CreateTexture(spec, std::move(data));
+    }
+
     Texture2D::~Texture2D() {
         Renderer::Destroy(m_Handle);
     }

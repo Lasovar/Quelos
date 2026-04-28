@@ -8,7 +8,7 @@
 namespace QuelosEditor {
     ProjectSerializer::ProjectSerializer(const OsPath& projectPath) {
         using namespace Serialization;
-        auto absolutePath = std::filesystem::absolute(projectPath);
+        auto absolutePath = std::filesystem::absolute(projectPath).lexically_normal();
         std::string projectName = absolutePath.filename().generic_string();
         OsPath configFilePath = absolutePath / (projectName + ".quel");
 

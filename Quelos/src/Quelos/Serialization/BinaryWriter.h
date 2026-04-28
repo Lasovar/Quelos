@@ -7,6 +7,7 @@
 
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/AssetManager/AssetManager.h"
+#include "Quelos/AssetManager/AssetRef.h"
 #include "Quelos/AssetManager/SoftRef.h"
 #include "Quelos/Utility/Hash.h"
 
@@ -131,29 +132,16 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void WriteValue(Ref<T>& value) {
-            if constexpr (std::is_base_of_v<Asset, T>) {
-                const AssetHandle handle = value && value->GetAssetHandle()
-                                               ? value->GetAssetHandle()
-                                               : AssetHandle();
-
-                m_Writer.Write(static_cast<uint64_t>(sizeof(AssetHandle)));
-                m_Writer.Write(handle);
-            }
-            else {
-                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
-            }
+        void WriteValue(AssetRef<T>& value) {
+            m_Writer.Write(static_cast<uint64_t>(sizeof(AssetID)));
+            m_Writer.Write(value.GetAssetID());
         }
 
         template <typename T>
         void WriteValue(SoftRef<T>& value) {
             if constexpr (std::is_base_of_v<Asset, T>) {
-                const AssetHandle handle = value && value->GetAssetHandle()
-                                               ? value->GetAssetHandle()
-                                               : AssetHandle();
-
-                m_Writer.Write(static_cast<uint64_t>(sizeof(AssetHandle)));
-                m_Writer.Write(handle);
+                m_Writer.Write(static_cast<uint64_t>(sizeof(AssetID)));
+                m_Writer.Write(value.GetAssetID());
             }
             else {
                 static_assert(!sizeof(T), "SoftRef<T> only supported for Asset types");
@@ -231,21 +219,16 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        void ReadValue(BinaryReader& reader, Ref<T>& value) {
-            if constexpr (std::is_base_of_v<Asset, T>) {
-                if (const std::optional<AssetHandle> handleResult = reader.Read<AssetHandle>()) {
-                    value = AssetManager::GetAsset<T>(handleResult.value());
-                }
-            }
-            else {
-                static_assert(!sizeof(T), "Ref<T> only supported for Asset types");
+        void ReadValue(BinaryReader& reader, AssetRef<T>& value) {
+            if (const std::optional<AssetID> handleResult = reader.Read<AssetID>()) {
+                value = AssetRef<T>(handleResult.value());
             }
         }
 
         template <typename T>
         static void ReadValue(BinaryReader& reader, SoftRef<T>& value) {
-            if (const std::optional<AssetHandle> handleResult = reader.Read<AssetHandle>()) {
-                value.SetAssetHandle(handleResult.value());
+            if (const std::optional<AssetID> handleResult = reader.Read<AssetID>()) {
+                value = SoftRef<T>(handleResult.value());
             }
         }
 

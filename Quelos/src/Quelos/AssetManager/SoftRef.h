@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Quelos/AssetManager/Asset.h"
-#include "Quelos/AssetManager/AssetManager.h"
 
 namespace Quelos {
     template <typename T>
@@ -9,33 +8,26 @@ namespace Quelos {
     class SoftRef {
     public:
         SoftRef() = default;
-        SoftRef(const AssetHandle& handle) : m_AssetHandle(handle) {}
+        explicit SoftRef(const AssetID& handle) : m_AssetId(handle) {}
 
-        const AssetHandle& GetAssetHandle() const { return m_AssetHandle; }
-        void SetAssetHandle(const AssetHandle& handle) { m_AssetHandle = handle; }
+        const AssetID& GetAssetID() const { return m_AssetId; }
 
-        Ref<T>& Get() {
-            if (!m_Asset) {
-                if (m_AssetHandle) {
-                    m_Asset = AssetManager::GetAsset<T>(m_AssetHandle);
-                }
+        AssetRef<T>& Get() {
+            if (!m_Asset.IsValid() && m_AssetId) {
+                m_Asset = AssetRef<T>(m_AssetId);
             }
 
             return m_Asset;
         }
 
         void Unload() {
-            if (m_AssetHandle) {
-                Project::GetAssetManager()->UnloadAsset(m_AssetHandle);
-            }
-
-            m_Asset = nullptr;
+            m_Asset.Reset();
         }
 
         static AssetType GetAssetType() { return T::GetStaticType(); }
 
     private:
-        Ref<T> m_Asset;
-        AssetHandle m_AssetHandle;
+        AssetID m_AssetId;
+        AssetRef<T> m_Asset;
     };
 }

@@ -1,22 +1,29 @@
 #include "Mesh.h"
 
-#include "Quelos/AssetManager/Assets/Model.h"
 #include "Quelos/Renderer/Renderer.h"
+#include "Quelos/Renderer/VertexBufferLayout.h"
 
 namespace Quelos {
-	Mesh::Mesh(Vec<Vertex> vertices, Vec<uint16_t> indices, const Ref<Model>& model, std::string name) :
-		m_Model(model),
-		m_Name(std::move(name)),
-		m_Vertices(std::move(vertices)),
-		m_Indices(std::move(indices))
-	{
-		VertexLayout layout;
-		layout.Add(VertexAttribute::Position, ShaderDataType::Float3);
-		layout.Add(VertexAttribute::Normal, ShaderDataType::Float3);
-		layout.Add(VertexAttribute::Tangent, ShaderDataType::Float3);
-		layout.Add(VertexAttribute::TexCoord0, ShaderDataType::Float2);
+    Mesh::Mesh(MeshData* meshData) : m_MeshData(meshData) {
+        if (!m_MeshData) {
+            QS_CORE_ERROR_TAG("Mesh", "Failed to created mesh! invalid mesh data");
+            return;
+        }
 
-		m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(m_Vertices)), layout);
-		m_IndexBuffer = Renderer::CreateIndexBuffer(m_Indices);
-	}
+        VertexLayout layout;
+        layout.Add(VertexAttribute::Position, ShaderDataType::Float3);
+        layout.Add(VertexAttribute::Normal, ShaderDataType::Float3);
+        layout.Add(VertexAttribute::Tangent, ShaderDataType::Float3);
+        layout.Add(VertexAttribute::TexCoord0, ShaderDataType::Float2);
+
+        m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(meshData->Vertices)), layout);
+        m_IndexBuffer = Renderer::CreateIndexBuffer(meshData->Indices);
+
+        SetAssetID(meshData->AssetId);
+    }
+
+    Mesh::~Mesh() {
+        Renderer::Destroy(m_VertexBuffer);
+        Renderer::Destroy(m_IndexBuffer);
+    }
 }

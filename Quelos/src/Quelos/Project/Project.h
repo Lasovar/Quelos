@@ -66,7 +66,7 @@ namespace Quelos {
             return s_ActiveProject;
         }
 
-        [[nodiscard]] static Ref<AssetManagerBase> GetAssetManager() {
+        [[nodiscard]] static const Ref<AssetManagerBase>& GetAssetManager() {
             return s_ActiveProject->m_AssetManager;
         }
 
