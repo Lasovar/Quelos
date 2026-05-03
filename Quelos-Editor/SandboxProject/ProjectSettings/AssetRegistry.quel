@@ -32,3 +32,16 @@ path = "Assets/Meshes/Cube.fbx/Meshes/Icosphere"
 handle = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
 parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 path = "Assets/Meshes/Cube.fbx/Meshes/Suzanne"
+
+[Quelos.Shader]
+handle = 54abe8a3-f05f-4114-80a5-b01ab22bf596
+path = "Assets/shaders/toon.qshader"
+
+[Quelos.Model]
+handle = d1b9f3ab-4152-419e-919b-4a08e7d70829
+path = "Assets/Meshes/Plane.fbx"
+
+[Quelos.Mesh]
+handle = 7454a857-a0d2-464c-a711-6ca3088cfd5e
+parent = d1b9f3ab-4152-419e-919b-4a08e7d70829
+path = "Assets/Meshes/Plane.fbx/Meshes/Plane"

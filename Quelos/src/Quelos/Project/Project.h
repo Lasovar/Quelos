@@ -38,8 +38,14 @@ namespace Quelos {
             return s_ActiveProject->m_Config.SourcePath;
         }
 
+        // Not guaranteed to be accessible in runtime
         static const OsPath& GetLibraryPath() {
             return s_ActiveProject->m_Config.LibraryPath;
+        }
+
+        // Accessible in runtime
+        static const OsPath& GetCookedAssetsPath() {
+            return s_ActiveProject->m_CookedAssetsPath;
         }
 
         static ProjectConfig& GetConfig() { return s_ActiveProject->m_Config; }
@@ -63,6 +69,10 @@ namespace Quelos {
                 std::filesystem::create_directories(GetProjectPath());
             }
 
+            if (!std::filesystem::exists(GetCookedAssetsPath())) {
+                std::filesystem::create_directories(GetCookedAssetsPath());
+            }
+
             return s_ActiveProject;
         }
 
@@ -76,6 +86,7 @@ namespace Quelos {
 
     public:
         explicit Project(ProjectConfig projectConfig) : m_Config(std::move(projectConfig)) {
+            m_CookedAssetsPath = m_Config.LibraryPath / "CookedAssets";
         }
 
     private:
@@ -83,6 +94,7 @@ namespace Quelos {
 
     private:
         ProjectConfig m_Config;
+        OsPath m_CookedAssetsPath;
         Ref<AssetManagerBase> m_AssetManager;
     };
 }

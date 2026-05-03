@@ -1,4 +1,3 @@
-#include "Quelos/Core/Base.h"
 #include "Quelos/Plugin/PluginAPI.h"
 #include "QuelosEditor/EditorAPI.h"
 
@@ -149,8 +148,8 @@ namespace Quelos {
 
         array.Count = 2;
 
-        vertexBuffer.release_ownership();
-        fragmentBuffer.release_ownership();
+        vertexBuffer.disown();
+        fragmentBuffer.disown();
 
         return array;
     }

@@ -88,5 +88,31 @@ namespace Quelos {
                 start = i + 1;
             }
         }
+
+        struct FileStamp {
+            uint64_t Size = 0;
+            uint64_t TimeStamp = 0;
+        };
+
+        inline FileStamp GetFileStamp(const OsPath& path) {
+            using namespace std::chrono;
+
+            FileStamp stamp;
+
+            if (!std::filesystem::exists(path)) {
+                return stamp;
+            }
+
+            stamp.Size = std::filesystem::file_size(path);
+            stamp.TimeStamp = time_point_cast<seconds>(std::filesystem::last_write_time(path)).time_since_epoch().count();
+
+            if (std::filesystem::is_regular_file(path)) {
+                stamp.Size = std::filesystem::file_size(path);
+            } else {
+                stamp.Size = 0;
+            }
+
+            return stamp;
+        }
     }
 }

@@ -16,13 +16,17 @@ namespace QuelosEditor {
 
         using ReadHandleFn = AssetID(*)(std::string_view assetPath);
         using WriteHandleFn = bool(*)(std::string_view assetPath, const AssetID& handle);
-        using CookAssetFn = Buffer(*)(const AssetMetadata& metadata);
+        using CookAssetFn = bool(*)(const AssetMetadata& metadata);
+        using AssetHashFn = uint64_t(*)(const AssetMetadata& metadata);
 
         // Path is passed into the Read/Write function as relative path to the Project root
         ReadHandleFn ReadAssetHandle = nullptr;
         WriteHandleFn WriteAssetHandle = nullptr;
 
-        // Optional - the cooked asset will be passed to the AssetLoader
+        // Used for reimporting
+        //AssetHashFn AssetHash = nullptr;
+
+        // Optional - cooked asset should be stored in the Project::CookedAssetsPath and loaded on LoadAsset
         CookAssetFn CookAsset = nullptr;
     };
 

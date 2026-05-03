@@ -37,8 +37,9 @@ namespace Quelos {
 
         DestroyActor() = default;
         DestroyActor(const EntityID actorId, const Ref<Scene>& scene) {
-            Snapshot = EntitySnapshot::Create(scene, actorId);
+            ActorId = actorId;
             Scene = scene;
+            Snapshot = EntitySnapshot::Create(scene, actorId);
         }
 
         EntityID ActorId;

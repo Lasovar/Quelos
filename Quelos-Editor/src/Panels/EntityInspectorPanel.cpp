@@ -61,10 +61,6 @@ namespace QuelosEditor {
 
             static auto meshInspector = [](void* meshComponentData) {
                 const MeshComponent& meshComponent = *static_cast<MeshComponent*>(meshComponentData);
-
-                if (ImGui::Button("Recompile Shader")) {
-                    EditorLayer::RecompilerShader(meshComponent.MaterialData->GetShader());
-                }
             };
 
             /*RegisterCustomInspector(CustomInspector {
@@ -89,7 +85,7 @@ namespace QuelosEditor {
         const bool hovered = ImGui::IsItemHovered();
         const bool clicked = ImGui::IsItemClicked();
 
-        auto& state = m_ExpandedComponents[m_SelectedActor];
+        auto& state = m_CollapsedComponents[m_SelectedActor];
 
         if (clicked) {
             if (state.contains(runtimeId)) {
@@ -99,7 +95,7 @@ namespace QuelosEditor {
             }
         }
 
-        const bool open = state.contains(runtimeId);
+        const bool open = !state.contains(runtimeId);
 
         // background
         const ImU32 col = ImGui::GetColorU32(hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);

@@ -1,9 +1,11 @@
-[actor guid=AEAEFF27FF7F9294 name="MeshAssetTest" state=added]
+[actor guid=AEAEFF27FF7F9294 state=added]
+name = "Sphere"
 
 @Quelos.MeshComponent
-mesh = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
+mesh = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
+shader = 54abe8a3-f05f-4114-80a5-b01ab22bf596
 
 @Quelos.LocalTransform
-position = (0,0,0)
-rotation = (1,1.2,0,0)
-scale = (5,5,5)
+position = (0,1,0)
+rotation = (1,1,0,0)
+scale = (1,1,1)

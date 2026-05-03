@@ -217,7 +217,8 @@ namespace QuelosEditor {
             if (ImGui::MenuItem("Create Child")) { }
 
             if (ImGui::MenuItem("Delete")) {
-                m_UndoSystem.Push<DestroyActor>(actor.Get<EntityID>(), m_Scene);
+                auto id = actor.Get<EntityID>();
+                m_UndoSystem.Push<DestroyActor>(id, m_Scene);
             }
 
             if (ImGui::MenuItem("Rename")) { }

@@ -10,6 +10,6 @@ ortho.near = -100
 ortho.far = 100
 
 @Quelos.LocalTransform
-position = (-0.3,3.9,-8.4)
+position = (0,5.2,-14.6)
 rotation = (1,0.2,0,0)
 scale = (1,1,1)

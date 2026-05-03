@@ -162,7 +162,7 @@ namespace QuelosEditor {
             return {};
         }
 
-        if (!AssetImporter::ImportAsset(slotData, metadata)) {
+        if (!EditorAssetImporter::ImportAsset(slotData, metadata)) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::Acquire",
                 "Failed to load asset with handle {}, path: '{}'",
