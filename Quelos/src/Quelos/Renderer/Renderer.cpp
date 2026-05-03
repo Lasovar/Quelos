@@ -29,6 +29,17 @@ namespace Quelos {
 
     static RendererFactory s_RendererContextFactory;
 
+
+    static UniformBufferHandle u_lightDir;
+    static UniformBufferHandle u_lightColor;
+    static UniformBufferHandle u_cameraPos;
+
+    static UniformBufferHandle u_bandCount;
+    static UniformBufferHandle u_shadowThreshold;
+
+    // For ramp texture
+    static UniformBufferHandle u_rampTex;
+
     bool Renderer::IsInitialized() { return s_IsInitialized; }
 
     void Renderer::RegisterRendererContext(const RendererFactory factory) {
@@ -52,6 +63,15 @@ namespace Quelos {
         s_RendererContext->Init(window, api);
 
         s_IsInitialized = true;
+
+        u_lightDir = CreateUniformBuffer("u_lightDir", UniformBufferType::Float4);
+        u_lightColor = CreateUniformBuffer("u_lightColor", UniformBufferType::Float4);
+        u_cameraPos = CreateUniformBuffer("u_cameraPos", UniformBufferType::Float4);
+
+        u_bandCount = CreateUniformBuffer("u_bandCount", UniformBufferType::Float4);
+        u_shadowThreshold = CreateUniformBuffer("u_shadowThreshold", UniformBufferType::Float4);
+
+        u_rampTex = CreateUniformBuffer("s_rampTex", UniformBufferType::Sampler);
     }
 
     void Renderer::StartFrame() {
@@ -74,6 +94,25 @@ namespace Quelos {
     void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view,
                                     const glm::mat4& projection) {
         s_RendererContext->StartSceneRender(frameBuffer->GetHandle(), view, projection);
+
+        glm::vec3 lightDir = glm::normalize(-glm::vec3(0.5f, -1.0f, 0.3f));
+        const glm::vec4 lightDirData{ lightDir.x, lightDir.y, lightDir.z, 0.0f };
+        SetUniformData(u_lightDir, glm::value_ptr(lightDirData));
+
+        glm::vec4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
+        SetUniformData(u_lightColor, glm::value_ptr(lightColorData));
+
+        glm::mat4 invView = glm::inverse(view);
+        glm::vec3 camPos(invView[3]);
+
+        glm::vec4 camPosData(camPos, 0.0f);
+        SetUniformData(u_cameraPos, glm::value_ptr(camPosData));
+
+        constexpr glm::vec4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
+        SetUniformData(u_bandCount, glm::value_ptr(bandData));
+
+        glm::vec4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
+        SetUniformData(u_shadowThreshold, glm::value_ptr(shadowData));
     }
 
     void Renderer::EndFrame() {
@@ -140,6 +179,22 @@ namespace Quelos {
 
     void Renderer::Destroy(const IndexBufferHandle indexBufferHandle) {
         s_RendererContext->Destroy(indexBufferHandle);
+    }
+
+    UniformBufferHandle Renderer::CreateUniformBuffer(
+        const std::string& name,
+        const UniformBufferType uniformType,
+        const uint32_t count
+    ) {
+        return s_RendererContext->CreateUniformBuffer(name, uniformType, count);
+    }
+
+    void Renderer::SetUniformData(const UniformBufferHandle uniformBufferHandle, const void* data, const uint32_t count) {
+        s_RendererContext->SetUniformData(uniformBufferHandle, data, count);
+    }
+
+    void Renderer::Destroy(const UniformBufferHandle uniformBufferHandle) {
+        s_RendererContext->Destroy(uniformBufferHandle);
     }
 
     TextureHandle Renderer::CreateTexture(const TextureSpecification& spec) {

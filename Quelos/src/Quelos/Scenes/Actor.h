@@ -184,7 +184,7 @@ namespace std {
     template <>
     struct hash<Quelos::Actor> {
         size_t operator()(const Quelos::Actor& actor) const noexcept {
-            return std::hash<ecs_id_t>{}(actor.GetInternalID());
+            return actor.GetInternalID();
         }
     };
 }

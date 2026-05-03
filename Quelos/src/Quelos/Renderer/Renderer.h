@@ -53,6 +53,10 @@ namespace Quelos {
 		static void BindIndexBuffer(IndexBufferHandle handle);
 		static void Destroy(IndexBufferHandle indexBufferHandle);
 
+		static UniformBufferHandle CreateUniformBuffer(const std::string& name, UniformBufferType uniformType, uint32_t count = 1);
+		static void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count = 1);
+		static void Destroy(UniformBufferHandle uniformBufferHandle);
+
 		// Texture
 		static TextureHandle CreateTexture(const TextureSpecification& spec);
 		static TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data);
