@@ -38,6 +38,10 @@ namespace Quelos {
         void BindIndexBuffer(IndexBufferHandle indexBufferHandle) override;
         void Destroy(IndexBufferHandle indexBufferHandle) override;
 
+        UniformBufferHandle CreateUniformBuffer(const std::string& name, UniformBufferType uniformType, uint32_t count = 1) override;
+        void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count = 1) override;
+        void Destroy(UniformBufferHandle uniformBufferHandle) override;
+
         // Texture
         TextureHandle CreateTexture(const TextureSpecification& spec) override;
         TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data) override;

@@ -137,11 +137,9 @@ namespace Quelos {
     };
 }
 
-namespace std {
-    template <>
-    struct hash<Quelos::Entity> {
-        size_t operator()(const Quelos::Entity& e) const noexcept {
-            return std::hash<ecs_id_t>{}(e.GetInternalID());
-        }
-    };
-}
+template <>
+struct std::hash<Quelos::Entity> {
+    size_t operator()(const Quelos::Entity& e) const noexcept {
+        return e.GetInternalID();
+    }
+};

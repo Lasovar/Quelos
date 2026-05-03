@@ -92,6 +92,23 @@ namespace Quelos {
             result.end();
             return result;
         }
+
+        constexpr bgfx::UniformType::Enum UniformBufferTypeToBgfx(const UniformBufferType uniformType) {
+            switch (uniformType) {
+            case UniformBufferType::Sampler:
+                return bgfx::UniformType::Sampler;
+            case UniformBufferType::Float4:
+                return bgfx::UniformType::Vec4;
+            case UniformBufferType::Mat3:
+                return bgfx::UniformType::Mat3;
+            case UniformBufferType::Mat4:
+                return bgfx::UniformType::Mat4;
+            case UniformBufferType::Count:
+                return bgfx::UniformType::Count;
+            }
+
+            return bgfx::UniformType::Vec4;
+        }
     }
 
 
@@ -310,18 +327,10 @@ namespace Quelos {
 
     static ResourceTable<bgfx::VertexBufferHandle, VertexBuffer> s_VertexBufferTable;
     static ResourceTable<bgfx::IndexBufferHandle, IndexBuffer> s_IndexBufferTable;
+    static ResourceTable<bgfx::UniformHandle, UniformBuffer> s_UniformBufferTable;
     static ResourceTable<ShaderData, Shader> s_ShaderTable;
     static ResourceTable<TextureData, Texture> s_TextureDataTable;
     static ResourceTable<FrameBufferData, FrameBuffer> s_FrameBufferTable;
-    static bgfx::UniformHandle u_lightDir;
-    static bgfx::UniformHandle u_lightColor;
-    static bgfx::UniformHandle u_cameraPos;
-
-    static bgfx::UniformHandle u_bandCount;
-    static bgfx::UniformHandle u_shadowThreshold;
-
-    // For ramp texture
-    static bgfx::UniformHandle s_rampTex;
 
     void bgfxRendererContext::Init(const Ref<Window>& window, const RendererAPI api) {
         bgfx::PlatformData platformData;
@@ -343,15 +352,6 @@ namespace Quelos {
 
         bgfxInit.platformData = platformData;
         bgfx::init(bgfxInit);
-
-        u_lightDir = bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4);
-        u_lightColor = bgfx::createUniform("u_lightColor", bgfx::UniformType::Vec4);
-        u_cameraPos = bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4);
-
-        u_bandCount = bgfx::createUniform("u_bandCount", bgfx::UniformType::Vec4);
-        u_shadowThreshold = bgfx::createUniform("u_shadowThreshold", bgfx::UniformType::Vec4);
-
-        s_rampTex = bgfx::createUniform("s_rampTex", bgfx::UniformType::Sampler);
     }
 
     bool bgfxRendererContext::HomogenousDepth() {
@@ -380,25 +380,6 @@ namespace Quelos {
         bgfx::touch(viewId);
 
         bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
-
-        glm::vec3 lightDir = glm::normalize(-glm::vec3(0.5f, -1.0f, 0.3f));
-        const glm::vec4 lightDirData{ lightDir.x, lightDir.y, lightDir.z, 0.0f };
-        bgfx::setUniform(u_lightDir, glm::value_ptr(lightDirData));
-
-        glm::vec4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
-        bgfx::setUniform(u_lightColor, glm::value_ptr(lightColorData));
-
-        glm::mat4 invView = glm::inverse(view);
-        glm::vec3 camPos(invView[3]);
-
-        glm::vec4 camPosData(camPos, 0.0f);
-        bgfx::setUniform(u_cameraPos, glm::value_ptr(camPosData));
-
-        constexpr glm::vec4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
-        bgfx::setUniform(u_bandCount, glm::value_ptr(bandData));
-
-        glm::vec4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
-        bgfx::setUniform(u_shadowThreshold, glm::value_ptr(shadowData));
     }
 
     void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh,
@@ -545,6 +526,44 @@ namespace Quelos {
         s_IndexBufferTable.Erase(indexBufferHandle);
     }
 
+    UniformBufferHandle bgfxRendererContext::CreateUniformBuffer(
+        const std::string& name,
+        const UniformBufferType uniformType,
+        const uint32_t count
+    ) {
+        bgfx::UniformHandle handle = bgfx::createUniform(
+            name.c_str(),
+            Utility::UniformBufferTypeToBgfx(uniformType),
+            count
+        );
+
+        if (!bgfx::isValid(handle)) [[unlikely]] {
+            QS_CORE_ERROR("Failed to create Uniform Buffer!");
+            return {UniformBufferHandle::Invalid};
+        }
+
+        return s_UniformBufferTable.Emplace(handle);
+    }
+
+    void bgfxRendererContext::SetUniformData(
+        const UniformBufferHandle uniformBufferHandle,
+        const void* data,
+        const uint32_t count
+    ) {
+        const bgfx::UniformHandle* handle = s_UniformBufferTable.Get(uniformBufferHandle);
+        if (!handle) [[unlikely]] {
+            QS_CORE_ERROR("Failed to set Uniform Data!");
+            return;
+        }
+
+        bgfx::setUniform(*handle, data, count);
+    }
+
+    void bgfxRendererContext::Destroy(const UniformBufferHandle uniformBufferHandle) {
+        bgfx::destroy(*s_UniformBufferTable.Get(uniformBufferHandle));
+        s_UniformBufferTable.Erase(uniformBufferHandle);
+    }
+
     TextureHandle bgfxRendererContext::CreateTexture(const TextureSpecification& spec) {
         bgfx::TextureHandle handle = TextureUtil::CreateTextureHandle(spec);
         return s_TextureDataTable.Emplace(handle, spec);
@@ -572,21 +591,6 @@ namespace Quelos {
 
     bool bgfxRendererContext::TextureIsVFlipped() {
         return bgfx::getCaps()->originBottomLeft;
-    }
-
-    const TextureSpecification* bgfxRendererContext::GetSpecification(const TextureHandle textureHandle) {
-        const TextureData* textureData = s_TextureDataTable.Get(textureHandle);
-        if (!textureData) {
-            QS_CORE_ERROR_TAG(
-                "bgfxRendererContext::GetSpecification",
-                "Invalid texture handle ({},{})",
-                textureHandle.GetIndex(), textureHandle.GetGeneration()
-            );
-
-            return nullptr;
-        }
-
-        return &textureData->Specification;
     }
 
     void bgfxRendererContext::TextureResize(const TextureHandle textureHandle, const uint32_t width,
@@ -619,6 +623,21 @@ namespace Quelos {
         }
 
         return handle->Handle.idx;
+    }
+
+    const TextureSpecification* bgfxRendererContext::GetSpecification(const TextureHandle textureHandle) {
+        const TextureData* textureData = s_TextureDataTable.Get(textureHandle);
+        if (!textureData) {
+            QS_CORE_ERROR_TAG(
+                "bgfxRendererContext::GetSpecification",
+                "Invalid texture handle ({},{})",
+                textureHandle.GetIndex(), textureHandle.GetGeneration()
+            );
+
+            return nullptr;
+        }
+
+        return &textureData->Specification;
     }
 
     void bgfxRendererContext::Bind(TextureHandle textureHandle) {

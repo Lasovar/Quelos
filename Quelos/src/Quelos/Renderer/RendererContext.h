@@ -5,6 +5,7 @@
 #include "RendererAPI.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "UniformBuffer.h"
 #include "VertexBuffer.h"
 #include "VertexBufferLayout.h"
 #include "Quelos/Core/Window.h"
@@ -44,6 +45,10 @@ namespace Quelos {
         virtual IndexBufferHandle CreateIndexBuffer(Span<uint16_t> vertices) = 0;
         virtual void BindIndexBuffer(IndexBufferHandle indexBufferHandle) = 0;
         virtual void Destroy(IndexBufferHandle indexBufferHandle) = 0;
+
+        virtual UniformBufferHandle CreateUniformBuffer(const std::string& name, UniformBufferType uniformType, uint32_t count = 1) = 0;
+        virtual void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count = 1) = 0;
+        virtual void Destroy(UniformBufferHandle uniformBufferHandle) = 0;
 
         // Texture
         virtual TextureHandle CreateTexture(const TextureSpecification& spec) = 0;
