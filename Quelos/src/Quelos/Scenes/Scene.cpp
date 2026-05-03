@@ -101,7 +101,7 @@ namespace Quelos {
         }
 
         m_RenderingQuery.each([viewId](const WorldTransform& transform, const MeshComponent& mesh) {
-            if (!mesh.MeshData) {
+            if (!mesh.MeshData || !mesh.ShaderData) {
                 return;
             }
 
@@ -179,8 +179,13 @@ namespace Quelos {
     }
 
     void Scene::DestroyEntity(const EntityID entityId) {
-        const auto entity = m_ActorsMap[entityId];
-        entity.Destroy();
+        const auto it = m_EntitiesMap.find(entityId);
+        if (it == m_EntitiesMap.end()) {
+            return;
+        }
+
+        it->second.Destroy();
+        m_EntitiesMap.erase(entityId);
         m_ActorsMap.erase(entityId);
     }
 

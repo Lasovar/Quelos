@@ -528,7 +528,8 @@ namespace Quelos {
                 continue;
             }
 
-            if (std::optional<PatchState> patchStateResult = CollapsePatchState(patch.PatchStates); !patchStateResult) {
+            std::optional<PatchState> patchStateResult = CollapsePatchState(patch.PatchStates);
+            if (!patchStateResult) {
                 continue;
             }
 
@@ -555,6 +556,10 @@ namespace Quelos {
                 bool firstComponentField = true;
 
                 for (auto&& parserEvent : m_Reader.Parse()) {
+                    if (previousPatchState == PatchState::Added && patchStateResult == PatchState::Removed) {
+                        break;
+                    }
+
                     std::visit([&]<typename TEvent>(const TEvent& e) {
                         using T = std::decay_t<TEvent>;
 
@@ -640,6 +645,12 @@ namespace Quelos {
                     }, parserEvent);
                 }
 
+                if (previousPatchState == PatchState::Added && patchStateResult == PatchState::Removed) {
+                    patchReadFile.close();
+                    std::filesystem::remove(filePath);
+                    continue;
+                }
+
                 patch.PushFrontState(previousPatchState);
             }
 
@@ -647,12 +658,9 @@ namespace Quelos {
             StringQuelWriter quelWriter(stringBuffer);
             quelWriter.SetIndent(2);
 
-            const Actor entity = m_Scene->GetActor(actorId);
-
             PatchState patchState = CollapsePatchState(patch.PatchStates).value();
             quelWriter.Write(SectionEvent{"actor"});
             quelWriter.WriteField("guid", UnquotedString{guid});
-            quelWriter.WriteField("name", std::string_view(entity.GetName()));
             quelWriter.WriteField("state", UnquotedString{GetStateName(patchState)});
 
             quelWriter.CloseSection();
@@ -660,6 +668,10 @@ namespace Quelos {
             if (patchState == PatchState::Removed) {
                 continue;
             }
+
+            const Actor entity = m_Scene->GetActor(actorId);
+
+            quelWriter.WriteField("name", std::string_view(entity.GetName()));
 
             if (patch.ParentPatchCount > 0) {
                 if (const Actor parent = entity.GetParent(); !parent.GetActorID()) {

@@ -1,12 +1,11 @@
 #pragma once
 
 #include "Quelos/Core/GUID.h"
-#include "Quelos/Core/Ref.h"
 #include "Quelos/Utility/Hash.h"
 
 namespace Quelos {
     using AssetID = GUID128;
-    using AssetTypeID = uint64_t;
+    using AssetTypeID = uint32_t;
 
     struct QS_API AssetType {
         AssetType() = default;
@@ -30,13 +29,13 @@ namespace Quelos {
     class QS_API Asset {
     public:
         virtual ~Asset() = default;
-        AssetID GetAssetID() const { return Handle; }
-        void SetAssetID(const AssetID handle) { Handle = handle; }
+        [[nodiscard]] AssetID GetAssetID() const { return m_AssetId; }
+        void SetAssetID(const AssetID handle) { m_AssetId = handle; }
 
         static const AssetType& GetStaticType() { return AssetType::Invalid; }
-        virtual const AssetType& GetAssetType() const = 0;
+        [[nodiscard]] virtual const AssetType& GetAssetType() const = 0;
     protected:
-        AssetID Handle;
+        AssetID m_AssetId;
     };
 
     QS_API AssetType GetAssetType(std::string name);
@@ -48,7 +47,6 @@ namespace Quelos {
         return GetAssetType(std::move(assetTypeName));
     }
 }
-
 
 template<>
 struct std::hash<Quelos::AssetType> {

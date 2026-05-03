@@ -61,10 +61,10 @@ namespace Quelos {
                 m_Deleter(m_Data);
             }
 
-            release_ownership();
+            disown();
         }
 
-        void release_ownership() {
+        void disown() {
             m_Data = nullptr;
             m_Size = 0;
             m_Deleter = nullptr;
@@ -72,6 +72,10 @@ namespace Quelos {
 
         [[nodiscard]] BufferView view() const {
             return { m_Data, m_Size };
+        }
+
+        operator BufferView() const {
+            return view();
         }
 
         MutBufferView mut_view() {

@@ -50,7 +50,7 @@ namespace QuelosEditor {
 
     private:
         std::array<char, 64> m_EntityNameField{};
-        HashMap<Entity, HashSet<RuntimeID>> m_ExpandedComponents;
+        HashMap<Entity, HashSet<RuntimeID>> m_CollapsedComponents;
         HashMap<RuntimeID, CustomInspector> m_CustomInspectors;
 
         Actor m_SelectedActor;

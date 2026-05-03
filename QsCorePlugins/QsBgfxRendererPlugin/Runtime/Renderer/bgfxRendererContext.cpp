@@ -38,7 +38,7 @@ namespace Quelos {
                 std::bit_cast<void*>(shader.deleter())
             );
 
-            shader.release_ownership();
+            shader.disown();
 
             const bgfx::ShaderHandle handle = bgfx::createShader(mem);
             bgfx::setName(handle, name.c_str(), static_cast<int32_t>(name.length()));
@@ -269,7 +269,7 @@ namespace Quelos {
                     std::bit_cast<Buffer::Deleter>(userData)(data);
                 }, std::bit_cast<void*>(data.deleter()));
 
-                data.release_ownership();
+                data.disown();
             }
 
             return bgfx::createTexture2D(
@@ -313,6 +313,15 @@ namespace Quelos {
     static ResourceTable<ShaderData, Shader> s_ShaderTable;
     static ResourceTable<TextureData, Texture> s_TextureDataTable;
     static ResourceTable<FrameBufferData, FrameBuffer> s_FrameBufferTable;
+    static bgfx::UniformHandle u_lightDir;
+    static bgfx::UniformHandle u_lightColor;
+    static bgfx::UniformHandle u_cameraPos;
+
+    static bgfx::UniformHandle u_bandCount;
+    static bgfx::UniformHandle u_shadowThreshold;
+
+    // For ramp texture
+    static bgfx::UniformHandle s_rampTex;
 
     void bgfxRendererContext::Init(const Ref<Window>& window, const RendererAPI api) {
         bgfx::PlatformData platformData;
@@ -334,6 +343,15 @@ namespace Quelos {
 
         bgfxInit.platformData = platformData;
         bgfx::init(bgfxInit);
+
+        u_lightDir = bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4);
+        u_lightColor = bgfx::createUniform("u_lightColor", bgfx::UniformType::Vec4);
+        u_cameraPos = bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4);
+
+        u_bandCount = bgfx::createUniform("u_bandCount", bgfx::UniformType::Vec4);
+        u_shadowThreshold = bgfx::createUniform("u_shadowThreshold", bgfx::UniformType::Vec4);
+
+        s_rampTex = bgfx::createUniform("s_rampTex", bgfx::UniformType::Sampler);
     }
 
     bool bgfxRendererContext::HomogenousDepth() {
@@ -362,6 +380,25 @@ namespace Quelos {
         bgfx::touch(viewId);
 
         bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
+
+        glm::vec3 lightDir = glm::normalize(-glm::vec3(0.5f, -1.0f, 0.3f));
+        const glm::vec4 lightDirData{ lightDir.x, lightDir.y, lightDir.z, 0.0f };
+        bgfx::setUniform(u_lightDir, glm::value_ptr(lightDirData));
+
+        glm::vec4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
+        bgfx::setUniform(u_lightColor, glm::value_ptr(lightColorData));
+
+        glm::mat4 invView = glm::inverse(view);
+        glm::vec3 camPos(invView[3]);
+
+        glm::vec4 camPosData(camPos, 0.0f);
+        bgfx::setUniform(u_cameraPos, glm::value_ptr(camPosData));
+
+        constexpr glm::vec4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
+        bgfx::setUniform(u_bandCount, glm::value_ptr(bandData));
+
+        glm::vec4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
+        bgfx::setUniform(u_shadowThreshold, glm::value_ptr(shadowData));
     }
 
     void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh,
@@ -371,7 +408,8 @@ namespace Quelos {
         BindVertexBuffer(mesh.MeshData->GetVertexBuffer(), 0);
         BindIndexBuffer(mesh.MeshData->GetIndexBuffer());
 
-        Submit(mesh.MaterialData->GetShaderHandle(), viewID);
+        //Submit(mesh.MaterialData->GetShaderHandle(), viewID);
+        Submit(mesh.ShaderData->GetHandle(), viewID);
     }
 
     void bgfxRendererContext::Reset(const uint32_t width, const uint32_t height) {

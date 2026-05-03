@@ -20,32 +20,37 @@ namespace QuelosEditor {
     }
 
     bool EditorAssetImporter::IsAssetSupported(std::string_view path) {
-        return std::ranges::any_of(s_EditorAssetLoaders | std::views::values,
+        if (!std::ranges::any_of(s_EditorAssetLoaders | std::views::values,
             [&path](const EditorAssetImporterConfig& importerConfig) {
                 return importerConfig.IsAssetSupported(path);
             }
-        );
+        )) {
+            return AssetImporter::IsAssetSupported(path);
+        }
+
+        return true;
     }
 
     const AssetType& EditorAssetImporter::GetAssetType(const std::string_view path) {
-        for (auto & importerConfig : s_EditorAssetLoaders | std::views::values) {
+        for (auto& importerConfig : s_EditorAssetLoaders | std::views::values) {
             if (importerConfig.IsAssetSupported(path)) {
                 return importerConfig.Type;
             }
         }
 
-        return AssetType::Invalid;
+        return AssetImporter::GetAssetType(path);
     }
 
     bool EditorAssetImporter::ImportAsset(void* dataSlot, const AssetMetadata& metadata) {
         const auto it = s_EditorAssetLoaders.find(metadata.Type);
         if (it == s_EditorAssetLoaders.end()) {
-            QS_CORE_ERROR_TAG(
-                "EditorAssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",
-                metadata.FilePath
-            );
+            return AssetImporter::ImportAsset(dataSlot, metadata);
+        }
 
-            return false;
+        if (it->second.CookAsset) {
+            if (!it->second.CookAsset(metadata)) {
+                return false;
+            }
         }
 
         return it->second.LoadAsset(dataSlot, metadata);

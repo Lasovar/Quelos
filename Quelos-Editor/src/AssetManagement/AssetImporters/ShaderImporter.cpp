@@ -2,6 +2,7 @@
 
 #include "EditorLayer.h"
 #include "Quelos/Utility/FileSystem.h"
+#include "Quelos/Utility/QuelosUtil.h"
 
 namespace QuelosEditor {
     namespace ShaderImporter {
@@ -114,10 +115,13 @@ namespace QuelosEditor {
         }
 
         bool Import(void* dataSlot, const AssetMetadata& metadata) {
-            Buffer vertexBuffer, fragmentBuffer;
-            if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer,  fragmentBuffer)) {
-                return false;
-            }
+            const OsPath cookedPath = Project::GetCookedAssetsPath() / "Shaders";
+            std::string handleStr = metadata.Handle.ToString();
+            const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
+            const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
+
+            Buffer vertexBuffer = Utility::ReadFile(cookedVertexPath, false);
+            Buffer fragmentBuffer = Utility::ReadFile(cookedFragmentPath, false);
 
             auto* shader = new (dataSlot) Shader(
                 std::move(vertexBuffer),
@@ -172,11 +176,34 @@ namespace QuelosEditor {
             }
 
             Buffer vertexBuffer, fragmentBuffer;
-            CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer);
+            if (!CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer)) {
+                return false;
+            }
+
             shader->Recreate(std::move(vertexBuffer), std::move(fragmentBuffer));
             return true;
         }
 
+        bool Cook(const AssetMetadata& metadata) {
+            const OsPath cookedPath = Project::GetCookedAssetsPath() / "Shaders";
+            std::string handleStr = metadata.Handle.ToString();
+            const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
+            const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
+
+            Buffer vertexBuffer, fragmentBuffer;
+
+            if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer, fragmentBuffer)) {
+                return false;
+            }
+
+            if (!std::filesystem::exists(cookedVertexPath.parent_path())) {
+                std::filesystem::create_directories(cookedVertexPath.parent_path());
+            }
+
+            Utility::WriteFile(cookedVertexPath, vertexBuffer);
+            Utility::WriteFile(cookedFragmentPath, fragmentBuffer);
+            return true;
+        }
 
         AssetID ReadAssetHandle(const std::string_view assetPath) {
             return DeserializeHandle(GetMetadataPath(assetPath));
@@ -197,7 +224,8 @@ namespace QuelosEditor {
                 IsAssetSupported,
                 Reimport,
                 ReadAssetHandle,
-                WriteAssetHandle
+                WriteAssetHandle,
+                Cook
             };
         }
 
