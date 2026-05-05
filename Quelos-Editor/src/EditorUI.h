@@ -42,8 +42,6 @@ namespace QuelosEditor {
             ImGui::TextUnformatted(label.c_str());
             ImGui::NextColumn();
 
-            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-
             ImGui::BeginGroup();
 
             // Asset display name
@@ -61,7 +59,7 @@ namespace QuelosEditor {
             }
 
             constexpr float resetButtonSize = 30.0f;
-            const ImVec2 size = {ImGui::GetContentRegionAvail().x - resetButtonSize * 2.0f, ImGui::GetFrameHeight()};
+            const ImVec2 size = {ImGui::GetContentRegionAvail().x - (resetButtonSize * 2.0f) - 4.0f * 3.0f, ImGui::GetFrameHeight()};
 
             ImGui::Dummy(size);
 
@@ -183,7 +181,6 @@ namespace QuelosEditor {
             ImGui::EndGroup();
 
             ImGui::PopStyleVar(2);
-            ImGui::PopItemWidth();
 
             ImGui::Columns(1);
             ImGui::PopID();
