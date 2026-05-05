@@ -96,34 +96,21 @@ namespace Quelos::UI {
         const float min,
         const float max,
         const float dragWidth,
-        const ImVec2& buttonSize,
-        const AxisColor& color,
-        ImFont* boldFont
+        const AxisColor& color
     ) {
         bool changed = false;
 
-        ImGui::PushStyleColor(ImGuiCol_Button, color.Base);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color.Hover);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, color.Active);
-
-        ImGui::PushFont(boldFont);
-        if (ImGui::Button(label, buttonSize)) {
-            value = resetValue;
-            changed = true;
-        }
-        ImGui::PopFont();
-        ImGui::PopStyleColor(3);
-
-        ImGui::SameLine();
-
         ImGui::PushItemWidth(dragWidth);
+
+        ImGui::SetNextItemColorMarker(ImColor(color.Base));
         changed |= ImGui::DragFloat(
             FormatTemp("##{}", label),
             &value,
             speed,
             min,
             max,
-            "%.2f"
+            "%.2f",
+            ImGuiSliderFlags_ColorMarkers
         );
         ImGui::PopItemWidth();
 
@@ -141,9 +128,6 @@ namespace Quelos::UI {
         const float min,
         const float max
     ) {
-        const ImGuiIO& io = ImGui::GetIO();
-        ImFont* boldFont = io.Fonts->Fonts[0];
-
         bool changed = false;
         const uint32_t count = T::length();
 
@@ -154,18 +138,14 @@ namespace Quelos::UI {
         ImGui::TextUnformatted(label.c_str());
         ImGui::NextColumn();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {4, 0});
 
         const float totalWidth = ImGui::GetContentRegionAvail().x;
         const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
-        const float lineHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        const ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
-
-        const float totalButtonsWidth = buttonSize.x * count;
         const float totalSpacingWidth = spacing * (count - 1);
 
-        float dragWidth = (totalWidth - totalButtonsWidth - totalSpacingWidth) / count;
+        float dragWidth = (totalWidth - totalSpacingWidth) / count;
 
         ImGui::BeginGroup();
 
@@ -182,9 +162,7 @@ namespace Quelos::UI {
                 min,
                 max,
                 dragWidth,
-                buttonSize,
-                colors[i],
-                boldFont
+                colors[i]
             );
 
             if (i != count - 1) {
