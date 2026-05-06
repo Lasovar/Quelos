@@ -10,6 +10,21 @@
 #include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
+    std::string ToHex(const unsigned char* data, const size_t size) {
+        std::string out;
+        out.reserve(size * 3);
+
+        for (size_t i = 0; i < size; ++i) {
+            fmt::format_to(
+                std::back_inserter(out),
+                "{:02X}",
+                data[i]
+            );
+        }
+
+        return out;
+    }
+
     static QS_ShaderOutputArray CompileBgfx(const QS_ShaderCompileDesc* desc) {
         using namespace TinyProcessLib;
 
@@ -32,7 +47,7 @@ namespace Quelos {
 
         std::string shadercPath = (Application::Get().GetApplicationPath() / "Tools/bin/shaderc").generic_string();
         std::string sourcePath = (Project::GetProjectPath() / desc->sourcePath).generic_string();
-        std::string handle =  fmt::format("{:016X}", std::bit_cast<fmt::detail::uint128_t>(desc->assetHandle.Bytes));
+        std::string handle =  ToHex(desc->assetHandle.Bytes, sizeof(desc->assetHandle.Bytes));
         std::string includePath(FS::Parent(shadercPath));
 
         OsPath shaderBinariesPath = Project::GetLibraryPath() / "Shaders";
