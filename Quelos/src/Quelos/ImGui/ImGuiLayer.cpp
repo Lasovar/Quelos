@@ -41,6 +41,7 @@ namespace Quelos {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
+		io.ConfigDragClickToInputText = true;
 
 		Ref<Window> window = Application::Get().GetWindow();
 		switch (window->GetWindowBacked()) {
