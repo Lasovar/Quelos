@@ -18,7 +18,7 @@ namespace QuelosEditor {
         HashMap<Serialization::PathID, std::string> FormattedFieldNames;
     };
 
-    using DrawComponentInspector = void(*)(void*);
+    using DrawComponentInspector = std::function<void(void* componentData, const InspectorComponent& componentInfo, Entity entity)>;
 
     struct CustomInspector {
         std::string ComponentName;

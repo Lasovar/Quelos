@@ -382,7 +382,7 @@ namespace Quelos {
         bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
     }
 
-    void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh,
+    void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh,
                                          const WorldTransform& transform) {
         bgfx::setTransform(glm::value_ptr(transform.Value));
 

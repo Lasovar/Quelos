@@ -120,7 +120,7 @@ namespace Quelos {
         s_RendererContext->EndFrame();
     }
 
-    void Renderer::SubmitMesh(const uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) {
+    void Renderer::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) {
         s_RendererContext->SubmitMesh(viewID, mesh, transform);
     }
 
