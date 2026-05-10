@@ -29,7 +29,7 @@ namespace Quelos {
             const glm::mat4& projection
         ) = 0;
 
-        virtual void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) = 0;
+        virtual void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) = 0;
 
         virtual void Reset(uint32_t width, uint32_t height) = 0;
 

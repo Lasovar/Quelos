@@ -60,14 +60,100 @@ namespace QuelosEditor {
             RegisterComponents(AllComponents{}, m_Scene->GetWorld(), s_InspectorArchiveSerialize);
 
             static auto meshInspector = [](void* meshComponentData) {
-                const MeshComponent& meshComponent = *static_cast<MeshComponent*>(meshComponentData);
+                const MeshRenderer& meshComponent = *static_cast<MeshRenderer*>(meshComponentData);
             };
 
-            /*RegisterCustomInspector(CustomInspector {
-                std::string(TypeNameShort<MeshComponent>()),
-                ComponentRegistry::GetComponentID<MeshComponent>(),
-                meshInspector
-            });*/
+            static auto transformInspector = [&](void* transformData, const InspectorComponent& component, const Entity entity) {
+                LocalTransform& localTransform = *static_cast<LocalTransform*>(transformData);
+                static auto startValue = glm::zero<glm::vec3>();
+                static bool startedEditing = false;
+                glm::vec3 temp = localTransform.Position;
+
+                if (UI::EditVec3("Position", temp)) {
+                    if (!startedEditing) {
+                        startedEditing = true;
+                        startValue = localTransform.Position;
+                    }
+
+                    localTransform.Position = temp;
+                }
+
+                ComponentRegistry& registry = m_Scene->GetComponentRegistry();
+                const flecs::world& world = m_Scene->GetWorld();
+
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    m_UndoSystem.Push<SetField<glm::vec3>>(
+                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        entity.Get<EntityID>(),
+                        m_Scene,
+                        component.SetFieldSerializeFn,
+                        "position",
+                        startValue,
+                        localTransform.Position
+                    );
+
+                    startedEditing = false;
+                }
+
+                temp = glm::degrees(glm::eulerAngles(localTransform.Rotation));
+                static glm::vec3 rotationValue;
+                static bool startedEditingRotation = false;
+
+                if (UI::EditVec3("Rotation", startedEditingRotation ? rotationValue : temp)) {
+                    if (!startedEditingRotation) {
+                        startedEditingRotation = true;
+                        startValue = glm::eulerAngles(localTransform.Rotation);
+                        rotationValue = temp;
+                    }
+
+                    localTransform.Rotation = glm::radians(rotationValue);
+                }
+
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    m_UndoSystem.Push<SetField<glm::quat>>(
+                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        entity.Get<EntityID>(),
+                        m_Scene,
+                        component.SetFieldSerializeFn,
+                        "rotation",
+                        startValue,
+                        localTransform.Rotation
+                    );
+
+                    startedEditingRotation = false;
+                }
+
+                temp = localTransform.Scale;
+
+                if (UI::EditVec3("Scale", temp)) {
+                    if (!startedEditing) {
+                        startedEditing = true;
+                        startValue = localTransform.Scale;
+                    }
+
+                    localTransform.Scale = temp;
+                }
+
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    m_UndoSystem.Push<SetField<glm::vec3>>(
+                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        entity.Get<EntityID>(),
+                        m_Scene,
+                        component.SetFieldSerializeFn,
+                        "scale",
+                        startValue,
+                        localTransform.Scale
+                    );
+
+                    startedEditing = false;
+                }
+            };
+
+            RegisterCustomInspector(CustomInspector {
+                std::string(TypeNameShort<LocalTransform>()),
+                ComponentRegistry::GetComponentID<LocalTransform>(),
+                transformInspector
+            });
         }
     }
 
@@ -192,20 +278,19 @@ namespace QuelosEditor {
                 m_Scene->GetWorld().defer_begin();
 
                 m_SelectedActor.GetInternalID().each([&](const flecs::id runtimeId) {
+                    const auto it = s_InspectorArchiveSerialize.find(runtimeId);
+                    if (it == s_InspectorArchiveSerialize.end()) {
+                        return;
+                    }
 
                     auto customInspector = m_CustomInspectors.find(runtimeId);
                     if (customInspector != m_CustomInspectors.end()) {
                         ImGui::PushID(runtimeId);
                         if (ComponentHeader(customInspector->second.ComponentName.c_str(), runtimeId)) {
-                            customInspector->second.DrawFn(m_SelectedActor.GetMut(runtimeId));
+                            customInspector->second.DrawFn(m_SelectedActor.GetMut(runtimeId), it->second, static_cast<Entity>(m_SelectedActor));
                         }
                         ImGui::PopID();
 
-                        return;
-                    }
-
-                    const auto it = s_InspectorArchiveSerialize.find(runtimeId);
-                    if (it == s_InspectorArchiveSerialize.end()) {
                         return;
                     }
 

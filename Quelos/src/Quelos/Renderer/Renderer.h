@@ -37,7 +37,7 @@ namespace Quelos {
 		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view, const glm::mat4& projection);
 		static void EndFrame();
 
-		static void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform);
+		static void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform);
 
 		// Renderer Context API
         static ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);

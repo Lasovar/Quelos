@@ -89,13 +89,13 @@ namespace Quelos {
         }
     };
 
-    struct QS_API MeshComponent {
+    struct QS_API MeshRenderer {
         AssetRef<Mesh> MeshData;
         AssetRef<Shader> ShaderData;
         //Ref<Material> MaterialData = CreateRef<Material>();
 
         template <typename TArchive>
-        static void Serialize(TArchive& archive, MeshComponent& data) {
+        static void Serialize(TArchive& archive, MeshRenderer& data) {
             archive.Field("mesh", data.MeshData);
             archive.Field("shader", data.ShaderData);
 
@@ -117,5 +117,5 @@ namespace Quelos {
     template <typename... Component>
     struct ComponentGroup { };
 
-    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshComponent, SpriteRenderer>;
+    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshRenderer, SpriteRenderer>;
 }

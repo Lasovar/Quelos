@@ -126,7 +126,7 @@ namespace Quelos {
         flecs::entity m_SceneRoot;
 
         flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;
-        flecs::query<const WorldTransform&, const MeshComponent&> m_RenderingQuery;
+        flecs::query<const WorldTransform&, const MeshRenderer&> m_RenderingQuery;
 
         bool m_SceneRenderStarted = false;
 

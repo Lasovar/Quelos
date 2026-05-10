@@ -33,7 +33,7 @@ namespace Quelos {
                });
 
         m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
-        m_RenderingQuery = m_World.query<const WorldTransform&, const MeshComponent&>();
+        m_RenderingQuery = m_World.query<const WorldTransform&, const MeshRenderer&>();
 
         m_TransformUpdate = m_World.entity("TransformUpdate")
                                    .add(flecs::Phase)
@@ -100,7 +100,7 @@ namespace Quelos {
             return;
         }
 
-        m_RenderingQuery.each([viewId](const WorldTransform& transform, const MeshComponent& mesh) {
+        m_RenderingQuery.each([viewId](const WorldTransform& transform, const MeshRenderer& mesh) {
             if (!mesh.MeshData || !mesh.ShaderData) {
                 return;
             }

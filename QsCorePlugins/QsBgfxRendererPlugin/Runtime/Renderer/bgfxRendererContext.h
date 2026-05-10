@@ -19,7 +19,7 @@ namespace Quelos {
             const glm::mat4& projection
         ) override;
 
-        void SubmitMesh(uint32_t viewID, const MeshComponent& mesh, const WorldTransform& transform) override;
+        void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) override;
 
         void Reset(uint32_t width, uint32_t height) override;
 

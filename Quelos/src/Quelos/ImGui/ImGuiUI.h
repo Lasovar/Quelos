@@ -119,7 +119,7 @@ namespace Quelos::UI {
 
     template <TupleLike T>
     bool EditVectorN(
-        const std::string& label,
+        const std::string_view label,
         T& value,
         const std::array<AxisColor, 4> colors,
         const std::array<const char*, 4> axisLabels,
@@ -131,11 +131,11 @@ namespace Quelos::UI {
         bool changed = false;
         const uint32_t count = T::length();
 
-        ImGui::PushID(label.c_str());
+        ImGui::PushID(FormatTemp("{}", label));
         ImGui::Columns(2, nullptr, false);
 
         ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
-        ImGui::TextUnformatted(label.c_str());
+        ImGui::TextUnformatted(FormatTemp("{}", label));
         ImGui::NextColumn();
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {4, 0});
@@ -216,7 +216,7 @@ namespace Quelos::UI {
     }
 
     inline bool EditVec3(
-        const std::string& label, glm::vec3& value,
+        const std::string_view label, glm::vec3& value,
         const glm::vec3 reset = glm::zero<glm::vec3>(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
