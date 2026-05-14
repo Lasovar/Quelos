@@ -77,6 +77,7 @@ add_subdirectory(Quelos/vendor/daScript)
 
 # Header libraries
 add_subdirectory(Quelos/vendor/glm)
+add_subdirectory(Quelos/vendor/hlslpp)
 add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
 add_subdirectory(Quelos/vendor/xxhash)

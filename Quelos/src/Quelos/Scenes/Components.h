@@ -1,7 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "Quelos/Math/Math.h"
 
 #include "Quelos/Serialization/BinaryWriter.h"
 #include "Quelos/Serialization/Serializer.h"
@@ -37,9 +36,9 @@ namespace Quelos {
     };
 
     struct QS_API LocalTransform {
-        glm::vec3 Position = glm::zero<glm::vec3>();
-        glm::quat Rotation = glm::identity<glm::quat>();
-        glm::vec3 Scale = glm::vec3(1);
+        float3 Position;
+        quaternion Rotation = quaternion::identity();
+        float3 Scale = float3(1);
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, LocalTransform& data) {
@@ -50,7 +49,7 @@ namespace Quelos {
     };
 
     struct QS_API WorldTransform {
-        glm::mat4 Value;
+        float4x4 Value;
     };
 
     struct QS_API CameraComponent {

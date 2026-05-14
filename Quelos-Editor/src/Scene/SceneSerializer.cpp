@@ -690,11 +690,7 @@ namespace Quelos {
             }
 
             for (auto& [componentId, compPatch] : patch.Components) {
-                if (compPatch.PatchStates.empty()) {
-                    continue;
-                }
-
-                PatchState compPatchState = CollapsePatchState(compPatch.PatchStates).value();
+                PatchState compPatchState = CollapsePatchState(compPatch.PatchStates).value_or(PatchState::Changed);
                 if (compPatchState == PatchState::Removed && patchState == PatchState::Added) {
                     continue;
                 }
@@ -761,7 +757,7 @@ namespace Quelos {
         ComponentRegistry& registry = m_Scene->GetComponentRegistry();
         const auto& types = registry.GetSerializableComponents();
 
-        std::vector<std::byte> buffer;
+        Vec<byte> buffer;
         BinaryWriter writer(buffer);
 
         Entity sceneRoot = m_Scene->GetSceneRoot();
@@ -785,11 +781,11 @@ namespace Quelos {
         for (auto& actorId : rootActors) {
             EntitySnapshot snapshot = EntitySnapshot::Create(m_Scene, actorId);
             writer.Write<uint32_t>(snapshot.Data.size());
-            writer.WriteBytes(std::span(snapshot.Data));
+            writer.WriteBytes(Span(snapshot.Data));
         }
 
         // Disk write
-        std::filesystem::path sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
         std::ofstream sceneFile(sceneFilePath, std::ios::binary);
 
         if (!sceneFile) {

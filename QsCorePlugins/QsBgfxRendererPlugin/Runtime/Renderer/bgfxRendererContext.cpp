@@ -12,7 +12,6 @@
 #include <bimg/bimg.h>
 #include <bimg/decode.h>
 
-#include "glm/gtc/type_ptr.hpp"
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
@@ -367,8 +366,8 @@ namespace Quelos {
 
     void bgfxRendererContext::StartSceneRender(
         const FrameBufferHandle frameBuffer,
-        const glm::mat4& view,
-        const glm::mat4& projection
+        const float4x4& view,
+        const float4x4& projection
     ) {
         const auto* frameBufferData = s_FrameBufferTable.Get(frameBuffer);
         const uint32_t viewId = frameBufferData->ViewId;
@@ -379,12 +378,15 @@ namespace Quelos {
         bgfx::setViewRect(viewId, 0, 0, frameBufferData->Width, frameBufferData->Height);
         bgfx::touch(viewId);
 
-        bgfx::setViewTransform(viewId, glm::value_ptr(view), glm::value_ptr(projection));
+        pfloat4x4 pView = view;
+        pfloat4x4 pProj = projection;
+        bgfx::setViewTransform(viewId, &pView.m00, &pProj.m00);
     }
 
     void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh,
                                          const WorldTransform& transform) {
-        bgfx::setTransform(glm::value_ptr(transform.Value));
+        pfloat4x4 pTran = transform.Value;
+        bgfx::setTransform(&pTran.m00);
 
         BindVertexBuffer(mesh.MeshData->GetVertexBuffer(), 0);
         BindIndexBuffer(mesh.MeshData->GetIndexBuffer());
@@ -714,7 +716,7 @@ namespace Quelos {
         return data->Height;
     }
 
-    glm::uvec2 bgfxRendererContext::FrameBufferGetSize(const FrameBufferHandle frameBufferHandle) {
+    uint2 bgfxRendererContext::FrameBufferGetSize(const FrameBufferHandle frameBufferHandle) {
         auto* data = s_FrameBufferTable.Get(frameBufferHandle);
         if (!data) {
             QS_CORE_ERROR_TAG(
@@ -723,7 +725,7 @@ namespace Quelos {
                 frameBufferHandle.GetIndex(), frameBufferHandle.GetGeneration()
             );
 
-            return glm::zero<glm::uvec2>();
+            return { 0 };
         }
 
         return {data->Width, data->Height};

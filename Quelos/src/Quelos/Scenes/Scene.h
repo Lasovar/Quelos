@@ -81,7 +81,7 @@ namespace Quelos {
         Entity GetSceneRoot() const { return m_SceneRoot; }
         void SetActorParentToRoot(const Actor& actor) const;
 
-        void OnViewportResized(glm::vec2 viewportSize) const;
+        void OnViewportResized(float2 viewportSize) const;
 
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }

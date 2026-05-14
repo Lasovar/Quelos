@@ -8,10 +8,6 @@
 #include "Shader.h"
 #include "VertexBuffer.h"
 
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtx/quaternion.hpp"
-
 #include "Quelos/Core/Application.h"
 #include "Quelos/Core/Events/WindowEvents.h"
 #include "Quelos/ImGui/ImGuiState.h"
@@ -86,33 +82,34 @@ namespace Quelos {
     void Renderer::StartSceneRender(
         const Ref<FrameBuffer>& frameBuffer,
         const WorldTransform& transform,
-        const glm::mat4& projection
+        const float4x4& projection
     ) {
-        StartSceneRender(frameBuffer, Math::ViewMatrix(transform.Value), projection);
+        StartSceneRender(frameBuffer, mathExt::view(transform.Value), projection);
     }
 
-    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view,
-                                    const glm::mat4& projection) {
+    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view,
+                                    const float4x4& projection) {
         s_RendererContext->StartSceneRender(frameBuffer->GetHandle(), view, projection);
 
-        glm::vec3 lightDir = glm::normalize(-glm::vec3(0.5f, -1.0f, 0.3f));
-        const glm::vec4 lightDirData{ lightDir.x, lightDir.y, lightDir.z, 0.0f };
-        SetUniformData(u_lightDir, glm::value_ptr(lightDirData));
+        using namespace hlslpp;
+        float3 lightDir = normalize(-float3(0.5f, -1.0f, 0.3f));
+        const float4 lightDirData{ lightDir, 0.0f };
+        SetUniformData(u_lightDir, math::value_ptr(lightDirData));
 
-        glm::vec4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
-        SetUniformData(u_lightColor, glm::value_ptr(lightColorData));
+        float4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
+        SetUniformData(u_lightColor, math::value_ptr(lightColorData));
 
-        glm::mat4 invView = glm::inverse(view);
-        glm::vec3 camPos(invView[3]);
+        float4x4 invView = inverse(view);
+        float3 camPos(invView[3].xyz);
 
-        glm::vec4 camPosData(camPos, 0.0f);
-        SetUniformData(u_cameraPos, glm::value_ptr(camPosData));
+        float4 camPosData(camPos, 0.0f);
+        SetUniformData(u_cameraPos, math::value_ptr(camPosData));
 
-        constexpr glm::vec4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
-        SetUniformData(u_bandCount, glm::value_ptr(bandData));
+        const float4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
+        SetUniformData(u_bandCount, math::value_ptr(bandData));
 
-        glm::vec4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
-        SetUniformData(u_shadowThreshold, glm::value_ptr(shadowData));
+        float4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
+        SetUniformData(u_shadowThreshold, math::value_ptr(shadowData));
     }
 
     void Renderer::EndFrame() {
@@ -245,7 +242,7 @@ namespace Quelos {
         return s_RendererContext->FrameBufferGetHeight(frameBufferHandle);
     }
 
-    glm::uvec2 Renderer::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
+    uint2 Renderer::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetSize(frameBufferHandle);
     }
 

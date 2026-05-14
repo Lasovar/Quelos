@@ -19,8 +19,6 @@
 #include "Quelos/ImGui/icons_kenney.h"
 #include "Quelos/ImGui/icons_font_awesome.h"
 
-#include "glm/gtc/type_ptr.hpp"
-
 #include "Quelos/Core/Application.h"
 #include "Quelos/Math/Math.h"
 
@@ -257,13 +255,13 @@ namespace Quelos {
             const float width = drawData->DisplaySize.x;
             const float height = drawData->DisplaySize.y;
 
-            glm::mat4 ortho = Math::OrthographicMatrix(
+            float4x4 ortho = mathExt::orthographic(
                 x, x + width,
                 y + height, y,
                 0.0f, 1000.0f
             );
 
-            bgfx::setViewTransform(ViewId, nullptr, glm::value_ptr(ortho));
+            bgfx::setViewTransform(ViewId, nullptr, math::value_ptr(ortho));
             bgfx::setViewRect(ViewId, 0, 0, static_cast<uint16_t>(width), static_cast<uint16_t>(height));
         }
 

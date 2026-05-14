@@ -8,8 +8,7 @@
 #include "spdlog/fmt/fmt.h"
 #include "magic_enum/magic_enum.hpp"
 
-#include "glm/vec3.hpp"
-#include "glm/gtc/type_ptr.hpp"
+#include "Quelos/Math/Math.h"
 
 #include "Quelos/Utility/TupleLike.h"
 #include "Quelos/AssetManager/AssetManager.h"
@@ -84,7 +83,7 @@ namespace Quelos::UI {
         case 'Z': return {{0.1f, 0.25f, 0.8f, 1}, {0.2f, 0.3f, 0.9f, 1}, {0.1f, 0.25f, 0.8f, 1}};
         case 'W': return {{0.65f, 0.5f, 0.1f, 1}, {0.8f, 0.65f, 0.2f, 1}, {0.6f, 0.45f, 0.1f, 1}};
         case 'Q': return {{0.6f, 0.3f, 0.9f, 1}, {0.7f, 0.4f, 1.0f, 1}, {0.6f, 0.3f, 0.9f, 1}};
-        default: return {{0.5f, 0.5f, 0.5f, 1}, {0.6f, 0.6f, 0.6f, 1}, {0.5f, 0.5f, 0.5f, 1}};
+        default: std::unreachable();
         }
     }
 
@@ -117,25 +116,35 @@ namespace Quelos::UI {
         return changed;
     }
 
-    template <TupleLike T>
-    bool EditVectorN(
+    template <FloatType T>
+    bool EditFloatN(
         const std::string_view label,
         T& value,
         const std::array<AxisColor, 4> colors,
         const std::array<const char*, 4> axisLabels,
-        const T resetValue,
+        const T& resetValue,
         const float speed,
         const float min,
         const float max
     ) {
         bool changed = false;
-        const uint32_t count = T::length();
+        const uint32_t count = math::count<T>();
 
         ImGui::PushID(FormatTemp("{}", label));
         ImGui::Columns(2, nullptr, false);
 
         ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
         ImGui::TextUnformatted(FormatTemp("{}", label));
+
+        if (ImGui::BeginPopupContextItem("FieldContextMenu")) {
+            if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_ALIGN_RIGHT, "Reset"))) {
+                value = resetValue;
+                changed = true;
+            }
+
+            ImGui::EndPopup();
+        }
+
         ImGui::NextColumn();
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {4, 0});
@@ -156,8 +165,8 @@ namespace Quelos::UI {
 
             changed |= DrawAxis(
                 axisLabels[i],
-                value[i],
-                resetValue[i],
+                value.f32[i],
+                resetValue.f32[i],
                 speed,
                 min,
                 max,
@@ -198,12 +207,12 @@ namespace Quelos::UI {
 
     constinit static std::array QuatLabels = {"W", "X", "Y", "Z"};
 
-    inline bool EditVec2(
-        const std::string& label, glm::vec2& value,
-        const glm::vec2 reset = glm::zero<glm::vec2>(), const float speed = 0.1f,
+    inline bool EditFloat2(
+        const std::string& label, float2& value,
+        const float2& reset = float2(0.0f), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
-        return EditVectorN<glm::vec2>(
+        return EditFloatN<float2>(
             label,
             value,
             VecColors,
@@ -215,12 +224,12 @@ namespace Quelos::UI {
         );
     }
 
-    inline bool EditVec3(
-        const std::string_view label, glm::vec3& value,
-        const glm::vec3 reset = glm::zero<glm::vec3>(), const float speed = 0.1f,
+    inline bool EditFloat3(
+        const std::string_view label, float3& value,
+        const float3& reset = float3(0.0f), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
-        return EditVectorN<glm::vec3>(
+        return EditFloatN<float3>(
             label,
             value,
             VecColors,
@@ -232,12 +241,12 @@ namespace Quelos::UI {
         );
     }
 
-    inline bool EditVec4(
-        const std::string& label, glm::vec4& value,
-        const glm::vec4 reset = glm::zero<glm::vec4>(), const float speed = 0.1f,
+    inline bool EditFloat4(
+        const std::string& label, float4& value,
+        const float4& reset = float4(0.0f), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
-        return EditVectorN<glm::vec4>(
+        return EditFloatN<float4>(
             label,
             value,
             VecColors,
@@ -250,13 +259,13 @@ namespace Quelos::UI {
     }
 
     inline bool EditQuat(
-        const std::string& label, glm::quat& quaternion,
-        const glm::quat reset = glm::identity<glm::quat>(), const float speed = 0.1f,
+        const std::string& label, quaternion& value,
+        const quaternion& reset = quaternion::identity(), const float speed = 0.1f,
         const float min = 0.0f, const float max = 0.0f
     ) {
-        return EditVectorN<glm::quat>(
+        return EditFloatN(
             label,
-            quaternion,
+            value,
             QuatColors,
             QuatLabels,
             reset,
@@ -266,7 +275,7 @@ namespace Quelos::UI {
         );
     }
 
-    inline bool EditColor4(const std::string& label, glm::vec4& value, const float resetValue = 1.0f) {
+    inline bool EditColor4(const std::string& label, float4& value, const float resetValue = 1.0f) {
         bool changed = false;
 
         ImGui::PushID(label.c_str());
@@ -287,7 +296,7 @@ namespace Quelos::UI {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.30f, 0.30f, 0.30f, 1));
 
         if (ImGui::Button("R", buttonSize)) {
-            value = glm::vec4(resetValue);
+            value = float4(resetValue);
             changed = true;
         }
 
@@ -300,7 +309,7 @@ namespace Quelos::UI {
 
         changed |= ImGui::ColorEdit4(
             "##edotColor4",
-            glm::value_ptr(value),
+            &value.x,
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_AlphaBar |
             ImGuiColorEditFlags_Float |

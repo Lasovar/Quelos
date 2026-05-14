@@ -34,8 +34,6 @@ using namespace std::literals::string_literals;
 using namespace std::literals::string_view_literals;
 using namespace std::literals::chrono_literals;
 
-#include <glm/glm.hpp>
-
 // Quelos
 #include <Quelos/Core/Base.h>
 #include <Quelos/Core/Buffer.h>

@@ -65,11 +65,11 @@ namespace QuelosEditor {
 
             static auto transformInspector = [&](void* transformData, const InspectorComponent& component, const Entity entity) {
                 LocalTransform& localTransform = *static_cast<LocalTransform*>(transformData);
-                static auto startValue = glm::zero<glm::vec3>();
+                static float3 startValue(0.0f);
                 static bool startedEditing = false;
-                glm::vec3 temp = localTransform.Position;
+                float3 temp = localTransform.Position;
 
-                if (UI::EditVec3("Position", temp)) {
+                if (UI::EditFloat3("Position", temp)) {
                     if (!startedEditing) {
                         startedEditing = true;
                         startValue = localTransform.Position;
@@ -82,7 +82,7 @@ namespace QuelosEditor {
                 const flecs::world& world = m_Scene->GetWorld();
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    m_UndoSystem.Push<SetField<glm::vec3>>(
+                    m_UndoSystem.Push<SetField<float3>>(
                         registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
                         entity.Get<EntityID>(),
                         m_Scene,
@@ -95,28 +95,28 @@ namespace QuelosEditor {
                     startedEditing = false;
                 }
 
-                temp = glm::degrees(glm::eulerAngles(localTransform.Rotation));
-                static glm::vec3 rotationValue;
+                temp = math::degrees(math::euler(localTransform.Rotation));
+                static float3 rotationValue;
                 static bool startedEditingRotation = false;
 
-                if (UI::EditVec3("Rotation", startedEditingRotation ? rotationValue : temp)) {
+                if (UI::EditFloat3("Rotation", startedEditingRotation ? rotationValue : temp)) {
                     if (!startedEditingRotation) {
                         startedEditingRotation = true;
-                        startValue = glm::eulerAngles(localTransform.Rotation);
+                        startValue = math::euler(localTransform.Rotation);
                         rotationValue = temp;
                     }
 
-                    localTransform.Rotation = glm::radians(rotationValue);
+                    localTransform.Rotation = math::normalize(quaternion::rotation_euler_zxy(math::radians(rotationValue)));
                 }
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    m_UndoSystem.Push<SetField<glm::quat>>(
+                    m_UndoSystem.Push<SetField<quaternion>>(
                         registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
                         entity.Get<EntityID>(),
                         m_Scene,
                         component.SetFieldSerializeFn,
                         "rotation",
-                        startValue,
+                        math::normalize(quaternion::rotation_euler_zxy(startValue)),
                         localTransform.Rotation
                     );
 
@@ -125,7 +125,7 @@ namespace QuelosEditor {
 
                 temp = localTransform.Scale;
 
-                if (UI::EditVec3("Scale", temp)) {
+                if (UI::EditFloat3("Scale", temp)) {
                     if (!startedEditing) {
                         startedEditing = true;
                         startValue = localTransform.Scale;
@@ -135,7 +135,7 @@ namespace QuelosEditor {
                 }
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    m_UndoSystem.Push<SetField<glm::vec3>>(
+                    m_UndoSystem.Push<SetField<float3>>(
                         registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
                         entity.Get<EntityID>(),
                         m_Scene,

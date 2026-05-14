@@ -47,14 +47,14 @@ namespace Quelos {
                .with(flecs::ChildOf, m_SceneRoot)
                .kind(m_TransformUpdate)
                .each([](const LocalTransform& local, WorldTransform& world) {
-                   world.Value = Math::SRTMatrix(local);
+                   world.Value = mathExt::srt(local.Scale, local.Rotation, local.Position);
                });
 
         m_World.system<const LocalTransform&, WorldTransform&>()
                .without(flecs::ChildOf, flecs::Wildcard)
                .kind(m_TransformUpdate)
                .each([](const LocalTransform& local, WorldTransform& world) {
-                   world.Value = Math::SRTMatrix(local);
+                   world.Value = mathExt::srt(local.Scale, local.Rotation, local.Position);
                });
 
         m_World.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
@@ -66,7 +66,7 @@ namespace Quelos {
                    const LocalTransform& local,
                    WorldTransform& world,
                    const WorldTransform& parentWorld) {
-                       world.Value = parentWorld.Value * Math::SRTMatrix(local);
+                       world.Value = math::mul(parentWorld.Value, mathExt::srt(local.Scale, local.Rotation, local.Position));
                    });
     }
 
@@ -193,7 +193,7 @@ namespace Quelos {
         actor.GetInternalID().child_of(m_SceneRoot);
     }
 
-    void Scene::OnViewportResized(glm::vec2 viewportSize) const {
+    void Scene::OnViewportResized(float2 viewportSize) const {
         m_World.each([viewportSize](CameraComponent& camera) {
             camera.Camera.SetViewportSize(viewportSize.x, viewportSize.y);
         });

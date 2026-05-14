@@ -131,6 +131,26 @@ namespace Quelos::Serialization {
             }
         }
 
+        void WriteValue(float2& value) {
+            m_Writer.Write(sizeof(pfloat2));
+            m_Writer.Write(pfloat2(value));
+        }
+
+        void WriteValue(float3& value) {
+            m_Writer.Write(sizeof(pfloat3));
+            m_Writer.Write(pfloat3(value));
+        }
+
+        void WriteValue(float4& value) {
+            m_Writer.Write(sizeof(pfloat4));
+            m_Writer.Write(pfloat4(value));
+        }
+
+        void WriteValue(quaternion& value) {
+            m_Writer.Write(sizeof(pfloat4));
+            m_Writer.Write(pfloat4(value.xyzw));
+        }
+
         template <typename T>
         void WriteValue(AssetRef<T>& value) {
             m_Writer.Write(static_cast<uint64_t>(sizeof(AssetID)));
@@ -215,6 +235,34 @@ namespace Quelos::Serialization {
                 if (result.has_value()) {
                     value = std::move(*result);
                 }
+            }
+        }
+
+        static void ReadValue(BinaryReader& reader, float2& value) {
+            if (const std::optional<pfloat2> result = reader.Read<pfloat2>(); result) {
+                const pfloat2 resultValue = result.value();
+                value = float2(resultValue.x, resultValue.y);
+            }
+        }
+
+        static void ReadValue(BinaryReader& reader, float3& value) {
+            if (const std::optional<pfloat3> result = reader.Read<pfloat3>(); result) {
+                const pfloat3 resultValue = result.value();
+                value = float3(resultValue.x, resultValue.y, resultValue.z);
+            }
+        }
+
+        static void ReadValue(BinaryReader& reader, float4& value) {
+            if (const std::optional<pfloat4> result = reader.Read<pfloat4>(); result) {
+                const pfloat4 resultValue = result.value();
+                value = float4(resultValue.x, resultValue.y, resultValue.z, resultValue.w);
+            }
+        }
+
+        static void ReadValue(BinaryReader& reader, quaternion& value) {
+            if (const std::optional<pfloat4> result = reader.Read<pfloat4>(); result) {
+                const pfloat4 resultValue = result.value();
+                value = math::normalize(quaternion(resultValue.x, resultValue.y, resultValue.z, resultValue.w));
             }
         }
 

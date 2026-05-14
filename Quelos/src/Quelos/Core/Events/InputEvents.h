@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "Quelos/Core/Event.h"
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     enum class KeyCode : uint16_t {
@@ -271,7 +272,7 @@ namespace Quelos {
         }
 
         std::string ToString() const override {
-            return std::format("KeyReleased: {}", KeyCodeToString(m_KeyCode));
+            return fmt::format("KeyReleased: {}", KeyCodeToString(m_KeyCode));
         }
 
         EVENT_CLASS_TYPE(KeyReleased)
@@ -363,23 +364,23 @@ namespace Quelos {
         float GetX() const { return m_Position.x; }
         float GetY() const { return m_Position.y; }
 
-        glm::vec2 GetPosition() const { return m_Position; }
+        float2 GetPosition() const { return m_Position; }
 
         float GetDeltaX() const { return m_Delta.x; };
         float GetDeltaY() const { return m_Delta.y; }
 
-        glm::vec2 GetDelta() const { return m_Delta; }
+        float2 GetDelta() const { return m_Delta; }
 
         std::string ToString() const override {
-            return std::format("MouseMoved: ({}, {})", m_Position.x, m_Position.y);
+            return fmt::format("MouseMoved: ({}, {})", static_cast<float>(m_Position.x), static_cast<float>(m_Position.y));
         }
 
         EVENT_CLASS_TYPE(MouseMoved)
         EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
 
     private:
-        glm::vec2 m_Position;
-        glm::vec2 m_Delta;
+        float2 m_Position;
+        float2 m_Delta;
     };
 
     class MouseScrolledEvent : public Event {

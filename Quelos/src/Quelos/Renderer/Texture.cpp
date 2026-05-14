@@ -28,7 +28,7 @@ namespace Quelos {
         return CreateRef<Texture2D>(Renderer::CreateTexture(spec, texturePath));
     }
 
-    void Texture2D::Resize(const glm::uvec2& size) const {
+    void Texture2D::Resize(const uint2& size) const {
         Renderer::TextureResize(m_Handle, size.x, size.y);
     }
 
@@ -48,7 +48,7 @@ namespace Quelos {
         return Renderer::GetSpecification(m_Handle)->Height;
     }
 
-    glm::uvec2 Texture2D::GetSize() const {
+    uint2 Texture2D::GetSize() const {
         const TextureSpecification* data = Renderer::GetSpecification(m_Handle);
         return {data->Width, data->Height};
     }

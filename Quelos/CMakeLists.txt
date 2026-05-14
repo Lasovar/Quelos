@@ -70,6 +70,7 @@ function(setup_quelos_target target type)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/hlslpp/include>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/magic_enum>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/stduuid>
@@ -84,6 +85,7 @@ function(setup_quelos_target target type)
             GLM_ENABLE_EXPERIMENTAL
             GLM_FORCE_QUAT_DATA_WXYZ
             GLM_FORCE_LEFT_HANDED
+            HLSLPP_FEATURE_TRANSFORM
     )
 
     target_compile_features(${target} PUBLIC cxx_std_23)
@@ -155,6 +157,11 @@ function(setup_quelos_target target type)
 
         install(DIRECTORY vendor/glm/
                 DESTINATION include/glm
+                COMPONENT QuelosSDK
+        )
+
+        install(DIRECTORY vendor/hlslpp/include
+                DESTINATION include/hlslpp/
                 COMPONENT QuelosSDK
         )
 

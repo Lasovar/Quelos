@@ -2,7 +2,7 @@
 
 #include <variant>
 
-#include "glm/glm.hpp"
+#include "Quelos/Math/Math.h"
 
 #include "BinaryWriter.h"
 #include "QuelLexer.h"
@@ -110,10 +110,10 @@ namespace Quelos::Serialization {
         void WriteValue(float value);
         void WriteValue(double value);
 
-        inline void WriteValue(glm::vec2 value);
-        inline void WriteValue(glm::vec3 value);
-        inline void WriteValue(glm::vec4 value);
-        inline void WriteValue(glm::quat value);
+        inline void WriteValue(float2 value);
+        inline void WriteValue(float3 value);
+        inline void WriteValue(float4 value);
+        inline void WriteValue(quaternion value);
 
         void WriteField(std::string_view field, UnquotedString value);
         void WriteField(std::string_view field, std::string_view value);
@@ -126,10 +126,10 @@ namespace Quelos::Serialization {
         void WriteField(std::string_view field, float value);
         void WriteField(std::string_view field, double value);
 
-        inline void WriteField(std::string_view field, glm::vec2 value);
-        void WriteField(std::string_view field, glm::vec3 value);
-        inline void WriteField(std::string_view field, glm::vec4 value);
-        void WriteField(std::string_view field, glm::quat value);
+        inline void WriteField(std::string_view field, float2 value);
+        void WriteField(std::string_view field, float3 value);
+        inline void WriteField(std::string_view field, float4 value);
+        void WriteField(std::string_view field, quaternion value);
 
         void BeginTupleField(std::string_view name);
         void BeginTuple();

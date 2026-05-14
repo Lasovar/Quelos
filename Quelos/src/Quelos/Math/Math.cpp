@@ -1,12 +1,11 @@
 #include "Math.h"
 
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/quaternion.hpp"
+#include "hlsl++.h"
 
 #include "Quelos/Renderer/Renderer.h"
 
-namespace Quelos::Math {
-    glm::mat4 OrthographicMatrix(
+namespace Quelos::mathExt {
+    float4x4 orthographic(
         const float left,
         const float right,
         const float bottom,
@@ -14,67 +13,46 @@ namespace Quelos::Math {
         const float zNear,
         const float zFar
     ) {
-        const glm::mat4 projection = Renderer::HomogenousDepth()
-                                         ? glm::orthoLH_NO(
-                                             left,
-                                             right,
-                                             bottom,
-                                             top,
-                                             zNear,
-                                             zFar
-                                         )
-                                         : glm::orthoLH_ZO(
-                                             left,
-                                             right,
-                                             bottom,
-                                             top,
-                                             zNear,
-                                             zFar
-                                         );
+        using namespace math;
 
-        return projection;
-    }
-
-    glm::mat4 PerspectiveMatrix(const float fov, const float aspectRatio, const float nearClip, const float farClip) {
-        const glm::mat4 projection = Renderer::HomogenousDepth()
-                                         ? glm::perspectiveLH_NO(
-                                             fov,
-                                             aspectRatio,
-                                             nearClip,
-                                             farClip
-                                         )
-                                         : glm::perspectiveLH_ZO(
-                                             fov,
-                                             aspectRatio,
-                                             nearClip,
-                                             farClip
-                                         );
-
-        return projection;
-    }
-
-    glm::mat4 ViewMatrix(const glm::quat& rotation, const glm::vec3& position) {
-        return glm::inverse(
-            glm::translate(glm::mat4(1.0f), position) *
-            glm::mat4_cast(rotation)
+        const frustum cameraFrustum(left, right, bottom, top, zNear, zFar);
+        return float4x4::orthographic(
+            projection(
+                cameraFrustum,
+                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one
+            )
         );
     }
 
-    glm::mat4 ViewMatrix(const glm::mat4& world) {
-        return glm::inverse(world);
+    float4x4 perspective(const float fovRad, const float aspectRatio, const float nearClip, const float farClip) {
+        using namespace math;
+
+        const frustum cameraFrustum = frustum::field_of_view_y(fovRad, aspectRatio, nearClip, farClip);
+        return float4x4::perspective(
+            projection(
+                cameraFrustum,
+                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one
+            )
+        );
     }
 
-    glm::mat4 SRTMatrix(const LocalTransform& transform) {
-        return SRTMatrix(transform.Scale, transform.Rotation, transform.Position);
+    float4x4 view(const quaternion& rotation, const float3& position) {
+        using namespace math;
+        return inverse(mul(float4x4::translation(position), float4x4(rotation)));
     }
 
-    glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::vec3& eulerAngles, const glm::vec3& position) {
-        return SRTMatrix(scale, glm::quat(eulerAngles), position);
+    float4x4 view(const float4x4& world) {
+        return math::inverse(world);
     }
 
-    glm::mat4 SRTMatrix(const glm::vec3& scale, const glm::quat& rotation, const glm::vec3& position) {
-        return glm::translate(glm::mat4(1.0f), position) *
-            glm::scale(glm::mat4(1.0f), scale) *
-            glm::mat4_cast(glm::normalize(rotation));
+    float4x4 srt(const float3& scale, const quaternion& rotation, const float3& position) {
+        using namespace math;
+        return mul(
+            float4x4::scale(scale),
+            mul(
+                float4x4(rotation),
+                float4x4::translation(position)
+            )
+        );
     }
 }

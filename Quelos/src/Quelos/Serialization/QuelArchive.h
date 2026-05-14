@@ -4,8 +4,7 @@
 #include <variant>
 #include <charconv>
 
-#include "glm/glm.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include "Quelos/Math/Math.h"
 
 #include <magic_enum/magic_enum.hpp>
 #include <magic_enum/magic_enum_flags.hpp>
@@ -162,19 +161,19 @@ namespace Quelos::Serialization {
             m_Writer.EndArray();
         }
 
-        void WriteComplex(const std::string_view name, const glm::vec2& v) const {
+        void WriteComplex(const std::string_view name, const float2& v) const {
             m_Writer.WriteField(name, v);
         }
 
-        void WriteComplex(const std::string_view name, const glm::vec3& v) const {
+        void WriteComplex(const std::string_view name, const float3& v) const {
             m_Writer.WriteField(name, v);
         }
 
-        void WriteComplex(const std::string_view name, const glm::vec4& v) const {
+        void WriteComplex(const std::string_view name, const float4& v) const {
             m_Writer.WriteField(name, v);
         }
 
-        void WriteComplex(const std::string_view name, const glm::quat& q) const {
+        void WriteComplex(const std::string_view name, const quaternion& q) const {
             m_Writer.WriteField(name, q);
         }
 
@@ -214,7 +213,7 @@ namespace Quelos::Serialization {
             }
         }
 
-        void WriteTupleElement(const glm::vec3& v) const {
+        void WriteTupleElement(const float3& v) const {
             m_Writer.BeginTuple();
             m_Writer.WriteValue(v.x);
             m_Writer.WriteValue(v.y);
@@ -413,20 +412,20 @@ namespace Quelos::Serialization {
             return true;
         }
 
-        bool TryConvert(const TextArchiveValue& src, glm::vec2& out) {
+        bool TryConvert(const TextArchiveValue& src, float2& out) {
             return TryConvertTuple(src, out, 2);
         }
 
-        bool TryConvert(const TextArchiveValue& src, glm::vec3& out) {
+        bool TryConvert(const TextArchiveValue& src, float3& out) {
             return TryConvertTuple(src, out, 3);
         }
 
-        bool TryConvert(const TextArchiveValue& src, glm::vec4& out) {
+        bool TryConvert(const TextArchiveValue& src, float4& out) {
             return TryConvertTuple(src, out, 4);
         }
 
-        bool TryConvert(const TextArchiveValue& src, glm::quat& out) {
-            return TryConvertTuple(src, out, 4);
+        bool TryConvert(const TextArchiveValue& src, quaternion& out) {
+            return TryConvertTuple(src, out.f32, 4);
         }
 
         template <typename T>
