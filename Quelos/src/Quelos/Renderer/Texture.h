@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "glm/vec2.hpp"
+#include "Quelos/Math/Math.h"
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Core/Buffer.h"
 #include "Quelos/Core/Ref.h"
@@ -95,7 +95,7 @@ namespace Quelos {
         virtual ImageFormat GetFormat() const = 0;
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;
-        virtual glm::uvec2 GetSize() const = 0;
+        virtual uint2 GetSize() const = 0;
 
         virtual bool IsVFlipped() const = 0;
 
@@ -122,7 +122,7 @@ namespace Quelos {
         static Ref<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
 
     public:
-        void Resize(const glm::uvec2& size) const;
+        void Resize(const uint2& size) const;
         void Resize(uint32_t width, uint32_t height) const;
 
         static const AssetType& GetStaticType() {
@@ -136,7 +136,7 @@ namespace Quelos {
         ImageFormat GetFormat() const override;
         uint32_t GetWidth() const override;
         uint32_t GetHeight() const override;
-        glm::uvec2 GetSize() const override;
+        uint2 GetSize() const override;
         bool IsVFlipped() const override;
         TextureHandle GetHandle() const override { return m_Handle; }
 

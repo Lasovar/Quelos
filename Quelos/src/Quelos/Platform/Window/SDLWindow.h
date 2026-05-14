@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quelos/Core/Window.h"
+#include "Quelos/Math/Math.h"
 
 class SDL_Window;
 
@@ -31,8 +32,8 @@ namespace Quelos {
     private:
         WindowSpecification m_Specifications;
         CursorMode m_CurrentCursorMode;
-        glm::vec2 m_CurrentMousePosition;
-        glm::vec2 m_LockCursorPosition;
+        float2 m_CurrentMousePosition;
+        float2 m_LockCursorPosition;
 
         bool m_ShouldClose = false;
 

@@ -49,7 +49,7 @@ namespace QuelosEditor {
         m_FrameBuffer->Resize(m_ViewportSize.x, m_ViewportSize.y);
         m_NeedResize = false;
 
-        QS_INFO("Viewport resized to: {}x{}", m_ViewportNewSize.x, m_ViewportNewSize.y);
+        QS_INFO("Viewport resized to: {}", m_ViewportNewSize);
         return true;
     }
 
@@ -65,14 +65,14 @@ namespace QuelosEditor {
 
                 ImVec2 viewPortPanelSize = ImGui::GetContentRegionAvail();
 
-                if (m_ViewportSize != *reinterpret_cast<glm::vec2*>(&viewPortPanelSize)) {
+                if (!math::approximately(m_ViewportSize, float2(viewPortPanelSize.x, viewPortPanelSize.y))) {
                     QueueResize(viewPortPanelSize.x, viewPortPanelSize.y);
                     //m_ActiveScene->OnViewportResize(static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y));
                 }
 
-                glm::vec4 uv = m_ColorAttachment->IsVFlipped()
-                                   ? glm::vec4(0.0f, 1.0f, 1.0f, 0.0f)
-                                   : glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+                float4 uv = m_ColorAttachment->IsVFlipped()
+                                   ? float4(0.0f, 1.0f, 1.0f, 0.0f)
+                                   : float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
                     m_ColorAttachment,

@@ -4,6 +4,7 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "Ref.h"
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
 	class QS_API Log {
@@ -34,15 +35,15 @@ namespace Quelos {
 		static void SetDefaultTagSettings();
 
 		template<typename... Args>
-		static void PrintMessage(Log::Type type, Log::Level level, std::format_string<Args...> format, Args&&... args);
+		static void PrintMessage(Log::Type type, Log::Level level, fmt::format_string<Args...> format, Args&&... args);
 
 		template<typename... Args>
-		static void PrintMessageTag(Log::Type type, Log::Level level, std::string_view tag, std::format_string<Args...> format, Args&&... args);
+		static void PrintMessageTag(Log::Type type, Log::Level level, std::string_view tag, fmt::format_string<Args...> format, Args&&... args);
 
 		static void PrintMessageTag(Log::Type type, Log::Level level, std::string_view tag, std::string_view message);
 
 		template<typename... Args>
-		static void PrintAssertMessage(Log::Type type, std::string_view prefix, std::format_string<Args...> message, Args&&... args);
+		static void PrintAssertMessage(Log::Type type, std::string_view prefix, fmt::format_string<Args...> message, Args&&... args);
 
 		static void PrintAssertMessage(Log::Type type, std::string_view prefix);
 		
@@ -114,14 +115,14 @@ namespace Quelos {
 
 namespace Quelos {
 	template<typename... Args>
-	void Log::PrintMessage(Log::Type type, Log::Level level, std::format_string<Args...> format, Args&&... args) {
+	void Log::PrintMessage(Log::Type type, Log::Level level, fmt::format_string<Args...> format, Args&&... args) {
 		auto detail = s_EnabledTags[""];
 		if (detail.Enabled && detail.LevelFilter <= level) {
 			auto logger = (type == Type::Core) ? GetCoreLogger() : GetClientLogger();
 
 			// Pre-format the message with the provided format and arguments before calling the logger.
 			// This allows the code to compile on a wider range of compilers (notably, Clang with libstdc++ on Linux)
-			std::string formatted = std::format(format, std::forward<Args>(args)...);
+			std::string formatted = fmt::format(format, std::forward<Args>(args)...);
 			switch (level)
 			{
 			case Level::Trace:
@@ -144,11 +145,11 @@ namespace Quelos {
 	}
 
 	template<typename... Args>
-	void Log::PrintMessageTag(Log::Type type, Log::Level level, std::string_view tag, const std::format_string<Args...> format, Args&&... args) {
+	void Log::PrintMessageTag(Log::Type type, Log::Level level, std::string_view tag, const fmt::format_string<Args...> format, Args&&... args) {
 		auto detail = s_EnabledTags[std::string(tag)];
 		if (detail.Enabled && detail.LevelFilter <= level) {
 			auto logger = (type == Type::Core) ? GetCoreLogger() : GetClientLogger();
-			std::string formatted = std::format(format, std::forward<Args>(args)...);
+			std::string formatted = fmt::format(format, std::forward<Args>(args)...);
 			switch (level)
 			{
 				case Level::Trace:
@@ -196,9 +197,9 @@ namespace Quelos {
 	}
 
 	template<typename... Args>
-	void Log::PrintAssertMessage(Log::Type type, std::string_view prefix, std::format_string<Args...> message, Args&&... args) {
+	void Log::PrintAssertMessage(Log::Type type, std::string_view prefix, fmt::format_string<Args...> message, Args&&... args) {
 		auto logger = (type == Type::Core) ? GetCoreLogger() : GetClientLogger();
-		auto formatted = std::format(message, std::forward<Args>(args)...);
+		auto formatted = fmt::format(message, std::forward<Args>(args)...);
 		logger->error("{0}: {1}", prefix, formatted);
 
 #if QS_ASSERT_MESSAGE_BOX
@@ -216,53 +217,55 @@ namespace Quelos {
 	}
 }
 
-/*template <>
-struct fmt::formatter<glm::vec2> {
-	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+template<>
+struct fmt::formatter<hlslpp::float2> {
+	constexpr auto parse(fmt::format_parse_context& ctx) {
+		return ctx.begin();
+	}
 
-	template <typename FormatContext>
-	auto format(const glm::vec2& v, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "({},{})", v.x, v.y);
+	template<typename FormatContext>
+	auto format(const hlslpp::float2& v, FormatContext& ctx) const {
+		return fmt::format_to(ctx.out(), "({}, {})", v[0], v[1]);
 	}
 };
 
 template <>
-struct fmt::formatter<glm::vec3> {
+struct fmt::formatter<Quelos::float3> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
 	template <typename FormatContext>
-	auto format(const glm::vec3& v, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "({},{},{})", v.x, v.y, v.z);
+	auto format(const Quelos::float3& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{})", v[0], v[1], v[2]);
 	}
 };
 
 template <>
-struct fmt::formatter<glm::vec4> {
+struct fmt::formatter<Quelos::float4> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
 	template <typename FormatContext>
-	auto format(const glm::vec4& v, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "({},{},{},{})", v.x, v.y, v.z, v.w);
+	auto format(const Quelos::float4& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{},{})", v[0], v[1], v[2], v[3]);
 	}
 };
 
 template <>
-struct fmt::formatter<glm::quat> {
+struct fmt::formatter<Quelos::quaternion> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
 	template <typename FormatContext>
-	auto format(const glm::vec4& v, FormatContext& ctx) {
-		return fmt::format_to(ctx.out(), "({},{},{},{})", v.w, v.z, v.y, v.z);
+	auto format(const Quelos::quaternion& v, FormatContext& ctx) {
+		return fmt::format_to(ctx.out(), "({},{},{},{})", v.f32[0], v.f32[1], v.f32[2], v.f32[3]);
 	}
 };
 
 
 template <>
-struct fmt::formatter<glm::mat4> {
+struct fmt::formatter<Quelos::float4x4> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
 	template <typename FormatContext>
-	auto format(const glm::mat4& m, FormatContext& ctx) {
+	auto format(const Quelos::float4x4& m, FormatContext& ctx) {
 		return fmt::format_to(ctx.out(), "{}",
 			"\n\t[[{0.x}, {0.y}, {0.z}, {0.w}],\n"
 			"\t [{1.x}, {1.y}, {1.z}, {1.w}],\n"
@@ -270,6 +273,6 @@ struct fmt::formatter<glm::mat4> {
 			"\t [{3.x}, {3.y}, {3.z}, {3.w}]]",
 			m[0], m[1], m[2], m[3]);
 	}
-};*/
+};
 
 

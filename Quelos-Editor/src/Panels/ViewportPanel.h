@@ -16,7 +16,7 @@ namespace QuelosEditor {
 
         bool ResizeIfNeeded();
 
-        [[nodiscard]] glm::vec2 GetViewportSize() const { return m_ViewportSize; }
+        [[nodiscard]] float2 GetViewportSize() const { return m_ViewportSize; }
 
         [[nodiscard]] bool IsViewportFocused() const { return m_ViewportFocused; }
         [[nodiscard]] bool IsViewportHovered() const { return m_ViewportHovered; }
@@ -33,12 +33,12 @@ namespace QuelosEditor {
         bool m_ViewportFocused = false;
         bool m_ViewportHovered = false;
 
-        glm::vec2 m_ViewportBounds[2] = { glm::vec2(0.0f), glm::vec2(0.0f) };
+        float2 m_ViewportBounds[2] = { float2(0.0f), float2(0.0f) };
 
         bool m_NeedResize = false;
 
-        glm::vec2 m_ViewportNewSize{};
-        glm::vec2 m_ViewportSize{};
+        float2 m_ViewportNewSize{};
+        float2 m_ViewportSize{};
 
         bool m_ViewportVisible = false;
 

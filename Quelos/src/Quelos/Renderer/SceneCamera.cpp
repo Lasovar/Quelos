@@ -33,8 +33,8 @@ namespace Quelos {
 
     void SceneCamera::RecalculateProjection() {
         if (m_ProjectionType == ProjectionType::Perspective) {
-            m_Projection = Math::PerspectiveMatrix(
-                glm::radians(m_PerspectiveFOV),
+            m_Projection = mathExt::perspective(
+                math::radians(m_PerspectiveFOV),
                 m_AspectRatio,
                 m_PerspectiveNear,
                 m_PerspectiveFar
@@ -46,7 +46,7 @@ namespace Quelos {
             const float orthoBottom = -m_OrthographicSize * 0.5f;
             const float orthoTop = m_OrthographicSize * 0.5f;
 
-            m_Projection = Math::OrthographicMatrix(
+            m_Projection = mathExt::orthographic(
                 orthoLeft,
                 orthoRight,
                 orthoBottom,

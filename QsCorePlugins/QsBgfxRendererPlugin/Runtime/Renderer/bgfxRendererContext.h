@@ -15,8 +15,8 @@ namespace Quelos {
 
         void StartSceneRender(
             FrameBufferHandle frameBuffer,
-            const glm::mat4& view,
-            const glm::mat4& projection
+            const float4x4& view,
+            const float4x4& projection
         ) override;
 
         void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) override;
@@ -59,7 +59,7 @@ namespace Quelos {
         FrameBufferHandle CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) override;
         uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) override;
         uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) override;
-        glm::uvec2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) override;
+        uint2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) override;
         void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) override;
         uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) override;
         void FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) override;

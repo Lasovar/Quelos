@@ -18,8 +18,8 @@ namespace QuelosEditor {
     using namespace Quelos;
 
     namespace ModelImporter {
-        static glm::vec3 ToGlmVec3(const aiVector3D& vec) {
-            return { vec.x, vec.y, vec.z };
+        static float3 ToFloat3(const aiVector3D& vec) {
+            return {vec.x, vec.y, vec.z};
         }
 
         static void SerializeModelMetadata(const Model& model, const OsPath& path) {
@@ -196,18 +196,19 @@ namespace QuelosEditor {
                 modelMesh.Vertices.resize(mesh->mNumVertices);
                 for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; vertexIndex++) {
                     auto& vertex = modelMesh.Vertices[vertexIndex];
-                    vertex.Position = ToGlmVec3(mesh->mVertices[vertexIndex]);
+                    vertex.Position = ToFloat3(mesh->mVertices[vertexIndex]);
 
                     if (mesh->HasNormals()) {
-                        vertex.Normal = ToGlmVec3(mesh->mNormals[vertexIndex]);
+                        vertex.Normal = ToFloat3(mesh->mNormals[vertexIndex]);
                     }
 
                     if (mesh->HasTangentsAndBitangents()) {
-                        vertex.Tangent = ToGlmVec3(mesh->mTangents[vertexIndex]);
+                        vertex.Tangent = ToFloat3(mesh->mTangents[vertexIndex]);
                     }
 
                     if (mesh->HasTextureCoords(0)) {
-                        vertex.UV = { mesh->mTextureCoords[0][vertexIndex].x, mesh->mTextureCoords[0][vertexIndex].y };
+                        vertex.UV.x = mesh->mTextureCoords[0][vertexIndex].x;
+                        vertex.UV.y = mesh->mTextureCoords[0][vertexIndex].y;
                     }
                 }
 

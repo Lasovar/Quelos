@@ -25,8 +25,8 @@ namespace Quelos {
 
         virtual void StartSceneRender(
             FrameBufferHandle frameBuffer,
-            const glm::mat4& view,
-            const glm::mat4& projection
+            const float4x4& view,
+            const float4x4& projection
         ) = 0;
 
         virtual void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) = 0;
@@ -69,7 +69,7 @@ namespace Quelos {
 
         virtual uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) = 0;
         virtual uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) = 0;
-        virtual glm::uvec2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) = 0;
+        virtual uint2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) = 0;
 
         virtual void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) = 0;
         virtual uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) = 0;

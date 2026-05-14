@@ -60,7 +60,7 @@ namespace QuelosEditor {
             m_EditorCamera.SetViewportHovered(m_SceneViewportPanel.IsViewportHovered());
 
             if (m_SceneViewportPanel.ResizeIfNeeded()) {
-                const glm::vec2 size = m_SceneViewportPanel.GetViewportSize();
+                const float2 size = m_SceneViewportPanel.GetViewportSize();
                 m_EditorCamera.SetViewportSize(size.x, size.y);
             }
 

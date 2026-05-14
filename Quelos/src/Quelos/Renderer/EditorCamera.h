@@ -40,14 +40,14 @@ namespace Quelos {
 		[[nodiscard]] bool IsLockRotation() const { return m_LockRotation; }
 		void SetLockRotation(const bool value) { m_LockRotation = value; }
 
-		[[nodiscard]] const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
-		[[nodiscard]] glm::mat4 GetViewProjection() const;
+		[[nodiscard]] const float4x4& GetViewMatrix() const { return m_ViewMatrix; }
+		[[nodiscard]] float4x4 GetViewProjection() const;
 
-		[[nodiscard]] glm::vec3 GetUpDirection() const;
-		[[nodiscard]] glm::vec3 GetRightDirection() const;
-		[[nodiscard]] glm::vec3 GetForwardDirection() const;
-		[[nodiscard]] const glm::vec3& GetPosition() const { return m_Position; }
-		[[nodiscard]] glm::quat GetOrientation() const;
+		[[nodiscard]] float3 GetUpDirection() const;
+		[[nodiscard]] float3 GetRightDirection() const;
+		[[nodiscard]] float3 GetForwardDirection() const;
+		[[nodiscard]] float3 GetPosition() const { return m_Position; }
+		[[nodiscard]] quaternion GetOrientation() const;
 
 		[[nodiscard]] float GetPitch() const { return m_Pitch; }
 		[[nodiscard]] float GetYaw() const { return m_Yaw; }
@@ -57,34 +57,34 @@ namespace Quelos {
 
 		bool OnMouseScroll(const MouseScrolledEvent& e);
 
-		void MousePan(const glm::vec2& delta);
-		void MouseRotate(const glm::vec2& delta);
+		void MousePan(const float2& delta);
+		void MouseRotate(const float2& delta);
 		void MouseZoom(float delta);
-		void PlayerMove(const glm::vec2& delta);
+		void PlayerMove(const float2& delta);
 
-		[[nodiscard]] glm::vec3 CalculatePosition() const;
+		[[nodiscard]] float3 CalculatePosition() const;
 
-		[[nodiscard]] glm::vec2 PanSpeed() const;
+		[[nodiscard]] float2 PanSpeed() const;
 		[[nodiscard]] float ZoomSpeed() const;
 		[[nodiscard]] static float RotationSpeed();
 	private:
 		float m_FOV = 60.0f, m_AspectRatio = 1.778f, m_NearClip = 0.1f, m_FarClip = 1000.0f;
 
-		glm::mat4 m_ViewMatrix{};
-		glm::vec3 m_Position = { 0.0f, 0.0f, -15.0f };
-		glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
+		float4x4 m_ViewMatrix{};
+		float3 m_Position = { 0.0f, 0.0f, -15.0f };
+		float3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
 		float m_MoveSpeed = 100.0f;
 
-		glm::vec3 m_Velocity = { 0.0f, 0.0f, 0.0f };
+		float3 m_Velocity = { 0.0f, 0.0f, 0.0f };
 
 		float m_Acceleration = 40.0f;
 		float m_Damping = 8.0f;
 
 		float m_MouseSensitivity = 0.05f;
 
-		glm::vec2 m_MouseDelta = { 0.0f, 0.0f };
-		glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
+		float2 m_MouseDelta = { 0.0f, 0.0f };
+		float2 m_InitialMousePosition = { 0.0f, 0.0f };
 
 		float m_Distance = 10.0f;
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;

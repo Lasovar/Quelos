@@ -217,14 +217,14 @@ namespace Quelos::Serialization {
         Write(ValueEvent{value});
     }
 
-    void QuelWriter::WriteValue(glm::vec2 value) {
+    void QuelWriter::WriteValue(float2 value) {
         Write(TupleBeginEvent{});
         Write(ValueEvent{value.x});
         Write(ValueEvent{value.y});
         Write(TupleEndEvent{});
     }
 
-    void QuelWriter::WriteValue(glm::vec3 value) {
+    void QuelWriter::WriteValue(float3 value) {
         Write(TupleBeginEvent{});
         Write(ValueEvent{value.x});
         Write(ValueEvent{value.y});
@@ -232,7 +232,7 @@ namespace Quelos::Serialization {
         Write(TupleEndEvent{});
     }
 
-    void QuelWriter::WriteValue(glm::vec4 value) {
+    void QuelWriter::WriteValue(float4 value) {
         Write(TupleBeginEvent{});
         Write(ValueEvent{value.x});
         Write(ValueEvent{value.y});
@@ -241,12 +241,12 @@ namespace Quelos::Serialization {
         Write(TupleEndEvent{});
     }
 
-    void QuelWriter::WriteValue(glm::quat value) {
+    void QuelWriter::WriteValue(quaternion value) {
         Write(TupleBeginEvent{});
-        Write(ValueEvent{value.w});
-        Write(ValueEvent{value.x});
-        Write(ValueEvent{value.y});
-        Write(ValueEvent{value.z});
+        Write(ValueEvent{value.f32[0]});
+        Write(ValueEvent{value.f32[1]});
+        Write(ValueEvent{value.f32[2]});
+        Write(ValueEvent{value.f32[3]});
         Write(TupleEndEvent{});
     }
 
@@ -298,22 +298,22 @@ namespace Quelos::Serialization {
         Write(ValueEvent{value});
     }
 
-    void QuelWriter::WriteField(const std::string_view field, const glm::vec2 value) {
+    void QuelWriter::WriteField(const std::string_view field, const float2 value) {
         Write(FieldEvent{field});
         WriteValue(value);
     }
 
-    void QuelWriter::WriteField(const std::string_view field, const glm::vec3 value) {
+    void QuelWriter::WriteField(const std::string_view field, const float3 value) {
         Write(FieldEvent{field});
         WriteValue(value);
     }
 
-    void QuelWriter::WriteField(const std::string_view field, const glm::vec4 value) {
+    void QuelWriter::WriteField(const std::string_view field, const float4 value) {
         Write(FieldEvent{field});
         WriteValue(value);
     }
 
-    void QuelWriter::WriteField(const std::string_view field, const glm::quat value) {
+    void QuelWriter::WriteField(const std::string_view field, const quaternion value) {
         Write(FieldEvent{field});
         WriteValue(value);
     }

@@ -31,12 +31,12 @@ namespace QuelosEditor {
         }
     }
 
-    void InspectorArchive::DrawField(std::string_view name, glm::vec3& value) {
-        static auto startValue = glm::zero<glm::vec3>();
+    void InspectorArchive::DrawField(std::string_view name, float3& value) {
+        static float3 startValue;
         static bool startedEditing = false;
-        glm::vec3 temp = value;
+        float3 temp = value;
 
-        if (UI::EditVec3(GetFormattedFieldName(name), temp)) {
+        if (UI::EditFloat3(GetFormattedFieldName(name), temp)) {
             if (!startedEditing) {
                 startedEditing = true;
                 startValue = value;
@@ -46,7 +46,7 @@ namespace QuelosEditor {
         }
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-            m_UndoSystem.Push<SetField<glm::vec3>>(
+            m_UndoSystem.Push<SetField<float3>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
                 m_Actor.GetActorID(),
                 m_Scene,
@@ -60,10 +60,10 @@ namespace QuelosEditor {
         }
     }
 
-    void InspectorArchive::DrawField(const std::string_view name, glm::quat& value) {
-        static auto startValue = glm::identity<glm::quat>();
+    void InspectorArchive::DrawField(const std::string_view name, quaternion& value) {
+        static quaternion startValue = quaternion::identity();
         static bool startedEditing = false;
-        glm::quat temp = value;
+        quaternion temp = value;
 
         if (UI::EditQuat(GetFormattedFieldName(name), temp)) {
             if (!startedEditing) {
@@ -75,7 +75,7 @@ namespace QuelosEditor {
         }
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-            m_UndoSystem.Push<SetField<glm::quat>>(
+            m_UndoSystem.Push<SetField<quaternion>>(
                 m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
                 m_Actor.GetActorID(),
                 m_Scene,

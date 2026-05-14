@@ -159,8 +159,8 @@ namespace QuelosEditor {
         }
 
         void DrawField(std::string_view name, float& value);
-        void DrawField(std::string_view name, glm::vec3& value);
-        void DrawField(std::string_view name, glm::quat& value);
+        void DrawField(std::string_view name, float3& value);
+        void DrawField(std::string_view name, quaternion& value);
 
         [[nodiscard]] const std::string& GetFormattedFieldName(const std::string_view name) const {
             return m_FormattedFieldNames.at(Serialization::GetPathID(name));

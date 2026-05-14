@@ -33,8 +33,8 @@ namespace Quelos {
 		static bool HomogenousDepth();
 
 		static void StartFrame();
-		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const WorldTransform& transform, const glm::mat4& projection);
-		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const glm::mat4& view, const glm::mat4& projection);
+		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const WorldTransform& transform, const float4x4& projection);
+		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view, const float4x4& projection);
 		static void EndFrame();
 
 		static void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform);
@@ -76,7 +76,7 @@ namespace Quelos {
 
 		static uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle);
 		static uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle);
-		static glm::uvec2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle);
+		static uint2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle);
 
 		static void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId);
 		static uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle);

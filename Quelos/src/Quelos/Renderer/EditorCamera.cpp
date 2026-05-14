@@ -3,26 +3,23 @@
 
 #include "Quelos/Core/Events/InputEvents.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 #include "Quelos/Core/Application.h"
 
 #include "Quelos/Math/Math.h"
 
 namespace Quelos {
     EditorCamera::EditorCamera(const float fov, const float aspectRatio, const float nearClip, const float farClip)
-        : Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip)),
+        : Camera(mathExt::perspective(math::radians(fov), aspectRatio, nearClip, farClip)),
           m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip) {
         UpdateView();
-        MousePan(glm::vec2{0.01f});
+        MousePan(float2{0.01f});
     }
 
     void EditorCamera::UpdateProjection() {
         m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
 
-        m_Projection = Math::PerspectiveMatrix(
-            glm::radians(m_FOV),
+        m_Projection = mathExt::perspective(
+            math::radians(m_FOV),
             m_AspectRatio,
             m_NearClip,
             m_FarClip
@@ -34,27 +31,27 @@ namespace Quelos {
             m_Yaw = m_Pitch = 0.0f; // Lock the camera's rotation
         }
 
-        const glm::vec3 forward = {
-            glm::cos(m_Pitch) * glm::sin(m_Yaw),
-            glm::sin(m_Pitch),
-            glm::cos(m_Pitch) * glm::cos(m_Yaw)
+        const float3 forward = {
+            math::cos(m_Pitch) * math::sin(m_Yaw),
+            math::sin(m_Pitch),
+            math::cos(m_Pitch) * math::cos(m_Yaw)
         };
 
-        m_ViewMatrix = glm::lookAtLH(
+        m_ViewMatrix = float4x4::look_at(
             m_Position,
             m_Position + forward,
-            glm::vec3(0.0f, 1.0f, 0.0f)
+            float3(0.0f, 1.0f, 0.0f)
         );
     }
 
-    glm::vec2 EditorCamera::PanSpeed() const {
-        const float x = std::min(m_ViewportWidth / 1000.0f, 2.4f); // max = 2.4f
-        float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021f;
+    float2 EditorCamera::PanSpeed() const {
+        const float x = math::min(m_ViewportWidth / 1000.0f, 2.4f); // max = 2.4f
+        const float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021f;
 
-        const float y = std::min(m_ViewportHeight / 1000.0f, 2.4f); // max = 2.4f
-        float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
+        const float y = math::min(m_ViewportHeight / 1000.0f, 2.4f); // max = 2.4f
+        const float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
 
-        return {xFactor, yFactor};
+        return { xFactor, yFactor };
     }
 
     float EditorCamera::RotationSpeed() {
@@ -71,26 +68,26 @@ namespace Quelos {
 
     void EditorCamera::OnUpdate(float deltaTime) {
         // Mouse smoothing
-        glm::vec2 smoothed = m_MouseDelta;
-        m_MouseDelta = glm::vec2(0.0f);
+        float2 smoothed = m_MouseDelta;
+        m_MouseDelta = float2(0.0f);
 
-        glm::vec3 input{0.0f};
+        float3 input{0.0f};
 
         if (m_RMB) {
             m_Yaw += smoothed.x * m_MouseSensitivity;
             m_Pitch += smoothed.y * m_MouseSensitivity;
 
-            m_Pitch = glm::clamp(m_Pitch, -glm::radians(89.0f), glm::radians(89.0f));
+            m_Pitch = math::clamp(m_Pitch, math::radians(-89.0f), math::radians(89.0f));
 
             // Direction vectors
-            glm::vec3 forwardDir{
-                glm::cos(m_Pitch) * glm::sin(m_Yaw),
-                glm::sin(m_Pitch),
-                glm::cos(m_Pitch) * glm::cos(m_Yaw)
+            float3 forwardDir{
+                std::cos(m_Pitch) * std::sin(m_Yaw),
+                std::sin(m_Pitch),
+                std::cos(m_Pitch) * std::cos(m_Yaw)
             };
 
-            glm::vec3 rightDir = glm::normalize(glm::cross(glm::vec3(0, 1, 0), forwardDir));
-            glm::vec3 upDir = glm::normalize(glm::cross(rightDir, forwardDir));
+            float3 rightDir = normalize(cross(float3(0, 1, 0), forwardDir));
+            float3 upDir = normalize(cross(rightDir, forwardDir));
 
             if (m_Forward) input += forwardDir;
             if (m_Backwards) input -= forwardDir;
@@ -99,8 +96,8 @@ namespace Quelos {
             if (m_Up) input += upDir;
             if (m_Down) input -= upDir;
 
-            if (glm::length(input) > 0.0f) {
-                input = glm::normalize(input);
+            if (math::length(input).x > 0.0f) {
+                input = normalize(input);
             }
         }
 
@@ -157,8 +154,8 @@ namespace Quelos {
         }
 
         dispatcher.Dispatch<MouseMovedEvent>([this](const MouseMovedEvent& event) {
-            const glm::vec2 mouse(event.GetX(), -event.GetY());
-            glm::vec2 delta = event.GetDelta() * m_MouseSensitivity;
+            const float2 mouse(event.GetX(), -event.GetY());
+            float2 delta = event.GetDelta() * m_MouseSensitivity;
             delta.y *= -1.0f;
 
             m_MouseDelta += delta;
@@ -229,13 +226,13 @@ namespace Quelos {
         return false;
     }
 
-    void EditorCamera::MousePan(const glm::vec2& delta) {
-        const glm::vec2 speed = PanSpeed();
+    void EditorCamera::MousePan(const float2& delta) {
+        const float2 speed = PanSpeed();
         m_FocalPoint += -GetRightDirection() * delta.x * speed.x * m_Distance;
         m_FocalPoint += GetUpDirection() * delta.y * speed.y * m_Distance;
     }
 
-    void EditorCamera::MouseRotate(const glm::vec2& delta) {
+    void EditorCamera::MouseRotate(const float2& delta) {
         float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
         m_Yaw += yawSign * delta.x * RotationSpeed();
         m_Pitch += delta.y * RotationSpeed();
@@ -249,32 +246,33 @@ namespace Quelos {
         }
     }
 
-    void EditorCamera::PlayerMove(const glm::vec2& delta) {
+    void EditorCamera::PlayerMove(const float2& delta) {
         m_PlayerMode = true;
         m_Pitch += delta.y;
     }
 
-    glm::mat4 EditorCamera::GetViewProjection() const {
+
+    quaternion EditorCamera::GetOrientation() const {
+        return quaternion::rotation_euler_zxy(float3(-m_Pitch, -m_Yaw, 0.0f));
+    }
+
+    float4x4 EditorCamera::GetViewProjection() const {
         return m_ViewMatrix * m_Projection;
     }
 
-    glm::vec3 EditorCamera::GetUpDirection() const {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 1.0f, 0.0f));
+    float3 EditorCamera::GetUpDirection() const {
+        return math::mul(GetOrientation(), float3(0.0f, 1.0f, 0.0f));
     }
 
-    glm::vec3 EditorCamera::GetRightDirection() const {
-        return glm::rotate(GetOrientation(), glm::vec3(1.0f, 0.0f, 0.0f));
+    float3 EditorCamera::GetRightDirection() const {
+        return math::mul(GetOrientation(), float3(1.0f, 0.0f, 0.0f));
     }
 
-    glm::vec3 EditorCamera::GetForwardDirection() const {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 0.0f, -1.0f));
+    float3 EditorCamera::GetForwardDirection() const {
+        return math::mul(GetOrientation(), float3(0.0f, 0.0f, -1.0f));
     }
 
-    glm::vec3 EditorCamera::CalculatePosition() const {
+    float3 EditorCamera::CalculatePosition() const {
         return m_FocalPoint - GetForwardDirection() * -m_Distance;
-    }
-
-    glm::quat EditorCamera::GetOrientation() const {
-        return glm::quat(glm::vec3(-m_Pitch, -m_Yaw, 0.0f));
     }
 }

@@ -1,17 +1,17 @@
 #pragma once
 
-#include "glm/glm.hpp"
+#include "Quelos/Math/Math.h"
 
 namespace Quelos {
     class QS_API Camera {
     public:
         Camera() = default;
-        explicit Camera(const glm::mat4& projection) : m_Projection(projection) {}
+        explicit Camera(const float4x4& projection) : m_Projection(projection) {}
 
         virtual ~Camera() = default;
 
-        [[nodiscard]] const glm::mat4& GetProjection() const { return m_Projection; }
+        [[nodiscard]] const float4x4& GetProjection() const { return m_Projection; }
     protected:
-        glm::mat4 m_Projection = glm::mat4(1.0f);
+        float4x4 m_Projection = float4x4::identity();
     };
 }
