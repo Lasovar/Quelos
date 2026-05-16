@@ -378,15 +378,12 @@ namespace Quelos {
         bgfx::setViewRect(viewId, 0, 0, frameBufferData->Width, frameBufferData->Height);
         bgfx::touch(viewId);
 
-        pfloat4x4 pView = view;
-        pfloat4x4 pProj = projection;
-        bgfx::setViewTransform(viewId, &pView.m00, &pProj.m00);
+        bgfx::setViewTransform(viewId, math::value_ptr(view), math::value_ptr(projection));
     }
 
     void bgfxRendererContext::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh,
                                          const WorldTransform& transform) {
-        pfloat4x4 pTran = transform.Value;
-        bgfx::setTransform(&pTran.m00);
+        bgfx::setTransform(math::value_ptr(transform.Value));
 
         BindVertexBuffer(mesh.MeshData->GetVertexBuffer(), 0);
         BindIndexBuffer(mesh.MeshData->GetIndexBuffer());

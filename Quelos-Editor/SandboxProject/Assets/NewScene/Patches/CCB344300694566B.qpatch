@@ -2,4 +2,6 @@
 name = "Plane"
 
 @Quelos.LocalTransform
-rotation = (0.7071068,0,0,0.7071068)
+
+@Quelos.MeshRenderer
+shader = 54abe8a3-f05f-4114-80a5-b01ab22bf596

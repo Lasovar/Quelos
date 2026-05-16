@@ -11,8 +11,6 @@
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
 #include "Quelos/ImGui/widgets/texture.h"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtx/quaternion.hpp"
 #include "Quelos/Core/Application.h"
 
 #include "Quelos/Renderer/Shader.h"
@@ -68,7 +66,7 @@ namespace QuelosEditor {
         /*auto m_DefaultScene = CreateRef<Scene>("TestScene");
         const Actor camera = m_DefaultScene->CreateActor("Camera");
         camera.Set(CameraComponent{SceneCamera()});
-        camera.Set(LocalTransform{glm::vec3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
+        camera.Set(LocalTransform{float3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
 
         MeshComponent cubeMesh;
         cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
