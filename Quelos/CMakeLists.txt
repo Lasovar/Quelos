@@ -69,7 +69,6 @@ function(setup_quelos_target target type)
     target_include_directories(${target} PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/hlslpp/include>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/magic_enum>
@@ -152,11 +151,6 @@ function(setup_quelos_target target type)
                 FILE QuelosTargets.cmake
                 NAMESPACE Quelos::
                 DESTINATION cmake
-                COMPONENT QuelosSDK
-        )
-
-        install(DIRECTORY vendor/glm/
-                DESTINATION include/glm
                 COMPONENT QuelosSDK
         )
 

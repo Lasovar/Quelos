@@ -1,7 +1,6 @@
 #pragma once
 
 #include "hlsl++.h"
-#include "glm/gtc/quaternion.hpp"
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
@@ -65,9 +64,9 @@ namespace Quelos {
         constexpr float f_pi4 = f_pi / 4.0f;
 
         constexpr double d_pi = 3.14159265358979323846264338327950288;
-        constexpr double d_2pi = 2.0 * f_pi;
-        constexpr double d_pi2 = f_pi / 2.0;
-        constexpr double d_pi4 = f_pi / 4.0;
+        constexpr double d_2pi = 2.0 * d_pi;
+        constexpr double d_pi2 = d_pi / 2.0;
+        constexpr double d_pi4 = d_pi / 4.0;
 
         using hlslpp::frustum;
         using hlslpp::projection;
@@ -133,45 +132,6 @@ namespace Quelos {
             return all(abs(a - b) < epsilon);
         }
 
-        inline float3 euler_zxy(const quaternion& q) {
-            float3 angles;
-
-            const float1 test = 2.0f * (q.w * q.x - q.y * q.z);
-
-            // Clamp for safety
-            const float1 clamped = clamp(test, float1(-1.0f), float1(1.0f));
-
-            // X rotation
-            angles.x = asin(clamped);
-
-            // Singularity threshold
-            constexpr float threshold = 0.99999f;
-
-            if (abs(clamped).x > threshold) {
-                // Gimbal lock case
-
-                angles.y = 0.0f;
-
-                angles.z = atan2(
-                    -2.0f * (q.x * q.y - q.w * q.z),
-                    1.0f - 2.0f * (q.y * q.y + q.z * q.z)
-                );
-            }
-            else {
-                angles.y = atan2(
-                    2.0f * (q.x * q.z + q.w * q.y),
-                    q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z
-                );
-
-                angles.z = atan2(
-                    2.0f * (q.x * q.y + q.w * q.z),
-                    q.w * q.w - q.x * q.x + q.y * q.y - q.z * q.z
-                );
-            }
-
-            return angles;
-        }
-
         inline float roll(const quaternion& q) {
             const float1 y = 2.0f * (q.x * q.y + q.w * q.z);
             const float1 x = q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z;
@@ -212,6 +172,7 @@ namespace Quelos {
         /// @return the number of components in a type
         template <typename T>
         consteval uint32_t count() {
+            static_assert(sizeof(T) == 0, "Unsupported type!");
             return 0;
         }
 
@@ -263,10 +224,31 @@ namespace Quelos {
         template<>
         consteval uint32_t count<quaternion>() { return 4; }
 
-        inline const float* value_ptr(const float2& f) { return f.f32; }
-        inline const float* value_ptr(const float3& f) { return f.f32; }
-        inline const float* value_ptr(const float4& f) { return f.f32; }
-        inline const float* value_ptr(const float4x4& f) { return f.f32_128_0; }
+        constexpr const int32_t* value_ptr(const int1& f) { return f.i32; }
+        constexpr const int32_t* value_ptr(const int2& f) { return f.i32; }
+        constexpr const int32_t* value_ptr(const int3& f) { return f.i32; }
+        constexpr const int32_t* value_ptr(const int4& f) { return f.i32; }
+
+        constexpr const uint32_t* value_ptr(const uint1& f) { return f.u32; }
+        constexpr const uint32_t* value_ptr(const uint2& f) { return f.u32; }
+        constexpr const uint32_t* value_ptr(const uint3& f) { return f.u32; }
+        constexpr const uint32_t* value_ptr(const uint4& f) { return f.u32; }
+
+        constexpr const float* value_ptr(const float1& f) { return f.f32; }
+        constexpr const float* value_ptr(const float2& f) { return f.f32; }
+        constexpr const float* value_ptr(const float3& f) { return f.f32; }
+        constexpr const float* value_ptr(const float4& f) { return f.f32; }
+
+        constexpr const double* value_ptr(const double1& f) { return f.f64; }
+        constexpr const double* value_ptr(const double2& f) { return f.f64; }
+        constexpr const double* value_ptr(const double3& f) { return f.f64; }
+        constexpr const double* value_ptr(const double4& f) { return f.f64; }
+
+        constexpr const float* value_ptr(const quaternion& f) { return f.f32; }
+
+        constexpr const float* value_ptr(const float3x4& f) { return f.f32_0; }
+        constexpr const float* value_ptr(const float4x3& f) { return f.f32_0; }
+        constexpr const float* value_ptr(const float4x4& f) { return f.f32_128_0; }
     }
 
     namespace mathExt {
