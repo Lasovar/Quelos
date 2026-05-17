@@ -11,6 +11,8 @@ uniform vec4 u_cameraPos;
 uniform vec4 u_bandCount;      // 3–5
 uniform vec4 u_shadowThreshold;// 0.2
 
+uniform vec4 u_Color;
+
 void main() {
     vec3 N = normalize(v_normal.xyz);
     vec3 L = normalize(u_lightDir.xyz);
@@ -33,7 +35,7 @@ void main() {
     // Step 3: hard shadow cutoff (stylized)
     float shadow = step(u_shadowThreshold.x, diffuse);
 
-    vec3 color = u_lightColor.xyz * stepped * shadow;
+    vec3 color = u_Color.xyz * u_lightColor.xyz * stepped * shadow;
 
     vec3 ambient = vec3(0.1);
     color += ambient;

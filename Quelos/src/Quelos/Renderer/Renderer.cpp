@@ -36,6 +36,9 @@ namespace Quelos {
     // For ramp texture
     static UniformBufferHandle u_rampTex;
 
+    // Per mesh data
+    static UniformBufferHandle u_Color;
+
     bool Renderer::IsInitialized() { return s_IsInitialized; }
 
     void Renderer::RegisterRendererContext(const RendererFactory factory) {
@@ -68,6 +71,8 @@ namespace Quelos {
         u_shadowThreshold = CreateUniformBuffer("u_shadowThreshold", UniformBufferType::Float4);
 
         u_rampTex = CreateUniformBuffer("s_rampTex", UniformBufferType::Sampler);
+
+        u_Color = CreateUniformBuffer("u_Color", UniformBufferType::Float4);
     }
 
     void Renderer::StartFrame() {
@@ -91,19 +96,15 @@ namespace Quelos {
                                     const float4x4& projection) {
         s_RendererContext->StartSceneRender(frameBuffer->GetHandle(), view, projection);
 
-        using namespace hlslpp;
-        float3 lightDir = normalize(-float3(0.5f, -1.0f, 0.3f));
-        const float4 lightDirData{ lightDir, 0.0f };
-        SetUniformData(u_lightDir, math::value_ptr(lightDirData));
+        float4 lightDir = math::normalize(-float4(0.5f, -1.0f, 0.3f, 0.0f));
+        SetUniformData(u_lightDir, math::value_ptr(lightDir));
 
         float4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
         SetUniformData(u_lightColor, math::value_ptr(lightColorData));
 
-        float4x4 invView = inverse(view);
-        float3 camPos(invView[3].xyz);
-
-        float4 camPosData(camPos, 0.0f);
-        SetUniformData(u_cameraPos, math::value_ptr(camPosData));
+        float4x4 invView = math::inverse(view);
+        const float4& camPos(invView[3]);
+        SetUniformData(u_cameraPos, math::value_ptr(camPos));
 
         const float4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
         SetUniformData(u_bandCount, math::value_ptr(bandData));
@@ -118,6 +119,7 @@ namespace Quelos {
     }
 
     void Renderer::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) {
+        SetUniformData(u_Color, mesh.Color.value_ptr());
         s_RendererContext->SubmitMesh(viewID, mesh, transform);
     }
 

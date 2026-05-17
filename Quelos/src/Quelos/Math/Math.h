@@ -107,6 +107,10 @@ namespace Quelos {
         constexpr float clamp(const float f, const float minf, const float maxf) { return min(max(f, minf), maxf); }
         constexpr double clamp(const double f, const double minf, const double maxf) { return min(max(f, minf), maxf); }
 
+        using hlslpp::saturate;
+        constexpr float saturate(const float f) { return clamp(f, 0.0f, 1.0f); }
+        constexpr double saturate(const double f) { return clamp(f, 0.0, 1.0); }
+
         using hlslpp::length;
         using hlslpp::normalize;
 

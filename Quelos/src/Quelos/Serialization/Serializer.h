@@ -110,10 +110,10 @@ namespace Quelos::Serialization {
         void WriteValue(float value);
         void WriteValue(double value);
 
-        inline void WriteValue(float2 value);
-        inline void WriteValue(float3 value);
-        inline void WriteValue(float4 value);
-        inline void WriteValue(quaternion value);
+        void WriteValue(float2 value);
+        void WriteValue(float3 value);
+        void WriteValue(float4 value);
+        void WriteValue(quaternion value);
 
         void WriteField(std::string_view field, UnquotedString value);
         void WriteField(std::string_view field, std::string_view value);
@@ -126,9 +126,9 @@ namespace Quelos::Serialization {
         void WriteField(std::string_view field, float value);
         void WriteField(std::string_view field, double value);
 
-        inline void WriteField(std::string_view field, float2 value);
+        void WriteField(std::string_view field, float2 value);
         void WriteField(std::string_view field, float3 value);
-        inline void WriteField(std::string_view field, float4 value);
+        void WriteField(std::string_view field, float4 value);
         void WriteField(std::string_view field, quaternion value);
 
         void BeginTupleField(std::string_view name);
