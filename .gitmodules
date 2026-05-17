@@ -32,3 +32,6 @@
 [submodule "QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine"]
 	path = QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine
 	url = https://github.com/Lasovar/DiligentEngine.git
+[submodule "Quelos-Editor/vendor/slang"]
+	path = Quelos-Editor/vendor/slang
+	url = https://github.com/Lasovar/slang.git

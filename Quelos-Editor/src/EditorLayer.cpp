@@ -18,6 +18,10 @@
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
 
+#include "slang.h"
+#include "../vendor/slang/include/slang-com-ptr.h"
+#include "../vendor/slang/source/core/slang-allocator.h"
+
 namespace QuelosEditor {
     static std::vector<PosColorVertex> cubeVertices = {
         {-1.0f, 1.0f, 1.0f, 0xff000000},
@@ -58,6 +62,74 @@ namespace QuelosEditor {
         s_Instance = this;
 
         m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
+        std::string shaderPath = (Project::GetAssetsPath() / "shaders").generic_string();
+        Slang::ComPtr<slang::IGlobalSession> globalSession;
+        constexpr SlangGlobalSessionDesc desc;
+        slang::createGlobalSession(&desc, globalSession.writeRef());
+
+        slang::SessionDesc sessionDesc;
+
+        slang::TargetDesc targetDesc;
+        targetDesc.format = SLANG_SPIRV;
+        targetDesc.profile = globalSession->findProfile("glsl_450");
+        sessionDesc.targets = &targetDesc;
+        sessionDesc.targetCount = 1;
+
+        const char* searchPaths[] = { shaderPath.c_str() };
+        sessionDesc.searchPaths = searchPaths;
+        sessionDesc.searchPathCount = 1;
+
+        Slang::ComPtr<slang::ISession> session;
+        globalSession->createSession(sessionDesc, session.writeRef());
+
+        Slang::ComPtr<slang::IBlob> diagnostics;
+        slang::IModule* module = session->loadModule("hello-world", diagnostics.writeRef());
+        if (diagnostics) {
+            QS_CORE_TRACE_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+        }
+
+        Slang::ComPtr<slang::IEntryPoint> vertexEntryPoint;
+        module->findEntryPointByName("vertexMain", vertexEntryPoint.writeRef());
+
+        slang::IComponentType* components[] = { module, vertexEntryPoint };
+        Slang::ComPtr<slang::IComponentType> program;
+        session->createCompositeComponentType(components, 2, program.writeRef());
+
+        slang::ProgramLayout* moduleLayout = module->getLayout();
+        slang::ProgramLayout* entryLayout = vertexEntryPoint->getLayout();
+
+        QS_CORE_INFO_TAG("SlangModule", "Module name: {}", module->getName());
+        for (uint32_t i = 0; i < moduleLayout->getParameterCount(); i++) {
+            slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
+            QS_CORE_TRACE_TAG("SlangModuleParameter", "{}-{}", parameter->getName() ? parameter->getName() : "", parameter->getSemanticName() ? parameter->getSemanticName() : "");
+        }
+
+        for (uint32_t i = 0; i < entryLayout->getParameterCount(); i++) {
+            slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
+            QS_CORE_TRACE_TAG("SlangEntryParameter", "{}-{}", parameter->getName() ? parameter->getName() : "", parameter->getSemanticName() ? parameter->getSemanticName() : "");
+        }
+
+        Slang::ComPtr<slang::IComponentType> linkedProgram;
+        Slang::ComPtr<ISlangBlob> diagnosticBlob;
+        program->link(linkedProgram.writeRef(), diagnosticBlob.writeRef());
+
+        if (diagnosticBlob) {
+            QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnosticBlob->getBufferPointer()));
+        }
+
+        const int entryPointIndex = 0; // only one entry point
+        const int targetIndex = 0; // only one target
+        Slang::ComPtr<slang::IBlob> kernelBlob;
+        linkedProgram->getEntryPointCode(
+            entryPointIndex,
+            targetIndex,
+            kernelBlob.writeRef(),
+            diagnostics.writeRef()
+        );
+
+        if (diagnostics) {
+            QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+        }
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
