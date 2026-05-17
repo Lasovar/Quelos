@@ -88,4 +88,33 @@ namespace QuelosEditor {
             startedEditing = false;
         }
     }
+
+    void InspectorArchive::DrawField(std::string_view name, Color& value) {
+        static Color startValue;
+        static bool startedEditing = false;
+        Color temp = value;
+
+        if (UI::EditColor4(GetFormattedFieldName(name), temp)) {
+            if (!startedEditing) {
+                startedEditing = true;
+                startValue = value;
+            }
+
+            value = temp;
+        }
+
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            m_UndoSystem.Push<SetField<Color>>(
+                m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                m_Actor.GetActorID(),
+                m_Scene,
+                m_SerializeComponentFunc,
+                name,
+                startValue,
+                value
+            );
+
+            startedEditing = false;
+        }
+    }
 }

@@ -12,6 +12,7 @@
 
 #include "Quelos/Utility/TupleLike.h"
 #include "Quelos/AssetManager/AssetManager.h"
+#include "Quelos/Renderer/Color.h"
 
 namespace Quelos::UI {
     // Formats a string to a temporary buffer
@@ -275,7 +276,7 @@ namespace Quelos::UI {
         );
     }
 
-    inline bool EditColor4(const std::string& label, float4& value, const float resetValue = 1.0f) {
+    inline bool EditColor4(const std::string& label, Color& value, const Color& resetValue = Color::White()) {
         bool changed = false;
 
         ImGui::PushID(label.c_str());
@@ -284,36 +285,28 @@ namespace Quelos::UI {
         ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(label.c_str());
-        ImGui::NextColumn();
 
-        const float totalWidth = ImGui::GetContentRegionAvail().x;
+        if (ImGui::BeginPopupContextItem("EditColor4ContextMenu")) {
+            if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_ALIGN_RIGHT, "Reset"))) {
+                value = resetValue;
+                changed = true;
+            }
 
-        const float lineHeight = GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        const ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
-
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.35f, 0.35f, 1));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.45f, 0.45f, 0.45f, 1));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.30f, 0.30f, 0.30f, 1));
-
-        if (ImGui::Button("R", buttonSize)) {
-            value = float4(resetValue);
-            changed = true;
+            ImGui::EndPopup();
         }
 
-        ImGui::PopStyleColor(3);
-        ImGui::SameLine();
+        ImGui::NextColumn();
 
-        const float colorWidth = totalWidth - buttonSize.x - ImGui::GetStyle().ItemSpacing.x;
-
-        ImGui::PushItemWidth(colorWidth);
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 
         changed |= ImGui::ColorEdit4(
             "##edotColor4",
-            &value.x,
+            value.value_ptr(),
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_AlphaBar |
             ImGuiColorEditFlags_Float |
-            ImGuiColorEditFlags_HDR
+            ImGuiColorEditFlags_HDR |
+            ImGuiColorEditFlags_NoLabel
         );
 
         ImGui::PopItemWidth();

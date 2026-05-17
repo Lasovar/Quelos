@@ -9,6 +9,7 @@
 #include "Quelos/AssetManager/AssetManager.h"
 #include "Quelos/AssetManager/AssetRef.h"
 #include "Quelos/AssetManager/SoftRef.h"
+#include "Quelos/Renderer/Color.h"
 #include "Quelos/Utility/Hash.h"
 
 namespace Quelos::Serialization {
@@ -146,6 +147,11 @@ namespace Quelos::Serialization {
             m_Writer.Write(pfloat4(value));
         }
 
+        void WriteValue(Color& value) {
+            m_Writer.Write(sizeof(pfloat4));
+            m_Writer.Write(pfloat4(value));
+        }
+
         void WriteValue(quaternion& value) {
             m_Writer.Write(sizeof(pfloat4));
             m_Writer.Write(pfloat4(value.xyzw));
@@ -256,6 +262,13 @@ namespace Quelos::Serialization {
             if (const std::optional<pfloat4> result = reader.Read<pfloat4>(); result) {
                 const pfloat4 resultValue = result.value();
                 value = float4(resultValue.x, resultValue.y, resultValue.z, resultValue.w);
+            }
+        }
+
+        static void ReadValue(BinaryReader& reader, Color& value) {
+            if (const std::optional<pfloat4> result = reader.Read<pfloat4>(); result) {
+                const pfloat4 resultValue = result.value();
+                value = Color(resultValue.x, resultValue.y, resultValue.z, resultValue.w);
             }
         }
 

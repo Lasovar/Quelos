@@ -15,6 +15,11 @@ namespace Quelos {
 
     template <typename T>
     concept DoubleType = requires(T t) {
-        t.d32 && math::count<T>;
+        t.f64 && math::count<T>;
+    };
+
+    template <typename T>
+    concept VectorType = requires(T t) {
+        (FloatType<T> || DoubleType<T>) && math::value_ptr(t);
     };
 }

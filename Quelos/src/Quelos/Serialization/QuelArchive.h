@@ -12,6 +12,7 @@
 #include "Quelos/Core/Base.h"
 
 #include "Quelos/Core/Log.h"
+#include "Quelos/Renderer/Color.h"
 #include "Quelos/Serialization/Serializer.h"
 
 #include "Quelos/Utility/TupleLike.h"
@@ -170,6 +171,10 @@ namespace Quelos::Serialization {
         }
 
         void WriteComplex(const std::string_view name, const float4& v) const {
+            m_Writer.WriteField(name, v);
+        }
+
+        void WriteComplex(const std::string_view name, const Color& v) const {
             m_Writer.WriteField(name, v);
         }
 
@@ -421,6 +426,10 @@ namespace Quelos::Serialization {
         }
 
         bool TryConvert(const TextArchiveValue& src, float4& out) {
+            return TryConvertTuple(src, out, 4);
+        }
+
+        bool TryConvert(const TextArchiveValue& src, Color& out) {
             return TryConvertTuple(src, out, 4);
         }
 

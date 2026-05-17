@@ -7,6 +7,7 @@
 
 #include "Quelos/ImGui/ImGuiUI.h"
 #include "EditorUI.h"
+#include "Quelos/Renderer/Color.h"
 
 namespace QuelosEditor {
     inline std::string BeautifyLabel(std::string_view label) {
@@ -161,6 +162,7 @@ namespace QuelosEditor {
         void DrawField(std::string_view name, float& value);
         void DrawField(std::string_view name, float3& value);
         void DrawField(std::string_view name, quaternion& value);
+        void DrawField(std::string_view name, Color& value);
 
         [[nodiscard]] const std::string& GetFormattedFieldName(const std::string_view name) const {
             return m_FormattedFieldNames.at(Serialization::GetPathID(name));

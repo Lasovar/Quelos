@@ -12,6 +12,8 @@
 #include "Quelos/Renderer/Shader.h"
 #include "Quelos/Renderer/Texture.h"
 
+#include "Quelos/Renderer/Color.h"
+
 namespace Quelos {
     using EntityID = GUID64;
 
@@ -91,12 +93,14 @@ namespace Quelos {
     struct QS_API MeshRenderer {
         AssetRef<Mesh> MeshData;
         AssetRef<Shader> ShaderData;
+        Color Color = Color::White();
         //Ref<Material> MaterialData = CreateRef<Material>();
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshRenderer& data) {
             archive.Field("mesh", data.MeshData);
             archive.Field("shader", data.ShaderData);
+            archive.Field("color", data.Color);
 
             if constexpr (TArchive::IsLoading) {
                 //data.MaterialData = CreateRef<Material>();
