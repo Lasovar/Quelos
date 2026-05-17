@@ -2,6 +2,7 @@
 
 #include "hlsl++.h"
 #include "Quelos/Core/Base.h"
+#include <cmath>
 
 namespace Quelos {
     using int1 = hlslpp::int1;
