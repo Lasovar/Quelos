@@ -29,7 +29,7 @@ target_include_directories(Quelos-Editor
 target_link_libraries(Quelos-Editor
     PRIVATE
         Quelos::Shared
-        QuelosBgfxRendererPlugin
+        QsDiligentEnginePlugin
         rapidfuzz
         assimp
         efsw-static
