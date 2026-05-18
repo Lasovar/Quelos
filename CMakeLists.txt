@@ -61,6 +61,7 @@ add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/tracy)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
+add_subdirectory(Quelos/vendor/xxhash)
 
 # Daslang options
 set(DAS_GLFW_DISABLED ON CACHE BOOL "" FORCE)

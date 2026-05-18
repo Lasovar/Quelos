@@ -9,9 +9,6 @@
 #include "vs_imgui_image.bin.h"
 #include "fs_imgui_image.bin.h"
 
-#define IMGUI_ENABLE_FREETYPE
-#include "Quelos/ImGui/imgui_freetype.h"
-
 #include "Quelos/ImGui/roboto_regular.ttf.h"
 #include "Quelos/ImGui/robotomono_regular.ttf.h"
 #include "Quelos/ImGui/icons_kenney.ttf.h"
@@ -32,17 +29,6 @@ namespace Quelos {
         BGFX_EMBEDDED_SHADER_END()
     };
 
-    struct FontRangeMerge {
-        const void* Data;
-        size_t Size;
-        ImWchar Ranges[3];
-    };
-
-    static FontRangeMerge s_FontRangeMerge[] = {
-        {s_iconsKenneyTtf, sizeof(s_iconsKenneyTtf), {ICON_MIN_KI, ICON_MAX_KI, 0}},
-        {s_iconsFontAwesomeTtf, sizeof(s_iconsFontAwesomeTtf), {ICON_MIN_FA, ICON_MAX_FA, 0}},
-    };
-
     /// Returns true if both internal transient index and vertex buffer have
     /// enough space.
     ///
@@ -57,7 +43,7 @@ namespace Quelos {
     }
 
 
-    void bgfxImGuiState::Init(const float fontSize) {
+    void bgfxImGuiState::Init() {
         IMGUI_CHECKVERSION();
 
         ViewId = 255;
@@ -90,44 +76,6 @@ namespace Quelos {
             .end();
 
         s_Tex = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
-
-        {
-            ImFontConfig config;
-            config.FontDataOwnedByAtlas = false;
-            config.MergeMode = false;
-
-            io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
-
-            const ImWchar* ranges = io.Fonts->GetGlyphRangesDefault();
-            m_Font[ImGui::Font::Regular] = io.Fonts->AddFontFromMemoryTTF(
-                (void*)s_robotoRegularTtf,
-                sizeof(s_robotoRegularTtf),
-                fontSize,
-                &config,
-                ranges
-            );
-
-            m_Font[ImGui::Font::Mono] = io.Fonts->AddFontFromMemoryTTF(
-                (void*)s_robotoMonoRegularTtf,
-                sizeof(s_robotoMonoRegularTtf),
-                fontSize - 3.0f,
-                &config,
-                ranges
-            );
-
-            config.MergeMode = true;
-            config.DstFont = m_Font[ImGui::Font::Regular];
-
-            for (const auto& frm : s_FontRangeMerge) {
-                io.Fonts->AddFontFromMemoryTTF(
-                    const_cast<void*>(frm.Data),
-                    static_cast<int>(frm.Size),
-                    fontSize - 3.0f,
-                    &config,
-                    frm.Ranges
-                );
-            }
-        }
     }
 
     void bgfxImGuiState::Destroy() {

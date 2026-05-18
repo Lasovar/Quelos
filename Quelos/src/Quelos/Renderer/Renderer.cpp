@@ -63,6 +63,7 @@ namespace Quelos {
 
         s_IsInitialized = true;
 
+        /*
         u_lightDir = CreateUniformBuffer("u_lightDir", UniformBufferType::Float4);
         u_lightColor = CreateUniformBuffer("u_lightColor", UniformBufferType::Float4);
         u_cameraPos = CreateUniformBuffer("u_cameraPos", UniformBufferType::Float4);
@@ -73,6 +74,7 @@ namespace Quelos {
         u_rampTex = CreateUniformBuffer("s_rampTex", UniformBufferType::Sampler);
 
         u_Color = CreateUniformBuffer("u_Color", UniformBufferType::Float4);
+    */
     }
 
     void Renderer::StartFrame() {
