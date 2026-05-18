@@ -717,7 +717,7 @@ namespace Quelos {
 
                     for (auto& [field, changesCount] : compPatch.Fields) {
                         if (changesCount < 1) {
-                            return;
+                            continue;
                         }
 
                         fieldsToWrite.emplace(field);

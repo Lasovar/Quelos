@@ -50,6 +50,10 @@ set(IMGUI_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/imgui_demo.cpp
 )
 
+set(XXHASH_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/xxhash/xxhash.c
+)
+
 function(setup_quelos_target target type)
     add_library(${target} ${type} EXCLUDE_FROM_ALL
             ${QUELOS_CORE_SRC}
@@ -67,6 +71,7 @@ function(setup_quelos_target target type)
     )
 
     target_include_directories(${target} PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/xxhash>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/hlslpp/include>
@@ -113,7 +118,6 @@ function(setup_quelos_target target type)
             freetype
             stb_image
             TracyClient
-            xxhash
     )
 
     target_include_directories(${target}
