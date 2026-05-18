@@ -1,3 +1,4 @@
+#include "ImGui/ImGuiImplDiligent.hpp"
 #include "Quelos/Plugin/PluginAPI.h"
 #include "Quelos/Renderer/Renderer.h"
 
@@ -10,6 +11,8 @@ QS_PLUGIN_EXPORT void RegisterDiligentEnginePlugin(PluginContext& pluginContext)
         [] {
             return RefAs<RendererContext>(CreateRef<DiligentRendererContext>());
         },
-        nullptr
+        [] {
+            return RefAs<ImGuiState>(CreateRef<Diligent::DiligentImGuiState>());
+        }
     });
 }

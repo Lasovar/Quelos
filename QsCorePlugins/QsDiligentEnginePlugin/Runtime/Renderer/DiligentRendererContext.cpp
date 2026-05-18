@@ -46,9 +46,12 @@ void main(in  PSInput  PSIn,
 }
 )";
 
+    DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
+
     void DiligentRendererContext::Init(const Ref<Window>& window, RendererAPI api) {
         m_RendererAPI = api;
         m_Window = window;
+        s_Instance = this;
 
         switch (api) {
 #if VULKAN_SUPPORTED
@@ -58,7 +61,10 @@ void main(in  PSInput  PSIn,
 
             pFactoryVk->CreateDeviceAndContextsVk(engineCi, &m_pDevice, &m_pImmediateContext);
 
-            constexpr SwapChainDesc SCDesc;
+            SwapChainDesc SCDesc;
+            SCDesc.Width = window->GetWidth();
+            SCDesc.Height = window->GetHeight();
+
             LinuxNativeWindow linuxWindow;
 
             linuxWindow.pDisplay = window->GetNativeDisplay();
@@ -134,7 +140,7 @@ void main(in  PSInput  PSIn,
         ShaderCreateInfo ShaderCI;
         // Tell the system that the shader source code is in HLSL.
         // For OpenGL, the engine will convert this into GLSL behind the scene
-        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
+        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
         // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
         ShaderCI.Desc.UseCombinedTextureSamplers = true;
         // Create vertex shader
@@ -214,6 +220,89 @@ void main(in  PSInput  PSIn,
         }
     }
 
+    void DiligentRendererContext::StartSceneRender(FrameBufferHandle frameBuffer, const float4x4& view,
+        const float4x4& projection) {
+    }
+
+    ShaderHandle DiligentRendererContext::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+    }
+
+    bool DiligentRendererContext::RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) {
+    }
+
+    void DiligentRendererContext::Destroy(ShaderHandle shaderHandle) {
+    }
+
+    void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
+    }
+
+    UniformBufferHandle DiligentRendererContext::CreateUniformBuffer(const std::string& name,
+        UniformBufferType uniformType, uint32_t count) {
+    }
+
+    void DiligentRendererContext::SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data,
+        uint32_t count) {
+    }
+
+    void DiligentRendererContext::Destroy(UniformBufferHandle uniformBufferHandle) {
+    }
+
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
+    }
+
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, Buffer data) {
+    }
+
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec,
+        const std::filesystem::path& path) {
+    }
+
+    bool DiligentRendererContext::TextureIsVFlipped() {
+    }
+
+    void DiligentRendererContext::TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) {
+    }
+
+    const TextureSpecification* DiligentRendererContext::GetSpecification(TextureHandle textureHandle) {
+    }
+
+    uint16_t DiligentRendererContext::TextureGetNativeHandle(TextureHandle textureHandle) {
+    }
+
+    void DiligentRendererContext::Bind(TextureHandle textureHandle) {
+    }
+
+    void DiligentRendererContext::Destroy(TextureHandle textureHandle) {
+    }
+
+    FrameBufferHandle DiligentRendererContext::CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) {
+    }
+
+    uint32_t DiligentRendererContext::FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) {
+    }
+
+    uint32_t DiligentRendererContext::FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) {
+    }
+
+    uint2 DiligentRendererContext::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
+    }
+
+    void DiligentRendererContext::FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) {
+    }
+
+    uint32_t DiligentRendererContext::FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) {
+    }
+
+    void DiligentRendererContext::FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width,
+        uint32_t height) {
+    }
+
+    void DiligentRendererContext::Bind(FrameBufferHandle frameBufferHandle) {
+    }
+
+    void DiligentRendererContext::Destroy(FrameBufferHandle frameBufferHandle) {
+    }
+
     void DiligentRendererContext::SubmitMesh(
         uint32_t viewID,
         const MeshRenderer& mesh,
@@ -223,7 +312,7 @@ void main(in  PSInput  PSIn,
         BindVertexBuffer(meshAsset.GetVertexBuffer(), 0);
         BindIndexBuffer(meshAsset.GetIndexBuffer());
 
-        // Set shader resources
+        // TODO: Set shader resources
 
         DrawIndexedAttribs drawAttrs;     // This is an indexed draw call
         drawAttrs.IndexType = VT_UINT16; // Index type
@@ -235,6 +324,7 @@ void main(in  PSInput  PSIn,
     }
 
     void DiligentRendererContext::Submit(ShaderHandle shaderHandle, uint32_t view) {
+        // TODO:
     }
 
     VertexBufferHandle DiligentRendererContext::CreateVertexBuffer(const BufferView vertices, VertexLayout bufferLayout) {

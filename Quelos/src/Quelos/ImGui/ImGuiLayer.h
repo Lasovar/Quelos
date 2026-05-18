@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quelos/Core/Layer.h"
+#include "imgui_user.h"
 
 namespace Quelos {
 	class QS_API ImGuiLayer : public Layer {
@@ -14,5 +15,8 @@ namespace Quelos {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 		virtual void ImGuiRender() override;
+
+	private:
+        ImFont* m_Font[ImGui::Font::Count]{};
 	};
 }

@@ -16,6 +16,7 @@ add_library(QsDiligentEnginePlugin SHARED ${QS_DILIGENT_SRC} ${QS_DILIGENT_EDITO
 target_link_libraries(QsDiligentEnginePlugin PRIVATE
         Quelos::Shared
         Diligent-Common
+        Diligent-GraphicsAccessories
 )
 
 target_include_directories(QsDiligentEnginePlugin PRIVATE Runtime)

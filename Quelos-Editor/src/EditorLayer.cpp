@@ -116,7 +116,7 @@ namespace QuelosEditor {
         const uint64_t texture2DType = Hash::Fnv1a64("Quelos.Texture2D");
         const uint64_t textureType = Hash::Fnv1a64(TypeNameDisplay<Texture2D>());
 
-        AssetRef<Shader> compiledShader = AssetRef<Shader>(AssetID("af5fda92-37f9-42e3-a189-3a5388090a14"));
+        //AssetRef<Shader> compiledShader = AssetRef<Shader>(AssetID("af5fda92-37f9-42e3-a189-3a5388090a14"));
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;

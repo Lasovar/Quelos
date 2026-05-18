@@ -72,7 +72,16 @@ namespace Quelos {
         void Bind(FrameBufferHandle frameBufferHandle) override;
         void Destroy(FrameBufferHandle frameBufferHandle) override;
         void Shutdown() override;
+
+        [[nodiscard]] IDeviceContext* GetImmediateContext() const { return m_pImmediateContext.RawPtr(); }
+        [[nodiscard]] ISwapChain* GetSwapChain() const { return m_pSwapChain.RawPtr(); }
+        [[nodiscard]] IRenderDevice* GetRenderingDevice() const { return m_pDevice; }
+
+    public:
+        static DiligentRendererContext& Get() { return *s_Instance; }
     private:
+        static DiligentRendererContext* s_Instance;
+
         RendererAPI m_RendererAPI = RendererAPI::None;
         Ref<Window> m_Window;
 
