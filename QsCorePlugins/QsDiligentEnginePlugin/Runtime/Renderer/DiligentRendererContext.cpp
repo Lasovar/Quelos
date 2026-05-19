@@ -57,56 +57,79 @@ void main(in  PSInput  PSIn,
         m_Window = window;
         s_Instance = this;
 
+        SwapChainDesc SCDesc;
+        SCDesc.BufferCount = 3;
+        SCDesc.Width = window->GetWidth();
+        SCDesc.Height = window->GetHeight();
+
+#if QS_PLATFORM_WINDOWS
+        Win32NativeWindow nativeWindow;
+        nativeWindow.hWnd = window->GetNativeWindow();
+#elif QS_PLATFORM_LINUX
+        LinuxNativeWindow nativeWindow;
+
+        nativeWindow.pDisplay = window->GetNativeDisplay();
+        if (window->IsWayland()) {
+            nativeWindow.pWaylandSurface = window->GetNativeWindow();
+        }
+        else {
+            nativeWindow.pXCBConnection = window->GetNativeWindow();
+        }
+#elif QS_PLATFORM_MACOS
+        MacOSNativeWindow nativeWindow;
+        nativeWindow.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
+#endif
+
         switch (api) {
+#if D3D11_SUPPORTED
+        case RendererAPI::Direct3D11: {
+            auto* pFactoryD3D11 = LoadAndGetEngineFactoryD3D11();
+            EngineD3D11CreateInfo engineCi;
+            pFactoryD3D11->CreateDeviceAndContextsD3D11(engineCi, &m_pDevice, &m_pImmediateContext);
+            pFactoryD3D11->CreateSwapChainD3D11(
+                m_pDevice,
+                m_pImmediateContext,
+                SCDesc,
+                FullScreenModeDesc{},
+                nativeWindow,
+                &m_pSwapChain
+            );
+            break;
+        }
+#endif
+#if D3D12_SUPPORTED
+        case RendererAPI::Direct3D12: {
+            auto* pFactoryD3D12 = LoadAndGetEngineFactoryD3D12();
+            EngineD3D12CreateInfo engineCi;
+            pFactoryD3D12->CreateDeviceAndContextsD3D12(engineCi, &m_pDevice, &m_pImmediateContext);
+            pFactoryD3D12->CreateSwapChainD3D12(
+                m_pDevice,
+                m_pImmediateContext,
+                SCDesc,
+                FullScreenModeDesc{},
+                nativeWindow,
+                &m_pSwapChain
+            );
+            break;
+        }
+#endif
 #if VULKAN_SUPPORTED
         case RendererAPI::Vulkan: {
             auto* pFactoryVk = GetEngineFactoryVk();
             const EngineVkCreateInfo engineCi;
 
             pFactoryVk->CreateDeviceAndContextsVk(engineCi, &m_pDevice, &m_pImmediateContext);
-
-            SwapChainDesc SCDesc;
-            SCDesc.Width = window->GetWidth();
-            SCDesc.Height = window->GetHeight();
-
-#if QS_PLATFORM_LINUX
-            LinuxNativeWindow nativeWindow;
-
-            nativeWindow.pDisplay = window->GetNativeDisplay();
-            if (window->IsWayland()) {
-                nativeWindow.pWaylandSurface = window->GetNativeWindow();
-            }
-            else {
-                nativeWindow.pXCBConnection = window->GetNativeWindow();
-            }
-#elif QS_PLATFORM_MACOS
-            MacOSNativeWindow nativeWindow;
-            nativeWindow.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
-#endif
-
             pFactoryVk->CreateSwapChainVk(m_pDevice, m_pImmediateContext, SCDesc, nativeWindow, &m_pSwapChain);
             break;
         }
 #endif
 #if GL_SUPPORTED
         case RendererAPI::OpenGL: {
-            SwapChainDesc SCDesc;
             // Declare function pointer
             auto* pFactoryOpenGL = GetEngineFactoryOpenGL();
 
-#if QS_PLATFORM_LINUX
             EngineGLCreateInfo engineCi;
-            engineCi.Window.pDisplay = window->GetNativeDisplay();
-            if (window->IsWayland()) {
-                engineCi.Window.pWaylandSurface = window->GetNativeWindow();
-            }
-            else {
-                engineCi.Window.pXCBConnection = window->GetNativeWindow();
-            }
-#elif QS_PLATFORM_MACOS
-            EngineGLCreateInfo engineCi;
-            engineCi.Window.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
-#endif
+            engineCi.Window = nativeWindow;
 
             pFactoryOpenGL->CreateDeviceAndSwapChainGL(
                 engineCi,
@@ -224,7 +247,7 @@ void main(in  PSInput  PSIn,
     }
 
     void DiligentRendererContext::EndFrame() {
-        m_pSwapChain->Present();
+        m_pSwapChain->Present(0);
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -238,82 +261,121 @@ void main(in  PSInput  PSIn,
     }
 
     ShaderHandle DiligentRendererContext::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+        // TODO:
+        return {};
     }
 
     bool DiligentRendererContext::RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) {
+        // TODO:
+        return {};
     }
 
     void DiligentRendererContext::Destroy(ShaderHandle shaderHandle) {
+        // TODO:
     }
 
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
+        // TODO:
     }
 
     UniformBufferHandle DiligentRendererContext::CreateUniformBuffer(const std::string& name,
         UniformBufferType uniformType, uint32_t count) {
+        // TODO:
+        return {};
     }
 
     void DiligentRendererContext::SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data,
         uint32_t count) {
+        // TODO:
     }
 
     void DiligentRendererContext::Destroy(UniformBufferHandle uniformBufferHandle) {
+        // TODO:
     }
 
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
+        // TODO:
+        return {};
     }
 
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, Buffer data) {
+        // TODO:
+        return {};
     }
 
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec,
         const std::filesystem::path& path) {
+        // TODO:
+        return {};
     }
 
     bool DiligentRendererContext::TextureIsVFlipped() {
+        // TODO:
+        return false;
     }
 
     void DiligentRendererContext::TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) {
+        // TODO:
     }
 
     const TextureSpecification* DiligentRendererContext::GetSpecification(TextureHandle textureHandle) {
+        // TODO:
+        return {};
     }
 
     uint16_t DiligentRendererContext::TextureGetNativeHandle(TextureHandle textureHandle) {
+        // TODO:
+        return {};
     }
 
     void DiligentRendererContext::Bind(TextureHandle textureHandle) {
+        // TODO:
     }
 
     void DiligentRendererContext::Destroy(TextureHandle textureHandle) {
+        // TODO:
     }
 
     FrameBufferHandle DiligentRendererContext::CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) {
+        // TODO:
+        return {};
     }
 
     uint32_t DiligentRendererContext::FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) {
+        // TODO:
+        return {};
     }
 
     uint32_t DiligentRendererContext::FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) {
+        // TODO:
+        return {};
     }
 
     uint2 DiligentRendererContext::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
+        // TODO:
+        return {};
     }
 
     void DiligentRendererContext::FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) {
+        // TODO:
     }
 
     uint32_t DiligentRendererContext::FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) {
+        // TODO:
+        return {};
     }
 
     void DiligentRendererContext::FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width,
         uint32_t height) {
+        // TODO:
     }
 
     void DiligentRendererContext::Bind(FrameBufferHandle frameBufferHandle) {
+        // TODO:
     }
 
     void DiligentRendererContext::Destroy(FrameBufferHandle frameBufferHandle) {
+        // TODO:
     }
 
     void DiligentRendererContext::SubmitMesh(

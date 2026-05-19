@@ -44,7 +44,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #endif
 
 #if QS_PLATFORM_WINDOWS
-	specs.RendererAPI = RendererAPI::Vulkan;
+	specs.RendererAPI = RendererAPI::Direct3D12;
 #elif QS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #elif QS_PLATFORM_MACOS
