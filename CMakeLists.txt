@@ -20,6 +20,7 @@ add_compile_definitions(BX_CONFIG_DEBUG)
 # MSVC-specific options
 if (MSVC)
     add_compile_definitions(QS_COMPILER_MSVC)
+    add_compile_options(/Zc:__cplusplus)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

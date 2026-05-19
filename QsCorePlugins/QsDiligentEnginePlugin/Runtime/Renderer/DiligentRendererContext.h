@@ -13,6 +13,14 @@
 #    include "EngineFactoryVk.h"
 #endif
 
+#if D3D11_SUPPORTED
+#    include "EngineFactoryD3D11.h"
+#endif
+
+#if D3D12_SUPPORTED
+#    include "EngineFactoryD3D12.h"
+#endif
+
 #include "RenderDevice.h"
 #include "DeviceContext.h"
 #include "SwapChain.h"

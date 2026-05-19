@@ -85,16 +85,16 @@ namespace Quelos {
         using hlslpp::atan2;
 
         using hlslpp::cos;
-        constexpr float cos(const float f) { return std::cos(f); }
-        constexpr double cos(const double f) { return std::cos(f); }
+        inline float cos(const float f) { return std::cos(f); }
+        inline double cos(const double f) { return std::cos(f); }
 
         using hlslpp::sin;
-        constexpr float sin(const float f) { return std::sin(f); }
-        constexpr double sin(const double f) { return std::sin(f); }
+        inline float sin(const float f) { return std::sin(f); }
+        inline double sin(const double f) { return std::sin(f); }
 
         using hlslpp::asin;
-        constexpr float asin(const float f) { return std::asin(f); }
-        constexpr double asin(const double f) { return std::asin(f); }
+        inline float asin(const float f) { return std::asin(f); }
+        inline double asin(const double f) { return std::asin(f); }
 
         using hlslpp::sign;
         constexpr float sign(const float f) { return (f > 0.0f) - (f < 0.0f); }
@@ -104,12 +104,12 @@ namespace Quelos {
         using hlslpp::max;
 
         using hlslpp::clamp;
-        constexpr float clamp(const float f, const float minf, const float maxf) { return min(max(f, minf), maxf); }
-        constexpr double clamp(const double f, const double minf, const double maxf) { return min(max(f, minf), maxf); }
+        inline float clamp(const float f, const float minf, const float maxf) { return min(max(f, minf), maxf); }
+        inline double clamp(const double f, const double minf, const double maxf) { return min(max(f, minf), maxf); }
 
         using hlslpp::saturate;
-        constexpr float saturate(const float f) { return clamp(f, 0.0f, 1.0f); }
-        constexpr double saturate(const double f) { return clamp(f, 0.0, 1.0); }
+        inline float saturate(const float f) { return clamp(f, 0.0f, 1.0f); }
+        inline double saturate(const double f) { return clamp(f, 0.0, 1.0); }
 
         using hlslpp::length;
         using hlslpp::normalize;
@@ -176,10 +176,7 @@ namespace Quelos {
         /// @tparam T the multi component type
         /// @return the number of components in a type
         template <typename T>
-        consteval uint32_t count() {
-            static_assert(sizeof(T) == 0, "Unsupported type!");
-            return 0;
-        }
+        consteval uint32_t count() = delete;
 
         template <>
         consteval uint32_t count<int1>() { return 1; }
@@ -229,27 +226,52 @@ namespace Quelos {
         template<>
         consteval uint32_t count<quaternion>() { return 4; }
 
+        constexpr int32_t* value_ptr(int1& f) { return f.i32; }
+        constexpr int32_t* value_ptr(int2& f) { return f.i32; }
+        constexpr int32_t* value_ptr(int3& f) { return f.i32; }
+        constexpr int32_t* value_ptr(int4& f) { return f.i32; }
+
         constexpr const int32_t* value_ptr(const int1& f) { return f.i32; }
         constexpr const int32_t* value_ptr(const int2& f) { return f.i32; }
         constexpr const int32_t* value_ptr(const int3& f) { return f.i32; }
         constexpr const int32_t* value_ptr(const int4& f) { return f.i32; }
+
+        constexpr uint32_t* value_ptr(uint1& f) { return f.u32; }
+        constexpr uint32_t* value_ptr(uint2& f) { return f.u32; }
+        constexpr uint32_t* value_ptr(uint3& f) { return f.u32; }
+        constexpr uint32_t* value_ptr(uint4& f) { return f.u32; }
 
         constexpr const uint32_t* value_ptr(const uint1& f) { return f.u32; }
         constexpr const uint32_t* value_ptr(const uint2& f) { return f.u32; }
         constexpr const uint32_t* value_ptr(const uint3& f) { return f.u32; }
         constexpr const uint32_t* value_ptr(const uint4& f) { return f.u32; }
 
+        constexpr float* value_ptr(float1& f) { return f.f32; }
+        constexpr float* value_ptr(float2& f) { return f.f32; }
+        constexpr float* value_ptr(float3& f) { return f.f32; }
+        constexpr float* value_ptr(float4& f) { return f.f32; }
+
         constexpr const float* value_ptr(const float1& f) { return f.f32; }
         constexpr const float* value_ptr(const float2& f) { return f.f32; }
         constexpr const float* value_ptr(const float3& f) { return f.f32; }
         constexpr const float* value_ptr(const float4& f) { return f.f32; }
+
+        constexpr double* value_ptr(double1& f) { return f.f64; }
+        constexpr double* value_ptr(double2& f) { return f.f64; }
+        constexpr double* value_ptr(double3& f) { return f.f64; }
+        constexpr double* value_ptr(double4& f) { return f.f64; }
 
         constexpr const double* value_ptr(const double1& f) { return f.f64; }
         constexpr const double* value_ptr(const double2& f) { return f.f64; }
         constexpr const double* value_ptr(const double3& f) { return f.f64; }
         constexpr const double* value_ptr(const double4& f) { return f.f64; }
 
+        constexpr float* value_ptr(quaternion& f) { return f.f32; }
         constexpr const float* value_ptr(const quaternion& f) { return f.f32; }
+
+        constexpr float* value_ptr(float3x4& f) { return f.f32_0; }
+        constexpr float* value_ptr(float4x3& f) { return f.f32_0; }
+        constexpr float* value_ptr(float4x4& f) { return f.f32_128_0; }
 
         constexpr const float* value_ptr(const float3x4& f) { return f.f32_0; }
         constexpr const float* value_ptr(const float4x3& f) { return f.f32_0; }
