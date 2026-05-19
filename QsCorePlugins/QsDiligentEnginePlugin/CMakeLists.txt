@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(QsDiligentEnginePlugin)
 
+if(APPLE)
+    enable_language(OBJC)
+endif()
+
 add_subdirectory(vendor/DiligentEngine)
 
 file(GLOB_RECURSE QS_DILIGENT_SRC CONFIGURE_DEPENDS
@@ -34,7 +38,6 @@ elseif (UNIX)
     endif()
 
     if(VULKAN_SUPPORTED)
-        find_library(XCB_LIBRARY xcb)
-        target_link_libraries(QsDiligentEnginePlugin PRIVATE Diligent-GraphicsEngineVk-static ${XCB_LIBRARY})
+        target_link_libraries(QsDiligentEnginePlugin PRIVATE Diligent-GraphicsEngineVk-static)
     endif()
 endif()

@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 4.1.2)
 
+if(APPLE)
+    enable_language(OBJC)
+endif()
+
 function(add_quelos_module out_var path)
     file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
             ${CMAKE_CURRENT_SOURCE_DIR}/${path}/*.cpp
@@ -23,8 +27,20 @@ if(WIN32)
             ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Windows/*.cpp
     )
 elseif(APPLE)
+    file(GLOB QUELOS_MM_SRC CONFIGURE_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/MacOS/*.mm
+    )
+
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/Mac/*.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Quelos/Platform/MacOS/*.cpp
+    )
+
+    list(APPEND QUELOS_PLATFORM_SRC ${QUELOS_MM_SRC})
+
+    set_source_files_properties(
+            ${QUELOS_MM_SRC}
+            PROPERTIES
+            SKIP_PRECOMPILE_HEADERS ON
     )
 elseif(UNIX)
     file(GLOB QUELOS_PLATFORM_SRC CONFIGURE_DEPENDS
@@ -80,6 +96,8 @@ function(setup_quelos_target target type)
     target_precompile_headers(${target} PRIVATE
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/qspch.h>
     )
+
+    target_compile_definitions(${target} PUBLIC "IMGUI_API=QS_API")
 
     target_compile_definitions(${target} PUBLIC
             GLM_ENABLE_EXPERIMENTAL

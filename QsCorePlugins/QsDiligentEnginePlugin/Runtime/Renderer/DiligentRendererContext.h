@@ -5,10 +5,6 @@
 #pragma once
 #include "Quelos/Renderer/Renderer.h"
 
-#ifndef PLATFORM_LINUX
-#    define PLATFORM_LINUX 1
-#endif
-
 #if GL_SUPPORTED
 #    include "EngineFactoryOpenGL.h"
 #endif

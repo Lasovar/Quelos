@@ -17,8 +17,10 @@ namespace Quelos {
 
         void SetCursorMode(CursorMode cursorMode) override;
 
-        uint32_t GetWidth() const override { return m_Specifications.Width; }
-        uint32_t GetHeight() const override { return m_Specifications.Height; }
+        uint32_t GetWidth() const override;
+        uint32_t GetHeight() const override;
+
+        float GetDisplayScaling() const override;
 
         WindowingBackend GetWindowBacked() const override { return WindowingBackend::SDL; }
 

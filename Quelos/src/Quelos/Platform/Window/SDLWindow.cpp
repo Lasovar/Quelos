@@ -176,7 +176,8 @@ namespace Quelos {
             m_Specifications.Title.c_str(),
             m_Specifications.Width,
             m_Specifications.Height,
-            SDL_WINDOW_RESIZABLE
+            SDL_WINDOW_RESIZABLE |
+            0//SDL_WINDOW_HIGH_PIXEL_DENSITY
         );
 
         const SDL_PropertiesID windowProperties = SDL_GetWindowProperties(m_SDLWindow);
@@ -336,5 +337,15 @@ namespace Quelos {
             m_LockCursorPosition = m_CurrentMousePosition;
             break;
         }
+    }
+
+    uint32_t SDLWindow::GetWidth() const { return m_Specifications.Width; }
+
+    uint32_t SDLWindow::GetHeight() const {
+        return m_Specifications.Height;
+    }
+
+    float SDLWindow::GetDisplayScaling() const {
+        return SDL_GetWindowDisplayScale(m_SDLWindow);
     }
 }

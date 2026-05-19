@@ -11,6 +11,7 @@
 
 #include "Quelos/Renderer/FrameBuffer.h"
 #include "Quelos/Renderer/Renderer.h"
+#include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
     class WindowResizeEvent;

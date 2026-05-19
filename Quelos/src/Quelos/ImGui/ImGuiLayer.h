@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quelos/Core/Layer.h"
+#include "imgui.h"
 #include "imgui_user.h"
 
 namespace Quelos {
