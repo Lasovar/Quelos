@@ -12,6 +12,7 @@
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/daScript" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/flecs" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/freetype" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Quelos/vendor/freetype/subprojects/dlg" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/tracy" vcs="Git" />

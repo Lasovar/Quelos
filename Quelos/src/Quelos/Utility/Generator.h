@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <coroutine>
+#include <exception>
 
 namespace Quelos {
     template<typename T>

@@ -26,6 +26,7 @@
  */
 
 #include <cstddef>
+#include "Quelos/Core/API.h"
 #include "ImGuiDiligentRenderer.hpp"
 #include "ImGuiImplDiligent.hpp"
 #include "RenderDevice.h"

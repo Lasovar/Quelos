@@ -48,7 +48,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #elif QS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #elif QS_PLATFORM_MACOS
-	specs.RendererAPI = RendererAPI::Metal;
+	specs.RendererAPI = RendererAPI::Vulkan;
 #endif
 
 	PluginContext context;

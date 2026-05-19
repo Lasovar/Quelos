@@ -4,6 +4,8 @@
 #include "TextureImporter.h"
 #include "magic_enum/magic_enum.hpp"
 
+#include "Quelos/Core/Profiling.h"
+
 namespace Quelos {
     static HashMap<AssetTypeID, AssetImporterConfig> s_AssetLoaders;
 

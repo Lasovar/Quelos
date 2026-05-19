@@ -1,5 +1,9 @@
 #include "DiligentRendererContext.h"
 
+#if QS_PLATFORM_MACOS
+#include "Quelos/Platform/MacOS/WindowHelper.h"
+#endif
+
 namespace Quelos {
     static const char* VSSource = R"(
 struct PSInput
@@ -65,17 +69,22 @@ void main(in  PSInput  PSIn,
             SCDesc.Width = window->GetWidth();
             SCDesc.Height = window->GetHeight();
 
-            LinuxNativeWindow linuxWindow;
+#if QS_PLATFORM_LINUX
+            LinuxNativeWindow nativeWindow;
 
-            linuxWindow.pDisplay = window->GetNativeDisplay();
+            nativeWindow.pDisplay = window->GetNativeDisplay();
             if (window->IsWayland()) {
-                linuxWindow.pWaylandSurface = window->GetNativeWindow();
+                nativeWindow.pWaylandSurface = window->GetNativeWindow();
             }
             else {
-                linuxWindow.pXCBConnection = window->GetNativeWindow();
+                nativeWindow.pXCBConnection = window->GetNativeWindow();
             }
+#elif QS_PLATFORM_MACOS
+            MacOSNativeWindow nativeWindow;
+            nativeWindow.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
+#endif
 
-            pFactoryVk->CreateSwapChainVk(m_pDevice, m_pImmediateContext, SCDesc, linuxWindow, &m_pSwapChain);
+            pFactoryVk->CreateSwapChainVk(m_pDevice, m_pImmediateContext, SCDesc, nativeWindow, &m_pSwapChain);
             break;
         }
 #endif
@@ -85,8 +94,8 @@ void main(in  PSInput  PSIn,
             // Declare function pointer
             auto* pFactoryOpenGL = GetEngineFactoryOpenGL();
 
+#if QS_PLATFORM_LINUX
             EngineGLCreateInfo engineCi;
-
             engineCi.Window.pDisplay = window->GetNativeDisplay();
             if (window->IsWayland()) {
                 engineCi.Window.pWaylandSurface = window->GetNativeWindow();
@@ -94,6 +103,10 @@ void main(in  PSInput  PSIn,
             else {
                 engineCi.Window.pXCBConnection = window->GetNativeWindow();
             }
+#elif QS_PLATFORM_MACOS
+            EngineGLCreateInfo engineCi;
+            engineCi.Window.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
+#endif
 
             pFactoryOpenGL->CreateDeviceAndSwapChainGL(
                 engineCi,

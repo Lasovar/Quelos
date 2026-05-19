@@ -7,6 +7,7 @@
 
 #include "Quelos/Renderer/Renderer.h"
 #include "flecs.h"
+#include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
 

@@ -13,6 +13,7 @@
 #include "Quelos/ImGui/ImGuiState.h"
 
 #include "Quelos/Math/Math.h"
+#include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
     static Ref<Window> s_Window;

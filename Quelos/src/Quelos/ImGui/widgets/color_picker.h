@@ -13,7 +13,7 @@ namespace ImGui
 			rgba[2]/255.0f,
 			rgba[3]/255.0f,
 		};
-		bool result = ColorEdit4(label, col, show_alpha);
+		bool result = ImGui::ColorEdit4(label, col, show_alpha);
 		rgba[0] = uint8_t(col[0]*255.0f);
 		rgba[1] = uint8_t(col[1]*255.0f);
 		rgba[2] = uint8_t(col[2]*255.0f);

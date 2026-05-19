@@ -56,7 +56,12 @@ namespace Quelos {
 			s_ImGuiState = ImGuiState::Create();
 		}
 
-		constexpr float fontSize = 21;
+		s_ImGuiState->Init();
+		Ref<Window> window = Application::Get().GetWindow();
+
+		const float scaleFactor = window->GetDisplayScaling();
+		const float fontSize = 21 * scaleFactor;
+
 		s_ImGuiState->Init();
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -65,6 +70,10 @@ namespace Quelos {
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 		io.ConfigDragClickToInputText = true;
+		io.FontGlobalScale = 1.0f / scaleFactor;
+		io.DisplayFramebufferScale = ImVec2(scaleFactor, scaleFactor);
+
+		ImGui::GetStyle().ScaleAllSizes(scaleFactor);
 
 		{
 			ImFontConfig config;
@@ -104,7 +113,6 @@ namespace Quelos {
 			}
 		}
 
-		Ref<Window> window = Application::Get().GetWindow();
 		switch (window->GetWindowBacked()) {
 		case WindowingBackend::None:
 			break;
