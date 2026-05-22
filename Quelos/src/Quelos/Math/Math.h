@@ -226,6 +226,8 @@ namespace Quelos {
         template<>
         consteval uint32_t count<quaternion>() { return 4; }
 
+        using hlslpp::store;
+        
         constexpr int32_t* value_ptr(int1& f) { return f.i32; }
         constexpr int32_t* value_ptr(int2& f) { return f.i32; }
         constexpr int32_t* value_ptr(int3& f) { return f.i32; }

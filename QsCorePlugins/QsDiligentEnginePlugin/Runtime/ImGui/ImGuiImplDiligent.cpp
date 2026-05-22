@@ -64,9 +64,24 @@ void DiligentImGuiState::BeginFrame(uint32_t viewId) {
 }
 
 void DiligentImGuiState::EndFrame() {
+    auto* m_pCtx = Quelos::DiligentRendererContext::Get().GetImmediateContext();
+    auto* m_pSwapChain = Quelos::DiligentRendererContext::Get().GetSwapChain();
+
+    auto* pRTV = m_pSwapChain->GetCurrentBackBufferRTV();
+    auto* pDSV = m_pSwapChain->GetDepthBufferDSV();
+
+    // Clear and bind the swapchain targets
+    m_pCtx->SetRenderTargets(1, &pRTV, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+    constexpr float clearColor[] = { 0.f, 0.f, 0.f, 1.f };
+    m_pCtx->ClearRenderTarget(pRTV, clearColor,
+                              RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+    m_pCtx->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0,
+                              RESOURCE_STATE_TRANSITION_MODE_VERIFY);
+
     // No need to call ImGui::EndFrame as ImGui::Render calls it automatically
     ImGui::Render();
-    m_pRenderer->RenderDrawData(Quelos::DiligentRendererContext::Get().GetImmediateContext(), ImGui::GetDrawData());
+    m_pRenderer->RenderDrawData(m_pCtx, ImGui::GetDrawData());
 }
 
 void DiligentImGuiState::Init() {

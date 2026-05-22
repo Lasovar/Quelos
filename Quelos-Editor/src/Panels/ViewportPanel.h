@@ -42,8 +42,8 @@ namespace QuelosEditor {
 
         bool m_ViewportVisible = false;
 
-        Ref<Texture2D> m_ColorAttachment;
-        Ref<Texture2D> m_DepthAttachment;
+        TextureHandle m_ColorAttachment;
+        TextureHandle m_DepthAttachment;
 
         Ref<FrameBuffer> m_FrameBuffer;
     };

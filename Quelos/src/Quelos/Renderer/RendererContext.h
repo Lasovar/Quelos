@@ -4,6 +4,7 @@
 #include "IndexBuffer.h"
 #include "RendererAPI.h"
 #include "RenderPass.h"
+#include "RenderPassAttrib.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
@@ -29,6 +30,9 @@ namespace Quelos {
             const float4x4& view,
             const float4x4& projection
         ) = 0;
+
+        virtual void BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) = 0;
+        virtual void EndRenderPass() = 0;
 
         virtual void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) = 0;
 

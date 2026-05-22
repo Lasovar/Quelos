@@ -35,6 +35,8 @@ namespace Quelos {
 		static void StartFrame();
 		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const WorldTransform& transform, const float4x4& projection);
 		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view, const float4x4& projection);
+		static void BeginRenderPass(const BeginRenderPassAttribs& attribs);
+		static void EndRenderPass();
 		static void EndFrame();
 
 		static void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform);

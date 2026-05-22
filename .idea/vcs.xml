@@ -6,6 +6,27 @@
     <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsBgfxRendererPlugin/vendor/bgfx.cmake/bgfx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsBgfxRendererPlugin/vendor/bgfx.cmake/bimg" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsBgfxRendererPlugin/vendor/bgfx.cmake/bx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/SPIRV-Cross" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/SPIRV-Headers" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/SPIRV-Tools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/Vulkan-Headers" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/glslang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/googletest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/volk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentCore/ThirdParty/xxHash" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentFX" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentSamples" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentSamples/ThirdParty/Nuklear" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentSamples/ThirdParty/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/args" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/imgui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/json" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/libpng" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/stb" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine/DiligentTools/ThirdParty/zlib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos-Editor/vendor/assimp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/GLFW" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/SDL" vcs="Git" />

@@ -5,6 +5,7 @@
 #include "Quelos/Renderer/Texture.h"
 
 namespace Quelos {
+    // Holds some temp values... keep temp values alive until creation
     struct FrameBufferSpec {
         std::string_view Name;
         Span<TextureHandle> Attachments;
@@ -31,7 +32,7 @@ namespace Quelos {
         [[nodiscard]] FrameBufferHandle GetHandle() const { return m_Handle; }
 
     public:
-        static Ref<FrameBuffer> Create(const Span<Ref<Texture2D>>& attachments, RenderPassHandle renderPassHandle);
+        static Ref<FrameBuffer> Create(const FrameBufferSpec& frameBufferSpec);
     private:
         FrameBufferHandle m_Handle;
     };
