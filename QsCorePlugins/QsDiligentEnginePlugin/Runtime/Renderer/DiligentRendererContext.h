@@ -55,7 +55,7 @@ namespace Quelos {
     };
 
     struct QTextureData {
-        ITexture* Texture;
+        ITexture* Texture = nullptr;
         TextureSpecification Specification;
     };
 
@@ -78,6 +78,10 @@ namespace Quelos {
         void Reset(uint32_t width, uint32_t height) override;
 
         void StartSceneRender(FrameBufferHandle frameBuffer, const float4x4& view, const float4x4& projection) override;
+
+        void BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) override;
+        void EndRenderPass() override;
+
         void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) override;
 
         ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;

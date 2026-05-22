@@ -20,13 +20,7 @@ namespace Quelos {
         Renderer::FrameBufferResize(m_Handle, width, height);
     }
 
-    Ref<FrameBuffer> FrameBuffer::Create(const Span<Ref<Texture2D>>& attachments, RenderPassHandle renderPassHandle) {
-        SmallVec<TextureHandle, 4> textureHandles;
-        for (const auto& attachment : attachments) {
-            textureHandles.push_back(attachment->GetHandle());
-        }
-
-        return CreateRef<FrameBuffer>(Renderer::CreateFrameBuffer(TODO
-        ));
+    Ref<FrameBuffer> FrameBuffer::Create(const FrameBufferSpec& frameBufferSpec) {
+        return CreateRef<FrameBuffer>(Renderer::CreateFrameBuffer(frameBufferSpec));
     }
 }

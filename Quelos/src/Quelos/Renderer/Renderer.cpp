@@ -116,6 +116,14 @@ namespace Quelos {
         SetUniformData(u_shadowThreshold, math::value_ptr(shadowData));
     }
 
+    void Renderer::BeginRenderPass(const BeginRenderPassAttribs& attribs) {
+        s_RendererContext->BeginRenderPass(attribs);
+    }
+
+    void Renderer::EndRenderPass() {
+        s_RendererContext->EndRenderPass();
+    }
+
     void Renderer::EndFrame() {
         QS_PROFILE_SCOPED();
         s_RendererContext->EndFrame();

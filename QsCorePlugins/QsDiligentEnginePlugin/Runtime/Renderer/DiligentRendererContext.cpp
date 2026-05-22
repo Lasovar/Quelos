@@ -55,6 +55,111 @@ void main(in  PSInput  PSIn,
 }
 )";
 
+    namespace TextureUtil {
+        static TEXTURE_FORMAT GetTextureFormat(const ImageFormat imageFormat) {
+            switch (imageFormat) {
+            case ImageFormat::None:
+                return TEX_FORMAT_UNKNOWN;
+            case ImageFormat::RED8UNORM:
+                return TEX_FORMAT_R8_UNORM;
+            case ImageFormat::RED8UINT:
+                return TEX_FORMAT_R8_UINT;
+            case ImageFormat::RED16UINT:
+                return TEX_FORMAT_R16_UINT;
+            case ImageFormat::RED32UINT:
+                return TEX_FORMAT_R32_UINT;
+            case ImageFormat::RED32FLOAT:
+                return TEX_FORMAT_R32_FLOAT;
+            case ImageFormat::RG8UNORM:
+                return TEX_FORMAT_RG8_UNORM;
+            case ImageFormat::RG16FLOAT:
+                return TEX_FORMAT_RG16_FLOAT;
+            case ImageFormat::RG32FLOAT:
+                return TEX_FORMAT_RG32_FLOAT;
+            case ImageFormat::RGB:
+                return TEX_FORMAT_ETC2_RGB8_UNORM;
+            case ImageFormat::RGBA:
+                return TEX_FORMAT_RGBA8_UNORM;
+            case ImageFormat::RGBA16FLOAT:
+                return TEX_FORMAT_RGBA16_FLOAT;
+            case ImageFormat::RGBA32FLOAT:
+                return TEX_FORMAT_RGBA32_FLOAT;
+            case ImageFormat::B10R11G11FLOAT:
+                return TEX_FORMAT_R11G11B10_FLOAT;
+            case ImageFormat::SRGB:
+                return TEX_FORMAT_BC7_UNORM_SRGB;
+            case ImageFormat::SRGBA:
+                return TEX_FORMAT_RGBA8_UNORM_SRGB;
+            case ImageFormat::DEPTH32FSTENCIL8UINT:
+                return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
+            case ImageFormat::DEPTH32F:
+                return TEX_FORMAT_D32_FLOAT;
+            case ImageFormat::DEPTH24STENCIL8:
+                return TEX_FORMAT_D24_UNORM_S8_UINT;
+            }
+
+            return TEX_FORMAT_UNKNOWN;
+        }
+
+        static RESOURCE_DIMENSION GetTextureType(const TextureType textureType) {
+            switch (textureType) {
+            case TextureType::Texture2D:
+                return RESOURCE_DIM_TEX_2D;
+            case TextureType::TextureCube:
+                return RESOURCE_DIM_TEX_CUBE;
+            }
+
+            return RESOURCE_DIM_UNDEFINED;
+        }
+
+        static BIND_FLAGS GetBindFlags(const TextureSpecification& spec) {
+            BIND_FLAGS bindFlags = BIND_NONE;
+            if (spec.RenderTarget == TextureRenderTarget::ReadWrite) {
+                bindFlags |= BIND_SHADER_RESOURCE;
+                bindFlags |= BIND_RENDER_TARGET;
+            }
+
+            if (spec.Format == ImageFormat::DEPTH32F
+                || spec.Format == ImageFormat::DEPTH24STENCIL8
+                || spec.Format == ImageFormat::DEPTH32FSTENCIL8UINT
+            ) {
+                bindFlags |= BIND_DEPTH_STENCIL;
+            }
+
+            return bindFlags;
+        }
+
+        static void CreateTexture(IRenderDevice* device, QTextureData& textureData) {
+            const TextureSpecification& spec = textureData.Specification;
+
+            TextureDesc textureDesc;
+            textureDesc.Name = spec.Name.c_str();
+            textureDesc.Format = GetTextureFormat(spec.Format);
+            textureDesc.Width = spec.Width;
+            textureDesc.Height = spec.Height;
+            textureDesc.Type = GetTextureType(spec.Type);
+            textureDesc.BindFlags = GetBindFlags(spec);
+
+            device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
+        }
+
+        void Resize(
+            IRenderDevice* device,
+            QTextureData& data,
+            const uint32_t width,
+            const uint32_t height
+        ) {
+            data.Texture->Release();
+            data.Texture = nullptr;
+
+            data.Specification.Width = width;
+            data.Specification.Height = height;
+
+            CreateTexture(device, data);
+        }
+    }
+
+
     DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
 
     void DiligentRendererContext::Init(const Ref<Window>& window, RendererAPI api) {
@@ -267,6 +372,33 @@ void main(in  PSInput  PSIn,
                                                    const float4x4& projection) {
     }
 
+    void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
+        SmallVec<OptimizedClearValue, 2> clearValues;
+        clearValues.reserve(beginRenderPassAttrib.ClearColors.size());
+        for (const ClearValue& clearColor : beginRenderPassAttrib.ClearColors) {
+            OptimizedClearValue optimizedClearValue;
+            optimizedClearValue.Format = TextureUtil::GetTextureFormat(clearColor.Format);
+            math::store(optimizedClearValue.Color, clearColor.Color);
+            optimizedClearValue.DepthStencil.Depth = clearColor.DepthStencil.Depth;
+            optimizedClearValue.DepthStencil.Stencil = clearColor.DepthStencil.Stencil;
+
+            clearValues.push_back(optimizedClearValue);
+        }
+
+        Diligent::BeginRenderPassAttribs attribs;
+        attribs.pClearValues = clearValues.data();
+        attribs.ClearValueCount = clearValues.size();
+        attribs.pFramebuffer = m_FrameBufferTable.Get(beginRenderPassAttrib.FrameBufferHandle)->FrameBuffer;
+        attribs.pRenderPass = *m_RenderPassTable.Get(beginRenderPassAttrib.RenderPassHandle);
+        attribs.StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+
+        m_pImmediateContext->BeginRenderPass(attribs);
+    }
+
+    void DiligentRendererContext::EndRenderPass() {
+        m_pImmediateContext->EndRenderPass();
+    }
+
     ShaderHandle DiligentRendererContext::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
         // TODO:
         return {};
@@ -299,110 +431,6 @@ void main(in  PSInput  PSIn,
     void DiligentRendererContext::Destroy(UniformBufferHandle uniformBufferHandle) {
         // TODO:
     }
-
-    namespace TextureUtil {
-        static TEXTURE_FORMAT GetTextureFormat(const ImageFormat imageFormat) {
-            switch (imageFormat) {
-            case ImageFormat::None:
-                return TEX_FORMAT_UNKNOWN;
-            case ImageFormat::RED8UNORM:
-                return TEX_FORMAT_R8_UNORM;
-            case ImageFormat::RED8UINT:
-                return TEX_FORMAT_R8_UINT;
-            case ImageFormat::RED16UINT:
-                return TEX_FORMAT_R16_UINT;
-            case ImageFormat::RED32UINT:
-                return TEX_FORMAT_R32_UINT;
-            case ImageFormat::RED32FLOAT:
-                return TEX_FORMAT_R32_FLOAT;
-            case ImageFormat::RG8UNORM:
-                return TEX_FORMAT_RG8_UNORM;
-            case ImageFormat::RG16FLOAT:
-                return TEX_FORMAT_RG16_FLOAT;
-            case ImageFormat::RG32FLOAT:
-                return TEX_FORMAT_RG32_FLOAT;
-            case ImageFormat::RGB:
-                return TEX_FORMAT_ETC2_RGB8_UNORM;
-            case ImageFormat::RGBA:
-                return TEX_FORMAT_RGBA8_UNORM;
-            case ImageFormat::RGBA16FLOAT:
-                return TEX_FORMAT_RGBA16_FLOAT;
-            case ImageFormat::RGBA32FLOAT:
-                return TEX_FORMAT_RGBA32_FLOAT;
-            case ImageFormat::B10R11G11FLOAT:
-                return TEX_FORMAT_R11G11B10_FLOAT;
-            case ImageFormat::SRGB:
-                return TEX_FORMAT_BC7_UNORM_SRGB;
-            case ImageFormat::SRGBA:
-                return TEX_FORMAT_RGBA8_UNORM_SRGB;
-            case ImageFormat::DEPTH32FSTENCIL8UINT:
-                return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
-            case ImageFormat::DEPTH32F:
-                return TEX_FORMAT_D32_FLOAT;
-            case ImageFormat::DEPTH24STENCIL8:
-                return TEX_FORMAT_D24_UNORM_S8_UINT;
-            }
-
-            return TEX_FORMAT_UNKNOWN;
-        }
-
-        static RESOURCE_DIMENSION GetTextureType(const TextureType textureType) {
-            switch (textureType) {
-            case TextureType::Texture2D:
-                return RESOURCE_DIM_TEX_2D;
-            case TextureType::TextureCube:
-                return RESOURCE_DIM_TEX_CUBE;
-            }
-
-            return RESOURCE_DIM_UNDEFINED;
-        }
-
-        static BIND_FLAGS GetBindFlags(const TextureSpecification& spec) {
-            BIND_FLAGS bindFlags = BIND_NONE;
-            if (spec.RenderTarget == TextureRenderTarget::ReadWrite) {
-                bindFlags |= BIND_SHADER_RESOURCE;
-                bindFlags |= BIND_RENDER_TARGET;
-            }
-
-            if (spec.Format == ImageFormat::DEPTH32F
-                || spec.Format == ImageFormat::DEPTH24STENCIL8
-                || spec.Format == ImageFormat::DEPTH32FSTENCIL8UINT
-            ) {
-                bindFlags |= BIND_DEPTH_STENCIL;
-            }
-
-            return bindFlags;
-        }
-
-        static void CreateTexture(const RefCntAutoPtr<IRenderDevice>& device, QTextureData& textureData) {
-            const TextureSpecification& spec = textureData.Specification;
-
-            TextureDesc textureDesc;
-            textureDesc.Name = spec.Name.c_str();
-            textureDesc.Format = GetTextureFormat(spec.Format);
-            textureDesc.Width = spec.Width;
-            textureDesc.Height = spec.Height;
-            textureDesc.Type = GetTextureType(spec.Type);
-            textureDesc.BindFlags = GetBindFlags(spec);
-
-            device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
-        }
-
-        void Resize(
-            const RefCntAutoPtr<IRenderDevice>& device,
-            QTextureData& data,
-            const uint32_t width,
-            const uint32_t height
-        ) {
-            data.Texture->Release();
-
-            data.Specification.Width = width;
-            data.Specification.Height = height;
-
-            CreateTexture(device, data);
-        }
-    }
-
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.Get(handle);
@@ -468,7 +496,7 @@ void main(in  PSInput  PSIn,
         Attachments[0].SampleCount = 1;
         Attachments[0].LoadOp = ATTACHMENT_LOAD_OP_CLEAR;
         Attachments[0].StoreOp = ATTACHMENT_STORE_OP_STORE;
-        Attachments[0].InitialState = RESOURCE_STATE_UNDEFINED;
+        Attachments[0].InitialState = RESOURCE_STATE_SHADER_RESOURCE;
         Attachments[0].FinalState = RESOURCE_STATE_SHADER_RESOURCE;
 
         // Depth
@@ -476,7 +504,7 @@ void main(in  PSInput  PSIn,
         Attachments[1].SampleCount = 1;
         Attachments[1].LoadOp = ATTACHMENT_LOAD_OP_CLEAR;
         Attachments[1].StoreOp = ATTACHMENT_STORE_OP_DISCARD;
-        Attachments[1].InitialState = RESOURCE_STATE_UNDEFINED;
+        Attachments[1].InitialState = RESOURCE_STATE_DEPTH_WRITE;
         Attachments[1].FinalState = RESOURCE_STATE_DEPTH_WRITE;
 
         AttachmentReference ColorRef = {0, RESOURCE_STATE_RENDER_TARGET};
@@ -500,7 +528,10 @@ void main(in  PSInput  PSIn,
     }
 
     void DiligentRendererContext::Destroy(const RenderPassHandle renderPassHandle) {
-        (*m_RenderPassTable.Get(renderPassHandle))->Release();
+        IRenderPass** slot = m_RenderPassTable.Get(renderPassHandle);
+        (*slot)->Release();
+        *slot = nullptr;
+
         m_RenderPassTable.Erase(renderPassHandle);
     }
 
@@ -714,10 +745,17 @@ void main(in  PSInput  PSIn,
         }
 
         (*slot)->Release();
+        *slot = nullptr;
+
         m_IndexBufferTable.Erase(indexBufferHandle);
     }
 
     void DiligentRendererContext::Shutdown() {
         m_pImmediateContext->Flush();
+
+        m_pDevice.Release();
+        m_pPSO.Release();
+        m_pSwapChain.Release();
+        m_pImmediateContext.Release();
     }
 }

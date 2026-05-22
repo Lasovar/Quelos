@@ -95,15 +95,9 @@ namespace Quelos {
             transform,
             camera.GetProjection()
         );
-
-        m_SceneRenderStarted = true;
     }
 
     void Scene::Render() const {
-        if (!m_SceneRenderStarted) {
-            return;
-        }
-
         m_RenderingQuery.each([](const WorldTransform& transform, const MeshRenderer& mesh) {
             if (!mesh.MeshData || !mesh.ShaderData) {
                 return;

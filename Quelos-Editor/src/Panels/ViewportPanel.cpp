@@ -4,9 +4,10 @@
 #include "EditorUI.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui_internal.h"
+#include "Quelos/Renderer/Renderer.h"
 
 namespace QuelosEditor {
-    ViewportPanel::ViewportPanel(std::string  name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height)
+    ViewportPanel::ViewportPanel(std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height)
         : m_Name(std::move(name))
     {
         {
@@ -20,7 +21,7 @@ namespace QuelosEditor {
             colorSpec.RenderTarget = TextureRenderTarget::ReadWrite;
             colorSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
 
-            m_ColorAttachment = Texture2D::Create(colorSpec);
+            m_ColorAttachment = Renderer::CreateTexture(colorSpec);
 
             TextureSpecification depthSpec;
             depthSpec.Width = width;
@@ -32,10 +33,16 @@ namespace QuelosEditor {
             depthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
             depthSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
 
-            m_DepthAttachment = Texture2D::Create(depthSpec);
+            m_DepthAttachment = Renderer::CreateTexture(depthSpec);
 
             std::array attachments{m_ColorAttachment, m_DepthAttachment};
-            m_FrameBuffer = FrameBuffer::Create(attachments, renderPassHandle);
+            FrameBufferSpec spec;
+            spec.Attachments = attachments;
+            spec.Name = m_Name;
+            spec.RenderPassHandle = renderPassHandle;
+            spec.Size = { width, height };
+
+            m_FrameBuffer = FrameBuffer::Create(spec);
         }
     }
 
@@ -70,12 +77,12 @@ namespace QuelosEditor {
                     //m_ActiveScene->OnViewportResize(static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y));
                 }
 
-                float4 uv = m_ColorAttachment->IsVFlipped()
+                float4 uv = /*m_ColorAttachment->IsVFlipped()
                                    ? float4(0.0f, 1.0f, 1.0f, 0.0f)
-                                   : float4(0.0f, 0.0f, 1.0f, 1.0f);
+                                   : */float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    m_ColorAttachment->GetHandle().GetNativeHandle(),
+                    m_ColorAttachment.GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
