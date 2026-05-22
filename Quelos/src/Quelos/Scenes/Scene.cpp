@@ -69,6 +69,9 @@ namespace Quelos {
                    const WorldTransform& parentWorld) {
                        world.Value = math::mul(parentWorld.Value, mathExt::srt(local.Scale, local.Rotation, local.Position));
                    });
+
+
+        m_RenderPass = Renderer::CreateRenderPass();
     }
 
     void Scene::Tick(const float deltaTime) const {
@@ -96,17 +99,17 @@ namespace Quelos {
         m_SceneRenderStarted = true;
     }
 
-    void Scene::Render(uint32_t viewId) const {
+    void Scene::Render() const {
         if (!m_SceneRenderStarted) {
             return;
         }
 
-        m_RenderingQuery.each([viewId](const WorldTransform& transform, const MeshRenderer& mesh) {
+        m_RenderingQuery.each([](const WorldTransform& transform, const MeshRenderer& mesh) {
             if (!mesh.MeshData || !mesh.ShaderData) {
                 return;
             }
 
-            Renderer::SubmitMesh(viewId, mesh, transform);
+            Renderer::SubmitMesh(mesh, transform);
         });
     }
 

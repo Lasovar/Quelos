@@ -7,7 +7,7 @@
 #include <type_traits>
 
 namespace Quelos {
-    template<typename T, size_t N>
+    template <typename T, size_t N>
     class SmallVec {
     public:
         using value_type = T;
@@ -17,12 +17,41 @@ namespace Quelos {
 
     public:
         SmallVec() noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N) {}
+            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N) {
+        }
 
         ~SmallVec() {
             clear();
             if (!is_inline()) {
                 operator delete(m_Data);
+            }
+        }
+
+        explicit SmallVec(std::span<const T> src) {
+            if (src.size() <= N) {
+                m_Data = inline_ptr();
+                m_Capacity = N;
+            }
+            else {
+                m_Data = static_cast<T*>(operator new(src.size() * sizeof(T)));
+                m_Capacity = src.size();
+            }
+
+            copy_range(m_Data, src.data(), src.size());
+            m_Size = src.size();
+        }
+
+        SmallVec(std::initializer_list<T> list)
+            : SmallVec(std::span<const T>(list.begin(), list.size())) { }
+
+        template <std::input_iterator It>
+        SmallVec(It first, It last) {
+            m_Data = inline_ptr();
+            m_Capacity = N;
+            m_Size = 0;
+
+            for (; first != last; ++first) {
+                emplace_back(*first);
             }
         }
 
@@ -66,6 +95,9 @@ namespace Quelos {
         T* data() { return m_Data; }
         const T* data() const { return m_Data; }
 
+        operator std::span<T>() noexcept { return {m_Data, m_Size}; }
+        operator std::span<const T>() const noexcept { return {m_Data, m_Size}; }
+
         iterator begin() { return m_Data; }
         iterator end() { return m_Data + m_Size; }
         const_iterator begin() const { return m_Data; }
@@ -88,14 +120,14 @@ namespace Quelos {
             m_Size = 0;
         }
 
-        template<typename... Args>
+        template <typename... Args>
         T& emplace_back(Args&&... args) {
             if (m_Size >= m_Capacity) {
                 grow();
             }
 
             T* ptr = m_Data + m_Size;
-            new (ptr) T(std::forward<Args>(args)...);
+            new(ptr) T(std::forward<Args>(args)...);
             m_Size++;
             return *ptr;
         }
@@ -147,7 +179,8 @@ namespace Quelos {
             if (other.m_Size <= N) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
-            } else {
+            }
+            else {
                 m_Data = static_cast<T*>(operator new(other.m_Size * sizeof(T)));
                 m_Capacity = other.m_Size;
             }
@@ -161,7 +194,8 @@ namespace Quelos {
                 m_Data = inline_ptr();
                 m_Capacity = N;
                 move_range(m_Data, other.m_Data, other.m_Size);
-            } else {
+            }
+            else {
                 m_Data = other.m_Data;
                 m_Capacity = other.m_Capacity;
                 other.m_Data = other.inline_ptr();
@@ -183,9 +217,10 @@ namespace Quelos {
         static void move_range(T* dst, T* src, const size_t count) {
             if constexpr (std::is_trivially_copyable_v<T>) {
                 std::memcpy(dst, src, count * sizeof(T));
-            } else {
+            }
+            else {
                 for (size_t i = 0; i < count; ++i) {
-                    new (&dst[i]) T(std::move(src[i]));
+                    new(&dst[i]) T(std::move(src[i]));
                 }
             }
         }
@@ -193,9 +228,10 @@ namespace Quelos {
         static void copy_range(T* dst, const T* src, const size_t count) {
             if constexpr (std::is_trivially_copyable_v<T>) {
                 std::memcpy(dst, src, count * sizeof(T));
-            } else {
+            }
+            else {
                 for (size_t i = 0; i < count; ++i) {
-                    new (&dst[i]) T(src[i]);
+                    new(&dst[i]) T(src[i]);
                 }
             }
         }

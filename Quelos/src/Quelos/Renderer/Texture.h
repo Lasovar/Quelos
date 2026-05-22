@@ -11,20 +11,20 @@
 namespace Quelos {
     enum class QS_API ImageFormat {
         None = 0,
-        RED8UN,
-        RED8UI,
-        RED16UI,
-        RED32UI,
-        RED32F,
-        RG8,
-        RG16F,
-        RG32F,
+        RED8UNORM,
+        RED8UINT,
+        RED16UINT,
+        RED32UINT,
+        RED32FLOAT,
+        RG8UNORM,
+        RG16FLOAT,
+        RG32FLOAT,
         RGB,
         RGBA,
-        RGBA16F,
-        RGBA32F,
+        RGBA16FLOAT,
+        RGBA32FLOAT,
 
-        B10R11G11UF,
+        B10R11G11FLOAT,
 
         SRGB,
         SRGBA,
@@ -68,11 +68,14 @@ namespace Quelos {
     };
 
     struct QS_API TextureSpecification {
+        std::string Name;
+
         ImageFormat Format = ImageFormat::RGBA;
         uint32_t Width = 1;
         uint32_t Height = 1;
         TextureWrap SamplerWrap = TextureWrap::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
+        TextureType Type = TextureType::Texture2D;
 
         bool IsBlitDestination = false;
         TextureRenderTarget RenderTarget = TextureRenderTarget::Off;
@@ -85,7 +88,7 @@ namespace Quelos {
         TextureHandle() = default;
         TextureHandle(const Handle handle) : Handle(handle) {}
 
-        [[nodiscard]] uint16_t GetNativeHandle() const;
+        [[nodiscard]] uint64_t GetNativeHandle() const;
     };
 
     class QS_API Texture : public Asset {

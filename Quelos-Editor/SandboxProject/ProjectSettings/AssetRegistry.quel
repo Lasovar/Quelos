@@ -45,3 +45,7 @@ path = "Assets/Meshes/Plane.fbx"
 handle = 7454a857-a0d2-464c-a711-6ca3088cfd5e
 parent = d1b9f3ab-4152-419e-919b-4a08e7d70829
 path = "Assets/Meshes/Plane.fbx/Meshes/Plane"
+
+[Quelos.Scene]
+handle = 009bd427-eec8-4038-829b-4b49be965a3a
+path = "Assets/Meshes/NewScene"

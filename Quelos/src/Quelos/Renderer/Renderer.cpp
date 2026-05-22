@@ -121,9 +121,9 @@ namespace Quelos {
         s_RendererContext->EndFrame();
     }
 
-    void Renderer::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) {
+    void Renderer::SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) {
         SetUniformData(u_Color, mesh.Color.value_ptr());
-        s_RendererContext->SubmitMesh(viewID, mesh, transform);
+        s_RendererContext->SubmitMesh(mesh, transform);
     }
 
     void Renderer::Shutdown() {
@@ -219,7 +219,7 @@ namespace Quelos {
         return s_RendererContext->GetSpecification(handle);
     }
 
-    uint16_t Renderer::TextureGetNativeHandle(const TextureHandle handle) {
+    uint64_t Renderer::TextureGetNativeHandle(const TextureHandle handle) {
         return s_RendererContext->TextureGetNativeHandle(handle);
     }
 
@@ -235,36 +235,28 @@ namespace Quelos {
         s_RendererContext->Destroy(textureHandle);
     }
 
-    FrameBufferHandle Renderer::CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) {
-        return s_RendererContext->CreateFrameBuffer(viewID, attachments);
+    RenderPassHandle Renderer::CreateRenderPass() {
+        return s_RendererContext->CreateRenderPass();
     }
 
-    uint32_t Renderer::FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) {
+    FrameBufferHandle Renderer::CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) {
+        return s_RendererContext->CreateFrameBuffer(frameBufferSpec);
+    }
+
+    uint32_t Renderer::FrameBufferGetWidth(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetWidth(frameBufferHandle);
     }
 
-    uint32_t Renderer::FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) {
+    uint32_t Renderer::FrameBufferGetHeight(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetHeight(frameBufferHandle);
     }
 
-    uint2 Renderer::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
+    Extent2D Renderer::FrameBufferGetSize(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetSize(frameBufferHandle);
-    }
-
-    void Renderer::FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) {
-        s_RendererContext->FrameBufferSetViewID(frameBufferHandle, viewId);
-    }
-
-    uint32_t Renderer::FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) {
-        return s_RendererContext->FrameBufferGetViewID(frameBufferHandle);
     }
 
     void Renderer::FrameBufferResize(const FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) {
         s_RendererContext->FrameBufferResize(frameBufferHandle, width, height);
-    }
-
-    void Renderer::Bind(const FrameBufferHandle frameBufferHandle) {
-        s_RendererContext->Bind(frameBufferHandle);
     }
 
     void Renderer::Destroy(const FrameBufferHandle frameBufferHandle) {

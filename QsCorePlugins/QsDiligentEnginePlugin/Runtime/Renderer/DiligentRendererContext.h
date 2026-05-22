@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "ObjectBase.hpp"
 #include "Quelos/Renderer/Renderer.h"
 
 #if GL_SUPPORTED
@@ -30,6 +31,42 @@
 using namespace Diligent;
 
 namespace Quelos {
+    class DataBlob final : public ObjectBase<IDataBlob> {
+        ~DataBlob() override;
+
+        IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_DataBlob, ObjectBase<IDataBlob>);
+
+        void Resize(size_t NewSize) override {
+            m_Buffer = Buffer::Copy(m_Buffer.data(), m_Buffer.size());
+        }
+
+        size_t GetSize() const override { return m_Buffer.size(); }
+        void* GetDataPtr(size_t Offset) override { return m_Buffer.data() + Offset; }
+        const void* GetConstDataPtr(size_t Offset) const override { return m_Buffer.data(); }
+    private:
+        template <typename AllocatorType, typename ObjectType>
+        friend class MakeNewRCObj;
+
+        DataBlob(IReferenceCounters* pRefCounters, Buffer&& DataBuff) noexcept
+            : ObjectBase(pRefCounters), m_Buffer(std::move(DataBuff)) { }
+
+    private:
+        Buffer m_Buffer;
+    };
+
+    struct QTextureData {
+        ITexture* Texture;
+        TextureSpecification Specification;
+    };
+
+    struct QFrameBufferData {
+        IFramebuffer* FrameBuffer;
+        std::string Name;
+        SmallVec<TextureHandle, 2> Attachments;
+
+        FrameBufferSpec Specification;
+    };
+
     class DiligentRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
@@ -41,7 +78,7 @@ namespace Quelos {
         void Reset(uint32_t width, uint32_t height) override;
 
         void StartSceneRender(FrameBufferHandle frameBuffer, const float4x4& view, const float4x4& projection) override;
-        void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) override;
+        void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) override;
 
         ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
         bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) override;
@@ -63,17 +100,19 @@ namespace Quelos {
         bool TextureIsVFlipped() override;
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;
         const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
-        uint16_t TextureGetNativeHandle(TextureHandle textureHandle) override;
+        uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
         void Bind(TextureHandle textureHandle) override;
         void Destroy(TextureHandle textureHandle) override;
-        FrameBufferHandle CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) override;
+
+        // Render Pass
+        RenderPassHandle CreateRenderPass() override;
+        void Destroy(RenderPassHandle renderPassHandle) override;
+
+        FrameBufferHandle CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) override;
         uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) override;
         uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) override;
-        uint2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) override;
-        void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) override;
-        uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) override;
+        Extent2D FrameBufferGetSize(FrameBufferHandle frameBufferHandle) override;
         void FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) override;
-        void Bind(FrameBufferHandle frameBufferHandle) override;
         void Destroy(FrameBufferHandle frameBufferHandle) override;
         void Shutdown() override;
 
@@ -91,6 +130,9 @@ namespace Quelos {
 
         ResourceTable<IBuffer*, VertexBuffer> m_VertexBufferTable;
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;
+        ResourceTable<QTextureData, Texture> m_TextureTable;
+        ResourceTable<IRenderPass*, RenderPass> m_RenderPassTable;
+        ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
 
         RefCntAutoPtr<IRenderDevice> m_pDevice;
         RefCntAutoPtr<IDeviceContext> m_pImmediateContext;

@@ -50,7 +50,7 @@ namespace Quelos {
         bool TextureIsVFlipped() override;
 
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;
-        uint16_t TextureGetNativeHandle(TextureHandle textureHandle) override;
+        uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
         const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
 
         void Bind(TextureHandle textureHandle) override;
