@@ -28,7 +28,7 @@
 #include <cstddef>
 #include "Quelos/Core/API.h"
 #include "imgui.h"
-#include "ImGuiImplDiligent.hpp"
+#include "DiligentImGuiState.hpp"
 #include "ImGuiDiligentRenderer.hpp"
 #include "RenderDevice.h"
 #include "DeviceContext.h"
@@ -86,8 +86,6 @@ void DiligentImGuiState::EndFrame() {
 
 void DiligentImGuiState::Init() {
     ImGui::CreateContext();
-    ImGuiIO& io    = ImGui::GetIO();
-    io.IniFilename = nullptr;
 
     const auto& context = Quelos::DiligentRendererContext::Get();
     ImGuiDiligentCreateInfo CI(context.GetRenderingDevice(), context.GetSwapChain()->GetDesc());

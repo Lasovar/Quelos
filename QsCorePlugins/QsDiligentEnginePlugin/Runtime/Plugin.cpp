@@ -1,4 +1,4 @@
-#include "ImGui/ImGuiImplDiligent.hpp"
+#include "ImGui/DiligentImGuiState.hpp"
 #include "Quelos/Plugin/PluginAPI.h"
 #include "Quelos/Renderer/Renderer.h"
 
