@@ -608,7 +608,7 @@ namespace Quelos {
         TextureUtil::Resize(textureData, width, height);
     }
 
-    uint16_t bgfxRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
+    uint64_t bgfxRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
         const auto* handle = s_TextureDataTable.Get(textureHandle);
         if (!handle) {
             QS_CORE_ERROR_TAG(

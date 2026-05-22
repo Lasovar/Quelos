@@ -3,6 +3,7 @@
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
 #include "RendererAPI.h"
+#include "RenderPass.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
@@ -29,7 +30,7 @@ namespace Quelos {
             const float4x4& projection
         ) = 0;
 
-        virtual void SubmitMesh(uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) = 0;
+        virtual void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) = 0;
 
         virtual void Reset(uint32_t width, uint32_t height) = 0;
 
@@ -59,24 +60,24 @@ namespace Quelos {
 
         virtual void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) = 0;
         virtual const TextureSpecification* GetSpecification(TextureHandle textureHandle) = 0;
-        virtual uint16_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
+        virtual uint64_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
 
         virtual void Bind(TextureHandle textureHandle) = 0;
         virtual void Destroy(TextureHandle textureHandle) = 0;
 
+        // Render Pass
+        virtual RenderPassHandle CreateRenderPass() = 0;
+        virtual void Destroy(RenderPassHandle renderPassHandle) = 0;
+
         // Frame Buffer
-        virtual FrameBufferHandle CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) = 0;
+        virtual FrameBufferHandle CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) = 0;
 
         virtual uint32_t FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) = 0;
         virtual uint32_t FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) = 0;
-        virtual uint2 FrameBufferGetSize(FrameBufferHandle frameBufferHandle) = 0;
-
-        virtual void FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) = 0;
-        virtual uint32_t FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) = 0;
+        virtual Extent2D FrameBufferGetSize(FrameBufferHandle frameBufferHandle) = 0;
 
         virtual void FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) = 0;
 
-        virtual void Bind(FrameBufferHandle frameBufferHandle) = 0;
         virtual void Destroy(FrameBufferHandle frameBufferHandle) = 0;
 
         virtual void Shutdown() = 0;

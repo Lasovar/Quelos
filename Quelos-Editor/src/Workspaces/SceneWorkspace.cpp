@@ -17,8 +17,8 @@ namespace QuelosEditor {
 
         m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
 
-        m_GameViewportPanel = ViewportPanel("Game View", 0, 1, 1);
-        m_SceneViewportPanel = ViewportPanel("Scene View", 1, 1, 1);
+        m_GameViewportPanel = ViewportPanel("Game View", m_Scene->GetRenderPass(), 1, 1);
+        m_SceneViewportPanel = ViewportPanel("Scene View", m_Scene->GetRenderPass(), 1, 1);
 
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
 
@@ -70,7 +70,7 @@ namespace QuelosEditor {
                 m_EditorCamera.GetProjection()
             );
 
-            m_Scene->Render(m_SceneViewportPanel.GetFrameBuffer()->GetViewID());
+            m_Scene->Render();
         }
 
         if (m_GameViewportPanel.ShouldDraw()) {
@@ -79,7 +79,7 @@ namespace QuelosEditor {
             }
 
             m_Scene->StartRender(m_GameViewportPanel.GetFrameBuffer());
-            m_Scene->Render(m_GameViewportPanel.GetFrameBuffer()->GetViewID());
+            m_Scene->Render();
         }
     }
 

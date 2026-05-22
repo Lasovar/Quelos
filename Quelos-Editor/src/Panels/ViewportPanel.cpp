@@ -6,7 +6,7 @@
 #include "imgui_internal.h"
 
 namespace QuelosEditor {
-    ViewportPanel::ViewportPanel(std::string  name, const uint32_t viewId, const uint32_t width, const uint32_t height)
+    ViewportPanel::ViewportPanel(std::string  name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height)
         : m_Name(std::move(name))
     {
         {
@@ -26,7 +26,7 @@ namespace QuelosEditor {
             depthSpec.Width = width;
             depthSpec.Height = height;
 
-            depthSpec.Format = ImageFormat::Depth;
+            depthSpec.Format = ImageFormat::DEPTH32F;
             depthSpec.SamplerWrap = TextureWrap::Repeat;
 
             depthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
@@ -35,7 +35,7 @@ namespace QuelosEditor {
             m_DepthAttachment = Texture2D::Create(depthSpec);
 
             std::array attachments{m_ColorAttachment, m_DepthAttachment};
-            m_FrameBuffer = FrameBuffer::Create(viewId, attachments);
+            m_FrameBuffer = FrameBuffer::Create(attachments, renderPassHandle);
         }
     }
 
@@ -75,7 +75,7 @@ namespace QuelosEditor {
                                    : float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    m_ColorAttachment,
+                    m_ColorAttachment->GetHandle().GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}

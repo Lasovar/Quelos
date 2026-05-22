@@ -63,7 +63,7 @@ namespace Quelos {
 
         void Tick(float deltaTime) const;
         void StartRender(const Ref<FrameBuffer>& frameBuffer);
-        void Render(uint32_t viewId) const;
+        void Render() const;
         void EndRender();
 
         const std::string& GetName() const { return m_Name; }
@@ -85,6 +85,8 @@ namespace Quelos {
 
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
+
+        RenderPassHandle GetRenderPass() const { return m_RenderPass; }
 
         Actor GetActor(const EntityID actorId) {
             if (!actorId) {
@@ -117,6 +119,8 @@ namespace Quelos {
     private:
         HashMap<EntityID, Actor> m_ActorsMap;
         HashMap<EntityID, Entity> m_EntitiesMap;
+
+        RenderPassHandle m_RenderPass;
 
         ComponentRegistry m_ComponentRegistry;
 
