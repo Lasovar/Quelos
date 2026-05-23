@@ -8,6 +8,7 @@
 #include "Quelos/Core/Events/WindowEvents.h"
 #include "Quelos/Math/Math.h"
 #include "Quelos/Renderer/Camera.h"
+#include "Quelos/ImGui/ImGuiUI.h"
 
 #include "Quelos/Renderer/FrameBuffer.h"
 #include "Quelos/Renderer/Renderer.h"
@@ -107,7 +108,7 @@ namespace Quelos {
         }
     }
 
-    void Scene::StartRender(const Ref<FrameBuffer>& frameBuffer) {
+    void Scene::StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs) {
         if (m_CameraQuery.count() < 1) {
             return;
         }
@@ -116,16 +117,23 @@ namespace Quelos {
         const auto& transform = cameraEntity.get<WorldTransform>();
         const auto& camera = cameraEntity.get<CameraComponent>().Camera;
 
-        Renderer::StartSceneRender(
-            frameBuffer,
-            transform,
-            camera.GetProjection()
-        );
+        StartRender(mathExt::view(transform.Value), camera.GetProjection(), beginRenderPassAttribs);
+    }
+
+    void Scene::StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs) {
+        Renderer::StartSceneRender(view, projection);
+        Renderer::BeginRenderPass(beginRenderPassAttribs);
+
+        m_SceneRenderStarted = true;
     }
 
     void Scene::Render() const {
+        if (!m_SceneRenderStarted) {
+            return;
+        }
+
         m_RenderingQuery.each([](const WorldTransform& transform, const MeshRenderer& mesh) {
-            if (!mesh.MeshData || !mesh.ShaderData) {
+            if (!mesh.MeshData) {
                 return;
             }
 
@@ -134,6 +142,10 @@ namespace Quelos {
     }
 
     void Scene::EndRender() {
+        if (m_SceneRenderStarted) {
+            Renderer::EndRenderPass();
+        }
+
         m_SceneRenderStarted = false;
     }
 
@@ -143,14 +155,12 @@ namespace Quelos {
     }
 
     Actor Scene::CreateActor(const EntityID& guid, const std::string_view entityName) {
-        auto it = m_ActorsMap.find(guid);
-        if (it != m_ActorsMap.end()) {
+        if (const auto it = m_ActorsMap.find(guid); it != m_ActorsMap.end()) {
             return it->second;
         }
 
-        const Actor actor = { CreateEntity(guid, entityName), guid };
+        const Actor actor = { CreateEntity(guid, entityName, EntityID()), guid };
         actor.Add<ActorTag>();
-        SetActorParentToRoot(actor);
         m_ActorsMap[guid] = actor;
         return actor;
     }
@@ -181,6 +191,7 @@ namespace Quelos {
                                               .add(flecs::OrderedChildren);
 
         const Entity entity(entityId);
+        entity.GetInternalID().set_name(guid.ToString().c_str());
         entity.SetName(entityName);
         m_EntitiesMap[guid] = entity;
         return entity;
@@ -189,14 +200,13 @@ namespace Quelos {
     Entity Scene::CreateEntity(const EntityID& guid, const std::string_view entityName, EntityID parent) {
         const Entity entity = CreateEntity(guid, entityName);
         if (parent) {
-            const auto it = m_EntitiesMap.find(parent);
-            if (it != m_EntitiesMap.end()) {
+            if (const auto it = m_EntitiesMap.find(parent); it != m_EntitiesMap.end()) {
                 entity.SetParent(it->second);
             } else {
                 entity.RemoveParent();
             }
         } else {
-            entity.RemoveParent();
+            entity.GetInternalID().child_of(m_SceneRoot);
         }
 
         return entity;

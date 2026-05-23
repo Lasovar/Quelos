@@ -365,7 +365,6 @@ namespace Quelos {
     }
 
     void bgfxRendererContext::StartSceneRender(
-        const FrameBufferHandle frameBuffer,
         const float4x4& view,
         const float4x4& projection
     ) {

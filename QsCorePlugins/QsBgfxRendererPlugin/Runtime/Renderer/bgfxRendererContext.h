@@ -14,7 +14,6 @@ namespace Quelos {
         void EndFrame() override;
 
         void StartSceneRender(
-            FrameBufferHandle frameBuffer,
             const float4x4& view,
             const float4x4& projection
         ) override;

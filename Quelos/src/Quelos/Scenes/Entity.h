@@ -118,7 +118,7 @@ namespace Quelos {
 
         void SetName(std::string_view name) const;
 
-        [[nodiscard]] const char* GetName() const { return m_ID.name().c_str(); }
+        [[nodiscard]] const char* GetName() const { return m_ID.doc_name(); }
 
         [[nodiscard]] flecs::entity GetInternalID() const { return m_ID; }
 

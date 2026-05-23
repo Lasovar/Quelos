@@ -87,17 +87,8 @@ namespace Quelos {
         s_RendererContext->StartFrame();
     }
 
-    void Renderer::StartSceneRender(
-        const Ref<FrameBuffer>& frameBuffer,
-        const WorldTransform& transform,
-        const float4x4& projection
-    ) {
-        StartSceneRender(frameBuffer, mathExt::view(transform.Value), projection);
-    }
-
-    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view,
-                                    const float4x4& projection) {
-        s_RendererContext->StartSceneRender(frameBuffer->GetHandle(), view, projection);
+    void Renderer::StartSceneRender(const float4x4& view, const float4x4& projection) {
+        s_RendererContext->StartSceneRender(view, projection);
 
         float4 lightDir = math::normalize(-float4(0.5f, -1.0f, 0.3f, 0.0f));
         SetUniformData(u_lightDir, math::value_ptr(lightDir));

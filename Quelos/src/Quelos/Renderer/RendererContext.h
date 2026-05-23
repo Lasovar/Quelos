@@ -26,7 +26,6 @@ namespace Quelos {
         virtual void EndFrame() = 0;
 
         virtual void StartSceneRender(
-            FrameBufferHandle frameBuffer,
             const float4x4& view,
             const float4x4& projection
         ) = 0;
