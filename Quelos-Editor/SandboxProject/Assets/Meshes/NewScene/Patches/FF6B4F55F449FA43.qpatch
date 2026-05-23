@@ -1,0 +1,10 @@
+[actor guid=FF6B4F55F449FA43 state=added]
+name = "Monkey"
+
+@Quelos.LocalTransform
+position = (0,3,0)
+rotation = (0.7900144,-0.082907625,0.10962349,0.5974834)
+scale = (3,3,3)
+
+@Quelos.MeshRenderer
+mesh = f968c60b-fc11-47c3-ac9a-117c6ba16fdc

@@ -4,6 +4,7 @@
 #include "DefaultRawMemoryAllocator.hpp"
 #include "Texture.h"
 #include "DataBlobImpl.hpp"
+#include "ImGui/MapHelper.hpp"
 
 #if QS_PLATFORM_MACOS
 #include "Quelos/Platform/MacOS/WindowHelper.h"
@@ -14,47 +15,58 @@ using namespace magic_enum::bitwise_operators;
 
 namespace Quelos {
     static const char* VSSource = R"(
-struct PSInput
-{
-    float4 Pos   : SV_POSITION;
-    float3 Color : COLOR;
+cbuffer Constants {
+    float4x4 g_WorldViewProj;
 };
 
-void main(in  uint    VertId : SV_VertexID,
-          out PSInput PSIn)
-{
-    float4 Pos[3];
-    Pos[0] = float4(-0.5, -0.5, 0.0, 1.0);
-    Pos[1] = float4( 0.0, +0.5, 0.0, 1.0);
-    Pos[2] = float4(+0.5, -0.5, 0.0, 1.0);
+cbuffer Transform {
+    float4x4 g_Transform;
+};
 
-    float3 Col[3];
-    Col[0] = float3(1.0, 0.0, 0.0); // red
-    Col[1] = float3(0.0, 1.0, 0.0); // green
-    Col[2] = float3(0.0, 0.0, 1.0); // blue
+// Vertex shader takes two inputs: vertex position and color.
+// By convention, Diligent Engine expects vertex shader inputs to be
+// labeled 'ATTRIBn', where n is the attribute number.
+struct VSInput {
+    float3 Position : ATTRIB0;
+    float3 Normal : ATTRIB1;
+    float3 Tangent : ATTRIB2;
+    float2 UV : ATTRIB3;
+};
 
-    PSIn.Pos   = Pos[VertId];
-    PSIn.Color = Col[VertId];
+struct PSInput {
+    float4 Position : SV_POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD0;
+};
+
+// Note that if separate shader objects are not supported (this is only the case for old GLES3.0 devices), vertex
+// shader output variable name must match exactly the name of the pixel shader input variable.
+// If the variable has structure type (like in this example), the structure declarations must also be identical.
+void main(in VSInput VSIn, out PSInput PSIn) {
+    PSIn.Position = mul(g_WorldViewProj, mul(g_Transform, float4(VSIn.Position, 1.0)));
+    PSIn.Normal = VSIn.Normal;
+    PSIn.UV = VSIn.UV;
 }
 )";
 
     // Pixel shader will simply output interpolated vertex color
     static const char* PSSource = R"(
-struct PSInput
-{
-    float4 Pos   : SV_POSITION;
-    float3 Color : COLOR;
+struct PSInput {
+    float4 Position : SV_POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD0;
 };
 
-struct PSOutput
-{
+struct PSOutput {
     float4 Color : SV_TARGET;
 };
 
-void main(in  PSInput  PSIn,
-          out PSOutput PSOut)
-{
-    PSOut.Color = float4(PSIn.Color.rgb, 1.0);
+// Note that if separate shader objects are not supported (this is only the case for old GLES3.0 devices), vertex
+// shader output variable name must match exactly the name of the pixel shader input variable.
+// If the variable has structure type (like in this example), the structure declarations must also be identical.
+void main(in PSInput  PSIn, out PSOutput PSOut) {
+    float3 N = normalize(PSIn.Normal);
+    PSOut.Color = float4(N * 0.5 + 0.5, 1.0);
 }
 )";
 
@@ -265,7 +277,6 @@ void main(in  PSInput  PSIn,
             return result;
         }
 
-
         static ATTACHMENT_LOAD_OP GetAttachmentLoadOp(const AttachmentLoadOp loadOp) {
             switch (loadOp) {
             case AttachmentLoadOp::Load: return ATTACHMENT_LOAD_OP_LOAD;
@@ -416,58 +427,6 @@ void main(in  PSInput  PSIn,
 
         // CREATE RESOURCES
 
-        // Pipeline state object encompasses configuration of all GPU stages
-        GraphicsPipelineStateCreateInfo PSOCreateInfo;
-        PipelineStateDesc& PSODesc = PSOCreateInfo.PSODesc;
-
-        // Pipeline state name is used by the engine to report issues
-        // It is always a good idea to give objects descriptive names
-        PSODesc.Name = "Simple triangle PSO";
-
-        // This is a graphics pipeline
-        PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
-
-        // This tutorial will render to a single render target
-        PSOCreateInfo.GraphicsPipeline.NumRenderTargets = 1;
-        // Set render target format which is the format of the swap chain's color buffer
-        PSOCreateInfo.GraphicsPipeline.RTVFormats[0] = m_pSwapChain->GetDesc().ColorBufferFormat;
-        // This tutorial will not use depth buffer
-        PSOCreateInfo.GraphicsPipeline.DSVFormat = m_pSwapChain->GetDesc().DepthBufferFormat;
-        // Primitive topology defines what kind of primitives will be rendered by this pipeline state
-        PSOCreateInfo.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        // No back face culling for this tutorial
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_BACK;
-        // Disable depth testing
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
-
-        ShaderCreateInfo ShaderCI;
-        // Tell the system that the shader source code is in HLSL.
-        // For OpenGL, the engine will convert this into GLSL behind the scene
-        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-        // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
-        ShaderCI.Desc.UseCombinedTextureSamplers = true;
-        // Create vertex shader
-        RefCntAutoPtr<IShader> pVS; {
-            ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-            ShaderCI.EntryPoint = "main";
-            ShaderCI.Desc.Name = "Triangle vertex shader";
-            ShaderCI.Source = VSSource;
-            m_pDevice->CreateShader(ShaderCI, &pVS);
-        }
-
-        // Create pixel shader
-        RefCntAutoPtr<IShader> pFS; {
-            ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-            ShaderCI.EntryPoint = "main";
-            ShaderCI.Desc.Name = "Triangle pixel shader";
-            ShaderCI.Source = PSSource;
-            m_pDevice->CreateShader(ShaderCI, &pFS);
-        }
-
-        // Finally, create the pipeline state
-        PSOCreateInfo.pVS = pVS;
-        PSOCreateInfo.pPS = pFS;
-        m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
     }
 
     bool DiligentRendererContext::HomogenousDepth() {
@@ -508,9 +467,6 @@ void main(in  PSInput  PSIn,
             0,
             RESOURCE_STATE_TRANSITION_MODE_TRANSITION
         );
-
-        // Set pipeline state in the immediate context
-        m_pImmediateContext->SetPipelineState(m_pPSO);
     }
 
     void DiligentRendererContext::EndFrame() {
@@ -523,10 +479,13 @@ void main(in  PSInput  PSIn,
         }
     }
 
-    void DiligentRendererContext::StartSceneRender(
-        FrameBufferHandle frameBuffer, const float4x4& view,
-        const float4x4& projection
-    ) {}
+    void DiligentRendererContext::StartSceneRender(const float4x4& view, const float4x4& projection) {
+        {
+            // Map the buffer and write current world-view-projection matrix
+            MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+            *CBConstants = math::mul(view, projection);
+        }
+    }
 
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
         SmallVec<OptimizedClearValue, 2> clearValues;
@@ -732,6 +691,106 @@ void main(in  PSInput  PSIn,
 
         m_pDevice->CreateRenderPass(RPDesc, &slot->RenderPass);
 
+        // Pipeline state object encompasses configuration of all GPU stages
+        GraphicsPipelineStateCreateInfo PSOCreateInfo;
+        PipelineStateDesc& PSODesc = PSOCreateInfo.PSODesc;
+
+        // Pipeline state name is used by the engine to report issues
+        // It is always a good idea to give objects descriptive names
+        PSODesc.Name = slot->Name.c_str();
+
+        // This is a graphics pipeline
+        PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+
+        // Set render target format which is the format of the swap chain's color buffer
+        // Primitive topology defines what kind of primitives will be rendered by this pipeline state
+        PSOCreateInfo.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        // No back face culling for this tutorial
+        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_BACK;
+        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = True;
+        // Disable depth testing
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
+        PSOCreateInfo.GraphicsPipeline.pRenderPass = slot->RenderPass;
+
+        ShaderCreateInfo ShaderCI;
+        // Tell the system that the shader source code is in HLSL.
+        // For OpenGL, the engine will convert this into GLSL behind the scene
+        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+        // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
+        ShaderCI.Desc.UseCombinedTextureSamplers = true;
+        // Create vertex shader
+        RefCntAutoPtr<IShader> pVS;
+        {
+            ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
+            ShaderCI.EntryPoint = "main";
+            ShaderCI.Desc.Name = "Normal direction color";
+            ShaderCI.Source = VSSource;
+            m_pDevice->CreateShader(ShaderCI, &pVS);
+
+            // Create dynamic uniform buffer that will store our transformation matrix
+            // Dynamic buffers can be frequently updated by the CPU
+            BufferDesc CBDesc;
+            CBDesc.Name           = "VS constants CB";
+            CBDesc.Size           = sizeof(float4x4);
+            CBDesc.Usage          = USAGE_DYNAMIC;
+            CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+            CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+            m_pDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
+
+            // Create dynamic uniform buffer that will store our transformation matrix
+            // Dynamic buffers can be frequently updated by the CPU
+            BufferDesc TBDesc;
+            TBDesc.Name           = "VS Transform CB";
+            TBDesc.Size           = sizeof(float4x4);
+            TBDesc.Usage          = USAGE_DYNAMIC;
+            TBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+            TBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+            m_pDevice->CreateBuffer(TBDesc, nullptr, &m_VSTransform);
+        }
+
+        // Create pixel shader
+        RefCntAutoPtr<IShader> pFS;
+        {
+            ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
+            ShaderCI.EntryPoint = "main";
+            ShaderCI.Desc.Name = "Cube PS";
+            ShaderCI.Source = PSSource;
+            m_pDevice->CreateShader(ShaderCI, &pFS);
+        }
+
+        // Define vertex shader input layout
+        LayoutElement LayoutElems[] = {
+            // Attribute 0 - vertex position
+            LayoutElement{0, 0, 3, VT_FLOAT32, False},
+            // Attribute 1 - vertex normal
+            LayoutElement{1, 0, 3, VT_FLOAT32, False},
+            // Attribute 2 - vertex tangent
+            LayoutElement{2, 0, 3, VT_FLOAT32, False},
+            // Attribute 3 - vertex uv
+            LayoutElement{3, 0, 2, VT_FLOAT32, False}
+        };
+
+        PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
+        PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements = _countof(LayoutElems);
+
+        // Finally, create the pipeline state
+        PSOCreateInfo.pVS = pVS;
+        PSOCreateInfo.pPS = pFS;
+
+        // Define variable type that will be used by default
+        PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
+
+        m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
+
+        // Since we did not explicitly specify the type for 'Constants' variable, default
+        // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
+        // change and are bound directly through the pipeline state object.
+        m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
+        m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Transform")->Set(m_VSTransform);
+
+        // Create a shader resource binding object and bind all static resources in it
+        m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
+
         return handle;
     }
 
@@ -739,6 +798,10 @@ void main(in  PSInput  PSIn,
         RenderPassData* slot = m_RenderPassTable.Get(renderPassHandle);
         slot->RenderPass->Release();
         slot->RenderPass = nullptr;
+        slot->Specification = {};
+        slot->Attachments.clear();
+        slot->SubPasses.clear();
+        slot->Name.clear();
 
         m_RenderPassTable.Erase(renderPassHandle);
     }
@@ -753,12 +816,12 @@ void main(in  PSInput  PSIn,
         slot->Attachments = SmallVec<TextureHandle, 2>(frameBufferSpec.Attachments);
 
         FrameBufferSpec& spec = slot->Specification;
-        spec = { slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.Size };
+        spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.Size};
 
         SmallVec<ITexture*, 2> textureAttachments;
         textureAttachments.reserve(spec.Attachments.size());
-        for (uint64_t i = 0; i < spec.Attachments.size(); i++) {
-            textureAttachments.push_back(m_TextureTable.Get(spec.Attachments[i])->Texture);
+        for (const TextureHandle Attachment : spec.Attachments) {
+            textureAttachments.push_back(m_TextureTable.Get(Attachment)->Texture);
         }
 
         auto& textureDesc = textureAttachments[0]->GetDesc();
@@ -798,7 +861,7 @@ void main(in  PSInput  PSIn,
         const uint32_t height
     ) {
         QFrameBufferData* data = m_FrameBufferTable.Get(frameBufferHandle);
-        data->Specification.Size = { width, height };
+        data->Specification.Size = {width, height};
 
         SmallVec<ITexture*, 2> textureAttachments;
         for (const TextureHandle attachment : data->Attachments) {
@@ -819,6 +882,13 @@ void main(in  PSInput  PSIn,
     }
 
     void DiligentRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {
+        QFrameBufferData* data = m_FrameBufferTable.Get(frameBufferHandle);
+        data->FrameBuffer->Release();
+        data->FrameBuffer = nullptr;
+        data->Specification = {};
+        data->Attachments.clear();
+        data->Name.clear();
+
         m_FrameBufferTable.Erase(frameBufferHandle);
     }
 
@@ -826,12 +896,24 @@ void main(in  PSInput  PSIn,
         const MeshRenderer& mesh,
         const WorldTransform& transform
     ) {
-        return;
         Mesh& meshAsset = mesh.MeshData.Get();
         BindVertexBuffer(meshAsset.GetVertexBuffer(), 0);
         BindIndexBuffer(meshAsset.GetIndexBuffer());
 
         // TODO: Set shader resources
+
+        {
+            // Map the buffer and write current world-view-projection matrix
+            MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSTransform, MAP_WRITE, MAP_FLAG_DISCARD);
+            *CBConstants = transform.Value;
+        }
+
+        // Set pipeline state
+        m_pImmediateContext->SetPipelineState(m_pPSO);
+
+        // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
+        // makes sure that resources are transitioned to required states.
+        m_pImmediateContext->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_NONE);
 
         DrawIndexedAttribs drawAttrs; // This is an indexed draw call
         drawAttrs.IndexType = VT_UINT16; // Index type
@@ -863,6 +945,12 @@ void main(in  PSInput  PSIn,
 
         m_pDevice->CreateBuffer(vertBuffDesc, &vbData, slot);
 
+        StateTransitionDesc barriers[] = {
+            { *slot, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE },
+        };
+
+        m_pImmediateContext->TransitionResourceStates(1, barriers);
+
         return handle;
     }
 
@@ -872,7 +960,8 @@ void main(in  PSInput  PSIn,
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No vertex buffer found with handle ({},{})",
-                vertexBufferHandle.GetIndex(), vertexBufferHandle.GetGeneration()
+                vertexBufferHandle.GetIndex(),
+                vertexBufferHandle.GetGeneration()
             );
 
             return;
@@ -884,26 +973,34 @@ void main(in  PSInput  PSIn,
             1,
             slot,
             &offset,
-            RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+            RESOURCE_STATE_TRANSITION_MODE_NONE,
             SET_VERTEX_BUFFERS_FLAG_RESET
         );
     }
 
     IndexBufferHandle DiligentRendererContext::CreateIndexBuffer(const Span<uint16_t> indices) {
+        BufferView data = std::as_bytes(indices);
         BufferDesc indBuffDesc;
         indBuffDesc.Name = "IndexBuffer";
         indBuffDesc.Usage = USAGE_IMMUTABLE;
         indBuffDesc.BindFlags = BIND_INDEX_BUFFER;
-        indBuffDesc.Size = indices.size();
+        indBuffDesc.Size = data.size();
 
         BufferData ibData;
-        ibData.pData = indices.data();
-        ibData.DataSize = indices.size();
+        ibData.pData = data.data();
+        ibData.DataSize = data.size();
 
         const Handle<IndexBuffer> handle = m_IndexBufferTable.Emplace();
         IBuffer** slot = m_IndexBufferTable.Get(handle);
 
         m_pDevice->CreateBuffer(indBuffDesc, &ibData, slot);
+
+        StateTransitionDesc barriers[] = {
+            { *slot,  RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER,  STATE_TRANSITION_FLAG_UPDATE_STATE },
+        };
+
+        m_pImmediateContext->TransitionResourceStates(1, barriers);
+
         return handle;
     }
 
@@ -913,13 +1010,14 @@ void main(in  PSInput  PSIn,
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No vertex buffer found with handle ({},{})",
-                indexBufferHandle.GetIndex(), indexBufferHandle.GetGeneration()
+                indexBufferHandle.GetIndex(),
+                indexBufferHandle.GetGeneration()
             );
 
             return;
         }
 
-        m_pImmediateContext->SetIndexBuffer(*slot, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_pImmediateContext->SetIndexBuffer(*slot, 0, RESOURCE_STATE_TRANSITION_MODE_NONE);
     }
 
     void DiligentRendererContext::Destroy(const IndexBufferHandle indexBufferHandle) {
@@ -928,7 +1026,8 @@ void main(in  PSInput  PSIn,
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No index buffer found with handle ({},{})",
-                indexBufferHandle.GetIndex(), indexBufferHandle.GetGeneration()
+                indexBufferHandle.GetIndex(),
+                indexBufferHandle.GetGeneration()
             );
 
             return;

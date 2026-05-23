@@ -33,8 +33,7 @@ namespace Quelos {
 		static bool HomogenousDepth();
 
 		static void StartFrame();
-		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const WorldTransform& transform, const float4x4& projection);
-		static void StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view, const float4x4& projection);
+		static void StartSceneRender(const float4x4& view, const float4x4& projection);
 		static void BeginRenderPass(const BeginRenderPassAttribs& attribs);
 		static void EndRenderPass();
 		static void EndFrame();

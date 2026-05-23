@@ -86,7 +86,7 @@ namespace Quelos {
 
         void Reset(uint32_t width, uint32_t height) override;
 
-        void StartSceneRender(FrameBufferHandle frameBuffer, const float4x4& view, const float4x4& projection) override;
+        void StartSceneRender(const float4x4& view, const float4x4& projection) override;
 
         void BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) override;
         void EndRenderPass() override;
@@ -151,6 +151,8 @@ namespace Quelos {
         RefCntAutoPtr<IDeviceContext> m_pImmediateContext;
         RefCntAutoPtr<ISwapChain> m_pSwapChain;
         RefCntAutoPtr<IPipelineState> m_pPSO;
-        RENDER_DEVICE_TYPE m_DeviceType = RENDER_DEVICE_TYPE_GL;
+        RefCntAutoPtr<IBuffer> m_VSConstants;
+        RefCntAutoPtr<IBuffer> m_VSTransform;
+        RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     };
 }

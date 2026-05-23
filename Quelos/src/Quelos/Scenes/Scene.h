@@ -7,6 +7,7 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
+#include "Quelos/Renderer/RenderPassAttrib.h"
 
 namespace Quelos {
     enum class QS_API SystemGroup : uint8_t {
@@ -62,7 +63,8 @@ namespace Quelos {
         }
 
         void Tick(float deltaTime) const;
-        void StartRender(const Ref<FrameBuffer>& frameBuffer);
+        void StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs);
+        void StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs);
         void Render() const;
         void EndRender();
 

@@ -15,7 +15,7 @@ namespace Quelos {
             }
         }
 
-        SetEntityName(const EntityID actorId, Ref<Scene>& scene, std::string newName)
+        SetEntityName(const EntityID actorId, const Ref<Scene>& scene, std::string newName)
             : ActorId(actorId), Scene(scene), NewName(std::move(newName))
         {
             if (const Actor actor = Scene->GetActor(ActorId); actor.IsValid()) {
