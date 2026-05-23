@@ -70,7 +70,7 @@ namespace Quelos {
         virtual void Destroy(TextureHandle textureHandle) = 0;
 
         // Render Pass
-        virtual RenderPassHandle CreateRenderPass() = 0;
+        virtual RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec) = 0;
         virtual void Destroy(RenderPassHandle renderPassHandle) = 0;
 
         // Frame Buffer

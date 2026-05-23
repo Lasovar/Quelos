@@ -71,7 +71,33 @@ namespace Quelos {
                    });
 
 
-        m_RenderPass = Renderer::CreateRenderPass();
+        std::array<RenderPassAttachmentSpec, 2> attachments;
+        attachments[0].Format = ImageFormat::RGBA;
+        attachments[0].SampleCount = 1;
+        attachments[0].LoadOp = AttachmentLoadOp::Clear;
+        attachments[0].StoreOp = AttachmentStoreOp::Store;
+        attachments[0].InitialState = ResourceState::ShaderResource;
+        attachments[0].FinalState = ResourceState::ShaderResource;
+
+        attachments[1].Format = ImageFormat::DEPTH32F;
+        attachments[1].SampleCount = 1;
+        attachments[1].LoadOp = AttachmentLoadOp::Clear;
+        attachments[1].StoreOp = AttachmentStoreOp::Discard;
+        attachments[1].InitialState = ResourceState::DepthWrite;
+        attachments[1].FinalState = ResourceState::DepthWrite;
+
+        AttachmentReference colorRef = { 0, ResourceState::RenderTarget };
+
+        SubPassSpec subPassSpec;
+        subPassSpec.RenderTargetAttachments = Span(&colorRef, 1);
+        subPassSpec.DepthAttachment = { 1, ResourceState::DepthWrite };
+
+        RenderPassSpec renderPassSpec;
+        renderPassSpec.Name = "Scene render pass";
+        renderPassSpec.SubPasses = Span(&subPassSpec, 1);
+        renderPassSpec.Attachments = attachments;
+
+        m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
     }
 
     void Scene::Tick(const float deltaTime) const {

@@ -243,8 +243,8 @@ namespace Quelos {
         s_RendererContext->Destroy(textureHandle);
     }
 
-    RenderPassHandle Renderer::CreateRenderPass() {
-        return s_RendererContext->CreateRenderPass();
+    RenderPassHandle Renderer::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
+        return s_RendererContext->CreateRenderPass(renderPassSpec);
     }
 
     FrameBufferHandle Renderer::CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) {
