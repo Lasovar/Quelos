@@ -17,8 +17,7 @@ namespace Quelos {
 
     public:
         SmallVec() noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N) {
-        }
+            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N) {}
 
         ~SmallVec() {
             clear();
@@ -42,7 +41,7 @@ namespace Quelos {
         }
 
         SmallVec(std::initializer_list<T> list)
-            : SmallVec(std::span<const T>(list.begin(), list.size())) { }
+            : SmallVec(std::span<const T>(list.begin(), list.size())) {}
 
         template <std::input_iterator It>
         SmallVec(It first, It last) {
@@ -129,6 +128,7 @@ namespace Quelos {
             T* ptr = m_Data + m_Size;
             new(ptr) T(std::forward<Args>(args)...);
             m_Size++;
+
             return *ptr;
         }
 
@@ -142,6 +142,137 @@ namespace Quelos {
 
         void pop_back() {
             m_Data[--m_Size].~T();
+        }
+
+        class back_insert_iterator {
+        public:
+            using iterator_category = std::output_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = void;
+            using pointer = void;
+            using reference = void;
+
+            explicit back_insert_iterator(SmallVec& vec)
+                : m_Vec(&vec) {}
+
+            back_insert_iterator& operator=(const T& value) {
+                m_Vec->push_back(value);
+                return *this;
+            }
+
+            back_insert_iterator& operator=(T&& value) {
+                m_Vec->push_back(std::move(value));
+                return *this;
+            }
+
+            back_insert_iterator& operator*() { return *this; }
+            back_insert_iterator& operator++() { return *this; }
+            back_insert_iterator operator++(int) { return *this; }
+
+        private:
+            SmallVec* m_Vec;
+        };
+
+        friend back_insert_iterator back_inserter(SmallVec& vec) {
+            return back_insert_iterator(vec);
+        };
+
+        template <std::input_iterator It>
+        iterator insert(iterator pos, It first, It last) {
+            const size_t index = pos - begin();
+
+            if constexpr (std::forward_iterator<It>) {
+                const auto count = static_cast<size_t>(std::distance(
+                    first,
+                    last
+                ));
+
+                if (count == 0) {
+                    return begin() + index;
+                }
+
+                reserve(m_Size + count);
+
+                // move tail
+                for (size_t i = m_Size; i > index; --i) {
+                    new(m_Data + (i + count - 1)) T(std::move(m_Data[i - 1]));
+                    m_Data[i - 1].~T();
+                }
+
+                // copy inserted range
+                size_t i = 0;
+                for (; first != last; ++first, ++i) {
+                    new(m_Data + index + i) T(*first);
+                }
+
+                m_Size += count;
+            }
+            else {
+                // fallback for pure input iterators
+                for (; first != last; ++first) {
+                    pos = insert(pos, *first);
+                    ++pos;
+                }
+            }
+
+            return begin() + index;
+        }
+
+        iterator insert(iterator pos, const T& value) {
+            const size_t index = pos - begin();
+
+            if (m_Size >= m_Capacity) {
+                grow();
+            }
+
+            pos = begin() + index;
+
+            for (size_t i = m_Size; i > index; --i) {
+                new(m_Data + i) T(std::move(m_Data[i - 1]));
+                m_Data[i - 1].~T();
+            }
+
+            new(pos) T(value);
+            ++m_Size;
+
+            return pos;
+        }
+
+
+        iterator insert(iterator pos, T&& value) {
+            const size_t index = pos - begin();
+
+            if (m_Size >= m_Capacity) {
+                grow();
+            }
+
+            pos = begin() + index;
+
+            for (size_t i = m_Size; i > index; --i) {
+                new(m_Data + i) T(std::move(m_Data[i - 1]));
+                m_Data[i - 1].~T();
+            }
+
+            new(pos) T(std::move(value));
+            ++m_Size;
+
+            return pos;
+        }
+
+        T& back() {
+            return m_Data[m_Size - 1];
+        }
+
+        const T& back() const {
+            return m_Data[m_Size - 1];
+        }
+
+        T& front() {
+            return m_Data[0];
+        }
+
+        const T& front() const {
+            return m_Data[0];
         }
 
     private:
@@ -162,7 +293,9 @@ namespace Quelos {
         }
 
         void grow_to(const size_t newCap) {
-            T* newData = static_cast<T*>(operator new(newCap * sizeof(T)));
+            T* newData = static_cast<T*>(operator new(
+                newCap * sizeof(T)
+            ));
 
             move_range(newData, m_Data, m_Size);
             destroy_range(m_Data, m_Size);

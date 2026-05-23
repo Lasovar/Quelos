@@ -67,6 +67,15 @@ namespace Quelos {
         FrameBufferSpec Specification;
     };
 
+    struct RenderPassData {
+        IRenderPass* RenderPass;
+        std::string Name;
+        SmallVec<AttachmentReference, 4> AttachmentReferences;
+        SmallVec<SubPassSpec, 2> SubPasses;
+        SmallVec<RenderPassAttachmentSpec, 2> Attachments;
+        RenderPassSpec Specification;
+    };
+
     class DiligentRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
@@ -109,7 +118,7 @@ namespace Quelos {
         void Destroy(TextureHandle textureHandle) override;
 
         // Render Pass
-        RenderPassHandle CreateRenderPass() override;
+        RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec) override;
         void Destroy(RenderPassHandle renderPassHandle) override;
 
         FrameBufferHandle CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) override;
@@ -135,7 +144,7 @@ namespace Quelos {
         ResourceTable<IBuffer*, VertexBuffer> m_VertexBufferTable;
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;
         ResourceTable<QTextureData, Texture> m_TextureTable;
-        ResourceTable<IRenderPass*, RenderPass> m_RenderPassTable;
+        ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
 
         RefCntAutoPtr<IRenderDevice> m_pDevice;

@@ -9,6 +9,9 @@
 #include "Quelos/Platform/MacOS/WindowHelper.h"
 #endif
 
+#include "magic_enum/magic_enum.hpp"
+using namespace magic_enum::bitwise_operators;
+
 namespace Quelos {
     static const char* VSSource = R"(
 struct PSInput
@@ -159,6 +162,150 @@ void main(in  PSInput  PSIn,
         }
     }
 
+    namespace Utils {
+        static void CreateFrameBuffer(
+            IFramebuffer*& frameBuffer, IRenderDevice* device,
+            const Span<ITexture*> attachments, IRenderPass* renderPass
+        ) {
+            SmallVec<ITextureView*, 2> viewAttachments;
+            viewAttachments.reserve(
+                attachments.size()
+            );
+            for (uint64_t i = 0; i < attachments.size() - 1; i++) {
+                viewAttachments.push_back(
+                    attachments[i]->GetDefaultView(
+                        TEXTURE_VIEW_RENDER_TARGET
+                    )
+                );
+            }
+            viewAttachments.push_back(
+                attachments[attachments.size() - 1]->GetDefaultView(
+                    TEXTURE_VIEW_DEPTH_STENCIL
+                )
+            );
+
+            FramebufferDesc desc;
+            desc.Name = "FrameBuffer";
+            desc.ppAttachments = viewAttachments.data();
+            desc.AttachmentCount = viewAttachments.size();
+            if (renderPass) {
+                desc.pRenderPass = renderPass;
+            }
+            desc.Width = attachments[0]->GetDesc().GetWidth();
+            desc.Height = attachments[0]->GetDesc().GetHeight();
+            desc.NumArraySlices = 1;
+
+            device->CreateFramebuffer(
+                desc,
+                &frameBuffer
+            );
+        }
+
+        constexpr RESOURCE_STATE GetResourceState(const ResourceState state) {
+            RESOURCE_STATE result = RESOURCE_STATE_UNKNOWN;
+
+            if ((state & ResourceState::VertexBuffer) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_VERTEX_BUFFER;
+            }
+            if ((state & ResourceState::ConstantBuffer) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_CONSTANT_BUFFER;
+            }
+            if ((state & ResourceState::IndexBuffer) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_INDEX_BUFFER;
+            }
+            if ((state & ResourceState::RenderTarget) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_RENDER_TARGET;
+            }
+            if ((state & ResourceState::UnorderedAccess) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_UNORDERED_ACCESS;
+            }
+            if ((state & ResourceState::DepthWrite) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_DEPTH_WRITE;
+            }
+            if ((state & ResourceState::DepthRead) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_DEPTH_READ;
+            }
+            if ((state & ResourceState::ShaderResource) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_SHADER_RESOURCE;
+            }
+            if ((state & ResourceState::IndirectArgument) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_INDIRECT_ARGUMENT;
+            }
+            if ((state & ResourceState::CopySource) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_COPY_SOURCE;
+            }
+            if ((state & ResourceState::CopyDest) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_COPY_DEST;
+            }
+            if ((state & ResourceState::ResolveSource) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_RESOLVE_SOURCE;
+            }
+            if ((state & ResourceState::ResolveDest) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_RESOLVE_DEST;
+            }
+            if ((state & ResourceState::InputAttachment) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_INPUT_ATTACHMENT;
+            }
+            if ((state & ResourceState::Present) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_PRESENT;
+            }
+            if ((state & ResourceState::BuildAsRead) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_BUILD_AS_READ;
+            }
+            if ((state & ResourceState::BuildAsWrite) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_BUILD_AS_WRITE;
+            }
+            if ((state & ResourceState::RayTracing) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_RAY_TRACING;
+            }
+            if ((state & ResourceState::ShadingRate) != ResourceState::Unknown) {
+                result |= RESOURCE_STATE_SHADING_RATE;
+            }
+
+            return result;
+        }
+
+
+        static ATTACHMENT_LOAD_OP GetAttachmentLoadOp(const AttachmentLoadOp loadOp) {
+            switch (loadOp) {
+            case AttachmentLoadOp::Load: return ATTACHMENT_LOAD_OP_LOAD;
+            case AttachmentLoadOp::Clear: return ATTACHMENT_LOAD_OP_CLEAR;
+            case AttachmentLoadOp::Discard: return ATTACHMENT_LOAD_OP_DISCARD;
+            }
+
+            return ATTACHMENT_LOAD_OP_LOAD;
+        }
+
+        static ATTACHMENT_STORE_OP GetAttachmentStoreOp(const AttachmentStoreOp storeOp) {
+            switch (storeOp) {
+            case AttachmentStoreOp::Store: return ATTACHMENT_STORE_OP_STORE;
+            case AttachmentStoreOp::Discard: return ATTACHMENT_STORE_OP_DISCARD;
+            }
+
+            return ATTACHMENT_STORE_OP_STORE;
+        }
+
+        static RenderPassAttachmentDesc GetRenderPassAttachmentDesc(const RenderPassAttachmentSpec& spec) {
+            RenderPassAttachmentDesc desc;
+            desc.InitialState = GetResourceState(spec.InitialState);
+            desc.FinalState = GetResourceState(spec.FinalState);
+            desc.LoadOp = GetAttachmentLoadOp(spec.LoadOp);
+            desc.StoreOp = GetAttachmentStoreOp(spec.StoreOp);
+            desc.SampleCount = spec.SampleCount;
+            desc.Format = TextureUtil::GetTextureFormat(spec.Format);
+            desc.StencilLoadOp = GetAttachmentLoadOp(spec.StencilLoadOp);
+            desc.StencilStoreOp = GetAttachmentStoreOp(spec.StencilStoreOp);
+
+            return desc;
+        }
+
+        static Diligent::AttachmentReference GetAttachmentReference(const AttachmentReference& attachmentReference) {
+            Diligent::AttachmentReference result;
+            result.AttachmentIndex = attachmentReference.AttachmentIndex;
+            result.State = GetResourceState(attachmentReference.State);
+            return result;
+        }
+    }
 
     DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
 
@@ -228,8 +375,18 @@ void main(in  PSInput  PSIn,
             auto* pFactoryVk = GetEngineFactoryVk();
             const EngineVkCreateInfo engineCi;
 
-            pFactoryVk->CreateDeviceAndContextsVk(engineCi, &m_pDevice, &m_pImmediateContext);
-            pFactoryVk->CreateSwapChainVk(m_pDevice, m_pImmediateContext, SCDesc, nativeWindow, &m_pSwapChain);
+            pFactoryVk->CreateDeviceAndContextsVk(
+                engineCi,
+                &m_pDevice,
+                &m_pImmediateContext
+            );
+            pFactoryVk->CreateSwapChainVk(
+                m_pDevice,
+                m_pImmediateContext,
+                SCDesc,
+                nativeWindow,
+                &m_pSwapChain
+            );
             break;
         }
 #endif
@@ -290,8 +447,7 @@ void main(in  PSInput  PSIn,
         // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
         ShaderCI.Desc.UseCombinedTextureSamplers = true;
         // Create vertex shader
-        RefCntAutoPtr<IShader> pVS;
-        {
+        RefCntAutoPtr<IShader> pVS; {
             ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
             ShaderCI.EntryPoint = "main";
             ShaderCI.Desc.Name = "Triangle vertex shader";
@@ -300,8 +456,7 @@ void main(in  PSInput  PSIn,
         }
 
         // Create pixel shader
-        RefCntAutoPtr<IShader> pFS;
-        {
+        RefCntAutoPtr<IShader> pFS; {
             ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
             ShaderCI.EntryPoint = "main";
             ShaderCI.Desc.Name = "Triangle pixel shader";
@@ -368,9 +523,10 @@ void main(in  PSInput  PSIn,
         }
     }
 
-    void DiligentRendererContext::StartSceneRender(FrameBufferHandle frameBuffer, const float4x4& view,
-                                                   const float4x4& projection) {
-    }
+    void DiligentRendererContext::StartSceneRender(
+        FrameBufferHandle frameBuffer, const float4x4& view,
+        const float4x4& projection
+    ) {}
 
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
         SmallVec<OptimizedClearValue, 2> clearValues;
@@ -389,7 +545,7 @@ void main(in  PSInput  PSIn,
         attribs.pClearValues = clearValues.data();
         attribs.ClearValueCount = clearValues.size();
         attribs.pFramebuffer = m_FrameBufferTable.Get(beginRenderPassAttrib.FrameBufferHandle)->FrameBuffer;
-        attribs.pRenderPass = *m_RenderPassTable.Get(beginRenderPassAttrib.RenderPassHandle);
+        attribs.pRenderPass = m_RenderPassTable.Get(beginRenderPassAttrib.RenderPassHandle)->RenderPass;
         attribs.StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
 
         m_pImmediateContext->BeginRenderPass(attribs);
@@ -417,20 +573,25 @@ void main(in  PSInput  PSIn,
         // TODO:
     }
 
-    UniformBufferHandle DiligentRendererContext::CreateUniformBuffer(const std::string& name,
-                                                                     UniformBufferType uniformType, uint32_t count) {
+    UniformBufferHandle DiligentRendererContext::CreateUniformBuffer(
+        const std::string& name,
+        UniformBufferType uniformType, uint32_t count
+    ) {
         // TODO:
         return {};
     }
 
-    void DiligentRendererContext::SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data,
-                                                 uint32_t count) {
+    void DiligentRendererContext::SetUniformData(
+        UniformBufferHandle uniformBufferHandle, const void* data,
+        uint32_t count
+    ) {
         // TODO:
     }
 
     void DiligentRendererContext::Destroy(UniformBufferHandle uniformBufferHandle) {
         // TODO:
     }
+
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.Get(handle);
@@ -444,8 +605,10 @@ void main(in  PSInput  PSIn,
         return CreateTexture(spec);
     }
 
-    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec,
-                                                         const std::filesystem::path& path) {
+    TextureHandle DiligentRendererContext::CreateTexture(
+        const TextureSpecification& spec,
+        const std::filesystem::path& path
+    ) {
         // TODO:
         return {};
     }
@@ -485,80 +648,101 @@ void main(in  PSInput  PSIn,
         // TODO:
     }
 
-    RenderPassHandle DiligentRendererContext::CreateRenderPass() {
+    RenderPassHandle DiligentRendererContext::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
         const Handle<RenderPass> handle = m_RenderPassTable.Emplace();
-        IRenderPass** slot = m_RenderPassTable.Get(handle);
+        RenderPassData* slot = m_RenderPassTable.Get(handle);
 
-        RenderPassAttachmentDesc Attachments[2];
+        QS_CORE_ASSERT(slot);
 
-        // Color
-        Attachments[0].Format = TEX_FORMAT_RGBA8_UNORM;
-        Attachments[0].SampleCount = 1;
-        Attachments[0].LoadOp = ATTACHMENT_LOAD_OP_CLEAR;
-        Attachments[0].StoreOp = ATTACHMENT_STORE_OP_STORE;
-        Attachments[0].InitialState = RESOURCE_STATE_SHADER_RESOURCE;
-        Attachments[0].FinalState = RESOURCE_STATE_SHADER_RESOURCE;
+        // Own data
+        slot->Name = renderPassSpec.Name;
+        slot->Attachments = SmallVec<RenderPassAttachmentSpec, 2>(renderPassSpec.Attachments);
 
-        // Depth
-        Attachments[1].Format = TEX_FORMAT_D32_FLOAT;
-        Attachments[1].SampleCount = 1;
-        Attachments[1].LoadOp = ATTACHMENT_LOAD_OP_CLEAR;
-        Attachments[1].StoreOp = ATTACHMENT_STORE_OP_DISCARD;
-        Attachments[1].InitialState = RESOURCE_STATE_DEPTH_WRITE;
-        Attachments[1].FinalState = RESOURCE_STATE_DEPTH_WRITE;
+        size_t renderTargetAttachmentRefsCount = 0;
+        for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
+            renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
+        }
 
-        AttachmentReference ColorRef = {0, RESOURCE_STATE_RENDER_TARGET};
-        AttachmentReference DepthRef = {1, RESOURCE_STATE_DEPTH_WRITE};
+        slot->AttachmentReferences.reserve(renderTargetAttachmentRefsCount);
 
-        SubpassDesc Subpass;
-        Subpass.RenderTargetAttachmentCount = 1;
-        Subpass.pRenderTargetAttachments = &ColorRef;
-        Subpass.pDepthStencilAttachment = &DepthRef;
+        for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
+            SubPassSpec ownedSubpass;
+
+            const size_t attachmentIndex = slot->AttachmentReferences.size();
+            std::ranges::copy(
+                subPass.RenderTargetAttachments,
+                std::back_inserter(slot->AttachmentReferences)
+            );
+
+            ownedSubpass.RenderTargetAttachments = Span(
+                slot->AttachmentReferences.data() + attachmentIndex,
+                subPass.RenderTargetAttachments.size()
+            );
+
+            ownedSubpass.DepthAttachment = subPass.DepthAttachment;
+
+            slot->SubPasses.push_back(ownedSubpass);
+        }
+
+        // Set up the spec
+        auto& spec = slot->Specification;
+        spec.Name = slot->Name;
+        spec.SubPasses = slot->SubPasses;
+        spec.Attachments = slot->Attachments;
+
+        SmallVec<RenderPassAttachmentDesc, 2> attachments;
+
+        for (const RenderPassAttachmentSpec& attachment : spec.Attachments) {
+            attachments.push_back(Utils::GetRenderPassAttachmentDesc(attachment));
+        }
+
+        SmallVec<SubpassDesc, 2> subpasses;
+        SmallVec<Diligent::AttachmentReference, 2> attachmentRefs;
+
+        size_t totalAttachmentRefCount = 0;
+        for (const SubPassSpec& pass : spec.SubPasses) {
+            totalAttachmentRefCount += pass.RenderTargetAttachments.size() + 1;
+        }
+
+        attachmentRefs.reserve(totalAttachmentRefCount);
+        subpasses.reserve(spec.SubPasses.size());
+
+        for (const SubPassSpec& pass : spec.SubPasses) {
+            SubpassDesc subPassDesc{};
+
+            const size_t attachmentIndex = attachmentRefs.size();
+            for (const AttachmentReference& attachmentReference : pass.RenderTargetAttachments) {
+                attachmentRefs.push_back(Utils::GetAttachmentReference(attachmentReference));
+            }
+
+            subPassDesc.pRenderTargetAttachments = attachmentRefs.data() + attachmentIndex;
+            subPassDesc.RenderTargetAttachmentCount = pass.RenderTargetAttachments.size();
+
+            attachmentRefs.push_back(Utils::GetAttachmentReference(pass.DepthAttachment));
+            subPassDesc.pDepthStencilAttachment = &attachmentRefs.back();
+            subpasses.push_back(subPassDesc);
+        }
 
         RenderPassDesc RPDesc;
-        RPDesc.Name = "View Render Pass";
-        RPDesc.AttachmentCount = 2;
-        RPDesc.pAttachments = Attachments;
-        RPDesc.SubpassCount = 1;
-        RPDesc.pSubpasses = &Subpass;
+        RPDesc.Name = slot->Name.c_str();
+        RPDesc.AttachmentCount = attachments.size();
+        RPDesc.pAttachments = attachments.data();
+        RPDesc.SubpassCount = subpasses.size();
+        RPDesc.pSubpasses = subpasses.data();
 
-        m_pDevice->CreateRenderPass(RPDesc, slot);
+        m_pDevice->CreateRenderPass(RPDesc, &slot->RenderPass);
 
         return handle;
     }
 
     void DiligentRendererContext::Destroy(const RenderPassHandle renderPassHandle) {
-        IRenderPass** slot = m_RenderPassTable.Get(renderPassHandle);
-        (*slot)->Release();
-        *slot = nullptr;
+        RenderPassData* slot = m_RenderPassTable.Get(renderPassHandle);
+        slot->RenderPass->Release();
+        slot->RenderPass = nullptr;
 
         m_RenderPassTable.Erase(renderPassHandle);
     }
 
-    namespace Utils {
-        static void CreateFrameBuffer(IFramebuffer*& frameBuffer, IRenderDevice* device,
-                                      const Span<ITexture*> attachments, IRenderPass* renderPass) {
-            SmallVec<ITextureView*, 2> viewAttachments;
-            viewAttachments.reserve(attachments.size());
-            for (uint64_t i = 0; i < attachments.size() - 1; i++) {
-                viewAttachments.push_back(attachments[i]->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET));
-            }
-            viewAttachments.push_back(attachments[attachments.size() - 1]->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL));
-
-            FramebufferDesc desc;
-            desc.Name = "FrameBuffer";
-            desc.ppAttachments = viewAttachments.data();
-            desc.AttachmentCount = viewAttachments.size();
-            if (renderPass) {
-                desc.pRenderPass = renderPass;
-            }
-            desc.Width = attachments[0]->GetDesc().GetWidth();
-            desc.Height = attachments[0]->GetDesc().GetHeight();
-            desc.NumArraySlices = 1;
-
-            device->CreateFramebuffer(desc, &frameBuffer);
-        }
-    }
 
     FrameBufferHandle DiligentRendererContext::CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) {
         const Handle<FrameBuffer> handle = m_FrameBufferTable.Emplace();
@@ -587,7 +771,7 @@ void main(in  PSInput  PSIn,
             slot->FrameBuffer,
             m_pDevice,
             Span(textureAttachments),
-            *m_RenderPassTable.Get(spec.RenderPassHandle)
+            m_RenderPassTable.Get(spec.RenderPassHandle)->RenderPass
         );
 
         return handle;
@@ -628,7 +812,7 @@ void main(in  PSInput  PSIn,
 
         IRenderPass* renderPass = nullptr;
         if (data->Specification.RenderPassHandle.IsValid()) {
-            renderPass = *m_RenderPassTable.Get(data->Specification.RenderPassHandle);
+            renderPass = m_RenderPassTable.Get(data->Specification.RenderPassHandle)->RenderPass;
         }
 
         Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span(textureAttachments), renderPass);
@@ -695,8 +879,14 @@ void main(in  PSInput  PSIn,
         }
 
         const Uint64 offset = 0;
-        m_pImmediateContext->SetVertexBuffers(stream, 1, slot, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
-                                              SET_VERTEX_BUFFERS_FLAG_RESET);
+        m_pImmediateContext->SetVertexBuffers(
+            stream,
+            1,
+            slot,
+            &offset,
+            RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+            SET_VERTEX_BUFFERS_FLAG_RESET
+        );
     }
 
     IndexBufferHandle DiligentRendererContext::CreateIndexBuffer(const Span<uint16_t> indices) {

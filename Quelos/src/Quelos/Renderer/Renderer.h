@@ -74,7 +74,7 @@ namespace Quelos {
 		static void Destroy(TextureHandle textureHandle);
 
 		// Render Pass
-		static RenderPassHandle CreateRenderPass();
+		static RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec);
 
 		// Frame Buffer
 		static FrameBufferHandle CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec);
