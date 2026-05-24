@@ -7,6 +7,7 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
+#include "SceneRenderer.h"
 #include "Quelos/Renderer/RenderPassAttrib.h"
 
 namespace Quelos {
@@ -88,7 +89,8 @@ namespace Quelos {
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
 
-        RenderPassHandle GetRenderPass() const { return m_RenderPass; }
+        RenderPassHandle GetRenderPass() const { return m_SceneRenderer.GetRenderPass(); }
+        SceneRenderer& GetSceneRenderer() { return m_SceneRenderer; }
 
         Actor GetActor(const EntityID actorId) {
             if (!actorId) {
@@ -122,12 +124,13 @@ namespace Quelos {
         HashMap<EntityID, Actor> m_ActorsMap;
         HashMap<EntityID, Entity> m_EntitiesMap;
 
-        RenderPassHandle m_RenderPass;
-
         ComponentRegistry m_ComponentRegistry;
 
         flecs::world m_World;
+
         std::string m_Name;
+
+        SceneRenderer m_SceneRenderer;
 
         flecs::entity m_SceneRoot;
 

@@ -92,8 +92,8 @@ namespace Quelos {
     using BindFlags = Bind;
 
     enum class CpuAccess : uint8_t {
-        None  = 0u,       ///< No CPU access
-        Read  = 1u << 0u, ///< A resource can be mapped for reading
+        None = 0u, ///< No CPU access
+        Read = 1u << 0u, ///< A resource can be mapped for reading
         Write = 1u << 1u, ///< A resource can be mapped for writing
 
         Last = Write
@@ -143,5 +143,45 @@ namespace Quelos {
 
         /// Helper value indicating the total number of elements in the enum
         Count
+    };
+
+
+    enum class Map : uint8_t {
+        /// The resource is mapped for reading. \n
+        /// D3D11 counterpart: D3D11_MAP_READ. OpenGL counterpart: GL_MAP_READ_BIT
+        Read = 0x01,
+
+        /// The resource is mapped for writing. \n
+            /// D3D11 counterpart: D3D11_MAP_WRITE. OpenGL counterpart: GL_MAP_WRITE_BIT
+        Write = 0x02,
+
+        /// The resource is mapped for reading and writing. \n
+            /// D3D11 counterpart: D3D11_MAP_READ_WRITE. OpenGL counterpart: GL_MAP_WRITE_BIT | GL_MAP_READ_BIT
+        ReadWrite = 0x03
+    };
+
+    using MapType = Map;
+
+    enum class MapFlags : uint8_t {
+        /// No special flags
+        None = 0x000,
+
+        /// Specifies that map operation should not wait until previous command that
+        /// using the same resource completes. Map returns null pointer if the resource
+        /// is still in use.\n
+        /// D3D11 counterpart:  D3D11_MAP_FLAG_DO_NOT_WAIT
+        /// \note OpenGL does not have corresponding flag, so a buffer will always be mapped
+        DoNotWait = 0x001,
+
+        /// Previous contents of the resource will be undefined. This flag is only compatible with MAP_WRITE\n
+        /// D3D11 counterpart: D3D11_MAP_WRITE_DISCARD. OpenGL counterpart: GL_MAP_INVALIDATE_BUFFER_BIT
+        /// \note OpenGL implementation may orphan a buffer instead
+        Discard = 0x002,
+
+        /// The system will not synchronize pending operations before mapping the buffer. It is responsibility
+        /// of the application to make sure that the buffer contents is not overwritten while it is in use by
+        /// the GPU.\n
+        /// D3D11 counterpart:  D3D11_MAP_WRITE_NO_OVERWRITE. OpenGL counterpart: GL_MAP_UNSYNCHRONIZED_BIT
+        NoOverwrite = 0x004
     };
 }

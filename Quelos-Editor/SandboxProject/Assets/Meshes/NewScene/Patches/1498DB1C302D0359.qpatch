@@ -8,5 +8,5 @@ scale = (10,10,1)
 
 @Quelos.MeshRenderer
 mesh = 7454a857-a0d2-464c-a711-6ca3088cfd5e
-shader = null
+shader = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
 color = (1,1,1,1)

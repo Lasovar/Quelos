@@ -12,6 +12,7 @@
 
 #if VULKAN_SUPPORTED
 #    include "EngineFactoryVk.h"
+#include "vulkan/vulkan.hpp"
 #endif
 
 #if D3D11_SUPPORTED
@@ -116,6 +117,7 @@ namespace Quelos {
         void EndRenderPass() override;
 
         void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) override;
+        void DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) override;
 
         // Shaders
         ShaderHandle CreateShader(const ShaderCreateInfo& createInfo) override;
@@ -131,6 +133,9 @@ namespace Quelos {
             std::string_view name,
             GPUBufferHandle gpuBufferHandle
         ) override;
+
+        void BindPipelineState(PipelineStateHandle pipelineStateHandle) override;
+
         void Destroy(PipelineStateHandle pipelineStateHandle) override;
 
         GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
@@ -145,9 +150,21 @@ namespace Quelos {
             bool initStaticResources
         ) override;
 
+        void BindVariableByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle shaderResourceBindingHandle,
+            std::string_view name, GPUBufferHandle gpuBufferHandle
+        ) override;
+
+        void Map(GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) override;
+        void Unmap(GPUBufferHandle bufferHandle, MapType mapType) override;
+
+        void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
+
         void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
 
-        void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint32_t offset, BufferView data) override;
+        void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) override;
+        void Destroy(GPUBufferHandle bufferHandle) override;
 
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;

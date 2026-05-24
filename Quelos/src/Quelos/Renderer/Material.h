@@ -4,7 +4,7 @@
 #include "Quelos/AssetManager/AssetRef.h"
 
 namespace Quelos {
-    class QS_API Material {
+    class QS_API Material : public Asset {
     public:
         explicit Material();
 

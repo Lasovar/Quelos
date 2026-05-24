@@ -61,6 +61,8 @@ namespace Quelos {
             Dec();
         }
 
+        AssetHandle<T> GetAssetHandle() const { return m_Handle; }
+
         void Reset() {
             m_Handle = AssetHandle<T>();
         }

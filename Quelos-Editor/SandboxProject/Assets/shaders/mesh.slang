@@ -2,12 +2,14 @@ struct GlobalUniforms {
     float4x4 viewProj;
 };
 
-//struct MeshUniforms {
-//    float4x4 transform;
-//};
+struct InstanceData {
+    float4x4 Transform;
+    uint MaterialID;
+    uint3 Padding;
+}
 
 ConstantBuffer<GlobalUniforms> global;
-//ConstantBuffer<MeshUniforms> mesh;
+StructuredBuffer<InstanceData> Instances;
 
 struct VertexIn {
     float3 position : POSITION;
@@ -23,13 +25,14 @@ struct VertexOut {
 };
 
 [shader("vertex")]
-VertexOut vertexMain(VertexIn input) {
+VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     VertexOut output;
 
     float4 worldPos = float4(input.position, 1.0);
 
-    output.position = mul(worldPos, global.viewProj);
-    output.normal = input.normal;
+    InstanceData instance = Instances[instanceID];
+    output.position = mul(mul(worldPos, instance.Transform), global.viewProj);
+    output.normal = mul(input.normal, (float3x3)instance.Transform);
     output.uv = input.texcoord0;
 
     return output;
