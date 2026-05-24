@@ -294,7 +294,7 @@ namespace QuelosEditor {
         RegisterType<Model>();
         RegisterType<Mesh>();
         ShaderImporter::Initialize();
-        RegisterType<Shader>();
+        RegisterType<GraphicsShader>();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
         AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
         RegisterType<Texture2D>();

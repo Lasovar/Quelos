@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "DataBlobImpl.hpp"
 #include "ImGui/MapHelper.hpp"
+#include "Quelos/ImGui/ImGuiUI.h"
 
 #if QS_PLATFORM_MACOS
 #include "Quelos/Platform/MacOS/WindowHelper.h"
@@ -316,6 +317,282 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             result.State = GetResourceState(attachmentReference.State);
             return result;
         }
+
+        constexpr SHADER_TYPE GetShaderType(const ShaderType type) {
+            return static_cast<SHADER_TYPE>(type);
+        }
+
+        constexpr ShaderType FromDiligentShaderType(const SHADER_TYPE type) {
+            return static_cast<ShaderType>(type);
+        }
+
+        constexpr SHADER_RESOURCE_VARIABLE_TYPE GetShaderResourceVariableType(const ShaderResourceVariableType type) {
+            switch (type) {
+            case ShaderResourceVariableType::Static:
+                return SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
+
+            case ShaderResourceVariableType::Mutable:
+                return SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
+
+            case ShaderResourceVariableType::Dynamic:
+                return SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
+
+            case ShaderResourceVariableType::Count:
+                break;
+            }
+
+            return SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
+        }
+
+        constexpr ShaderResourceVariableType FromDiligentShaderResourceVariableType(
+            const SHADER_RESOURCE_VARIABLE_TYPE type
+        ) {
+            switch (type) {
+            case SHADER_RESOURCE_VARIABLE_TYPE_STATIC: return ShaderResourceVariableType::Static;
+            case SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE: return ShaderResourceVariableType::Mutable;
+            case SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC: return ShaderResourceVariableType::Dynamic;
+            default:
+                return ShaderResourceVariableType::Static;
+            }
+
+            return ShaderResourceVariableType::Static;
+        }
+
+        constexpr SHADER_VARIABLE_FLAGS GetShaderVariableFlags(const ShaderVariableFlags flags) {
+            return static_cast<SHADER_VARIABLE_FLAGS>(
+                static_cast<std::underlying_type_t<ShaderVariableFlags>>(flags)
+            );
+        }
+
+        constexpr ShaderVariableFlags FromDiligentShaderVariableFlags(const SHADER_VARIABLE_FLAGS flags) {
+            return static_cast<ShaderVariableFlags>(
+                static_cast<std::underlying_type_t<SHADER_VARIABLE_FLAGS>>(flags)
+            );
+        }
+
+        constexpr CULL_MODE GetCullMode(const CullMode mode) {
+            QS_CORE_ASSERT(mode != CullMode::Count);
+            return static_cast<CULL_MODE>(mode);
+        }
+
+        constexpr INPUT_ELEMENT_FREQUENCY
+        ToDiligentInputElementFrequency(
+            const InputElementFrequency frequency
+        ) {
+            switch (frequency) {
+            case InputElementFrequency::Undefined:
+                return INPUT_ELEMENT_FREQUENCY_UNDEFINED;
+
+            case InputElementFrequency::PerVertex:
+                return INPUT_ELEMENT_FREQUENCY_PER_VERTEX;
+
+            case InputElementFrequency::PerInstance:
+                return INPUT_ELEMENT_FREQUENCY_PER_INSTANCE;
+
+            case InputElementFrequency::Count:
+                break;
+            }
+
+            return INPUT_ELEMENT_FREQUENCY_UNDEFINED;
+        }
+
+        constexpr VALUE_TYPE
+        ToDiligentValueType(
+            const ShaderDataType type
+        ) {
+            switch (type) {
+            case ShaderDataType::Float:
+            case ShaderDataType::Float2:
+            case ShaderDataType::Float3:
+            case ShaderDataType::Float4:
+            case ShaderDataType::Float3x3:
+            case ShaderDataType::Float4x4:
+                return VT_FLOAT32;
+
+            case ShaderDataType::Int:
+            case ShaderDataType::Int2:
+            case ShaderDataType::Int3:
+            case ShaderDataType::Int4:
+                return VT_INT32;
+
+            case ShaderDataType::UInt:
+                return VT_UINT32;
+
+            case ShaderDataType::UInt10x3_A2:
+                QS_ASSERT(false && "UInt10x3_A2 is not supported by Diligent VALUE_TYPE");
+                return VT_UINT32;
+
+            case ShaderDataType::UNorm8x2:
+            case ShaderDataType::UNorm8x4:
+                return VT_UINT8;
+
+            case ShaderDataType::UNorm16x2:
+            case ShaderDataType::UNorm16x4:
+                return VT_UINT16;
+
+            case ShaderDataType::SNorm8x2:
+            case ShaderDataType::SNorm8x4:
+                return VT_INT8;
+
+            case ShaderDataType::SNorm16x2:
+            case ShaderDataType::SNorm16x4:
+                return VT_INT16;
+            }
+
+            return VT_FLOAT32;
+        }
+
+        struct DiligentInputLayoutDesc {
+            Vec<Diligent::LayoutElement> Elements;
+            InputLayoutDesc Desc;
+
+            explicit DiligentInputLayoutDesc(const InputLayoutSpec& spec) {
+                Elements.reserve(spec.LayoutElements.size());
+
+                for (const auto& element : spec.LayoutElements) {
+                    Elements.emplace_back(
+                        Diligent::LayoutElement{
+                            element.InputIndex,
+                            element.BufferSlot,
+                            ComponentCount(element.ValueType),
+                            ToDiligentValueType(element.ValueType),
+                            element.IsNormalized,
+                            element.RelativeOffset,
+                            element.Stride,
+                            ToDiligentInputElementFrequency(element.Frequency),
+                            element.InstanceDataStepRate
+                        }
+                    );
+                }
+
+                Desc.LayoutElements = Elements.data();
+                Desc.NumElements = static_cast<Uint32>(Elements.size());
+            }
+
+            operator const Diligent::InputLayoutDesc&() const {
+                return Desc;
+            }
+        };
+
+        constexpr FILTER_TYPE GetFilterType(const TextureFilter filter) {
+            switch (filter) {
+            case TextureFilter::Point:
+                return FILTER_TYPE_POINT;
+
+            case TextureFilter::Linear:
+                return FILTER_TYPE_LINEAR;
+
+            case TextureFilter::Anisotropic:
+                return FILTER_TYPE_ANISOTROPIC;
+            default: ;
+            }
+
+            return FILTER_TYPE_LINEAR;
+        }
+
+        constexpr TEXTURE_ADDRESS_MODE GetTextureAddressMode(const TextureWrap wrap) {
+            switch (wrap) {
+            case TextureWrap::Repeat:
+                return TEXTURE_ADDRESS_WRAP;
+
+            case TextureWrap::Mirror:
+                return TEXTURE_ADDRESS_MIRROR;
+
+            case TextureWrap::Clamp:
+                return TEXTURE_ADDRESS_CLAMP;
+
+            case TextureWrap::Border:
+                return TEXTURE_ADDRESS_BORDER;
+
+            case TextureWrap::MirrorOnce:
+                return TEXTURE_ADDRESS_MIRROR_ONCE;
+            default: ;
+            }
+
+            return TEXTURE_ADDRESS_CLAMP;
+        }
+
+        constexpr COMPARISON_FUNCTION GetComparisonFunc(const ComparisonFunc func) {
+            switch (func) {
+            case ComparisonFunc::Never:
+                return COMPARISON_FUNC_NEVER;
+
+            case ComparisonFunc::Less:
+                return COMPARISON_FUNC_LESS;
+
+            case ComparisonFunc::Equal:
+                return COMPARISON_FUNC_EQUAL;
+
+            case ComparisonFunc::LessEqual:
+                return COMPARISON_FUNC_LESS_EQUAL;
+
+            case ComparisonFunc::Greater:
+                return COMPARISON_FUNC_GREATER;
+
+            case ComparisonFunc::NotEqual:
+                return COMPARISON_FUNC_NOT_EQUAL;
+
+            case ComparisonFunc::GreaterEqual:
+                return COMPARISON_FUNC_GREATER_EQUAL;
+
+            case ComparisonFunc::Always:
+                return COMPARISON_FUNC_ALWAYS;
+            default: ;
+            }
+
+            return COMPARISON_FUNC_NEVER;
+        }
+
+        constexpr SAMPLER_FLAGS GetSamplerFlags(const SamplerFlags flags) {
+            return static_cast<SAMPLER_FLAGS>(flags);
+        }
+
+        constexpr SamplerDesc GetSamplerDesc(const SamplerSpec& spec) {
+            SamplerDesc desc;
+
+            desc.MinFilter = GetFilterType(spec.MinFilter);
+            desc.MagFilter = GetFilterType(spec.MagFilter);
+            desc.MipFilter = GetFilterType(spec.MipFilter);
+
+            desc.AddressU = GetTextureAddressMode(spec.WrapU);
+            desc.AddressV = GetTextureAddressMode(spec.WrapV);
+            desc.AddressW = GetTextureAddressMode(spec.WrapW);
+
+            desc.Flags = GetSamplerFlags(spec.Flags);
+
+            desc.UnnormalizedCoords = spec.UnnormalizedCoords;
+
+            desc.MipLODBias = spec.MipLODBias;
+            desc.MaxAnisotropy = spec.MaxAnisotropy;
+
+            desc.ComparisonFunc = GetComparisonFunc(spec.ComparisonFunc);
+
+            desc.BorderColor[0] = spec.BorderColor.r;
+            desc.BorderColor[1] = spec.BorderColor.g;
+            desc.BorderColor[2] = spec.BorderColor.b;
+            desc.BorderColor[3] = spec.BorderColor.a;
+
+            desc.MinLOD = spec.MinLOD;
+            desc.MaxLOD = spec.MaxLOD;
+
+            return desc;
+        }
+
+        constexpr BIND_FLAGS GetBindFlags(BindFlags bindFlags) {
+            return static_cast<BIND_FLAGS>(bindFlags);
+        }
+
+        constexpr CPU_ACCESS_FLAGS GetCPUAccessFlags(CpuAccessFlags cpuAccess) {
+            return static_cast<CPU_ACCESS_FLAGS>(cpuAccess);
+        }
+
+        constexpr USAGE GetBufferUsage(Usage usage) {
+            return static_cast<USAGE>(usage);
+        }
+
+        constexpr MISC_BUFFER_FLAGS GetMiscFlags(MiscBufferFlags miscFlags) {
+            return static_cast<MISC_BUFFER_FLAGS>(miscFlags);
+        }
     }
 
     DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
@@ -426,7 +703,6 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         }
 
         // CREATE RESOURCES
-
     }
 
     bool DiligentRendererContext::HomogenousDepth() {
@@ -480,11 +756,11 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::StartSceneRender(const float4x4& view, const float4x4& projection) {
-        {
+        /*{
             // Map the buffer and write current world-view-projection matrix
             MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSConstants, MAP_WRITE, MAP_FLAG_DISCARD);
             *CBConstants = math::mul(view, projection);
-        }
+        }*/
     }
 
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
@@ -514,18 +790,89 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pImmediateContext->EndRenderPass();
     }
 
-    ShaderHandle DiligentRendererContext::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+    GraphicsShaderHandle DiligentRendererContext::CreateShader(
+        Buffer vertex, Buffer fragment, const std::string& name
+    ) {
         // TODO:
         return {};
     }
 
-    bool DiligentRendererContext::RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) {
+    bool DiligentRendererContext::RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) {
         // TODO:
         return {};
     }
 
-    void DiligentRendererContext::Destroy(ShaderHandle shaderHandle) {
+    void DiligentRendererContext::Destroy(GraphicsShaderHandle shaderHandle) {
         // TODO:
+    }
+
+    GPUBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
+        const Handle<GPUBuffer> handle = m_BufferTable.Emplace();
+        QBufferData* slot = m_BufferTable.Get(handle);
+        slot->Name = bufferSpec.Name;
+        slot->Specification = bufferSpec;
+        slot->Specification.Name = slot->Name;
+
+        BufferDesc desc;
+        desc.Name = slot->Name.c_str();
+        desc.BindFlags = Utils::GetBindFlags(bufferSpec.BindFlags);
+        desc.CPUAccessFlags = Utils::GetCPUAccessFlags(bufferSpec.CpuAccessFlags);
+        desc.MiscFlags = Utils::GetMiscFlags(bufferSpec.MiscFlags);
+        desc.Usage = Utils::GetBufferUsage(bufferSpec.Usage);
+        desc.Size = bufferSpec.Size;
+        desc.ElementByteStride = bufferSpec.ElementByteStride;
+        desc.ImmediateContextMask = bufferSpec.ImmediateContextMask;
+
+        BufferData bufferData;
+        bufferData.pData = data.data();
+        bufferData.DataSize = bufferSpec.Size;
+
+        m_pDevice->CreateBuffer(desc, bufferData.pData ? &bufferData : nullptr, &slot->Buffer);
+
+        return handle;
+    }
+
+    ShaderResourceBindingHandle DiligentRendererContext::CreateShaderResourceBinding(
+        PipelineStateHandle pipelineStateHandle, bool initStaticResources
+    ) {
+        Handle<ShaderResourceBinding> handle = m_ShaderResourceBindingTable.Emplace();
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(handle);
+
+        QS_CORE_ASSERT(slot);
+
+        IPipelineState* pipelineState = m_PipelineStateTable.Get(pipelineStateHandle)->PSO;
+        pipelineState->CreateShaderResourceBinding(slot, initStaticResources);
+
+        return handle;
+    }
+
+    void DiligentRendererContext::Destroy(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find shader resource binding in slot ({},{})",
+                shaderResourceBindingHandle.GetIndex(), shaderResourceBindingHandle.GetGeneration()
+            );
+
+            return;
+        }
+
+        (*slot)->Release();
+        *slot = nullptr;
+
+        m_ShaderResourceBindingTable.Erase(shaderResourceBindingHandle);
+    }
+
+    void DiligentRendererContext::UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint32_t offset, BufferView data) {
+        m_pImmediateContext->UpdateBuffer(
+            m_BufferTable.Get(gpuBufferHandle)->Buffer, // buffer
+            offset, // offset
+            data.size(), // size
+            data.data(), // data pointer
+            RESOURCE_STATE_TRANSITION_MODE_TRANSITION
+        );
     }
 
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
@@ -691,105 +1038,27 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
         m_pDevice->CreateRenderPass(RPDesc, &slot->RenderPass);
 
-        // Pipeline state object encompasses configuration of all GPU stages
-        GraphicsPipelineStateCreateInfo PSOCreateInfo;
-        PipelineStateDesc& PSODesc = PSOCreateInfo.PSODesc;
-
-        // Pipeline state name is used by the engine to report issues
-        // It is always a good idea to give objects descriptive names
-        PSODesc.Name = slot->Name.c_str();
-
-        // This is a graphics pipeline
-        PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
-
-        // Set render target format which is the format of the swap chain's color buffer
-        // Primitive topology defines what kind of primitives will be rendered by this pipeline state
-        PSOCreateInfo.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        // No back face culling for this tutorial
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_BACK;
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = True;
-        // Disable depth testing
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = True;
-        PSOCreateInfo.GraphicsPipeline.pRenderPass = slot->RenderPass;
-
-        ShaderCreateInfo ShaderCI;
-        // Tell the system that the shader source code is in HLSL.
-        // For OpenGL, the engine will convert this into GLSL behind the scene
-        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-        // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
-        ShaderCI.Desc.UseCombinedTextureSamplers = true;
-        // Create vertex shader
-        RefCntAutoPtr<IShader> pVS;
         {
-            ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-            ShaderCI.EntryPoint = "main";
-            ShaderCI.Desc.Name = "Normal direction color";
-            ShaderCI.Source = VSSource;
-            m_pDevice->CreateShader(ShaderCI, &pVS);
-
             // Create dynamic uniform buffer that will store our transformation matrix
             // Dynamic buffers can be frequently updated by the CPU
             BufferDesc CBDesc;
-            CBDesc.Name           = "VS constants CB";
-            CBDesc.Size           = sizeof(float4x4);
-            CBDesc.Usage          = USAGE_DYNAMIC;
-            CBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+            CBDesc.Name = "VS constants CB";
+            CBDesc.Size = sizeof(float4x4);
+            CBDesc.Usage = USAGE_DYNAMIC;
+            CBDesc.BindFlags = BIND_UNIFORM_BUFFER;
             CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
             m_pDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
 
             // Create dynamic uniform buffer that will store our transformation matrix
             // Dynamic buffers can be frequently updated by the CPU
             BufferDesc TBDesc;
-            TBDesc.Name           = "VS Transform CB";
-            TBDesc.Size           = sizeof(float4x4);
-            TBDesc.Usage          = USAGE_DYNAMIC;
-            TBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+            TBDesc.Name = "VS Transform CB";
+            TBDesc.Size = sizeof(float4x4);
+            TBDesc.Usage = USAGE_DYNAMIC;
+            TBDesc.BindFlags = BIND_UNIFORM_BUFFER;
             TBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
             m_pDevice->CreateBuffer(TBDesc, nullptr, &m_VSTransform);
         }
-
-        // Create pixel shader
-        RefCntAutoPtr<IShader> pFS;
-        {
-            ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-            ShaderCI.EntryPoint = "main";
-            ShaderCI.Desc.Name = "Cube PS";
-            ShaderCI.Source = PSSource;
-            m_pDevice->CreateShader(ShaderCI, &pFS);
-        }
-
-        // Define vertex shader input layout
-        LayoutElement LayoutElems[] = {
-            // Attribute 0 - vertex position
-            LayoutElement{0, 0, 3, VT_FLOAT32, False},
-            // Attribute 1 - vertex normal
-            LayoutElement{1, 0, 3, VT_FLOAT32, False},
-            // Attribute 2 - vertex tangent
-            LayoutElement{2, 0, 3, VT_FLOAT32, False},
-            // Attribute 3 - vertex uv
-            LayoutElement{3, 0, 2, VT_FLOAT32, False}
-        };
-
-        PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
-        PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements = _countof(LayoutElems);
-
-        // Finally, create the pipeline state
-        PSOCreateInfo.pVS = pVS;
-        PSOCreateInfo.pPS = pFS;
-
-        // Define variable type that will be used by default
-        PSOCreateInfo.PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
-
-        m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
-
-        // Since we did not explicitly specify the type for 'Constants' variable, default
-        // type (SHADER_RESOURCE_VARIABLE_TYPE_STATIC) will be used. Static variables never
-        // change and are bound directly through the pipeline state object.
-        m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_VSConstants);
-        m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Transform")->Set(m_VSTransform);
-
-        // Create a shader resource binding object and bind all static resources in it
-        m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
 
         return handle;
     }
@@ -902,18 +1171,19 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
         // TODO: Set shader resources
 
-        {
+        /*{
             // Map the buffer and write current world-view-projection matrix
             MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSTransform, MAP_WRITE, MAP_FLAG_DISCARD);
             *CBConstants = transform.Value;
-        }
+        }*/
 
         // Set pipeline state
-        m_pImmediateContext->SetPipelineState(m_pPSO);
+        const GraphicsShader& shader = mesh.ShaderData.Get();
+        m_pImmediateContext->SetPipelineState(m_PipelineStateTable.Get(shader.GetPipelineStateHandle())->PSO);
 
         // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
         // makes sure that resources are transitioned to required states.
-        m_pImmediateContext->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_NONE);
+        m_pImmediateContext->CommitShaderResources(*m_ShaderResourceBindingTable.Get(mesh.ShaderResourceBindingHandle), RESOURCE_STATE_TRANSITION_MODE_NONE);
 
         DrawIndexedAttribs drawAttrs; // This is an indexed draw call
         drawAttrs.IndexType = VT_UINT16; // Index type
@@ -924,7 +1194,222 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pImmediateContext->DrawIndexed(drawAttrs);
     }
 
-    void DiligentRendererContext::Submit(ShaderHandle shaderHandle, uint32_t view) {
+    ShaderHandle DiligentRendererContext::CreateShader(const ShaderCreateInfo& createInfo) {
+        const Handle<Shader> handle = m_ShaderTable.Emplace();
+        ShaderData* slot = m_ShaderTable.Get(handle);
+
+        QS_CORE_ASSERT(slot);
+
+        // Own data
+        slot->Name = createInfo.Specification.Name;
+        slot->EntryPoint = createInfo.Specification.EntryPoint;
+
+        ShaderSpec& shaderSpec = slot->Specification;
+        shaderSpec.Name = slot->Name;
+        shaderSpec.EntryPoint = slot->EntryPoint;
+        shaderSpec.Type = createInfo.Specification.Type;
+
+        Diligent::ShaderCreateInfo shaderCreateInfo;
+        // Tell the system that the shader source code is in HLSL.
+        // For OpenGL, the engine will convert this into GLSL behind the scene
+        shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
+        // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
+        shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
+        // Create shader
+        {
+            shaderCreateInfo.Desc.ShaderType = Utils::GetShaderType(shaderSpec.Type);
+            shaderCreateInfo.EntryPoint = slot->EntryPoint.c_str();
+            shaderCreateInfo.Desc.Name = slot->Name.c_str();
+            shaderCreateInfo.ByteCode = createInfo.ByteCode.data();
+            shaderCreateInfo.ByteCodeSize = createInfo.ByteCode.size();
+            m_pDevice->CreateShader(shaderCreateInfo, &slot->Shader);
+        }
+
+        return handle;
+    }
+
+    void DiligentRendererContext::Destroy(const ShaderHandle shaderHandle) {
+        ShaderData* slot = m_ShaderTable.Get(shaderHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Destroy(ShaderHandle): Failed to find slot for shader handle ({},{})",
+                shaderHandle.GetIndex(),
+                shaderHandle.GetGeneration()
+            );
+
+            return;
+        }
+
+        slot->Shader->Release();
+        slot->Name.clear();
+        slot->EntryPoint.clear();
+        slot->Specification = {};
+
+        m_ShaderTable.Erase(shaderHandle);
+    }
+
+    PipelineStateHandle DiligentRendererContext::CreatePipelineState(
+        const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
+    ) {
+        Handle<PipelineStateObject> handle = m_PipelineStateTable.Emplace();
+        PipelineStateData* slot = m_PipelineStateTable.Get(handle);
+
+        // Own data
+        slot->Name = pipelineStateCreateInfo.Name;
+
+        for (const ShaderResourceVariableSpec& variable : pipelineStateCreateInfo.Spec.ResourceLayout.Variables) {
+            ShaderResourceVariableSpec spec = variable;
+
+            slot->OwnedStrings.emplace_back(spec.Name);
+            spec.Name = slot->OwnedStrings.back();
+
+            slot->Variables.push_back(spec);
+        }
+
+        for (const ImmutableSamplerSpec& immutableSampler : pipelineStateCreateInfo.Spec.ResourceLayout.
+             ImmutableSamplers) {
+            ImmutableSamplerSpec spec = immutableSampler;
+
+            slot->OwnedStrings.emplace_back(immutableSampler.SamplerOrTextureName);
+            spec.SamplerOrTextureName = slot->OwnedStrings.back();
+
+            slot->ImmutableSamplers.push_back(spec);
+        }
+
+        slot->PipelineSpec.ResourceLayout.Variables = slot->Variables;
+        slot->PipelineSpec.ResourceLayout.ImmutableSamplers = slot->ImmutableSamplers;
+        slot->PipelineSpec.Type = pipelineStateCreateInfo.Spec.Type;
+
+        slot->GraphicsPipeline = pipelineStateCreateInfo.GraphicsPipeline;
+
+
+        // Setup create info
+        GraphicsPipelineSpec& gpSpec = slot->GraphicsPipeline;
+
+        // Pipeline state object encompasses configuration of all GPU stages
+        Diligent::GraphicsPipelineStateCreateInfo PSOCreateInfo;
+        PipelineStateDesc& PSODesc = PSOCreateInfo.PSODesc;
+
+        // Pipeline state name is used by the engine to report issues
+        // It is always a good idea to give objects descriptive names
+        PSODesc.Name = slot->Name.c_str();
+
+        // This is a graphics pipeline
+        PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+
+        // Set render target format which is the format of the swap chain's color buffer
+        // Primitive topology defines what kind of primitives will be rendered by this pipeline state
+        PSOCreateInfo.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        // No back face culling for this tutorial
+        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = Utils::GetCullMode(
+            gpSpec.RasterizerSpec.CullMode
+        );
+
+        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.FrontCounterClockwise;
+        // Disable depth testing
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
+        PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.Get(gpSpec.RenderPass)->RenderPass;
+
+        Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout);
+
+        /*
+        Diligent::LayoutElement LayoutElems[] = {
+            // Attribute 0 - vertex position
+            {0, 0, 3, VT_FLOAT32, False},
+            // Attribute 1 - vertex normal
+            {1, 0, 3, VT_FLOAT32, False},
+            // Attribute 2 - vertex tangent
+            {2, 0, 3, VT_FLOAT32, False},
+            // Attribute 3 - vertex uv
+            {3, 0, 2, VT_FLOAT32, False}
+        };
+
+        PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
+        PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements = _countof(LayoutElems);
+        */
+
+        PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
+
+        // Finally, create the pipeline state
+        PSOCreateInfo.pVS = m_ShaderTable.Get(pipelineStateCreateInfo.VertexShader)->Shader;
+        PSOCreateInfo.pPS = m_ShaderTable.Get(pipelineStateCreateInfo.FragmentShader)->Shader;
+
+        // Define variable type that will be used by default
+        Vec<ShaderResourceVariableDesc> variables;
+        variables.resize(slot->Variables.size());
+        for (uint32_t i = 0; i < variables.size(); i++) {
+            const ShaderResourceVariableSpec& variable = slot->Variables[i];
+            ShaderResourceVariableDesc& desc = variables[i];
+
+            desc.Name = variable.Name.data();
+            desc.Type = Utils::GetShaderResourceVariableType(variable.Type);
+            desc.ShaderStages = Utils::GetShaderType(variable.ShaderStages);
+            desc.Flags = Utils::GetShaderVariableFlags(variable.Flags);
+        }
+
+        PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
+        PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
+
+        Vec<ImmutableSamplerDesc> immutableSamplers;
+        immutableSamplers.resize(slot->ImmutableSamplers.size());
+        for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
+            const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];
+            ImmutableSamplerDesc& desc = immutableSamplers[i];
+
+            desc.ShaderStages = Utils::GetShaderType(immutableSampler.ShaderStages);
+            desc.Desc = Utils::GetSamplerDesc(immutableSampler.Specification);
+            desc.SamplerOrTextureName = immutableSampler.SamplerOrTextureName.data();
+        }
+
+        PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers = immutableSamplers.data();
+        PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = immutableSamplers.size();
+
+        m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &slot->PSO);
+
+        return handle;
+    }
+
+    void DiligentRendererContext::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle,
+        const ShaderType shaderType,
+        std::string_view name,
+        const GPUBufferHandle gpuBufferHandle
+    ) {
+        IPipelineState* pso = m_PipelineStateTable.Get(pipelineStateHandle)->PSO;
+        IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
+            Utils::GetShaderType(shaderType),
+            UI::FormatTemp("{}", name)
+        );
+
+        if (resourceVariable) {
+            resourceVariable->Set(m_BufferTable.Get(gpuBufferHandle)->Buffer);
+        }
+    }
+
+    void DiligentRendererContext::Destroy(PipelineStateHandle pipelineStateHandle) {
+        PipelineStateData* slot = m_PipelineStateTable.Get(pipelineStateHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Destroy(PipelineStateHandle): Failed to get slot for pipeline state handle ({},{})",
+                pipelineStateHandle.GetIndex(), pipelineStateHandle.GetGeneration()
+            );
+
+            return;
+        }
+
+        slot->PSO->Release();
+        slot->PSO = nullptr;
+        slot->GraphicsPipeline = {};
+        slot->PipelineSpec = {};
+        slot->Name.clear();
+        slot->Variables.clear();
+        slot->ImmutableSamplers.clear();
+        slot->OwnedStrings.clear();
+    }
+
+    void DiligentRendererContext::Submit(GraphicsShaderHandle shaderHandle, uint32_t view) {
         // TODO:
     }
 
@@ -946,7 +1431,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pDevice->CreateBuffer(vertBuffDesc, &vbData, slot);
 
         StateTransitionDesc barriers[] = {
-            { *slot, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE },
+            {*slot, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE},
         };
 
         m_pImmediateContext->TransitionResourceStates(1, barriers);
@@ -996,7 +1481,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pDevice->CreateBuffer(indBuffDesc, &ibData, slot);
 
         StateTransitionDesc barriers[] = {
-            { *slot,  RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER,  STATE_TRANSITION_FLAG_UPDATE_STATE },
+            {*slot, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE},
         };
 
         m_pImmediateContext->TransitionResourceStates(1, barriers);
@@ -1043,7 +1528,6 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pImmediateContext->Flush();
 
         m_pDevice.Release();
-        m_pPSO.Release();
         m_pSwapChain.Release();
         m_pImmediateContext.Release();
     }

@@ -24,10 +24,10 @@ namespace Quelos {
 
         void Shutdown() override;
 
-        ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
-        bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) override;
-        void Submit(ShaderHandle shaderHandle, uint32_t view) override;
-        void Destroy(ShaderHandle shaderHandle) override;
+        GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
+        bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) override;
+        void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) override;
+        void Destroy(GraphicsShaderHandle shaderHandle) override;
 
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;

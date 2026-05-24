@@ -5,6 +5,7 @@
 
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Renderer/MeshData.h"
+#include "Quelos/Renderer/ShaderResourceBinding.h"
 #include "Quelos/Serialization/Serializer.h"
 
 namespace Quelos {

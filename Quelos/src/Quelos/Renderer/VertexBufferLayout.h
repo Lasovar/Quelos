@@ -2,9 +2,9 @@
 #include <cstdint>
 
 namespace Quelos {
-    enum class QS_API ShaderDataType : uint8_t {
+    enum class ShaderDataType : uint8_t {
         Float, Float2, Float3, Float4,
-        Mat3, Mat4,
+        Float3x3, Float4x4,
 
         Int, Int2, Int3, Int4,
         UInt,
@@ -28,8 +28,8 @@ namespace Quelos {
         case ShaderDataType::Float2: return 4 * 2;
         case ShaderDataType::Float3: return 4 * 3;
         case ShaderDataType::Float4: return 4 * 4;
-        case ShaderDataType::Mat3:   return 4 * 3 * 3;
-        case ShaderDataType::Mat4:   return 4 * 4 * 4;
+        case ShaderDataType::Float3x3:   return 4 * 3 * 3;
+        case ShaderDataType::Float4x4:   return 4 * 4 * 4;
 
         case ShaderDataType::Int:  return 4;
         case ShaderDataType::Int2: return 4 * 2;
@@ -58,6 +58,9 @@ namespace Quelos {
         case ShaderDataType::Float2: return 2;
         case ShaderDataType::Float3: return 3;
         case ShaderDataType::Float4: return 4;
+
+        case ShaderDataType::Float3x3: return 9;
+        case ShaderDataType::Float4x4: return 16;
 
         case ShaderDataType::UNorm8x2:  return 2;
         case ShaderDataType::UNorm8x4:  return 4;

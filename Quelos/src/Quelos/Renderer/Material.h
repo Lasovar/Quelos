@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shader.h"
+#include "GraphicsShader.h"
 #include "Quelos/AssetManager/AssetRef.h"
 
 namespace Quelos {
@@ -8,10 +8,9 @@ namespace Quelos {
     public:
         explicit Material();
 
-        [[nodiscard]] const AssetRef<Shader>& GetShader() const { return m_Shader; }
-        [[nodiscard]] ShaderHandle GetShaderHandle() const;
+        [[nodiscard]] const AssetRef<GraphicsShader>& GetShader() const { return m_Shader; }
 
     private:
-        AssetRef<Shader> m_Shader;
+        AssetRef<GraphicsShader> m_Shader;
     };
 }
