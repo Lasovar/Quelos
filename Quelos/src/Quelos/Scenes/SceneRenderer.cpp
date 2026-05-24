@@ -114,8 +114,12 @@ namespace Quelos {
 
             auto it = m_PipelineStates.find(meshRenderer.ShaderData.GetAssetID());
             if (it != m_PipelineStates.end()) {
-                entity.set(it->second);
-                return;
+                if (Renderer::IsAlive(it->second.first)) {
+                    entity.emplace<PipelineStateComponent>(ResourceRef(it->second.first), ResourceRef(it->second.second));
+                    return;
+                }
+
+                m_PipelineStates.erase(it);
             }
 
             GraphicsShader& shader = meshRenderer.ShaderData.Get();
@@ -154,29 +158,39 @@ namespace Quelos {
             ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
             Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstanceBuffer);
 
-            PipelineStateComponent psc{pipelineStateHandle, srb};
-            entity.set(psc);
-            m_PipelineStates.emplace(meshRenderer.ShaderData.GetAssetID(), psc);
+            entity.emplace<PipelineStateComponent>(ResourceRef(pipelineStateHandle), ResourceRef(srb));
+            m_PipelineStates.emplace(meshRenderer.ShaderData.GetAssetID(), Pair{ pipelineStateHandle, srb });
         });
 
         m_World.defer_end();
 
         m_DrawCalls.clear();
         m_DrawCalls.reserve(m_RenderingQuery.count());
+
+        m_World.defer_begin();
+
         m_RenderingQuery.each([&](
-            const WorldTransform& transform, const MeshRenderer& meshRenderer,
+            flecs::entity entity, const WorldTransform& transform, const MeshRenderer& meshRenderer,
             const PipelineStateComponent& pipelineStateComponent
         ) {
-                uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetIndex()) << 32
-                    | static_cast<uint64_t>(meshRenderer.MeshData.GetAssetHandle().Index);
+            if (!meshRenderer.MeshData || !meshRenderer.ShaderData) {
+                entity.remove<PipelineStateComponent>();
+                return;
+            }
 
-                m_DrawCalls.emplace_back(
-                    sortKey,
-                    &meshRenderer.MeshData.Get(),
-                    pipelineStateComponent,
-                    transform.Value
-                );
-            });
+            uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetHandle().Index()) << 32
+                | static_cast<uint64_t>(meshRenderer.MeshData.GetAssetHandle().Index);
+
+            m_DrawCalls.emplace_back(
+                sortKey,
+                &meshRenderer.MeshData.Get(),
+                pipelineStateComponent.PSO.GetHandle(),
+                pipelineStateComponent.SRB.GetHandle(),
+                transform.Value
+            );
+        });
+
+        m_World.defer_end();
 
         std::ranges::sort(
             m_DrawCalls,
@@ -199,12 +213,13 @@ namespace Quelos {
             // PIPELINE RANGE
             //
 
-            PipelineStateComponent pipelineHandle = m_DrawCalls[i].PipelineState;
+            const PipelineStateHandle& pipelineHandle = m_DrawCalls[i].PipelineState;
+            const ShaderResourceBindingHandle& srb = m_DrawCalls[i].SRB;
 
             uint32_t pipelineBegin = i;
 
             while (i < m_DrawCalls.size() &&
-                m_DrawCalls[i].PipelineState.PSO == pipelineHandle.PSO) {
+                m_DrawCalls[i].PipelineState == pipelineHandle) {
                 ++i;
             }
 
@@ -214,7 +229,7 @@ namespace Quelos {
             // BIND PIPELINE
             //
 
-            Renderer::BindPipelineState(pipelineHandle.PSO);
+            Renderer::BindPipelineState(pipelineHandle);
 
             //
             // BUILD MATERIAL TABLE
@@ -259,7 +274,7 @@ namespace Quelos {
             // DRAW MESH RANGES
             //
 
-            Renderer::CommitShaderResources(pipelineHandle.SRB);
+            Renderer::CommitShaderResources(srb);
 
             uint32_t j = pipelineBegin;
             uint32_t instanceOffset = 0;

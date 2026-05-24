@@ -61,14 +61,14 @@ namespace Quelos {
             if (it != m_Data.end() && !m_Compare(key, it->first))
                 return {it, false};
 
-            it = m_Data.emplace(it, std::move(key), V(std::forward<Args>(args)...));
+            it = m_Data.Emplace(it, std::move(key), V(std::forward<Args>(args)...));
             return {it, true};
         }
 
         void erase(const K& key) {
             auto it = find(key);
             if (it != m_Data.end())
-                m_Data.erase(it);
+                m_Data.Erase(it);
         }
 
         iterator begin() { return m_Data.begin(); }

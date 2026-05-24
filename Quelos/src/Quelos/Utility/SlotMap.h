@@ -17,11 +17,11 @@ namespace Quelos {
 
         constexpr Handle() = default;
 
-        [[nodiscard]] constexpr uint32_t GetIndex() const noexcept {
+        [[nodiscard]] constexpr uint32_t Index() const noexcept {
             return static_cast<uint32_t>(Value);
         }
 
-        [[nodiscard]] constexpr uint32_t GetGeneration() const noexcept {
+        [[nodiscard]] constexpr uint32_t Generation() const noexcept {
             return static_cast<uint32_t>(Value >> 32);
         }
 
@@ -47,9 +47,19 @@ namespace Quelos {
 
     template <typename T>
     struct Slot {
-        T Value;
+        alignas(T) byte Storage[sizeof(T)] = {};
+
         uint32_t Generation = 0;
+        uint32_t RefCount = 0;
         bool Alive = false;
+
+        T* Get() {
+            return std::launder(reinterpret_cast<T*>(Storage));
+        }
+
+        const T* Get() const {
+            return std::launder(reinterpret_cast<const T*>(Storage));
+        }
     };
 
     template <typename THandle, typename Resource>
@@ -79,8 +89,9 @@ namespace Quelos {
 
             auto& slot = m_Slots[index];
 
-            slot.Value = TValue(std::forward<Args>(args)...);
+            new (slot.Get()) TValue(std::forward<Args>(args)...);
             slot.Alive = true;
+            slot.RefCount = 0;
 
             return THandle::Create(index, slot.Generation);
         }
@@ -90,45 +101,30 @@ namespace Quelos {
                 return;
             }
 
-            auto index = handle.GetIndex();
+            auto index = handle.Index();
 
             QS_CORE_ASSERT(index < m_Slots.size());
 
             auto& slot = m_Slots[index];
 
-            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
+            if (slot.Generation != handle.Generation() || !slot.Alive) {
                 return;
             }
 
+            slot.Get()->~TValue();
+
             slot.Alive = false;
+            slot.RefCount = 0;
             ++slot.Generation;
 
             m_FreeList.push_back(index);
         }
 
-        TValue* Get(THandle handle) {
+        TValue* At(THandle handle) {
             if (!handle.IsValid())
                 return nullptr;
 
-            auto index = handle.GetIndex();
-
-            if (index >= m_Slots.size())
-                return nullptr;
-
-            auto& slot = m_Slots[index];
-
-            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
-                return nullptr;
-            }
-
-            return &slot.Value;
-        }
-
-        const TValue* Get(THandle handle) const {
-            if (!handle.IsValid())
-                return nullptr;
-
-            auto index = handle.GetIndex();
+            auto index = handle.Index();
 
             if (index >= m_Slots.size()) {
                 return nullptr;
@@ -136,11 +132,46 @@ namespace Quelos {
 
             auto& slot = m_Slots[index];
 
-            if (slot.Generation != handle.GetGeneration() || !slot.Alive) {
+            if (slot.Generation != handle.Generation() || !slot.Alive) {
                 return nullptr;
             }
 
-            return &slot.Value;
+            return slot.Get();
+        }
+
+        const TValue* At(THandle handle) const {
+            if (!handle.IsValid())
+                return nullptr;
+
+            auto index = handle.Index();
+
+            if (index >= m_Slots.size()) {
+                return nullptr;
+            }
+
+            auto& slot = m_Slots[index];
+
+            if (slot.Generation != handle.Generation() || !slot.Alive) {
+                return nullptr;
+            }
+
+            return slot.Get();
+        }
+
+        void IncRef(THandle handle) {
+            if (Slot<TValue>* slot = SlotAt(handle)) {
+                ++slot->RefCount;
+            }
+        }
+
+         bool DecRef(THandle handle) {
+            if (Slot<TValue>* value = SlotAt(handle)) {
+                if (--value->RefCount == 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         Generator<THandle> GetAllHandles() {
@@ -151,11 +182,17 @@ namespace Quelos {
             }
         }
 
-        bool Alive(THandle handle) const {
-            return Get(handle) != nullptr;
+        bool IsAlive(THandle handle) const {
+            return At(handle) != nullptr;
         }
 
         void Clear() {
+            for (auto& slot : m_Slots) {
+                if (slot.Alive) {
+                    slot.Get()->~TValue();
+                }
+            }
+
             m_Slots.clear();
             m_FreeList.clear();
         }
@@ -169,7 +206,25 @@ namespace Quelos {
         }
 
     private:
-        Vec<Slot<TValue>> m_Slots;
+        Slot<TValue>* SlotAt(THandle handle) {
+            auto index = handle.Index();
+
+            if (index >= m_Slots.size()) {
+                return nullptr;
+            }
+
+            auto& slot = m_Slots[index];
+
+            if (slot.Generation != handle.Generation() || !slot.Alive) {
+                return nullptr;
+            }
+
+            return &m_Slots[index];
+        }
+
+    private:
+        // Maybe replaces with an arena allocator/Pager?
+        Deque<Slot<TValue>> m_Slots{32};
         Vec<uint32_t> m_FreeList;
     };
 
