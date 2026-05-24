@@ -18,8 +18,8 @@ namespace Quelos {
     class WindowResizeEvent;
 
     Scene::Scene(std::string name)
-        : m_Name(std::move(name)
-    ) {
+        : m_Name(std::move(name)), m_SceneRenderer(m_World)
+    {
         m_ComponentRegistry.RegisterBuiltinTypes(m_World);
 
         m_SceneRoot = m_World.entity<SceneRoot>("Root")
@@ -33,9 +33,6 @@ namespace Quelos {
                .each([](const flecs::entity e, const LocalTransform&) {
                    e.ensure<WorldTransform>();
                });
-
-        m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
-        m_RenderingQuery = m_World.query<const WorldTransform&, MeshRenderer&>();
 
         m_TransformUpdate = m_World.entity("TransformUpdate")
                                    .add(flecs::Phase)
@@ -70,35 +67,6 @@ namespace Quelos {
                    const WorldTransform& parentWorld) {
                        world.Value = math::mul(parentWorld.Value, mathExt::srt(local.Scale, local.Rotation, local.Position));
                    });
-
-
-        std::array<RenderPassAttachmentSpec, 2> attachments;
-        attachments[0].Format = ImageFormat::RGBA;
-        attachments[0].SampleCount = 1;
-        attachments[0].LoadOp = AttachmentLoadOp::Clear;
-        attachments[0].StoreOp = AttachmentStoreOp::Store;
-        attachments[0].InitialState = ResourceState::ShaderResource;
-        attachments[0].FinalState = ResourceState::ShaderResource;
-
-        attachments[1].Format = ImageFormat::DEPTH32F;
-        attachments[1].SampleCount = 1;
-        attachments[1].LoadOp = AttachmentLoadOp::Clear;
-        attachments[1].StoreOp = AttachmentStoreOp::Discard;
-        attachments[1].InitialState = ResourceState::DepthWrite;
-        attachments[1].FinalState = ResourceState::DepthWrite;
-
-        AttachmentReference colorRef = { 0, ResourceState::RenderTarget };
-
-        SubPassSpec subPassSpec;
-        subPassSpec.RenderTargetAttachments = Span(&colorRef, 1);
-        subPassSpec.DepthAttachment = { 1, ResourceState::DepthWrite };
-
-        RenderPassSpec renderPassSpec;
-        renderPassSpec.Name = "Scene render pass";
-        renderPassSpec.SubPasses = Span(&subPassSpec, 1);
-        renderPassSpec.Attachments = attachments;
-
-        m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
     }
 
     void Scene::Tick(const float deltaTime) const {
@@ -121,22 +89,6 @@ namespace Quelos {
     }
 
     void Scene::StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs) {
-        m_RenderingQuery.each([&](const WorldTransform& transform, MeshRenderer& meshRenderer) {
-            if (!meshRenderer.ShaderData) {
-                return;
-            }
-
-            if (!meshRenderer.ShaderData->IsPSOCreated()) {
-                Renderer::SetupGraphicsShader(m_RenderPass, meshRenderer.ShaderData);
-                meshRenderer.ShaderResourceBindingHandle = Renderer::CreateShaderResourceBinding(
-                    meshRenderer.ShaderData.Get().GetPipelineStateHandle(),
-                    true
-                );
-            }
-        });
-
-        Renderer::StartSceneRender(view, projection);
-        Renderer::BeginRenderPass(beginRenderPassAttribs);
 
         m_SceneRenderStarted = true;
     }
@@ -146,13 +98,7 @@ namespace Quelos {
             return;
         }
 
-        m_RenderingQuery.each([](const WorldTransform& transform, const MeshRenderer& mesh) {
-            if (!mesh.MeshData || !mesh.ShaderData) {
-                return;
-            }
 
-            Renderer::SubmitMesh(mesh, transform);
-        });
     }
 
     void Scene::EndRender() {

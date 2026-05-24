@@ -15,18 +15,15 @@ namespace Quelos {
 
         const std::string& GetName() const { return m_Name; }
 
-        bool IsPSOCreated() const { return m_PipelineStateHandle.IsValid(); }
-        void CreatePSO(RenderPassHandle renderPassHandle, GPUBufferHandle globalBufferHandle);
-        PipelineStateHandle GetPipelineStateHandle() const { return m_PipelineStateHandle; }
-
         void Recreate(Buffer vertex, Buffer fragment);
+        ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
+        ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
 
     private:
         std::string m_Name;
-        PipelineStateHandle m_PipelineStateHandle;
 
-        Buffer m_VertexBlob;
-        Buffer m_FragmentBlob;
+        ShaderHandle m_VertexShader;
+        ShaderHandle m_FragmentShader;
 
     public:
         const AssetType& GetAssetType() const override { return GetStaticType(); }

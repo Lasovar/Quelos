@@ -4,6 +4,7 @@
 #include "DefaultRawMemoryAllocator.hpp"
 #include "Texture.h"
 #include "DataBlobImpl.hpp"
+
 #include "ImGui/MapHelper.hpp"
 #include "Quelos/ImGui/ImGuiUI.h"
 
@@ -397,10 +398,12 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         }
 
         constexpr VALUE_TYPE
-        ToDiligentValueType(
+        GetValueType(
             const ShaderDataType type
         ) {
             switch (type) {
+            case ShaderDataType::Undefined:
+                return VT_UNDEFINED;
             case ShaderDataType::Float:
             case ShaderDataType::Float2:
             case ShaderDataType::Float3:
@@ -417,6 +420,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
             case ShaderDataType::UInt:
                 return VT_UINT32;
+            case ShaderDataType::UInt16:
+                return VT_UINT16;
 
             case ShaderDataType::UInt10x3_A2:
                 QS_ASSERT(false && "UInt10x3_A2 is not supported by Diligent VALUE_TYPE");
@@ -455,7 +460,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
                             element.InputIndex,
                             element.BufferSlot,
                             ComponentCount(element.ValueType),
-                            ToDiligentValueType(element.ValueType),
+                            GetValueType(element.ValueType),
                             element.IsNormalized,
                             element.RelativeOffset,
                             element.Stride,
@@ -593,6 +598,22 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         constexpr MISC_BUFFER_FLAGS GetMiscFlags(MiscBufferFlags miscFlags) {
             return static_cast<MISC_BUFFER_FLAGS>(miscFlags);
         }
+
+        constexpr DRAW_FLAGS GetDrawFlags(DrawFlags flags) {
+            return static_cast<DRAW_FLAGS>(flags);
+        }
+
+        constexpr MAP_TYPE GetMapType(MapType map) {
+            return static_cast<MAP_TYPE>(map);
+        }
+
+        constexpr MAP_FLAGS GetMapFlags(MapFlags mapFlags) {
+            return static_cast<MAP_FLAGS>(mapFlags);
+        }
+
+        static BUFFER_MODE GetBufferMode(BufferMode mode) {
+            return static_cast<BUFFER_MODE>(mode);
+        }
     }
 
     DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
@@ -661,7 +682,20 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 #if VULKAN_SUPPORTED
         case RendererAPI::Vulkan: {
             auto* pFactoryVk = GetEngineFactoryVk();
-            const EngineVkCreateInfo engineCi;
+            EngineVkCreateInfo engineCi;
+            engineCi.GraphicsAPIVersion = Version{1, 3};
+
+            VkPhysicalDeviceVulkan12Features vk12Features{};
+            vk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+            vk12Features.drawIndirectCount = VK_TRUE;
+            vk12Features.pNext = nullptr;
+
+            VkPhysicalDeviceVulkan11Features vk11Features{};
+            vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+            vk11Features.shaderDrawParameters = VK_TRUE;
+            vk11Features.pNext = &vk12Features;
+
+            engineCi.pDeviceExtensionFeatures = &vk11Features;
 
             pFactoryVk->CreateDeviceAndContextsVk(
                 engineCi,
@@ -819,6 +853,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         desc.CPUAccessFlags = Utils::GetCPUAccessFlags(bufferSpec.CpuAccessFlags);
         desc.MiscFlags = Utils::GetMiscFlags(bufferSpec.MiscFlags);
         desc.Usage = Utils::GetBufferUsage(bufferSpec.Usage);
+        desc.Mode = Utils::GetBufferMode(bufferSpec.Mode);
         desc.Size = bufferSpec.Size;
         desc.ElementByteStride = bufferSpec.ElementByteStride;
         desc.ImmediateContextMask = bufferSpec.ImmediateContextMask;
@@ -846,6 +881,53 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         return handle;
     }
 
+    void DiligentRendererContext::BindVariableByName(
+        ShaderType shaderType,
+        ShaderResourceBindingHandle shaderResourceBindingHandle,
+        std::string_view name,
+        GPUBufferHandle gpuBufferHandle
+    ) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find shader resource binding in slot ({},{})",
+                shaderResourceBindingHandle.GetIndex(),
+                shaderResourceBindingHandle.GetGeneration()
+            );
+
+            return;
+        }
+
+        (*slot)->GetVariableByName(
+            Utils::GetShaderType(shaderType),
+            UI::FormatTemp("{}", name)
+        )->Set(m_BufferTable.Get(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+    }
+
+    void DiligentRendererContext::Map(
+        GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData
+    ) {
+        m_pImmediateContext->MapBuffer(
+            m_BufferTable.Get(bufferHandle)->Buffer,
+            Utils::GetMapType(mapType),
+            Utils::GetMapFlags(mapFlags),
+            mappedData
+        );
+    }
+
+    void DiligentRendererContext::Unmap(const GPUBufferHandle bufferHandle, const MapType mapType) {
+        m_pImmediateContext->UnmapBuffer(m_BufferTable.Get(bufferHandle)->Buffer, Utils::GetMapType(mapType));
+    }
+
+    void DiligentRendererContext::CommitShaderResources(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        m_pImmediateContext->CommitShaderResources(
+            *m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle),
+            RESOURCE_STATE_TRANSITION_MODE_NONE
+        );
+    }
+
     void DiligentRendererContext::Destroy(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle);
 
@@ -853,7 +935,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Failed to find shader resource binding in slot ({},{})",
-                shaderResourceBindingHandle.GetIndex(), shaderResourceBindingHandle.GetGeneration()
+                shaderResourceBindingHandle.GetIndex(),
+                shaderResourceBindingHandle.GetGeneration()
             );
 
             return;
@@ -865,14 +948,28 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_ShaderResourceBindingTable.Erase(shaderResourceBindingHandle);
     }
 
-    void DiligentRendererContext::UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint32_t offset, BufferView data) {
+    void DiligentRendererContext::UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) {
         m_pImmediateContext->UpdateBuffer(
-            m_BufferTable.Get(gpuBufferHandle)->Buffer, // buffer
-            offset, // offset
-            data.size(), // size
-            data.data(), // data pointer
+            m_BufferTable.Get(gpuBufferHandle)->Buffer,
+            // buffer
+            offset,
+            // offset
+            data.size(),
+            // size
+            data.data(),
+            // data pointer
             RESOURCE_STATE_TRANSITION_MODE_TRANSITION
         );
+    }
+
+    void DiligentRendererContext::Destroy(GPUBufferHandle bufferHandle) {
+        QBufferData* slot = m_BufferTable.Get(bufferHandle);
+        slot->Buffer->Release();
+        slot->Buffer = nullptr;
+        slot->Specification = {};
+        slot->Name.clear();
+
+        m_BufferTable.Erase(bufferHandle);
     }
 
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
@@ -1169,29 +1266,26 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         BindVertexBuffer(meshAsset.GetVertexBuffer(), 0);
         BindIndexBuffer(meshAsset.GetIndexBuffer());
 
-        // TODO: Set shader resources
-
-        /*{
-            // Map the buffer and write current world-view-projection matrix
-            MapHelper<float4x4> CBConstants(m_pImmediateContext, m_VSTransform, MAP_WRITE, MAP_FLAG_DISCARD);
-            *CBConstants = transform.Value;
-        }*/
-
-        // Set pipeline state
-        const GraphicsShader& shader = mesh.ShaderData.Get();
-        m_pImmediateContext->SetPipelineState(m_PipelineStateTable.Get(shader.GetPipelineStateHandle())->PSO);
-
-        // Commit shader resources. RESOURCE_STATE_TRANSITION_MODE_TRANSITION mode
-        // makes sure that resources are transitioned to required states.
-        m_pImmediateContext->CommitShaderResources(*m_ShaderResourceBindingTable.Get(mesh.ShaderResourceBindingHandle), RESOURCE_STATE_TRANSITION_MODE_NONE);
-
-        DrawIndexedAttribs drawAttrs; // This is an indexed draw call
+        Diligent::DrawIndexedAttribs drawAttrs; // This is an indexed draw call
         drawAttrs.IndexType = VT_UINT16; // Index type
         drawAttrs.NumIndices = meshAsset.GetIndices().size();
 
         // Verify the state of vertex and index buffers
         drawAttrs.Flags = DRAW_FLAG_VERIFY_ALL;
         m_pImmediateContext->DrawIndexed(drawAttrs);
+    }
+
+    void DiligentRendererContext::DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) {
+        Diligent::DrawIndexedAttribs attribs;
+        attribs.Flags = Utils::GetDrawFlags(drawIndexedAttribs.Flags);
+        attribs.IndexType = Utils::GetValueType(drawIndexedAttribs.IndexType);
+        attribs.NumIndices = drawIndexedAttribs.NumIndices;
+        attribs.BaseVertex = drawIndexedAttribs.BaseVertex;
+        attribs.FirstIndexLocation = drawIndexedAttribs.FirstIndexLocation;
+        attribs.FirstInstanceLocation = drawIndexedAttribs.FirstInstanceLocation;
+        attribs.NumInstances = drawIndexedAttribs.NumInstances;
+
+        m_pImmediateContext->DrawIndexed(attribs);
     }
 
     ShaderHandle DiligentRendererContext::CreateShader(const ShaderCreateInfo& createInfo) {
@@ -1306,7 +1400,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             gpSpec.RasterizerSpec.CullMode
         );
 
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.FrontCounterClockwise;
+        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.
+            FrontCounterClockwise;
         // Disable depth testing
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
         PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.Get(gpSpec.RenderPass)->RenderPass;
@@ -1387,13 +1482,30 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         }
     }
 
+    void DiligentRendererContext::BindPipelineState(PipelineStateHandle pipelineStateHandle) {
+        PipelineStateData* slot = m_PipelineStateTable.Get(pipelineStateHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "BindPipelineState(PipelineStateHandle): Failed to get slot for pipeline state handle ({},{})",
+                pipelineStateHandle.GetIndex(),
+                pipelineStateHandle.GetGeneration()
+            );
+
+            return;
+        }
+
+        m_pImmediateContext->SetPipelineState(slot->PSO);
+    }
+
     void DiligentRendererContext::Destroy(PipelineStateHandle pipelineStateHandle) {
         PipelineStateData* slot = m_PipelineStateTable.Get(pipelineStateHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Destroy(PipelineStateHandle): Failed to get slot for pipeline state handle ({},{})",
-                pipelineStateHandle.GetIndex(), pipelineStateHandle.GetGeneration()
+                pipelineStateHandle.GetIndex(),
+                pipelineStateHandle.GetGeneration()
             );
 
             return;
