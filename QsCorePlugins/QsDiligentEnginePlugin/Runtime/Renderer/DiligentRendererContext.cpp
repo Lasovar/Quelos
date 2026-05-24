@@ -813,8 +813,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         Diligent::BeginRenderPassAttribs attribs;
         attribs.pClearValues = clearValues.data();
         attribs.ClearValueCount = clearValues.size();
-        attribs.pFramebuffer = m_FrameBufferTable.Get(beginRenderPassAttrib.FrameBufferHandle)->FrameBuffer;
-        attribs.pRenderPass = m_RenderPassTable.Get(beginRenderPassAttrib.RenderPassHandle)->RenderPass;
+        attribs.pFramebuffer = m_FrameBufferTable.At(beginRenderPassAttrib.FrameBufferHandle)->FrameBuffer;
+        attribs.pRenderPass = m_RenderPassTable.At(beginRenderPassAttrib.RenderPassHandle)->RenderPass;
         attribs.StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
 
         m_pImmediateContext->BeginRenderPass(attribs);
@@ -842,7 +842,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
     GPUBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
         const Handle<GPUBuffer> handle = m_BufferTable.Emplace();
-        QBufferData* slot = m_BufferTable.Get(handle);
+        QBufferData* slot = m_BufferTable.At(handle);
         slot->Name = bufferSpec.Name;
         slot->Specification = bufferSpec;
         slot->Specification.Name = slot->Name;
@@ -871,11 +871,11 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         PipelineStateHandle pipelineStateHandle, bool initStaticResources
     ) {
         Handle<ShaderResourceBinding> handle = m_ShaderResourceBindingTable.Emplace();
-        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(handle);
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(handle);
 
         QS_CORE_ASSERT(slot);
 
-        IPipelineState* pipelineState = m_PipelineStateTable.Get(pipelineStateHandle)->PSO;
+        IPipelineState* pipelineState = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
         pipelineState->CreateShaderResourceBinding(slot, initStaticResources);
 
         return handle;
@@ -887,14 +887,14 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         std::string_view name,
         GPUBufferHandle gpuBufferHandle
     ) {
-        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle);
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Failed to find shader resource binding in slot ({},{})",
-                shaderResourceBindingHandle.GetIndex(),
-                shaderResourceBindingHandle.GetGeneration()
+                shaderResourceBindingHandle.Index(),
+                shaderResourceBindingHandle.Generation()
             );
 
             return;
@@ -903,14 +903,14 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         (*slot)->GetVariableByName(
             Utils::GetShaderType(shaderType),
             UI::FormatTemp("{}", name)
-        )->Set(m_BufferTable.Get(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+        )->Set(m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
     }
 
     void DiligentRendererContext::Map(
         GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData
     ) {
         m_pImmediateContext->MapBuffer(
-            m_BufferTable.Get(bufferHandle)->Buffer,
+            m_BufferTable.At(bufferHandle)->Buffer,
             Utils::GetMapType(mapType),
             Utils::GetMapFlags(mapFlags),
             mappedData
@@ -918,25 +918,36 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Unmap(const GPUBufferHandle bufferHandle, const MapType mapType) {
-        m_pImmediateContext->UnmapBuffer(m_BufferTable.Get(bufferHandle)->Buffer, Utils::GetMapType(mapType));
+        m_pImmediateContext->UnmapBuffer(m_BufferTable.At(bufferHandle)->Buffer, Utils::GetMapType(mapType));
     }
 
     void DiligentRendererContext::CommitShaderResources(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "CommitShaderResources: Failed to get slot for ShaderResourceBinding at handle ({},{})",
+                shaderResourceBindingHandle.Index(), shaderResourceBindingHandle.Generation()
+            );
+
+            return;
+        }
+
         m_pImmediateContext->CommitShaderResources(
-            *m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle),
+            *slot,
             RESOURCE_STATE_TRANSITION_MODE_NONE
         );
     }
 
     void DiligentRendererContext::Destroy(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
-        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.Get(shaderResourceBindingHandle);
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Failed to find shader resource binding in slot ({},{})",
-                shaderResourceBindingHandle.GetIndex(),
-                shaderResourceBindingHandle.GetGeneration()
+                shaderResourceBindingHandle.Index(),
+                shaderResourceBindingHandle.Generation()
             );
 
             return;
@@ -950,7 +961,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
     void DiligentRendererContext::UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) {
         m_pImmediateContext->UpdateBuffer(
-            m_BufferTable.Get(gpuBufferHandle)->Buffer,
+            m_BufferTable.At(gpuBufferHandle)->Buffer,
             // buffer
             offset,
             // offset
@@ -963,7 +974,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(GPUBufferHandle bufferHandle) {
-        QBufferData* slot = m_BufferTable.Get(bufferHandle);
+        QBufferData* slot = m_BufferTable.At(bufferHandle);
         slot->Buffer->Release();
         slot->Buffer = nullptr;
         slot->Specification = {};
@@ -973,7 +984,21 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
-        // TODO:
+        IBuffer** slot = m_VertexBufferTable.At(vertexBufferHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to get vertex buffer slot at handle ({},{})",
+                vertexBufferHandle.Index(), vertexBufferHandle.Generation()
+            );
+
+            return;
+        }
+
+        (*slot)->Release();
+        *slot = nullptr;
+
+        m_VertexBufferTable.Erase(vertexBufferHandle);
     }
 
     UniformBufferHandle DiligentRendererContext::CreateUniformBuffer(
@@ -997,7 +1022,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
     TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
-        QTextureData* slot = m_TextureTable.Get(handle);
+        QTextureData* slot = m_TextureTable.At(handle);
         slot->Specification = spec;
         TextureUtil::CreateTexture(m_pDevice, *slot);
 
@@ -1026,11 +1051,11 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         const uint32_t width,
         const uint32_t height
     ) {
-        TextureUtil::Resize(m_pDevice, *m_TextureTable.Get(textureHandle), width, height);
+        TextureUtil::Resize(m_pDevice, *m_TextureTable.At(textureHandle), width, height);
     }
 
     const TextureSpecification* DiligentRendererContext::GetSpecification(const TextureHandle textureHandle) {
-        const auto* data = m_TextureTable.Get(textureHandle);
+        const auto* data = m_TextureTable.At(textureHandle);
         if (!data) {
             return nullptr;
         }
@@ -1039,7 +1064,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     uint64_t DiligentRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
-        const auto* data = m_TextureTable.Get(textureHandle);
+        const auto* data = m_TextureTable.At(textureHandle);
         return reinterpret_cast<uint64_t>(data->Texture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
     }
 
@@ -1047,13 +1072,25 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         // TODO:
     }
 
-    void DiligentRendererContext::Destroy(TextureHandle textureHandle) {
-        // TODO:
+    void DiligentRendererContext::Destroy(const TextureHandle textureHandle) {
+        QTextureData* slot = m_TextureTable.At(textureHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Destroy(TextureHandle) Failed to get texture at handle ({},{})",
+                textureHandle.Index(), textureHandle.Generation()
+            );
+
+            return;
+        }
+
+        slot->Texture->Release();
+        m_TextureTable.Erase(textureHandle);
     }
 
     RenderPassHandle DiligentRendererContext::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
         const Handle<RenderPass> handle = m_RenderPassTable.Emplace();
-        RenderPassData* slot = m_RenderPassTable.Get(handle);
+        RenderPassData* slot = m_RenderPassTable.At(handle);
 
         QS_CORE_ASSERT(slot);
 
@@ -1161,7 +1198,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(const RenderPassHandle renderPassHandle) {
-        RenderPassData* slot = m_RenderPassTable.Get(renderPassHandle);
+        RenderPassData* slot = m_RenderPassTable.At(renderPassHandle);
         slot->RenderPass->Release();
         slot->RenderPass = nullptr;
         slot->Specification = {};
@@ -1175,7 +1212,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
     FrameBufferHandle DiligentRendererContext::CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) {
         const Handle<FrameBuffer> handle = m_FrameBufferTable.Emplace();
-        QFrameBufferData* slot = m_FrameBufferTable.Get(handle);
+        QFrameBufferData* slot = m_FrameBufferTable.At(handle);
 
         // Own data
         slot->Name = frameBufferSpec.Name;
@@ -1187,7 +1224,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         SmallVec<ITexture*, 2> textureAttachments;
         textureAttachments.reserve(spec.Attachments.size());
         for (const TextureHandle Attachment : spec.Attachments) {
-            textureAttachments.push_back(m_TextureTable.Get(Attachment)->Texture);
+            textureAttachments.push_back(m_TextureTable.At(Attachment)->Texture);
         }
 
         auto& textureDesc = textureAttachments[0]->GetDesc();
@@ -1200,24 +1237,24 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             slot->FrameBuffer,
             m_pDevice,
             Span(textureAttachments),
-            m_RenderPassTable.Get(spec.RenderPassHandle)->RenderPass
+            m_RenderPassTable.At(spec.RenderPassHandle)->RenderPass
         );
 
         return handle;
     }
 
     uint32_t DiligentRendererContext::FrameBufferGetWidth(const FrameBufferHandle frameBufferHandle) {
-        const QFrameBufferData* slot = m_FrameBufferTable.Get(frameBufferHandle);
+        const QFrameBufferData* slot = m_FrameBufferTable.At(frameBufferHandle);
         return slot->Specification.Size.Width;
     }
 
     uint32_t DiligentRendererContext::FrameBufferGetHeight(const FrameBufferHandle frameBufferHandle) {
-        const QFrameBufferData* slot = m_FrameBufferTable.Get(frameBufferHandle);
+        const QFrameBufferData* slot = m_FrameBufferTable.At(frameBufferHandle);
         return slot->Specification.Size.Height;
     }
 
     Extent2D DiligentRendererContext::FrameBufferGetSize(const FrameBufferHandle frameBufferHandle) {
-        const QFrameBufferData* slot = m_FrameBufferTable.Get(frameBufferHandle);
+        const QFrameBufferData* slot = m_FrameBufferTable.At(frameBufferHandle);
         return slot->Specification.Size;
     }
 
@@ -1226,12 +1263,12 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         const uint32_t width,
         const uint32_t height
     ) {
-        QFrameBufferData* data = m_FrameBufferTable.Get(frameBufferHandle);
+        QFrameBufferData* data = m_FrameBufferTable.At(frameBufferHandle);
         data->Specification.Size = {width, height};
 
         SmallVec<ITexture*, 2> textureAttachments;
         for (const TextureHandle attachment : data->Attachments) {
-            QTextureData* texture = m_TextureTable.Get(attachment);
+            QTextureData* texture = m_TextureTable.At(attachment);
             TextureUtil::Resize(m_pDevice, *texture, width, height);
             textureAttachments.push_back(texture->Texture);
         }
@@ -1241,14 +1278,14 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
         IRenderPass* renderPass = nullptr;
         if (data->Specification.RenderPassHandle.IsValid()) {
-            renderPass = m_RenderPassTable.Get(data->Specification.RenderPassHandle)->RenderPass;
+            renderPass = m_RenderPassTable.At(data->Specification.RenderPassHandle)->RenderPass;
         }
 
         Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span(textureAttachments), renderPass);
     }
 
     void DiligentRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {
-        QFrameBufferData* data = m_FrameBufferTable.Get(frameBufferHandle);
+        QFrameBufferData* data = m_FrameBufferTable.At(frameBufferHandle);
         data->FrameBuffer->Release();
         data->FrameBuffer = nullptr;
         data->Specification = {};
@@ -1290,7 +1327,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
     ShaderHandle DiligentRendererContext::CreateShader(const ShaderCreateInfo& createInfo) {
         const Handle<Shader> handle = m_ShaderTable.Emplace();
-        ShaderData* slot = m_ShaderTable.Get(handle);
+        ShaderData* slot = m_ShaderTable.At(handle);
 
         QS_CORE_ASSERT(slot);
 
@@ -1323,13 +1360,13 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(const ShaderHandle shaderHandle) {
-        ShaderData* slot = m_ShaderTable.Get(shaderHandle);
+        ShaderData* slot = m_ShaderTable.At(shaderHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Destroy(ShaderHandle): Failed to find slot for shader handle ({},{})",
-                shaderHandle.GetIndex(),
-                shaderHandle.GetGeneration()
+                shaderHandle.Index(),
+                shaderHandle.Generation()
             );
 
             return;
@@ -1347,7 +1384,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
     ) {
         Handle<PipelineStateObject> handle = m_PipelineStateTable.Emplace();
-        PipelineStateData* slot = m_PipelineStateTable.Get(handle);
+        PipelineStateData* slot = m_PipelineStateTable.At(handle);
 
         // Own data
         slot->Name = pipelineStateCreateInfo.Name;
@@ -1404,7 +1441,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             FrontCounterClockwise;
         // Disable depth testing
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
-        PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.Get(gpSpec.RenderPass)->RenderPass;
+        PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.At(gpSpec.RenderPass)->RenderPass;
 
         Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout);
 
@@ -1427,8 +1464,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
 
         // Finally, create the pipeline state
-        PSOCreateInfo.pVS = m_ShaderTable.Get(pipelineStateCreateInfo.VertexShader)->Shader;
-        PSOCreateInfo.pPS = m_ShaderTable.Get(pipelineStateCreateInfo.FragmentShader)->Shader;
+        PSOCreateInfo.pVS = m_ShaderTable.At(pipelineStateCreateInfo.VertexShader)->Shader;
+        PSOCreateInfo.pPS = m_ShaderTable.At(pipelineStateCreateInfo.FragmentShader)->Shader;
 
         // Define variable type that will be used by default
         Vec<ShaderResourceVariableDesc> variables;
@@ -1471,25 +1508,25 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         std::string_view name,
         const GPUBufferHandle gpuBufferHandle
     ) {
-        IPipelineState* pso = m_PipelineStateTable.Get(pipelineStateHandle)->PSO;
+        IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
         IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
             Utils::GetShaderType(shaderType),
             UI::FormatTemp("{}", name)
         );
 
         if (resourceVariable) {
-            resourceVariable->Set(m_BufferTable.Get(gpuBufferHandle)->Buffer);
+            resourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer);
         }
     }
 
     void DiligentRendererContext::BindPipelineState(PipelineStateHandle pipelineStateHandle) {
-        PipelineStateData* slot = m_PipelineStateTable.Get(pipelineStateHandle);
+        PipelineStateData* slot = m_PipelineStateTable.At(pipelineStateHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "BindPipelineState(PipelineStateHandle): Failed to get slot for pipeline state handle ({},{})",
-                pipelineStateHandle.GetIndex(),
-                pipelineStateHandle.GetGeneration()
+                pipelineStateHandle.Index(),
+                pipelineStateHandle.Generation()
             );
 
             return;
@@ -1499,13 +1536,13 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(PipelineStateHandle pipelineStateHandle) {
-        PipelineStateData* slot = m_PipelineStateTable.Get(pipelineStateHandle);
+        PipelineStateData* slot = m_PipelineStateTable.At(pipelineStateHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
                 "Destroy(PipelineStateHandle): Failed to get slot for pipeline state handle ({},{})",
-                pipelineStateHandle.GetIndex(),
-                pipelineStateHandle.GetGeneration()
+                pipelineStateHandle.Index(),
+                pipelineStateHandle.Generation()
             );
 
             return;
@@ -1519,6 +1556,8 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         slot->Variables.clear();
         slot->ImmutableSamplers.clear();
         slot->OwnedStrings.clear();
+
+        m_PipelineStateTable.Erase(pipelineStateHandle);
     }
 
     void DiligentRendererContext::Submit(GraphicsShaderHandle shaderHandle, uint32_t view) {
@@ -1538,7 +1577,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         vbData.DataSize = vertices.size();
 
         const Handle<VertexBuffer> handle = m_VertexBufferTable.Emplace();
-        IBuffer** slot = m_VertexBufferTable.Get(handle);
+        IBuffer** slot = m_VertexBufferTable.At(handle);
 
         m_pDevice->CreateBuffer(vertBuffDesc, &vbData, slot);
 
@@ -1552,13 +1591,13 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) {
-        IBuffer** slot = m_VertexBufferTable.Get(vertexBufferHandle);
+        IBuffer** slot = m_VertexBufferTable.At(vertexBufferHandle);
         if (!slot) {
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No vertex buffer found with handle ({},{})",
-                vertexBufferHandle.GetIndex(),
-                vertexBufferHandle.GetGeneration()
+                vertexBufferHandle.Index(),
+                vertexBufferHandle.Generation()
             );
 
             return;
@@ -1588,7 +1627,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         ibData.DataSize = data.size();
 
         const Handle<IndexBuffer> handle = m_IndexBufferTable.Emplace();
-        IBuffer** slot = m_IndexBufferTable.Get(handle);
+        IBuffer** slot = m_IndexBufferTable.At(handle);
 
         m_pDevice->CreateBuffer(indBuffDesc, &ibData, slot);
 
@@ -1602,13 +1641,13 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::BindIndexBuffer(const IndexBufferHandle indexBufferHandle) {
-        IBuffer** slot = m_IndexBufferTable.Get(indexBufferHandle);
+        IBuffer** slot = m_IndexBufferTable.At(indexBufferHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No vertex buffer found with handle ({},{})",
-                indexBufferHandle.GetIndex(),
-                indexBufferHandle.GetGeneration()
+                indexBufferHandle.Index(),
+                indexBufferHandle.Generation()
             );
 
             return;
@@ -1618,13 +1657,13 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
     }
 
     void DiligentRendererContext::Destroy(const IndexBufferHandle indexBufferHandle) {
-        IBuffer** slot = m_IndexBufferTable.Get(indexBufferHandle);
+        IBuffer** slot = m_IndexBufferTable.At(indexBufferHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "RendererContext",
                 "No index buffer found with handle ({},{})",
-                indexBufferHandle.GetIndex(),
-                indexBufferHandle.GetGeneration()
+                indexBufferHandle.Index(),
+                indexBufferHandle.Generation()
             );
 
             return;
@@ -1642,5 +1681,63 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_pDevice.Release();
         m_pSwapChain.Release();
         m_pImmediateContext.Release();
+    }
+
+    void DiligentRendererContext::IncRef(Handle<Texture> textureHandle) { m_TextureTable.IncRef(textureHandle); }
+    void DiligentRendererContext::DecRef(Handle<Texture> textureHandle) {
+        if (m_TextureTable.DecRef(textureHandle)) {
+            Destroy(textureHandle);
+        }
+    }
+    void DiligentRendererContext::IncRef(Handle<FrameBuffer> frameBuffer) { m_FrameBufferTable.IncRef(frameBuffer); }
+    void DiligentRendererContext::DecRef(Handle<FrameBuffer> frameBuffer) {
+        if (m_FrameBufferTable.DecRef(frameBuffer)) {
+            Destroy(frameBuffer);
+        }
+    }
+
+    void DiligentRendererContext::IncRef(Handle<IndexBuffer> indexBuffer) { m_IndexBufferTable.IncRef(indexBuffer); }
+    void DiligentRendererContext::DecRef(Handle<IndexBuffer> indexBuffer) {
+        if (m_IndexBufferTable.DecRef(indexBuffer)) {
+            Destroy(indexBuffer);
+        }
+    }
+
+    void DiligentRendererContext::IncRef(Handle<VertexBuffer> vertexBuffer) {m_VertexBufferTable.IncRef(vertexBuffer);}
+    void DiligentRendererContext::DecRef(Handle<VertexBuffer> vertexBuffer) {
+        if (m_VertexBufferTable.DecRef(vertexBuffer)) {
+            Destroy(vertexBuffer);
+        }
+    }
+
+    void DiligentRendererContext::IncRef(Handle<GPUBuffer> gpuBuffer) {m_BufferTable.IncRef(gpuBuffer);}
+    void DiligentRendererContext::DecRef(Handle<GPUBuffer> gpuBuffer) {
+        if (m_BufferTable.DecRef(gpuBuffer)) {
+            Destroy(gpuBuffer);
+        }
+    }
+
+    void DiligentRendererContext::IncRef(Handle<RenderPass> renderPass) {m_RenderPassTable.IncRef(renderPass);}
+    void DiligentRendererContext::DecRef(Handle<RenderPass> renderPass) {
+        if (m_RenderPassTable.DecRef(renderPass)) {
+            Destroy(renderPass);
+        }
+    }
+    void DiligentRendererContext::IncRef(Handle<ShaderResourceBinding> srb) {m_ShaderResourceBindingTable.IncRef(srb);}
+    void DiligentRendererContext::DecRef(Handle<ShaderResourceBinding> srb) {
+        if (m_ShaderResourceBindingTable.DecRef(srb)) {
+            Destroy(srb);
+        }
+    }
+
+    void DiligentRendererContext::IncRef(Handle<PipelineStateObject> pso) {m_PipelineStateTable.IncRef(pso);}
+    void DiligentRendererContext::DecRef(Handle<PipelineStateObject> pso) {
+        if (m_PipelineStateTable.DecRef(pso)) {
+            Destroy(pso);
+        }
+    }
+
+    bool DiligentRendererContext::IsAlive(PipelineStateHandle pipelineStateHandle) {
+        return m_PipelineStateTable.IsAlive(pipelineStateHandle);
     }
 }

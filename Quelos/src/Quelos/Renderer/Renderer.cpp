@@ -333,6 +333,27 @@ namespace Quelos {
         s_RendererContext->Destroy(frameBufferHandle);
     }
 
+    void Renderer::IncRef(Handle<Texture> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<Texture> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<FrameBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<FrameBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<IndexBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<IndexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<GPUBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<GPUBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<RenderPass> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<RenderPass> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<PipelineStateObject> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<PipelineStateObject> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+
+    bool Renderer::IsAlive(PipelineStateHandle pipelineStateHandle) {
+        return s_RendererContext->IsAlive(pipelineStateHandle);
+    }
+
     void Renderer::Map(const GPUBufferHandle bufferHandle, const MapType mapType, const MapFlags discard, void*& data) {
         s_RendererContext->Map(bufferHandle, mapType, discard, data);
     }

@@ -246,6 +246,33 @@ namespace Quelos {
 
         virtual void Destroy(FrameBufferHandle frameBufferHandle) = 0;
 
+        // Too much boilerplate... maybe a system similar to UntypedAssetHandle?
+        virtual void IncRef(Handle<Texture> textureHandle) = 0;
+        virtual void DecRef(Handle<Texture> textureHandle) = 0;
+
+        virtual void IncRef(Handle<FrameBuffer> textureHandle) = 0;
+        virtual void DecRef(Handle<FrameBuffer> textureHandle) = 0;
+
+        virtual void IncRef(Handle<IndexBuffer> textureHandle) = 0;
+        virtual void DecRef(Handle<IndexBuffer> textureHandle) = 0;
+
+        virtual void IncRef(Handle<VertexBuffer> textureHandle) = 0;
+        virtual void DecRef(Handle<VertexBuffer> textureHandle) = 0;
+
+        virtual void IncRef(Handle<GPUBuffer> textureHandle) = 0;
+        virtual void DecRef(Handle<GPUBuffer> textureHandle) = 0;
+
+        virtual void IncRef(Handle<RenderPass> textureHandle) = 0;
+        virtual void DecRef(Handle<RenderPass> textureHandle) = 0;
+
+        virtual void IncRef(Handle<ShaderResourceBinding> textureHandle) = 0;
+        virtual void DecRef(Handle<ShaderResourceBinding> textureHandle) = 0;
+
+        virtual void IncRef(Handle<PipelineStateObject> textureHandle) = 0;
+        virtual void DecRef(Handle<PipelineStateObject> textureHandle) = 0;
+
+        virtual bool IsAlive(PipelineStateHandle pipelineStateHandle) = 0;
+
         virtual void Shutdown() = 0;
     };
 }

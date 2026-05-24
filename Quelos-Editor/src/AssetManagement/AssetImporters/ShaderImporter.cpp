@@ -7,6 +7,7 @@
 #include "slang.h"
 #include "slang-com-helper.h"
 #include "slang-com-ptr.h"
+#include "Quelos/Core/Profiling.h"
 
 namespace QuelosEditor {
     namespace ShaderImporter {
@@ -99,6 +100,9 @@ namespace QuelosEditor {
             const std::string& shaderPath, const AssetID handle, Buffer& vertexBuffer, Buffer& fragmentBuffer
         ) {
 
+            QS_PROFILE_SCOPED_N("Shader compilation");
+            auto t0 = std::chrono::high_resolution_clock::now();
+
             slang::SessionDesc sessionDesc;
 
             slang::TargetDesc targetDesc;
@@ -186,6 +190,10 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
+            auto t1 = std::chrono::high_resolution_clock::now();
+
+            QS_CORE_INFO("Slang Module Compilation: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0));
+
             const int targetIndex = 0;
 
             Slang::ComPtr<slang::IBlob> vsBlob;
@@ -194,6 +202,9 @@ namespace QuelosEditor {
                 QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
                 diagnostics = nullptr;
             }
+
+            auto t2 = std::chrono::high_resolution_clock::now();
+            QS_CORE_INFO("Vertex code: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1));
 
             Slang::ComPtr<slang::IBlob> fsBlob;
             linkedProgram->getEntryPointCode(1, targetIndex, fsBlob.writeRef(), diagnostics.writeRef());
@@ -204,6 +215,10 @@ namespace QuelosEditor {
             if (!vsBlob || !fsBlob) {
                 return false;
             }
+
+            auto t3 = std::chrono::high_resolution_clock::now();
+
+            QS_CORE_INFO("Fragment code: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t3-t2));
 
             vertexBuffer = Buffer::Copy(vsBlob->getBufferPointer(), vsBlob->getBufferSize());
             fragmentBuffer = Buffer::Copy(fsBlob->getBufferPointer(), fsBlob->getBufferSize());

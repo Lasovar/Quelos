@@ -49,3 +49,7 @@ path = "Assets/Meshes/NewScene"
 [Quelos.GraphicsShader]
 handle = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
 path = "Assets/shaders/mesh.slang"
+
+[Quelos.GraphicsShader]
+handle = 5830a917-9591-48b3-8941-7f080914f2c5
+path = "Assets/shaders/fallback.slang"

@@ -21,7 +21,7 @@ namespace Quelos {
     struct AssetSlot {
         alignas(T) byte Storage[sizeof(T)] = {};
 
-        uint32_t Generation = 1;
+        uint32_t Generation = 0;
         uint32_t RefCount = 0;
         bool Constructed = false;
 
@@ -52,7 +52,7 @@ namespace Quelos {
 
             const auto index = static_cast<uint32_t>(Slots.size());
             Slots.emplace_back();
-            return { T::GetStaticType(), index, 1 };
+            return { T::GetStaticType(), index, 0 };
         }
 
         void Free(UntypedAssetHandle assetHandle) {

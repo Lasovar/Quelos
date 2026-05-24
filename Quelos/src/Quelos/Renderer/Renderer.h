@@ -120,5 +120,28 @@ namespace Quelos {
         static void FrameBufferResize(FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height);
 
         static void Destroy(FrameBufferHandle frameBufferHandle);
+
+        static void IncRef(Handle<Texture> textureHandle);
+        static void DecRef(Handle<Texture> textureHandle);
+
+        static void IncRef(Handle<FrameBuffer> textureHandle);
+        static void DecRef(Handle<FrameBuffer> textureHandle);
+
+        static void IncRef(Handle<IndexBuffer> textureHandle);
+        static void DecRef(Handle<IndexBuffer> textureHandle);
+
+        static void IncRef(Handle<VertexBuffer> textureHandle);
+        static void DecRef(Handle<VertexBuffer> textureHandle);
+
+        static void IncRef(Handle<GPUBuffer> textureHandle);
+        static void DecRef(Handle<GPUBuffer> textureHandle);
+        static void IncRef(Handle<RenderPass> textureHandle);
+        static void DecRef(Handle<RenderPass> textureHandle);
+        static void IncRef(Handle<ShaderResourceBinding> textureHandle);
+        static void DecRef(Handle<ShaderResourceBinding> textureHandle);
+        static void IncRef(Handle<PipelineStateObject> textureHandle);
+        static void DecRef(Handle<PipelineStateObject> textureHandle);
+
+        static bool IsAlive(PipelineStateHandle pipelineStateHandle);
     };
 }

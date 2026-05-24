@@ -11,14 +11,15 @@
 
 namespace Quelos {
     struct PipelineStateComponent {
-        PipelineStateHandle PSO;
-        ShaderResourceBindingHandle SRB;
+        ResourceRef<PipelineStateObject> PSO;
+        ResourceRef<ShaderResourceBinding> SRB;
     };
 
     struct DrawCall {
         uint64_t SortKey;
         Mesh* Mesh;
-        PipelineStateComponent PipelineState;
+        PipelineStateHandle PipelineState;
+        ShaderResourceBindingHandle SRB;
         float4x4 Transform;
     };
 
@@ -67,7 +68,7 @@ namespace Quelos {
         RenderPassHandle m_RenderPass;
         flecs::world m_World;
 
-        HashMap<AssetID, PipelineStateComponent> m_PipelineStates;
+        HashMap<AssetID, Pair<PipelineStateHandle, ShaderResourceBindingHandle>> m_PipelineStates;
         Vec<DrawCall> m_DrawCalls;
 
         flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;

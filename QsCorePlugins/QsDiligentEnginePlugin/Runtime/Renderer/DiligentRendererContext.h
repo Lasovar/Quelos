@@ -205,6 +205,25 @@ namespace Quelos {
     public:
         static DiligentRendererContext& Get() { return *s_Instance; }
 
+        void IncRef(Handle<Texture> textureHandle) override;
+        void DecRef(Handle<Texture> textureHandle) override;
+        void IncRef(Handle<FrameBuffer> textureHandle) override;
+        void DecRef(Handle<FrameBuffer> textureHandle) override;
+        void IncRef(Handle<IndexBuffer> textureHandle) override;
+        void DecRef(Handle<IndexBuffer> textureHandle) override;
+        void IncRef(Handle<VertexBuffer> textureHandle) override;
+        void DecRef(Handle<VertexBuffer> textureHandle) override;
+        void IncRef(Handle<GPUBuffer> textureHandle) override;
+        void DecRef(Handle<GPUBuffer> textureHandle) override;
+        void IncRef(Handle<RenderPass> textureHandle) override;
+        void DecRef(Handle<RenderPass> textureHandle) override;
+        void IncRef(Handle<ShaderResourceBinding> srb) override;
+        void DecRef(Handle<ShaderResourceBinding> srb) override;
+        void IncRef(Handle<PipelineStateObject> pso) override;
+        void DecRef(Handle<PipelineStateObject> pso) override;
+
+        bool IsAlive(PipelineStateHandle pipelineStateHandle) override;
+
     private:
         static DiligentRendererContext* s_Instance;
 
