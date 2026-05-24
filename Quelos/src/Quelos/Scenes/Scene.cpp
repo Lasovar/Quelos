@@ -35,7 +35,7 @@ namespace Quelos {
                });
 
         m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
-        m_RenderingQuery = m_World.query<const WorldTransform&, const MeshRenderer&>();
+        m_RenderingQuery = m_World.query<const WorldTransform&, MeshRenderer&>();
 
         m_TransformUpdate = m_World.entity("TransformUpdate")
                                    .add(flecs::Phase)
@@ -121,6 +121,20 @@ namespace Quelos {
     }
 
     void Scene::StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs) {
+        m_RenderingQuery.each([&](const WorldTransform& transform, MeshRenderer& meshRenderer) {
+            if (!meshRenderer.ShaderData) {
+                return;
+            }
+
+            if (!meshRenderer.ShaderData->IsPSOCreated()) {
+                Renderer::SetupGraphicsShader(m_RenderPass, meshRenderer.ShaderData);
+                meshRenderer.ShaderResourceBindingHandle = Renderer::CreateShaderResourceBinding(
+                    meshRenderer.ShaderData.Get().GetPipelineStateHandle(),
+                    true
+                );
+            }
+        });
+
         Renderer::StartSceneRender(view, projection);
         Renderer::BeginRenderPass(beginRenderPassAttribs);
 
@@ -133,7 +147,7 @@ namespace Quelos {
         }
 
         m_RenderingQuery.each([](const WorldTransform& transform, const MeshRenderer& mesh) {
-            if (!mesh.MeshData) {
+            if (!mesh.MeshData || !mesh.ShaderData) {
                 return;
             }
 

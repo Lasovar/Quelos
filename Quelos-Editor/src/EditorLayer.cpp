@@ -56,80 +56,13 @@ namespace QuelosEditor {
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
     HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
-    Vec<AssetRef<Shader>> EditorLayer::s_ShaderRecompilationStack;
+    Vec<AssetRef<GraphicsShader>> EditorLayer::s_ShaderRecompilationStack;
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
 
         m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
-        std::string shaderPath = (Project::GetAssetsPath() / "shaders").generic_string();
-        Slang::ComPtr<slang::IGlobalSession> globalSession;
-        constexpr SlangGlobalSessionDesc desc;
-        slang::createGlobalSession(&desc, globalSession.writeRef());
 
-        slang::SessionDesc sessionDesc;
-
-        slang::TargetDesc targetDesc;
-        targetDesc.format = SLANG_SPIRV;
-        targetDesc.profile = globalSession->findProfile("glsl_450");
-        sessionDesc.targets = &targetDesc;
-        sessionDesc.targetCount = 1;
-
-        const char* searchPaths[] = { shaderPath.c_str() };
-        sessionDesc.searchPaths = searchPaths;
-        sessionDesc.searchPathCount = 1;
-
-        Slang::ComPtr<slang::ISession> session;
-        globalSession->createSession(sessionDesc, session.writeRef());
-
-        Slang::ComPtr<slang::IBlob> diagnostics;
-        slang::IModule* module = session->loadModule("hello-world", diagnostics.writeRef());
-        if (diagnostics) {
-            QS_CORE_TRACE_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
-        }
-
-        Slang::ComPtr<slang::IEntryPoint> vertexEntryPoint;
-        module->findEntryPointByName("vertexMain", vertexEntryPoint.writeRef());
-
-        slang::IComponentType* components[] = { module, vertexEntryPoint };
-        Slang::ComPtr<slang::IComponentType> program;
-        session->createCompositeComponentType(components, 2, program.writeRef());
-
-        slang::ProgramLayout* moduleLayout = module->getLayout();
-        slang::ProgramLayout* entryLayout = vertexEntryPoint->getLayout();
-
-        QS_CORE_INFO_TAG("SlangModule", "Module name: {}", module->getName());
-        for (uint32_t i = 0; i < moduleLayout->getParameterCount(); i++) {
-            slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
-            QS_CORE_TRACE_TAG("SlangModuleParameter", "{}-{}", parameter->getName() ? parameter->getName() : "", parameter->getSemanticName() ? parameter->getSemanticName() : "");
-        }
-
-        for (uint32_t i = 0; i < entryLayout->getParameterCount(); i++) {
-            slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
-            QS_CORE_TRACE_TAG("SlangEntryParameter", "{}-{}", parameter->getName() ? parameter->getName() : "", parameter->getSemanticName() ? parameter->getSemanticName() : "");
-        }
-
-        Slang::ComPtr<slang::IComponentType> linkedProgram;
-        Slang::ComPtr<ISlangBlob> diagnosticBlob;
-        program->link(linkedProgram.writeRef(), diagnosticBlob.writeRef());
-
-        if (diagnosticBlob) {
-            QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnosticBlob->getBufferPointer()));
-        }
-
-        const int entryPointIndex = 0; // only one entry point
-        const int targetIndex = 0; // only one target
-        Slang::ComPtr<slang::IBlob> kernelBlob;
-        linkedProgram->getEntryPointCode(
-            entryPointIndex,
-            targetIndex,
-            kernelBlob.writeRef(),
-            diagnostics.writeRef()
-        );
-
-        if (diagnostics) {
-            QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
-        }
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
@@ -185,10 +118,7 @@ namespace QuelosEditor {
                 });
             }, "RotatePlayer");*/
 
-        const uint64_t texture2DType = Hash::Fnv1a64("Quelos.Texture2D");
-        const uint64_t textureType = Hash::Fnv1a64(TypeNameDisplay<Texture2D>());
-
-        //AssetRef<Shader> compiledShader = AssetRef<Shader>(AssetID("af5fda92-37f9-42e3-a189-3a5388090a14"));
+        //AssetRef<GraphicsShader> compiledShader = AssetRef<GraphicsShader>(AssetID("7d9db084-abd4-4b88-8815-ba0b4f5735b3"));
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;

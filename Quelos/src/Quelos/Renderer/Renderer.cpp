@@ -26,6 +26,7 @@ namespace Quelos {
 
     static RendererFactory s_RendererContextFactory;
 
+    static GPUBufferHandle s_globalBuffer;
 
     static UniformBufferHandle u_lightDir;
     static UniformBufferHandle u_lightColor;
@@ -76,6 +77,13 @@ namespace Quelos {
 
         u_Color = CreateUniformBuffer("u_Color", UniformBufferType::Float4);
     */
+        GPUBufferSpec spec;
+        spec.Name = "global";
+        spec.Size = sizeof(float4x4);
+        spec.Usage = Usage::Default;
+        spec.BindFlags = Bind::UniformBuffer;
+
+        s_globalBuffer = s_RendererContext->CreateBuffer(spec, {});
     }
 
     void Renderer::StartFrame() {
@@ -89,6 +97,9 @@ namespace Quelos {
 
     void Renderer::StartSceneRender(const float4x4& view, const float4x4& projection) {
         s_RendererContext->StartSceneRender(view, projection);
+        float4x4 viewProj = math::mul(view, projection);
+        s_RendererContext->UpdateBuffer(s_globalBuffer, 0, BufferView{
+            reinterpret_cast<byte*>(math::value_ptr(viewProj)), sizeof(float4x4) });
 
         float4 lightDir = math::normalize(-float4(0.5f, -1.0f, 0.3f, 0.0f));
         SetUniformData(u_lightDir, math::value_ptr(lightDir));
@@ -125,6 +136,35 @@ namespace Quelos {
         s_RendererContext->SubmitMesh(mesh, transform);
     }
 
+    ShaderHandle Renderer::CreateShader(const ShaderCreateInfo& createInfo) {
+        return s_RendererContext->CreateShader(createInfo);
+    }
+
+    void Renderer::Destroy(const ShaderHandle shaderHandle) {
+        s_RendererContext->Destroy(shaderHandle);
+    }
+
+    PipelineStateHandle Renderer::CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo) {
+        return s_RendererContext->CreatePipelineState(pipelineStateCreateInfo);
+    }
+
+    void Renderer::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle,
+        const ShaderType shaderType,
+        const std::string_view name,
+        const GPUBufferHandle bufferHandle
+    ) {
+        s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferHandle);
+    }
+
+    void Renderer::SetupGraphicsShader(const RenderPassHandle renderPass, const AssetRef<GraphicsShader>& shader) {
+        shader.Get().CreatePSO(renderPass, s_globalBuffer);
+    }
+
+    void Renderer::Destroy(const PipelineStateHandle pipelineStateHandle) {
+        s_RendererContext->Destroy(pipelineStateHandle);
+    }
+
     void Renderer::Shutdown() {
         s_RendererContext->Shutdown();
         s_IsInitialized = false;
@@ -142,20 +182,30 @@ namespace Quelos {
         return s_RendererContext->HomogenousDepth();
     }
 
-    ShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+    GraphicsShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
         return s_RendererContext->CreateShader(std::move(vertex), std::move(fragment), name);
     }
 
-    bool Renderer::RecreateShader(const ShaderHandle handle, Buffer vertex, Buffer fragment) {
+    bool Renderer::RecreateShader(const GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) {
         return s_RendererContext->RecreateShader(handle, std::move(vertex), std::move(fragment));
     }
 
-    void Renderer::Submit(const ShaderHandle handle, const uint32_t view) {
+    void Renderer::Submit(const GraphicsShaderHandle handle, const uint32_t view) {
         s_RendererContext->Submit(handle, view);
     }
 
-    void Renderer::Destroy(const ShaderHandle shaderHandle) {
+    void Renderer::Destroy(const GraphicsShaderHandle shaderHandle) {
         s_RendererContext->Destroy(shaderHandle);
+    }
+
+    GPUBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {
+        return s_RendererContext->CreateBuffer(bufferSpec, bufferView);
+    }
+
+    ShaderResourceBindingHandle Renderer::CreateShaderResourceBinding(
+        const PipelineStateHandle pipelineStateHandle, const bool initStaticResources
+    ) {
+        return s_RendererContext->CreateShaderResourceBinding(pipelineStateHandle, initStaticResources);
     }
 
     VertexBufferHandle Renderer::CreateVertexBuffer(const BufferView vertices, const VertexLayout& bufferLayout) {
@@ -254,7 +304,7 @@ namespace Quelos {
         return s_RendererContext->FrameBufferGetSize(frameBufferHandle);
     }
 
-    void Renderer::FrameBufferResize(const FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) {
+    void Renderer::FrameBufferResize(const FrameBufferHandle frameBufferHandle, const uint32_t width, const uint32_t height) {
         s_RendererContext->FrameBufferResize(frameBufferHandle, width, height);
     }
 

@@ -43,12 +43,13 @@ namespace Quelos {
         size_t GetSize() const override { return m_Buffer.size(); }
         void* GetDataPtr(size_t Offset) override { return m_Buffer.data() + Offset; }
         const void* GetConstDataPtr(size_t Offset) const override { return m_Buffer.data(); }
+
     private:
         template <typename AllocatorType, typename ObjectType>
         friend class MakeNewRCObj;
 
         DataBlob(IReferenceCounters* pRefCounters, Buffer&& DataBuff) noexcept
-            : ObjectBase(pRefCounters), m_Buffer(std::move(DataBuff)) { }
+            : ObjectBase(pRefCounters), m_Buffer(std::move(DataBuff)) {}
 
     private:
         Buffer m_Buffer;
@@ -76,6 +77,29 @@ namespace Quelos {
         RenderPassSpec Specification;
     };
 
+    struct ShaderData {
+        IShader* Shader;
+        std::string Name;
+        std::string EntryPoint;
+        ShaderSpec Specification;
+    };
+
+    struct PipelineStateData {
+        IPipelineState* PSO;
+        std::string Name;
+        Vec<ShaderResourceVariableSpec> Variables;
+        Vec<ImmutableSamplerSpec> ImmutableSamplers;
+        Deque<std::string> OwnedStrings;
+        PipelineStateSpec PipelineSpec;
+        GraphicsPipelineSpec GraphicsPipeline;
+    };
+
+    struct QBufferData {
+        IBuffer* Buffer;
+        std::string Name;
+        GPUBufferSpec Specification;
+    };
+
     class DiligentRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
@@ -93,10 +117,38 @@ namespace Quelos {
 
         void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) override;
 
-        ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
-        bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) override;
-        void Submit(ShaderHandle shaderHandle, uint32_t view) override;
+        // Shaders
+        ShaderHandle CreateShader(const ShaderCreateInfo& createInfo) override;
         void Destroy(ShaderHandle shaderHandle) override;
+
+        PipelineStateHandle CreatePipelineState(
+            const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
+        ) override;
+
+        void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            GPUBufferHandle gpuBufferHandle
+        ) override;
+        void Destroy(PipelineStateHandle pipelineStateHandle) override;
+
+        GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
+        bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) override;
+        void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) override;
+        void Destroy(GraphicsShaderHandle shaderHandle) override;
+
+        GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) override;
+
+        ShaderResourceBindingHandle CreateShaderResourceBinding(
+            PipelineStateHandle pipelineStateHandle,
+            bool initStaticResources
+        ) override;
+
+        void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
+
+        void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint32_t offset, BufferView data) override;
+
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;
         void Destroy(VertexBufferHandle vertexBufferHandle) override;
@@ -135,6 +187,7 @@ namespace Quelos {
 
     public:
         static DiligentRendererContext& Get() { return *s_Instance; }
+
     private:
         static DiligentRendererContext* s_Instance;
 
@@ -143,14 +196,17 @@ namespace Quelos {
 
         ResourceTable<IBuffer*, VertexBuffer> m_VertexBufferTable;
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;
+        ResourceTable<ShaderData, Shader> m_ShaderTable;
         ResourceTable<QTextureData, Texture> m_TextureTable;
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
+        ResourceTable<QBufferData, GPUBuffer> m_BufferTable;
+        ResourceTable<PipelineStateData, PipelineStateObject> m_PipelineStateTable;
+        ResourceTable<IShaderResourceBinding*, ShaderResourceBinding> m_ShaderResourceBindingTable;
 
         RefCntAutoPtr<IRenderDevice> m_pDevice;
         RefCntAutoPtr<IDeviceContext> m_pImmediateContext;
         RefCntAutoPtr<ISwapChain> m_pSwapChain;
-        RefCntAutoPtr<IPipelineState> m_pPSO;
         RefCntAutoPtr<IBuffer> m_VSConstants;
         RefCntAutoPtr<IBuffer> m_VSTransform;
         RefCntAutoPtr<IShaderResourceBinding> m_pSRB;

@@ -92,9 +92,10 @@ namespace Quelos {
 
     struct QS_API MeshRenderer {
         AssetRef<Mesh> MeshData;
-        AssetRef<Shader> ShaderData;
+        AssetRef<GraphicsShader> ShaderData;
         Color Color = Color::White();
         //Ref<Material> MaterialData = CreateRef<Material>();
+        ShaderResourceBindingHandle ShaderResourceBindingHandle;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshRenderer& data) {

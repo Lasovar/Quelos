@@ -1,7 +1,9 @@
 #pragma once
 
+#include "Buffer.h"
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
+#include "PipelineState.h"
 #include "RendererAPI.h"
 #include "RenderPass.h"
 #include "RenderPassAttrib.h"
@@ -12,6 +14,8 @@
 #include "VertexBufferLayout.h"
 #include "Quelos/Core/Window.h"
 #include "Quelos/Scenes/Components.h"
+#include "GraphicsShader.h"
+#include "ShaderResourceBinding.h"
 
 namespace Quelos {
     class QS_API RendererContext {
@@ -37,10 +41,38 @@ namespace Quelos {
 
         virtual void Reset(uint32_t width, uint32_t height) = 0;
 
-        virtual ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) = 0;
-        virtual bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) = 0;
-        virtual void Submit(ShaderHandle shaderHandle, uint32_t view) = 0;
+        // Shaders
+        virtual ShaderHandle CreateShader(const ShaderCreateInfo& createInfo) = 0;
         virtual void Destroy(ShaderHandle shaderHandle) = 0;
+
+        virtual PipelineStateHandle CreatePipelineState(
+            const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
+        ) = 0;
+
+        virtual void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            GPUBufferHandle gpuBufferHandle
+        ) = 0;
+
+        virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;
+
+        virtual GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) = 0;
+        virtual bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) = 0;
+        virtual void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) = 0;
+        virtual void Destroy(GraphicsShaderHandle shaderHandle) = 0;
+
+        virtual GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) = 0;
+
+        virtual ShaderResourceBindingHandle CreateShaderResourceBinding(
+            PipelineStateHandle pipelineStateHandle,
+            bool initStaticResources
+        ) = 0;
+
+        virtual void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
+
+        virtual void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint32_t offset, BufferView data) = 0;
 
         virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
@@ -50,7 +82,9 @@ namespace Quelos {
         virtual void BindIndexBuffer(IndexBufferHandle indexBufferHandle) = 0;
         virtual void Destroy(IndexBufferHandle indexBufferHandle) = 0;
 
-        virtual UniformBufferHandle CreateUniformBuffer(const std::string& name, UniformBufferType uniformType, uint32_t count = 1) = 0;
+        virtual UniformBufferHandle CreateUniformBuffer(
+            const std::string& name, UniformBufferType uniformType, uint32_t count = 1
+        ) = 0;
         virtual void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count = 1) = 0;
         virtual void Destroy(UniformBufferHandle uniformBufferHandle) = 0;
 

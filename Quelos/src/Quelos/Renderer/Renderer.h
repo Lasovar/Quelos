@@ -2,7 +2,9 @@
 
 #include <Quelos/Scenes/Components.h>
 
+#include "Buffer.h"
 #include "FrameBuffer.h"
+#include "PipelineState.h"
 #include "RendererContext.h"
 #include "Quelos/Core/Event.h"
 #include "Quelos/Renderer/RendererAPI.h"
@@ -41,10 +43,22 @@ namespace Quelos {
 		static void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform);
 
 		// Renderer Context API
-        static ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);
-        static bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment);
-		static void Submit(ShaderHandle handle, uint32_t view);
+		static ShaderHandle CreateShader(const ShaderCreateInfo& createInfo);
 		static void Destroy(ShaderHandle shaderHandle);
+
+		static PipelineStateHandle CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo);
+		static void BindStaticVariableByName(PipelineStateHandle pipelineStateHandle, ShaderType shaderType, std::string_view name, GPUBufferHandle bufferHandle);
+		static void SetupGraphicsShader(RenderPassHandle renderPass, const AssetRef<GraphicsShader>& shader);
+		static void Destroy(PipelineStateHandle pipelineStateHandle);
+
+        static GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);
+        static bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment);
+		static void Submit(GraphicsShaderHandle handle, uint32_t view);
+		static void Destroy(GraphicsShaderHandle shaderHandle);
+
+		static GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView bufferView);
+
+		static ShaderResourceBindingHandle CreateShaderResourceBinding(PipelineStateHandle pipelineStateHandle, bool initStaticResources);
 
 		static VertexBufferHandle CreateVertexBuffer(BufferView vertices, const VertexLayout& bufferLayout);
 		static void BindVertexBuffer(VertexBufferHandle handle, uint32_t stream);
