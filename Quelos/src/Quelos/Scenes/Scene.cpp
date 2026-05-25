@@ -67,6 +67,8 @@ namespace Quelos {
                    const WorldTransform& parentWorld) {
                        world.Value = math::mul(parentWorld.Value, mathExt::srt(local.Scale, local.Rotation, local.Position));
                    });
+
+        m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
     }
 
     void Scene::Tick(const float deltaTime) const {
@@ -89,7 +91,7 @@ namespace Quelos {
     }
 
     void Scene::StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs) {
-
+        m_SceneRenderer.Begin(beginRenderPassAttribs, math::mul(view, projection));
         m_SceneRenderStarted = true;
     }
 
@@ -98,12 +100,12 @@ namespace Quelos {
             return;
         }
 
-
+        m_SceneRenderer.Render();
     }
 
     void Scene::EndRender() {
         if (m_SceneRenderStarted) {
-            Renderer::EndRenderPass();
+            m_SceneRenderer.End();
         }
 
         m_SceneRenderStarted = false;

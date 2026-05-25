@@ -60,7 +60,9 @@ namespace Quelos {
         SceneRenderer() = delete;
         explicit SceneRenderer(const flecs::world& world);
 
-        void Render(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
+        void Begin(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
+        void Render() const;
+        void End();
 
         ~SceneRenderer();
         RenderPassHandle GetRenderPass() const { return m_RenderPass; }
@@ -72,7 +74,6 @@ namespace Quelos {
         HashMap<AssetID, Pair<PipelineStateHandle, ShaderResourceBindingHandle>> m_PipelineStates;
         Vec<DrawCall> m_DrawCalls;
 
-        flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
 

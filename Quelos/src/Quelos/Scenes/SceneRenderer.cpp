@@ -77,7 +77,6 @@ namespace Quelos {
 
         m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
 
-        m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
         m_RenderingQuery = m_World.query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>();
         m_PSOQuery = m_World.query_builder<const MeshRenderer&>()
                             .without<PipelineStateComponent>()
@@ -104,7 +103,9 @@ namespace Quelos {
         m_InstanceBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
     }
 
-    void SceneRenderer::Render(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection) {
+    void SceneRenderer::Begin(
+        const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection
+    ) {
         m_World.defer_begin();
 
         m_PSOQuery.each([&](flecs::entity entity, const MeshRenderer& meshRenderer) {
@@ -219,7 +220,9 @@ namespace Quelos {
         );
 
         Renderer::BeginRenderPass(beginRenderPassAttribs);
+    }
 
+    void SceneRenderer::Render() const {
         uint32_t i = 0;
         while (i < m_DrawCalls.size()) {
             //
@@ -330,7 +333,9 @@ namespace Quelos {
                 instanceOffset += instanceCount;
             }
         }
+    }
 
+    void SceneRenderer::End() {
         Renderer::EndRenderPass();
     }
 
