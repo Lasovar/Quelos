@@ -62,7 +62,7 @@ namespace Quelos {
     };
 
     struct QFrameBufferData {
-        IFramebuffer* FrameBuffer;
+        IFramebuffer* FrameBuffer = nullptr;
         std::string Name;
         SmallVec<TextureHandle, 2> Attachments;
 
@@ -70,7 +70,7 @@ namespace Quelos {
     };
 
     struct RenderPassData {
-        IRenderPass* RenderPass;
+        IRenderPass* RenderPass = nullptr;
         std::string Name;
         SmallVec<AttachmentReference, 4> AttachmentReferences;
         SmallVec<SubPassSpec, 2> SubPasses;
@@ -79,14 +79,14 @@ namespace Quelos {
     };
 
     struct ShaderData {
-        IShader* Shader;
+        IShader* Shader = nullptr;
         std::string Name;
         std::string EntryPoint;
         ShaderSpec Specification;
     };
 
     struct PipelineStateData {
-        IPipelineState* PSO;
+        IPipelineState* PSO = nullptr;
         std::string Name;
         Vec<ShaderResourceVariableSpec> Variables;
         Vec<ImmutableSamplerSpec> ImmutableSamplers;
