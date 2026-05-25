@@ -13,6 +13,7 @@ namespace Quelos {
     struct PipelineStateComponent {
         ResourceRef<PipelineStateObject> PSO;
         ResourceRef<ShaderResourceBinding> SRB;
+        AssetID ShaderID;
     };
 
     struct DrawCall {
