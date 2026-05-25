@@ -1,9 +1,7 @@
 #include "DiligentRendererContext.h"
 
 #include "DataBlobImpl.hpp"
-#include "DefaultRawMemoryAllocator.hpp"
 #include "Texture.h"
-#include "DataBlobImpl.hpp"
 
 #include "ImGui/MapHelper.hpp"
 #include "Quelos/ImGui/ImGuiUI.h"
@@ -552,7 +550,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             return static_cast<SAMPLER_FLAGS>(flags);
         }
 
-        constexpr SamplerDesc GetSamplerDesc(const SamplerSpec& spec) {
+        static SamplerDesc GetSamplerDesc(const SamplerSpec& spec) {
             SamplerDesc desc;
 
             desc.MinFilter = GetFilterType(spec.MinFilter);
@@ -623,6 +621,48 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         m_Window = window;
         s_Instance = this;
 
+        SetDebugMessageCallback([](DEBUG_MESSAGE_SEVERITY severity,
+                                       const Char*            message,
+                                       const char*            function,
+                                       const char*            file,
+                                       int                    line)
+        {
+            switch (severity)
+            {
+            case DEBUG_MESSAGE_SEVERITY_ERROR:
+                QS_CORE_ERROR_TAG(
+                    "DiligentRendererContext", "{} (at {}:{})",
+                    message ? message : "",
+                    file ? file : "",
+                    line ? line : 0
+                );
+                break;
+            case DEBUG_MESSAGE_SEVERITY_FATAL_ERROR:
+                QS_CORE_CRITICAL_TAG("DiligentRendererContext", "{} (at {}:{})",
+                    message ? message : "",
+                    file ? file : "",
+                    line ? line : 0
+                );
+                break;
+            case DEBUG_MESSAGE_SEVERITY_WARNING:
+                QS_CORE_WARN_TAG("DiligentRendererContext", "{} (at {}:{})",
+                    message ? message : "",
+                    file ? file : "",
+                    line ? line : 0
+                );
+                break;
+            case DEBUG_MESSAGE_SEVERITY_INFO:
+                QS_CORE_TRACE_TAG("DiligentRendererContext", "{} (at {}:{})",
+                    message ? message : "",
+                    file ? file : "",
+                    line ? line : 0
+                );
+                break;
+            default:
+                break;
+            }
+        });
+
         SwapChainDesc SCDesc;
         SCDesc.BufferCount = 3;
         SCDesc.Width = window->GetWidth();
@@ -646,6 +686,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         nativeWindow.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
 #endif
 
+        // TODO: Maybe fallback option?
         switch (api) {
 #if D3D11_SUPPORTED
         case RendererAPI::Direct3D11: {
@@ -667,6 +708,7 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         case RendererAPI::Direct3D12: {
             auto* pFactoryD3D12 = LoadAndGetEngineFactoryD3D12();
             EngineD3D12CreateInfo engineCi;
+
             pFactoryD3D12->CreateDeviceAndContextsD3D12(engineCi, &m_pDevice, &m_pImmediateContext);
             pFactoryD3D12->CreateSwapChainD3D12(
                 m_pDevice,
@@ -737,6 +779,10 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         }
 
         // CREATE RESOURCES
+    }
+
+    RendererAPI DiligentRendererContext::GetRendererAPI() {
+        return m_RendererAPI;
     }
 
     bool DiligentRendererContext::HomogenousDepth() {
@@ -1343,17 +1389,42 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         Diligent::ShaderCreateInfo shaderCreateInfo;
         // Tell the system that the shader source code is in HLSL.
         // For OpenGL, the engine will convert this into GLSL behind the scene
-        shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
+        shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_BYTECODE;
+        switch (m_RendererAPI) {
+        case RendererAPI::Direct3D11:
+        case RendererAPI::Direct3D12:
+        case RendererAPI::Vulkan:
+            shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_BYTECODE;
+            shaderCreateInfo.ByteCode = createInfo.ByteCode.data();
+            shaderCreateInfo.ByteCodeSize = createInfo.ByteCode.size();
+            break;
+        case RendererAPI::OpenGL:
+            shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+            shaderCreateInfo.Source = reinterpret_cast<const char*>(createInfo.ByteCode.data());
+            shaderCreateInfo.SourceLength = createInfo.ByteCode.size();
+            break;
+        default:
+            QS_CORE_ASSERT(false, "Unsupported renderer API");
+            break;
+        }
+
         // OpenGL backend requires emulated combined HLSL texture samplers (g_Texture + g_Texture_sampler combination)
         shaderCreateInfo.Desc.UseCombinedTextureSamplers = true;
         // Create shader
-        {
-            shaderCreateInfo.Desc.ShaderType = Utils::GetShaderType(shaderSpec.Type);
-            shaderCreateInfo.EntryPoint = slot->EntryPoint.c_str();
-            shaderCreateInfo.Desc.Name = slot->Name.c_str();
-            shaderCreateInfo.ByteCode = createInfo.ByteCode.data();
-            shaderCreateInfo.ByteCodeSize = createInfo.ByteCode.size();
-            m_pDevice->CreateShader(shaderCreateInfo, &slot->Shader);
+        shaderCreateInfo.Desc.ShaderType = Utils::GetShaderType(shaderSpec.Type);
+        shaderCreateInfo.EntryPoint = slot->EntryPoint.c_str();
+        shaderCreateInfo.Desc.Name = slot->Name.c_str();
+        m_pDevice->CreateShader(shaderCreateInfo, &slot->Shader);
+
+        if (!slot->Shader) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to create shader '{}'!",
+                createInfo.Specification.Name
+            );
+
+            m_ShaderTable.Erase(handle);
+            return {};
         }
 
         return handle;
@@ -1499,6 +1570,15 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
 
         m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &slot->PSO);
 
+        if (!slot->PSO) {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "CreatePipelineState(PipelineStateSpec): Failed to create pipeline state object"
+            );
+
+            return {};
+        }
+
         return handle;
     }
 
@@ -1509,6 +1589,9 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
         const GPUBufferHandle gpuBufferHandle
     ) {
         IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
+
+        QS_CORE_ASSERT(pso, "Pipeline state object is nullptr!");
+
         IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
             Utils::GetShaderType(shaderType),
             UI::FormatTemp("{}", name)

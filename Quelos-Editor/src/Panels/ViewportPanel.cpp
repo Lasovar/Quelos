@@ -56,7 +56,6 @@ namespace QuelosEditor {
         m_FrameBuffer->Resize(m_ViewportSize.x, m_ViewportSize.y);
         m_NeedResize = false;
 
-        QS_INFO("Viewport resized to: {}", m_ViewportNewSize);
         return true;
     }
 

@@ -1,8 +1,8 @@
 struct VertexIn {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float3 tangent : TANGENT;
-    float2 texcoord0 : TEXCOORD0;
+    float3 position : ATTRIB0;
+    float3 normal : ATTRIB1;
+    float3 tangent : ATTRIB2;
+    float2 texcoord0 : ATTRIB3;
 };
 
 struct VertexOut {
@@ -21,5 +21,5 @@ struct InstanceData {
     uint3 Padding;
 }
 
-ConstantBuffer<GlobalUniforms> global;
-StructuredBuffer<InstanceData> Instances;
+__extern_cpp ConstantBuffer<GlobalUniforms> global;
+__extern_cpp StructuredBuffer<InstanceData> Instances;
