@@ -134,6 +134,7 @@ namespace Quelos {
     class QS_API RendererContext {
     public:
         virtual void Init(const Ref<Window>& ref, RendererAPI api) = 0;
+        virtual RendererAPI GetRendererAPI() = 0;
 
         virtual ~RendererContext() = default;
 

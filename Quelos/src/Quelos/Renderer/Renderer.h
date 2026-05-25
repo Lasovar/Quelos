@@ -28,6 +28,7 @@ namespace Quelos {
         static bool IsInitialized();
         static void RegisterRendererContext(RendererFactory factory);
         static void Init(const Ref<Window>& window, RendererAPI api);
+        static RendererAPI GetRendererAPI();
         static void Shutdown();
 
         static void OnEvent(Event& event);

@@ -104,6 +104,7 @@ namespace Quelos {
     class DiligentRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
+        RendererAPI GetRendererAPI() override;
         bool HomogenousDepth() override;
 
         void StartFrame() override;

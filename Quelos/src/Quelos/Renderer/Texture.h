@@ -96,7 +96,7 @@ namespace Quelos {
 
     class Texture;
 
-    struct TextureHandle : Handle<Texture> {
+    struct QS_API TextureHandle : Handle<Texture> {
         TextureHandle() = default;
         TextureHandle(const Handle handle) : Handle(handle) {}
 

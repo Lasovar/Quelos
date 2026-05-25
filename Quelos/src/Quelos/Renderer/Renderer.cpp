@@ -77,6 +77,10 @@ namespace Quelos {
     */
     }
 
+    RendererAPI Renderer::GetRendererAPI() {
+        return s_RendererContext->GetRendererAPI();
+    }
+
     void Renderer::StartFrame() {
         if (s_NeedReset) {
             s_RendererContext->Reset(s_Window->GetWidth(), s_Window->GetHeight());

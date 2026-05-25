@@ -27,7 +27,7 @@ namespace QuelosEditor {
             std::ofstream file(path, std::ios::binary);
             if (!file) {
                 QS_CORE_ERROR_TAG(
-                    "ShaderImporter::SerializeHandle",
+                    "ShaderImporter",
                     "Failed to serialize shader handle at {}",
                     path.generic_string()
                 );
@@ -55,8 +55,8 @@ namespace QuelosEditor {
             std::ifstream file(path, std::ios::binary | std::ios::ate);
             if (!file) {
                 QS_CORE_ERROR_TAG(
-                    "ShaderImporter::DeserializeHandle",
-                    "Failed to open metadata file '{}'",
+                    "ShaderImporter",
+                    "DeserializeHandle Failed to open metadata file '{}'",
                     path.generic_string()
                 );
 
@@ -99,27 +99,47 @@ namespace QuelosEditor {
         bool CompileShader(
             const std::string& shaderPath, const AssetID handle, Buffer& vertexBuffer, Buffer& fragmentBuffer
         ) {
-
-            QS_PROFILE_SCOPED_N("Shader compilation");
+            //QS_PROFILE_SCOPED_N("Shader compilation");
             auto t0 = std::chrono::high_resolution_clock::now();
 
             slang::SessionDesc sessionDesc;
 
             slang::TargetDesc targetDesc;
-            targetDesc.format = SLANG_SPIRV;
-            targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
-            slang::CompilerOptionEntry opts[] = {
-                {slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}},
-                {slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}},
-            };
-            targetDesc.compilerOptionEntries = opts;
-            targetDesc.compilerOptionEntryCount = 2;
+            switch (Renderer::GetRendererAPI()) {
+            case RendererAPI::Direct3D11:
+            case RendererAPI::Direct3D12: {
+                targetDesc.format = SLANG_DXBC;
+                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
+                break;
+            }
+            case RendererAPI::Vulkan: {
+                targetDesc.format = SLANG_SPIRV;
+                targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
+
+                slang::CompilerOptionEntry opts[] = {
+                    {slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}},
+                    {slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}},
+                };
+
+                targetDesc.compilerOptionEntries = opts;
+                targetDesc.compilerOptionEntryCount = 2;
+                break;
+            }
+            case RendererAPI::OpenGL: {
+                targetDesc.format = SLANG_HLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
+                break;
+            }
+            default:
+                QS_CORE_ASSERT(false, "Unsupported renderer API");
+                break;
+            }
 
             sessionDesc.targets = &targetDesc;
             sessionDesc.targetCount = 1;
 
             std::string parentPath = (Project::GetProjectPath() / shaderPath).parent_path().generic_string();
-            const char* searchPaths[] = { parentPath.c_str() };
+            const char* searchPaths[] = {parentPath.c_str()};
             sessionDesc.searchPaths = searchPaths;
             sessionDesc.searchPathCount = 1;
 
@@ -130,7 +150,7 @@ namespace QuelosEditor {
             Slang::ComPtr<slang::IBlob> diagnostics;
             slang::IModule* module = session->loadModule(moduleName.c_str(), diagnostics.writeRef());
             if (diagnostics) {
-                QS_CORE_TRACE_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+                QS_CORE_TRACE_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
                 diagnostics = nullptr;
             }
 
@@ -156,24 +176,13 @@ namespace QuelosEditor {
             slang::ProgramLayout* moduleLayout = module->getLayout();
             slang::ProgramLayout* entryLayout = vertexEntryPoint->getLayout();
 
-            QS_CORE_INFO_TAG("SlangModule", "Module name: {}", module->getName());
+            QS_CORE_TRACE_TAG("Slang", "Module found: {}", module->getName());
             for (uint32_t i = 0; i < moduleLayout->getParameterCount(); i++) {
                 slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
                 QS_CORE_TRACE_TAG(
-                    "SlangModuleParameter",
-                    "{}-{}",
-                    parameter->getName() ? parameter->getName() : "",
-                    parameter->getSemanticName() ? parameter->getSemanticName() : ""
-                );
-            }
-
-            for (uint32_t i = 0; i < entryLayout->getParameterCount(); i++) {
-                slang::VariableLayoutReflection* parameter = entryLayout->getParameterByIndex(i);
-                QS_CORE_TRACE_TAG(
-                    "SlangEntryParameter",
-                    "{}-{}",
-                    parameter->getName() ? parameter->getName() : "",
-                    parameter->getSemanticName() ? parameter->getSemanticName() : ""
+                    "Slang",
+                    "{}",
+                    parameter->getName() ? parameter->getName() : ""
                 );
             }
 
@@ -182,7 +191,7 @@ namespace QuelosEditor {
 
             if (diagnostics) {
                 QS_CORE_ERROR_TAG(
-                    "SlangDiagnostic",
+                    "Slang",
                     "{}",
                     static_cast<const char*>(diagnostics->getBufferPointer())
                 );
@@ -192,24 +201,38 @@ namespace QuelosEditor {
 
             auto t1 = std::chrono::high_resolution_clock::now();
 
-            QS_CORE_INFO("Slang Module Compilation: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0));
+            QS_CORE_TRACE_TAG(
+                "Slang",
+                "Module compilation: {}",
+                std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0)
+            );
 
             const int targetIndex = 0;
 
             Slang::ComPtr<slang::IBlob> vsBlob;
             linkedProgram->getEntryPointCode(0, targetIndex, vsBlob.writeRef(), diagnostics.writeRef());
             if (diagnostics) {
-                QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+                QS_CORE_ERROR_TAG(
+                    "Slang",
+                    "Failed to get vertex code: {}", static_cast<const char*>(diagnostics->getBufferPointer())
+                );
+
                 diagnostics = nullptr;
             }
 
             auto t2 = std::chrono::high_resolution_clock::now();
-            QS_CORE_INFO("Vertex code: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1));
+            QS_CORE_TRACE_TAG(
+                "Slang",
+                "Vertex code compilation: {}",
+                std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1)
+            );
 
             Slang::ComPtr<slang::IBlob> fsBlob;
             linkedProgram->getEntryPointCode(1, targetIndex, fsBlob.writeRef(), diagnostics.writeRef());
             if (diagnostics) {
-                QS_CORE_ERROR_TAG("SlangDiagnostic", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+                QS_CORE_ERROR_TAG(
+                    "Slang",
+                    "Failed to get fragment code: {}", static_cast<const char*>(diagnostics->getBufferPointer()));
             }
 
             if (!vsBlob || !fsBlob) {
@@ -218,7 +241,11 @@ namespace QuelosEditor {
 
             auto t3 = std::chrono::high_resolution_clock::now();
 
-            QS_CORE_INFO("Fragment code: {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(t3-t2));
+            QS_CORE_TRACE_TAG(
+                "Slang",
+                "Fragment code compilation: {}",
+                std::chrono::duration_cast<std::chrono::milliseconds>(t3-t2)
+            );
 
             vertexBuffer = Buffer::Copy(vsBlob->getBufferPointer(), vsBlob->getBufferSize());
             fragmentBuffer = Buffer::Copy(fsBlob->getBufferPointer(), fsBlob->getBufferSize());
@@ -258,7 +285,7 @@ namespace QuelosEditor {
         bool RecompileShader(GraphicsShader* shader) {
             if (!shader || !shader->GetAssetID()) {
                 QS_ERROR_TAG(
-                    "ShaderImporter::RecompileShader",
+                    "ShaderImporter",
                     "Failed to recompile shader: invalid shader asset!"
                 );
 
@@ -268,7 +295,7 @@ namespace QuelosEditor {
             const Ref<EditorAssetManager> assetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
             if (!assetManager) {
                 QS_ERROR_TAG(
-                    "ShaderImporter::RecompileShader",
+                    "ShaderImporter",
                     "Failed to recompile shader '{}': couldn't retrieve EditorAssetManager",
                     shader->GetName()
                 );
@@ -279,7 +306,7 @@ namespace QuelosEditor {
             const AssetMetadata* metadata = assetManager->GetAssetMetadata(shader->GetAssetID());
             if (!metadata) {
                 QS_ERROR_TAG(
-                    "ShaderImporter::RecompileShader",
+                    "ShaderImporter",
                     "Failed to recompile shader '{}': couldn't retrieve asset metadata for shader!",
                     shader->GetName()
                 );

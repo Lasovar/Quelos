@@ -229,15 +229,10 @@ namespace QuelosEditor {
 
                 if (it != modelMetadata.MeshesMetadata.end()) {
                     modelMesh.AssetId = it->Handle;
-                    QS_CORE_INFO_TAG(
-                        "ModelImporter",
-                        "Using existing mesh handle {} for mesh '{}'",
-                        it->Handle.ToString(), mesh->mName.C_Str()
-                    );
                 } else {
                     AssetID newHandle = AssetID::Generate();
                     modelMesh.AssetId = newHandle;
-                    QS_CORE_INFO_TAG(
+                    QS_CORE_TRACE_TAG(
                         "ModelImporter",
                         "Generated new mesh handle {} for mesh '{}'",
                         newHandle.ToString(),
