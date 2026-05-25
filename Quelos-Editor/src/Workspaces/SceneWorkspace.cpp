@@ -73,12 +73,9 @@ namespace QuelosEditor {
             attribs.RenderPassHandle = m_Scene->GetRenderPass();
             attribs.ClearColors = clearValues;
 
-            /*
             m_Scene->StartRender(m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(), attribs);
             m_Scene->Render();
             m_Scene->EndRender();
-        */
-            m_Scene->GetSceneRenderer().Render(attribs, m_EditorCamera.GetViewProjection());
         }
 
         if (m_GameViewportPanel.ShouldDraw()) {
@@ -98,11 +95,9 @@ namespace QuelosEditor {
             attribs.RenderPassHandle = m_Scene->GetRenderPass();
             attribs.ClearColors = clearValues;
 
-            /*
             m_Scene->StartRender(attribs);
             m_Scene->Render();
             m_Scene->EndRender();
-        */
         }
     }
 
