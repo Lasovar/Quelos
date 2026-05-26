@@ -417,14 +417,14 @@ namespace QuelosEditor {
             const AssetMetadata& meshMetadata
         ) {
             // Load the parent model and extract the mesh
-            const AssetRef<Model> model(meshMetadata.ParentId);
+            AssetRef<Model> model(meshMetadata.ParentId);
             if (!model) {
                 return false;
             }
 
             for (MeshData& mesh : model->GetMeshes()) {
                 if (mesh.AssetId == meshMetadata.Handle) {
-                    new (dataSlot) Mesh(&mesh);
+                    new (dataSlot) Mesh(std::move(model), &mesh);
                     return true;
                 }
             }

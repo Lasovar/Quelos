@@ -199,10 +199,6 @@ namespace QuelosEditor {
     }
 
     bool EditorAssetManager::IsAlive(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return false;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return false;
@@ -213,10 +209,6 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::IncRef(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return;
@@ -227,17 +219,13 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::DecRef(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return;
         }
 
         const auto& pool = it->second;
-        pool.IncRef(pool.Data, handle);
+        pool.DecRef(pool.Data, handle);
     }
 
     void EditorAssetManager::CleanupAssetMap() {

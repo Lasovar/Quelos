@@ -273,11 +273,11 @@ namespace Quelos {
 
         constexpr float* value_ptr(float3x4& f) { return f.f32_0; }
         constexpr float* value_ptr(float4x3& f) { return f.f32_0; }
-        constexpr float* value_ptr(float4x4& f) { return f.f32_128_0; }
+        constexpr float* value_ptr(float4x4& f) { return &f[0][0]; }
 
         constexpr const float* value_ptr(const float3x4& f) { return f.f32_0; }
         constexpr const float* value_ptr(const float4x3& f) { return f.f32_0; }
-        constexpr const float* value_ptr(const float4x4& f) { return f.f32_128_0; }
+        constexpr const float* value_ptr(const float4x4& f) { return &f[0][0]; }
     }
 
     namespace mathExt {
