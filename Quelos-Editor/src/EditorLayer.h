@@ -73,7 +73,7 @@ namespace QuelosEditor {
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
-        Vec<Ref<Workspace>> m_Workspaces;
+        Vec<Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 
         bool m_CtrlKey : 1 = false;
