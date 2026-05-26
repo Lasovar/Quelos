@@ -29,6 +29,8 @@ namespace QuelosEditor {
         void RemoveAssetFromRegistry(const AssetID& assetHandle);
         void Reimport(AssetID assetId);
 
+        void FlushReimportQueue();
+
         Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath);
 
         template <typename T>
@@ -68,6 +70,7 @@ namespace QuelosEditor {
                               efsw::Action action, std::string oldFilename) override;
     private:
 
+        bool Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata);
         const AssetMetadata* AddAssetToRegistry(std::string_view assetPath);
 
         template <typename T, typename... Args>
@@ -98,5 +101,9 @@ namespace QuelosEditor {
 
         efsw::FileWatcher m_FileWatcher;
         HashMap<efsw::WatchID, AssetID> m_WatchedAssets;
+
+        Vec<AssetID> m_ReimportQueue;
+
+        efsw::WatchID m_WatchID;
     };
 }

@@ -64,12 +64,7 @@ namespace Quelos {
             }
 
             if (slot.Constructed) {
-                if (T* asset = slot.Get()) {
-                    asset->~T();
-                } else {
-                    QS_CORE_ERROR_TAG("AssetPool", "Invalid asset data!");
-                }
-
+                slot.Get()->~T();
                 slot.Constructed = false;
             }
 
@@ -77,6 +72,21 @@ namespace Quelos {
             slot.RefCount = 0;
 
             FreeList.push_back(assetHandle.Index);
+        }
+
+        /// Releases the asset data without invalidating the slot
+        /// @param assetHandle the asset handle to release
+        void Release(UntypedAssetHandle assetHandle) {
+            auto& slot = Slots[assetHandle.Index];
+
+            if (slot.Generation != assetHandle.Generation) {
+                return;
+            }
+
+            if (slot.Constructed) {
+                slot.Get()->~T();
+                slot.Constructed = false;
+            }
         }
     };
 
@@ -90,6 +100,7 @@ namespace Quelos {
         void (*DecRef)(void*, UntypedAssetHandle) = nullptr;
         void (*SetConstructed)(void*, UntypedAssetHandle, bool) = nullptr;
         void (*DestroyAt)(void*, UntypedAssetHandle) = nullptr;
+        void (*ReleaseAt)(void*, UntypedAssetHandle) = nullptr;
         UntypedAssetHandle (*Allocate)(void*) = nullptr;
         std::string DebugName;
 
@@ -188,6 +199,10 @@ namespace Quelos {
 
             untypedPool.DestroyAt = [](void* pool, UntypedAssetHandle assetHandle) {
                 static_cast<AssetPool<T>*>(pool)->Free(assetHandle);
+            };
+
+            untypedPool.ReleaseAt = [](void* pool, UntypedAssetHandle assetHandle) {
+                static_cast<AssetPool<T>*>(pool)->Release(assetHandle);
             };
 
             return untypedPool;

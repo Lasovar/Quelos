@@ -16,14 +16,25 @@ namespace Quelos {
         const std::string& GetName() const { return m_Name; }
 
         void Recreate(Buffer vertex, Buffer fragment);
+
         ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
         ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
+
+        void AddPipelineState(const PipelineStateHandle pipelineState) {
+            m_PipelineStates.push_back(pipelineState);
+        }
+
+        void RemovePipelineState(const PipelineStateHandle pipelineStateHandle) {
+            std::erase(m_PipelineStates, pipelineStateHandle);
+        }
 
     private:
         std::string m_Name;
 
         ShaderHandle m_VertexShader;
         ShaderHandle m_FragmentShader;
+
+        Vec<PipelineStateHandle> m_PipelineStates;
 
     public:
         const AssetType& GetAssetType() const override { return GetStaticType(); }

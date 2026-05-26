@@ -171,6 +171,7 @@ namespace Quelos {
             );
 
             m_PipelineStates.emplace(meshRenderer.ShaderData.GetAssetID(), Pair{pipelineStateHandle, srb});
+            shader.AddPipelineState(pipelineStateHandle);
         });
 
         m_World.defer_end();
@@ -187,6 +188,7 @@ namespace Quelos {
                 if (!meshRenderer.MeshData
                     || !meshRenderer.ShaderData
                     || meshRenderer.ShaderData.GetAssetID() != pipelineStateComponent.ShaderID
+                    || !Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())
                 ) {
                     entity.remove<PipelineStateComponent>();
                     return;
