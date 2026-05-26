@@ -270,6 +270,10 @@ namespace QuelosEditor {
         for (const auto& workspace : m_Workspaces) {
             workspace->OnImGuiRender(globalDockspaceID);
         }
+
+        std::erase_if(m_Workspaces, [](const Scope<Workspace>& workspace) {
+            return !workspace->IsOpen();
+        });
     }
 
     void EditorLayer::OnScenePlay() {
@@ -392,8 +396,8 @@ namespace QuelosEditor {
 
     void EditorLayer::OpenSceneWorkspace(const AssetID& handle) {
         Ref<Scene> scene = SceneImporter::ImportScene(handle, *Project::GetAssetManager()->GetAssetMetadata(handle));
-        const Ref<SceneWorkspace> sceneWorkspace = CreateRef<SceneWorkspace>(scene, m_UndoSystem);
-        m_Workspaces.push_back(sceneWorkspace);
+        Scope<SceneWorkspace> sceneWorkspace = CreateScope<SceneWorkspace>(scene, m_UndoSystem);
         sceneWorkspace->Focus();
+        m_Workspaces.push_back(std::move(sceneWorkspace));
     }
 }

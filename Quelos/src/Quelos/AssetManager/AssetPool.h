@@ -40,7 +40,8 @@ namespace Quelos {
     template <typename T>
     requires (std::is_base_of_v<Asset, T>)
     struct AssetPool {
-        Vec<AssetSlot<T>> Slots;
+        // Should probably be replaced with a pager
+        Deque<AssetSlot<T>> Slots{32};
         Vec<uint32_t> FreeList;
 
         UntypedAssetHandle Allocate() {

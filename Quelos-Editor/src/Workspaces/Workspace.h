@@ -18,6 +18,8 @@ namespace QuelosEditor {
             m_FocusRequestFrame = ImGui::GetFrameCount();
         }
 
+        [[nodiscard]] bool IsOpen() const { return m_IsOpen; }
+
         void OnImGuiRender(ImGuiID dockspaceID);
 
         virtual void Tick(float deltaTime) = 0;
@@ -29,7 +31,8 @@ namespace QuelosEditor {
         ImGuiID m_WorkspaceID;
         ImGuiWindowClass m_WorkspaceClass;
 
-        bool m_FocusRequest = false;
         uint32_t m_FocusRequestFrame = 0;
+        bool m_FocusRequest = false;
+        bool m_IsOpen = true;
     };
 }
