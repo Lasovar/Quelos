@@ -54,6 +54,5 @@
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Quelos/vendor/tracy" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/directsr-headers-src" vcs="Git" />
   </component>
 </project>

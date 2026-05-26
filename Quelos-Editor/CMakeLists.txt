@@ -62,53 +62,94 @@ set(SLANG_SLANG_COMPILER_IMPLIB ${SLANG_LIB_DIR}/${CMAKE_IMPORT_LIBRARY_PREFIX}s
 set(SLANG_COMPILER_CORE ${SLANG_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}compiler-core${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(SLANG_CORE ${SLANG_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}core${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-ExternalProject_Add(
-        slang_external
-
-        SOURCE_DIR
-        ${CMAKE_SOURCE_DIR}/Quelos-Editor/vendor/slang
-
-        BINARY_DIR
-        ${SLANG_BUILD_DIR}
-
-        INSTALL_COMMAND ""
-
-        CMAKE_GENERATOR
-        Ninja
-
-        CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-
-        -DSLANG_ENABLE_GFX=OFF
-        -DSLANG_ENABLE_TESTS=OFF
-        -DSLANG_ENABLE_EXAMPLES=OFF
-        -DSLANG_ENABLE_SLANGD=OFF
-        -DSLANG_ENABLE_SLANGI=OFF
-        -DSLANG_ENABLE_SLANGRT=OFF
-        -DSLANG_ENABLE_REPLAYER=OFF
-        -DSLANG_ENABLE_SLANG_GLSLANG=ON
-        -DSLANG_ENABLE_DXIL=ON
-        -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
-        -DSLANG_LIB_TYPE=SHARED
-
-        BUILD_BYPRODUCTS
-        ${SLANG_SLANG_COMPILER}
-        ${SLANG_SLANG_COMPILER_IMPLIB}
-        ${SLANG_COMPILER_CORE}
-        ${SLANG_CORE}
-        ${SLANG_BUILD_DIR}/external/lz4/build/cmake/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}
-        ${SLANG_BUILD_DIR}/external/miniz/${CMAKE_STATIC_LIBRARY_PREFIX}miniz${CMAKE_STATIC_LIBRARY_SUFFIX}
-        ${SLANG_BUILD_DIR}/external/cmark/src/${CMAKE_STATIC_LIBRARY_PREFIX}cmark-gfm${CMAKE_STATIC_LIBRARY_SUFFIX}
-
-        BUILD_ALWAYS OFF
-)
-
 add_library(slang-compiler SHARED IMPORTED GLOBAL)
 add_library(compiler-core STATIC IMPORTED GLOBAL)
 add_library(core STATIC IMPORTED GLOBAL)
 add_library(miniz STATIC IMPORTED GLOBAL)
 add_library(lz4 STATIC IMPORTED GLOBAL)
 add_library(cmark STATIC IMPORTED GLOBAL)
+
+if(NOT EXISTS "${SLANG_SLANG_COMPILER}")
+    ExternalProject_Add(
+            slang_external
+
+            SOURCE_DIR
+            ${CMAKE_SOURCE_DIR}/Quelos-Editor/vendor/slang
+
+            BINARY_DIR
+            ${SLANG_BUILD_DIR}
+
+            INSTALL_COMMAND ""
+
+            CMAKE_GENERATOR
+            Ninja
+
+            CMAKE_ARGS
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+
+            -DSLANG_ENABLE_GFX=OFF
+            -DSLANG_ENABLE_FULL_IR_VALIDATION=OFF
+            -DSLANG_ENABLE_IR_BREAK_ALLOC=OFF
+            -DSLANG_ENABLE_ASAN=OFF
+            -DSLANG_ENABLE_TESTS=OFF
+            -DSLANG_ENABLE_EXAMPLES=OFF
+            -DSLANG_ENABLE_SLANGD=OFF
+            -DSLANG_ENABLE_SLANGI=OFF
+            -DSLANG_ENABLE_SLANGRT=OFF
+            -DSLANG_ENABLE_REPLAYER=OFF
+            -DSLANG_ENABLE_SLANG_GLSLANG=OFF
+            -DSLANG_ENABLE_DXIL=OFF
+            -DSLANG_SLANG_LLVM_FLAVOR=DISABLE
+            -DSLANG_LIB_TYPE=SHARED
+
+            BUILD_BYPRODUCTS
+            ${SLANG_SLANG_COMPILER}
+            ${SLANG_SLANG_COMPILER_IMPLIB}
+            ${SLANG_COMPILER_CORE}
+            ${SLANG_CORE}
+            ${SLANG_BUILD_DIR}/external/lz4/build/cmake/${CMAKE_STATIC_LIBRARY_PREFIX}lz4${CMAKE_STATIC_LIBRARY_SUFFIX}
+            ${SLANG_BUILD_DIR}/external/miniz/${CMAKE_STATIC_LIBRARY_PREFIX}miniz${CMAKE_STATIC_LIBRARY_SUFFIX}
+            ${SLANG_BUILD_DIR}/external/cmark/src/${CMAKE_STATIC_LIBRARY_PREFIX}cmark-gfm${CMAKE_STATIC_LIBRARY_SUFFIX}
+
+            BUILD_ALWAYS OFF
+            UPDATE_COMMAND ""
+            UPDATE_DISCONNECTED ON
+            CONFIGURE_HANDLED_BY_BUILD ON
+
+            BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE} --parallel ${NPROCS}
+    )
+
+    add_dependencies(slang-compiler slang_external)
+    add_dependencies(compiler-core slang_external)
+    add_dependencies(core slang_external)
+    add_dependencies(miniz slang_external)
+    add_dependencies(lz4 slang_external)
+    add_dependencies(cmark slang_external)
+else()
+    message(STATUS "Slang already built, skipping ExternalProject")
+endif()
+
+# TRY AUTOMATE/REMEBER TO UPDATE
+set(SLANG_VERSION "2026.8.1")
+
+set(SLANG_RUNTIME_NAMES
+        slang-compiler
+        slang-glslang-${SLANG_VERSION}
+        slang-glsl-module-${SLANG_VERSION}
+)
+
+set(SLANG_DEPLOY_LIBS "")
+
+foreach(lib IN LISTS SLANG_RUNTIME_NAMES)
+    list(APPEND SLANG_DEPLOY_LIBS "${SLANG_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${lib}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+endforeach()
+
+add_custom_command(TARGET Quelos-Editor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${SLANG_DEPLOY_LIBS}
+        $<TARGET_FILE_DIR:Quelos-Editor>
+        COMMENT "Deploying Slang runtime libraries..."
+)
 
 set_target_properties(slang-compiler PROPERTIES
         IMPORTED_LOCATION
@@ -144,13 +185,6 @@ set_target_properties(cmark PROPERTIES
         IMPORTED_LOCATION
         "${SLANG_BUILD_DIR}/external/cmark/src/${CMAKE_STATIC_LIBRARY_PREFIX}cmark-gfm${CMAKE_STATIC_LIBRARY_SUFFIX}"
 )
-
-add_dependencies(slang-compiler slang_external)
-add_dependencies(compiler-core slang_external)
-add_dependencies(core slang_external)
-add_dependencies(miniz slang_external)
-add_dependencies(lz4 slang_external)
-add_dependencies(cmark slang_external)
 
 add_library(slang INTERFACE)
 
