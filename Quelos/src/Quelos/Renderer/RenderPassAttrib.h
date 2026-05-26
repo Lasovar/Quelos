@@ -19,6 +19,6 @@ namespace Quelos {
     struct BeginRenderPassAttribs {
         RenderPassHandle RenderPassHandle;
         FrameBufferHandle FrameBufferHandle;
-        Span<ClearValue> ClearColors;
+        Span32<const ClearValue> ClearColors;
     };
 }

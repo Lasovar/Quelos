@@ -130,8 +130,8 @@ namespace Quelos {
             return Elements[i];
         }
 
-        operator Span<const LayoutElement>() const {
-            return Span<const LayoutElement>(Elements.data(), Count);
+        operator Span32<const LayoutElement>() const {
+            return Span32<const LayoutElement>(Elements.data(), Count);
         }
 
     private:
@@ -161,6 +161,6 @@ namespace Quelos {
     };
 
     struct InputLayoutSpec {
-        Span<const LayoutElement> LayoutElements;
+        Span32<const LayoutElement> LayoutElements;
     };
 }

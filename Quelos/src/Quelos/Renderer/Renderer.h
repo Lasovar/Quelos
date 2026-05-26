@@ -2,7 +2,7 @@
 
 #include <Quelos/Scenes/Components.h>
 
-#include "Buffer.h"
+#include "GpuBuffer.h"
 #include "FrameBuffer.h"
 #include "PipelineState.h"
 #include "RendererContext.h"
@@ -51,7 +51,7 @@ namespace Quelos {
         static PipelineStateHandle CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo);
         static void BindStaticVariableByName(
             PipelineStateHandle pipelineStateHandle, ShaderType shaderType, std::string_view name,
-            GPUBufferHandle bufferHandle
+            GpuBufferHandle bufferHandle
         );
         static void BindPipelineState(PipelineStateHandle pipelineHandle);
         static void Destroy(PipelineStateHandle pipelineStateHandle);
@@ -61,21 +61,21 @@ namespace Quelos {
         static void Submit(GraphicsShaderHandle handle, uint32_t view);
         static void Destroy(GraphicsShaderHandle shaderHandle);
 
-        static GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView bufferView);
-        static void UpdateBuffer(GPUBufferHandle bufferHandle, uint64_t offset, BufferView data);
-        static void Destroy(GPUBufferHandle bufferHandle);
+        static GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView bufferView);
+        static void UpdateBuffer(GpuBufferHandle bufferHandle, uint64_t offset, BufferView data);
+        static void Destroy(GpuBufferHandle bufferHandle);
 
         static ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle, bool initStaticResources
         );
         static void BindVariableByName(
-            ShaderType shaderType, ShaderResourceBindingHandle srb, std::string_view str, GPUBufferHandle instanceBuffer
+            ShaderType shaderType, ShaderResourceBindingHandle srb, std::string_view str, GpuBufferHandle instanceBuffer
         );
 
         static void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle);
 
-        static void Map(GPUBufferHandle bufferHandle, MapType mapType, MapFlags discard, void*& data);
-        static void Unmap(GPUBufferHandle bufferHandle, MapType mapType);
+        static void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags discard, void*& data);
+        static void Unmap(GpuBufferHandle bufferHandle, MapType mapType);
 
         static void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle);
 
@@ -134,8 +134,8 @@ namespace Quelos {
         static void IncRef(Handle<VertexBuffer> textureHandle);
         static void DecRef(Handle<VertexBuffer> textureHandle);
 
-        static void IncRef(Handle<GPUBuffer> textureHandle);
-        static void DecRef(Handle<GPUBuffer> textureHandle);
+        static void IncRef(Handle<GpuBuffer> textureHandle);
+        static void DecRef(Handle<GpuBuffer> textureHandle);
         static void IncRef(Handle<RenderPass> textureHandle);
         static void DecRef(Handle<RenderPass> textureHandle);
         static void IncRef(Handle<ShaderResourceBinding> textureHandle);

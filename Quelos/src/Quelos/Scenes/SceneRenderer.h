@@ -48,7 +48,7 @@ namespace Quelos {
 
     private:
         Vec<AssetRef<Material>>          m_CPUMaterials;
-        GPUBufferHandle         mGPUBuffer;
+        GpuBufferHandle         mGPUBuffer;
         void*     mSRV = nullptr;
         size_t                         mGPUCapacity = 0;
         bool                           m_Dirty       = false;
@@ -77,7 +77,7 @@ namespace Quelos {
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
 
-        GPUBufferHandle m_GlobalBuffer;
-        GPUBufferHandle m_InstanceBuffer;
+        GpuBufferHandle m_GlobalBuffer;
+        GpuBufferHandle m_InstanceBuffer;
     };
 }

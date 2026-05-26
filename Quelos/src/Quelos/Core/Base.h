@@ -8,6 +8,7 @@
 #include "Quelos/Utility/SortedVec.h"
 #include "Quelos/Utility/SortedSet.h"
 #include "Quelos/Utility/SmallVec.h"
+#include "Quelos/Utility/Span32.h"
 #include "ankerl/unordered_dense.h"
 
 #include <filesystem>

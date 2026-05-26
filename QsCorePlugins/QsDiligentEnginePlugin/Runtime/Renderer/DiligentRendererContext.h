@@ -132,7 +132,7 @@ namespace Quelos {
             PipelineStateHandle pipelineStateHandle,
             ShaderType shaderType,
             std::string_view name,
-            GPUBufferHandle gpuBufferHandle
+            GpuBufferHandle gpuBufferHandle
         ) override;
 
         void BindPipelineState(PipelineStateHandle pipelineStateHandle) override;
@@ -144,7 +144,7 @@ namespace Quelos {
         void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) override;
         void Destroy(GraphicsShaderHandle shaderHandle) override;
 
-        GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) override;
+        GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) override;
 
         ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -154,18 +154,18 @@ namespace Quelos {
         void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
-            std::string_view name, GPUBufferHandle gpuBufferHandle
+            std::string_view name, GpuBufferHandle gpuBufferHandle
         ) override;
 
-        void Map(GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) override;
-        void Unmap(GPUBufferHandle bufferHandle, MapType mapType) override;
+        void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) override;
+        void Unmap(GpuBufferHandle bufferHandle, MapType mapType) override;
 
         void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
 
         void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
 
-        void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) override;
-        void Destroy(GPUBufferHandle bufferHandle) override;
+        void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) override;
+        void Destroy(GpuBufferHandle bufferHandle) override;
 
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;
@@ -214,8 +214,8 @@ namespace Quelos {
         void DecRef(Handle<IndexBuffer> textureHandle) override;
         void IncRef(Handle<VertexBuffer> textureHandle) override;
         void DecRef(Handle<VertexBuffer> textureHandle) override;
-        void IncRef(Handle<GPUBuffer> textureHandle) override;
-        void DecRef(Handle<GPUBuffer> textureHandle) override;
+        void IncRef(Handle<GpuBuffer> textureHandle) override;
+        void DecRef(Handle<GpuBuffer> textureHandle) override;
         void IncRef(Handle<RenderPass> textureHandle) override;
         void DecRef(Handle<RenderPass> textureHandle) override;
         void IncRef(Handle<ShaderResourceBinding> srb) override;
@@ -237,15 +237,13 @@ namespace Quelos {
         ResourceTable<QTextureData, Texture> m_TextureTable;
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
-        ResourceTable<QBufferData, GPUBuffer> m_BufferTable;
+        ResourceTable<QBufferData, GpuBuffer> m_BufferTable;
         ResourceTable<PipelineStateData, PipelineStateObject> m_PipelineStateTable;
         ResourceTable<IShaderResourceBinding*, ShaderResourceBinding> m_ShaderResourceBindingTable;
 
         RefCntAutoPtr<IRenderDevice> m_pDevice;
         RefCntAutoPtr<IDeviceContext> m_pImmediateContext;
         RefCntAutoPtr<ISwapChain> m_pSwapChain;
-        RefCntAutoPtr<IBuffer> m_VSConstants;
-        RefCntAutoPtr<IBuffer> m_VSTransform;
         RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     };
 }

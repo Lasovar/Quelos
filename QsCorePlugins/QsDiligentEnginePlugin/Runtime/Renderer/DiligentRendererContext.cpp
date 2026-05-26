@@ -121,29 +121,22 @@ namespace Quelos {
     namespace Utils {
         static void CreateFrameBuffer(
             IFramebuffer*& frameBuffer, IRenderDevice* device,
-            const Span<ITexture*> attachments, IRenderPass* renderPass
+            const Span32<ITexture*> attachments, IRenderPass* renderPass
         ) {
             SmallVec<ITextureView*, 2> viewAttachments;
-            viewAttachments.reserve(
-                attachments.size()
-            );
+            viewAttachments.reserve(attachments.size());
             for (uint64_t i = 0; i < attachments.size() - 1; i++) {
-                viewAttachments.push_back(
-                    attachments[i]->GetDefaultView(
-                        TEXTURE_VIEW_RENDER_TARGET
-                    )
-                );
+                viewAttachments.push_back(attachments[i]->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET));
             }
+
             viewAttachments.push_back(
-                attachments[attachments.size() - 1]->GetDefaultView(
-                    TEXTURE_VIEW_DEPTH_STENCIL
-                )
+                attachments[attachments.size() - 1]->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL)
             );
 
             FramebufferDesc desc;
             desc.Name = "FrameBuffer";
             desc.ppAttachments = viewAttachments.data();
-            desc.AttachmentCount = viewAttachments.size();
+            desc.AttachmentCount = attachments.size();
             if (renderPass) {
                 desc.pRenderPass = renderPass;
             }
@@ -398,7 +391,6 @@ namespace Quelos {
 
                 for (const auto& element : spec.LayoutElements) {
                     Elements.emplace_back(
-                        Diligent::LayoutElement{
                             element.InputIndex,
                             element.BufferSlot,
                             ComponentCount(element.ValueType),
@@ -408,12 +400,11 @@ namespace Quelos {
                             element.Stride,
                             ToDiligentInputElementFrequency(element.Frequency),
                             element.InstanceDataStepRate
-                        }
                     );
                 }
 
                 Desc.LayoutElements = Elements.data();
-                Desc.NumElements = static_cast<Uint32>(Elements.size());
+                Desc.NumElements = spec.LayoutElements.size();
             }
 
             operator const Diligent::InputLayoutDesc&() const {
@@ -537,7 +528,7 @@ namespace Quelos {
             return static_cast<USAGE>(usage);
         }
 
-        constexpr MISC_BUFFER_FLAGS GetMiscFlags(MiscBufferFlags miscFlags) {
+        constexpr MISC_BUFFER_FLAGS GetMiscFlags(MiscGpuBufferFlags miscFlags) {
             return static_cast<MISC_BUFFER_FLAGS>(miscFlags);
         }
 
@@ -553,7 +544,7 @@ namespace Quelos {
             return static_cast<MAP_FLAGS>(mapFlags);
         }
 
-        static BUFFER_MODE GetBufferMode(BufferMode mode) {
+        static BUFFER_MODE GetBufferMode(GpuBufferMode mode) {
             return static_cast<BUFFER_MODE>(mode);
         }
     }
@@ -830,8 +821,8 @@ namespace Quelos {
         // TODO:
     }
 
-    GPUBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
-        const Handle<GPUBuffer> handle = m_BufferTable.Emplace();
+    GpuBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
+        const Handle<GpuBuffer> handle = m_BufferTable.Emplace();
         QBufferData* slot = m_BufferTable.At(handle);
         slot->Name = bufferSpec.Name;
         slot->Specification = bufferSpec;
@@ -875,7 +866,7 @@ namespace Quelos {
         ShaderType shaderType,
         ShaderResourceBindingHandle shaderResourceBindingHandle,
         std::string_view name,
-        GPUBufferHandle gpuBufferHandle
+        GpuBufferHandle gpuBufferHandle
     ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
@@ -897,7 +888,7 @@ namespace Quelos {
     }
 
     void DiligentRendererContext::Map(
-        GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData
+        GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData
     ) {
         m_pImmediateContext->MapBuffer(
             m_BufferTable.At(bufferHandle)->Buffer,
@@ -907,7 +898,7 @@ namespace Quelos {
         );
     }
 
-    void DiligentRendererContext::Unmap(const GPUBufferHandle bufferHandle, const MapType mapType) {
+    void DiligentRendererContext::Unmap(const GpuBufferHandle bufferHandle, const MapType mapType) {
         m_pImmediateContext->UnmapBuffer(m_BufferTable.At(bufferHandle)->Buffer, Utils::GetMapType(mapType));
     }
 
@@ -949,7 +940,7 @@ namespace Quelos {
         m_ShaderResourceBindingTable.Erase(shaderResourceBindingHandle);
     }
 
-    void DiligentRendererContext::UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) {
+    void DiligentRendererContext::UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) {
         m_pImmediateContext->UpdateBuffer(
             m_BufferTable.At(gpuBufferHandle)->Buffer,
             // buffer
@@ -963,7 +954,7 @@ namespace Quelos {
         );
     }
 
-    void DiligentRendererContext::Destroy(GPUBufferHandle bufferHandle) {
+    void DiligentRendererContext::Destroy(GpuBufferHandle bufferHandle) {
         QBufferData* slot = m_BufferTable.At(bufferHandle);
         slot->Buffer->Release();
         slot->Buffer = nullptr;
@@ -1088,7 +1079,7 @@ namespace Quelos {
         slot->Name = renderPassSpec.Name;
         slot->Attachments = SmallVec<RenderPassAttachmentSpec, 2>(renderPassSpec.Attachments);
 
-        size_t renderTargetAttachmentRefsCount = 0;
+        uint32_t renderTargetAttachmentRefsCount = 0;
         for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
             renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
         }
@@ -1098,13 +1089,13 @@ namespace Quelos {
         for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
             SubPassSpec ownedSubpass;
 
-            const size_t attachmentIndex = slot->AttachmentReferences.size();
+            const uint32_t attachmentIndex = slot->AttachmentReferences.size();
             std::ranges::copy(
                 subPass.RenderTargetAttachments,
                 std::back_inserter(slot->AttachmentReferences)
             );
 
-            ownedSubpass.RenderTargetAttachments = Span(
+            ownedSubpass.RenderTargetAttachments = Span32(
                 slot->AttachmentReferences.data() + attachmentIndex,
                 subPass.RenderTargetAttachments.size()
             );
@@ -1129,7 +1120,7 @@ namespace Quelos {
         SmallVec<SubpassDesc, 2> subpasses;
         SmallVec<Diligent::AttachmentReference, 2> attachmentRefs;
 
-        size_t totalAttachmentRefCount = 0;
+        uint32_t totalAttachmentRefCount = 0;
         for (const SubPassSpec& pass : spec.SubPasses) {
             totalAttachmentRefCount += pass.RenderTargetAttachments.size() + 1;
         }
@@ -1140,7 +1131,7 @@ namespace Quelos {
         for (const SubPassSpec& pass : spec.SubPasses) {
             SubpassDesc subPassDesc{};
 
-            const size_t attachmentIndex = attachmentRefs.size();
+            const uint32_t attachmentIndex = attachmentRefs.size();
             for (const AttachmentReference& attachmentReference : pass.RenderTargetAttachments) {
                 attachmentRefs.push_back(Utils::GetAttachmentReference(attachmentReference));
             }
@@ -1161,28 +1152,6 @@ namespace Quelos {
         RPDesc.pSubpasses = subpasses.data();
 
         m_pDevice->CreateRenderPass(RPDesc, &slot->RenderPass);
-
-        {
-            // Create dynamic uniform buffer that will store our transformation matrix
-            // Dynamic buffers can be frequently updated by the CPU
-            BufferDesc CBDesc;
-            CBDesc.Name = "VS constants CB";
-            CBDesc.Size = sizeof(float4x4);
-            CBDesc.Usage = USAGE_DYNAMIC;
-            CBDesc.BindFlags = BIND_UNIFORM_BUFFER;
-            CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-            m_pDevice->CreateBuffer(CBDesc, nullptr, &m_VSConstants);
-
-            // Create dynamic uniform buffer that will store our transformation matrix
-            // Dynamic buffers can be frequently updated by the CPU
-            BufferDesc TBDesc;
-            TBDesc.Name = "VS Transform CB";
-            TBDesc.Size = sizeof(float4x4);
-            TBDesc.Usage = USAGE_DYNAMIC;
-            TBDesc.BindFlags = BIND_UNIFORM_BUFFER;
-            TBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-            m_pDevice->CreateBuffer(TBDesc, nullptr, &m_VSTransform);
-        }
 
         return handle;
     }
@@ -1226,7 +1195,7 @@ namespace Quelos {
         Utils::CreateFrameBuffer(
             slot->FrameBuffer,
             m_pDevice,
-            Span(textureAttachments),
+            Span32(textureAttachments),
             m_RenderPassTable.At(spec.RenderPassHandle)->RenderPass
         );
 
@@ -1271,7 +1240,7 @@ namespace Quelos {
             renderPass = m_RenderPassTable.At(data->Specification.RenderPassHandle)->RenderPass;
         }
 
-        Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span(textureAttachments), renderPass);
+        Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span32(textureAttachments), renderPass);
     }
 
     void DiligentRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {
@@ -1530,7 +1499,7 @@ namespace Quelos {
         const PipelineStateHandle pipelineStateHandle,
         const ShaderType shaderType,
         std::string_view name,
-        const GPUBufferHandle gpuBufferHandle
+        const GpuBufferHandle gpuBufferHandle
     ) {
         IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
 
@@ -1737,8 +1706,8 @@ namespace Quelos {
         }
     }
 
-    void DiligentRendererContext::IncRef(Handle<GPUBuffer> gpuBuffer) {m_BufferTable.IncRef(gpuBuffer);}
-    void DiligentRendererContext::DecRef(Handle<GPUBuffer> gpuBuffer) {
+    void DiligentRendererContext::IncRef(Handle<GpuBuffer> gpuBuffer) {m_BufferTable.IncRef(gpuBuffer);}
+    void DiligentRendererContext::DecRef(Handle<GpuBuffer> gpuBuffer) {
         if (m_BufferTable.DecRef(gpuBuffer)) {
             Destroy(gpuBuffer);
         }
