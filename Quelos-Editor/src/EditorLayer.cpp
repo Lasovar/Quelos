@@ -62,7 +62,7 @@ namespace QuelosEditor {
         s_Instance = this;
 
         m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
-
+        m_EditorAssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
@@ -140,6 +140,8 @@ namespace QuelosEditor {
         for (const auto& workspace : m_Workspaces) {
             workspace->Tick(deltaTime);
         }
+
+        m_EditorAssetManager->FlushReimportQueue();
     }
 
     void EditorLayer::ImGuiRender() {

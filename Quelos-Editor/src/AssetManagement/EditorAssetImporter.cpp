@@ -90,6 +90,12 @@ namespace QuelosEditor {
         }
 
         if (const auto it = s_EditorAssetLoaders.find(assetMetadata->Type); it != s_EditorAssetLoaders.end()) {
+            if (it->second.CookAsset) {
+                if (!it->second.CookAsset(*assetMetadata)) {
+                    return;
+                }
+            }
+
             if (it->second.ReimportAsset) {
                 it->second.ReimportAsset(dataSlot, *assetMetadata);
             }

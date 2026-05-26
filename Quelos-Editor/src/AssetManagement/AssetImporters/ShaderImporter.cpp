@@ -99,6 +99,7 @@ namespace QuelosEditor {
         bool CompileShader(
             const std::string& shaderPath, const AssetID handle, Buffer& vertexBuffer, Buffer& fragmentBuffer
         ) {
+
             //QS_PROFILE_SCOPED_N("Shader compilation");
             auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -274,6 +275,7 @@ namespace QuelosEditor {
         }
 
         bool Reimport(void* shader, [[maybe_unused]] const AssetMetadata& metadata) {
+
             return RecompileShader(static_cast<GraphicsShader*>(shader));
         }
 
@@ -330,6 +332,18 @@ namespace QuelosEditor {
             const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
 
             Buffer vertexBuffer, fragmentBuffer;
+
+            namespace fs = std::filesystem;
+
+            // Check if cache is valid (exists and newer than source)
+            const auto srcTime = fs::last_write_time(Project::GetProjectPath() / metadata.FilePath);
+            const bool cacheValid = fs::exists(cookedVertexPath) && fs::exists(cookedFragmentPath)
+                           && fs::last_write_time(cookedVertexPath) >= srcTime
+                           && fs::last_write_time(cookedFragmentPath) >= srcTime;
+
+            if (cacheValid) {
+                return true;
+            }
 
             if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer, fragmentBuffer)) {
                 return false;

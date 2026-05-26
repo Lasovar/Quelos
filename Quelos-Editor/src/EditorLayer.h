@@ -70,6 +70,8 @@ namespace QuelosEditor {
         Ref<Scene> m_EditorScene;
         Ref<Scene> m_ActiveScene;
 
+        Ref<EditorAssetManager> m_EditorAssetManager;
+
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 

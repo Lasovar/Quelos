@@ -55,6 +55,10 @@ namespace Quelos {
             return;
         }
 
+        for (const PipelineStateHandle& pipelineState : m_PipelineStates) {
+            Renderer::Destroy(pipelineState);
+        }
+
         Renderer::Destroy(m_FragmentShader);
         Renderer::Destroy(m_VertexShader);
     }
