@@ -143,16 +143,16 @@ namespace QuelosEditor {
         template<typename T>
         void DrawField(std::string_view name, AssetRef<T>& value) {
             if constexpr (std::is_base_of_v<Asset, T>) {
-                AssetRef<T> temp = value;
+                AssetID temp = value.GetAssetID();
 
-                if (UI::EditAsset(GetFormattedFieldName(name), temp)) {
+                if (UI::EditAsset<T>(GetFormattedFieldName(name), temp)) {
                     m_UndoSystem.Push<SetField<AssetRef<T>>>(
                         m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
                         m_Actor.GetActorID(),
                         m_Scene,
                         m_SerializeComponentFunc,
                         name,
-                        value,
+                        value.GetAssetID(),
                         temp
                     );
                 }

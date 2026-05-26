@@ -20,6 +20,7 @@ add_compile_definitions(BX_CONFIG_DEBUG)
 # MSVC-specific options
 if (MSVC)
     add_compile_definitions(QS_COMPILER_MSVC)
+    add_compile_options(/Zc:__cplusplus)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -61,6 +62,7 @@ add_subdirectory(Quelos/vendor/GLFW)
 add_subdirectory(Quelos/vendor/tracy)
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
+add_subdirectory(Quelos/vendor/xxhash)
 
 # Daslang options
 set(DAS_GLFW_DISABLED ON CACHE BOOL "" FORCE)
@@ -80,7 +82,6 @@ add_subdirectory(Quelos/vendor/glm)
 add_subdirectory(Quelos/vendor/hlslpp)
 add_subdirectory(Quelos/vendor/spdlog)
 add_subdirectory(Quelos/vendor/stduuid)
-add_subdirectory(Quelos/vendor/xxhash)
 add_subdirectory(Quelos/vendor/magic_enum)
 add_subdirectory(Quelos/vendor/ska)
 add_subdirectory(Quelos/vendor/unordered_dense)
@@ -108,5 +109,5 @@ add_subdirectory(Quelos-Editor/vendor/assimp)
 
 add_subdirectory(Quelos-Editor/vendor/rapidfuzz-cpp)
 
-add_subdirectory(QsCorePlugins/QsBgfxRendererPlugin)
+add_subdirectory(QsCorePlugins/QsDiligentEnginePlugin)
 add_subdirectory(Quelos-Editor)

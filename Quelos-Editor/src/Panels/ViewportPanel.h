@@ -9,7 +9,7 @@ namespace QuelosEditor {
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(std::string  name, uint32_t viewId, uint32_t width, uint32_t height);
+        ViewportPanel(std::string name, RenderPassHandle renderPassHandle, uint32_t width, uint32_t height);
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
@@ -42,8 +42,8 @@ namespace QuelosEditor {
 
         bool m_ViewportVisible = false;
 
-        Ref<Texture2D> m_ColorAttachment;
-        Ref<Texture2D> m_DepthAttachment;
+        TextureHandle m_ColorAttachment;
+        TextureHandle m_DepthAttachment;
 
         Ref<FrameBuffer> m_FrameBuffer;
     };

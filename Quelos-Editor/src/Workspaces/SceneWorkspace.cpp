@@ -17,8 +17,8 @@ namespace QuelosEditor {
 
         m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
 
-        m_GameViewportPanel = ViewportPanel("Game View", 0, 1, 1);
-        m_SceneViewportPanel = ViewportPanel("Scene View", 1, 1, 1);
+        m_GameViewportPanel = ViewportPanel("Game View", m_Scene->GetRenderPass(), 1, 1);
+        m_SceneViewportPanel = ViewportPanel("Scene View", m_Scene->GetRenderPass(), 1, 1);
 
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
 
@@ -64,13 +64,18 @@ namespace QuelosEditor {
                 m_EditorCamera.SetViewportSize(size.x, size.y);
             }
 
-            Renderer::StartSceneRender(
-                m_SceneViewportPanel.GetFrameBuffer(),
-                m_EditorCamera.GetViewMatrix(),
-                m_EditorCamera.GetProjection()
-            );
+            ClearValue clearValues[2];
+            clearValues[0].Color = { 0.2667f, 0.2000f, 0.3333f, 1.0000f };
+            clearValues[1].DepthStencil.Depth = 1.0f;
 
-            m_Scene->Render(m_SceneViewportPanel.GetFrameBuffer()->GetViewID());
+            BeginRenderPassAttribs attribs;
+            attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
+            attribs.RenderPassHandle = m_Scene->GetRenderPass();
+            attribs.ClearColors = clearValues;
+
+            m_Scene->StartRender(m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(), attribs);
+            m_Scene->Render();
+            m_Scene->EndRender();
         }
 
         if (m_GameViewportPanel.ShouldDraw()) {
@@ -78,8 +83,21 @@ namespace QuelosEditor {
                 m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
-            m_Scene->StartRender(m_GameViewportPanel.GetFrameBuffer());
-            m_Scene->Render(m_GameViewportPanel.GetFrameBuffer()->GetViewID());
+            ClearValue clearValues[2];
+            clearValues[0].Format = ImageFormat::RGBA;
+            clearValues[0].Color = { 0.2667f, 0.2000f, 0.3333f, 1.0000f };
+
+            clearValues[1].Format = ImageFormat::DEPTH32F;
+            clearValues[1].DepthStencil.Depth = 1.0f;
+
+            BeginRenderPassAttribs attribs;
+            attribs.FrameBufferHandle = m_GameViewportPanel.GetFrameBuffer()->GetHandle();
+            attribs.RenderPassHandle = m_Scene->GetRenderPass();
+            attribs.ClearColors = clearValues;
+
+            m_Scene->StartRender(attribs);
+            m_Scene->Render();
+            m_Scene->EndRender();
         }
     }
 

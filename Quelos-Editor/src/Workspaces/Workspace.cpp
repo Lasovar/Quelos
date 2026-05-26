@@ -24,12 +24,12 @@ namespace QuelosEditor {
             m_FocusRequest = false;
         }
 
-        ImGui::Begin(m_WorkspaceName.c_str(), nullptr, flags);
+        if (ImGui::Begin(m_WorkspaceName.c_str(), &m_IsOpen, flags)) {
+            // Workspace-local dockspace
+            ImGui::DockSpace(m_WorkspaceID, ImVec2(0, 0), ImGuiDockNodeFlags_NoWindowMenuButton, &m_WorkspaceClass);
 
-        // Workspace-local dockspace
-        ImGui::DockSpace(m_WorkspaceID, ImVec2(0, 0), ImGuiDockNodeFlags_NoWindowMenuButton, &m_WorkspaceClass);
-
-        WorkspaceContents();
+            WorkspaceContents();
+        }
 
         ImGui::End();
     }

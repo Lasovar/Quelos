@@ -3,3 +3,4 @@ name = "Sphere"
 
 @Quelos.MeshRenderer
 shader = 54abe8a3-f05f-4114-80a5-b01ab22bf596
+color = (1,0,0,1)

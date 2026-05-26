@@ -14,7 +14,7 @@ namespace Quelos {
 		};
 
 		enum class Level : uint8_t {
-			Trace = 0, Info, Warn, Error, Fatal
+			Trace = 0, Info, Warn, Error, Critical
 		};
 
 		struct TagDetails {
@@ -55,7 +55,7 @@ namespace Quelos {
 				case Level::Info:  return "Info";
 				case Level::Warn:  return "Warn";
 				case Level::Error: return "Error";
-				case Level::Fatal: return "Fatal";
+				case Level::Critical: return "Critical";
 			}
 
 			return "";
@@ -66,7 +66,7 @@ namespace Quelos {
 			if (string == "Info")  return Level::Info;
 			if (string == "Warn")  return Level::Warn;
 			if (string == "Error") return Level::Error;
-			if (string == "Fatal") return Level::Fatal;
+			if (string == "Critical") return Level::Critical;
 
 			return Level::Trace;
 		}
@@ -88,14 +88,14 @@ namespace Quelos {
 #define QS_CORE_INFO_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Info, tag, __VA_ARGS__)
 #define QS_CORE_WARN_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Warn, tag, __VA_ARGS__)
 #define QS_CORE_ERROR_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Error, tag, __VA_ARGS__)
-#define QS_CORE_FATAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Fatal, tag, __VA_ARGS__)
+#define QS_CORE_CRITICAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Critical, tag, __VA_ARGS__)
 
 // Client tag logging
 #define QS_TRACE_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Trace, tag, __VA_ARGS__)
 #define QS_INFO_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Info, tag, __VA_ARGS__)
 #define QS_WARN_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Warn, tag, __VA_ARGS__)
 #define QS_ERROR_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Error, tag, __VA_ARGS__)
-#define QS_FATAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Fatal, tag, __VA_ARGS__)
+#define QS_CRITICAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Critical, tag, __VA_ARGS__)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -104,14 +104,14 @@ namespace Quelos {
 #define QS_CORE_INFO(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Info, __VA_ARGS__)
 #define QS_CORE_WARN(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Warn, __VA_ARGS__)
 #define QS_CORE_ERROR(...)  ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Error, __VA_ARGS__)
-#define QS_CORE_FATAL(...)  ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Fatal, __VA_ARGS__)
+#define QS_CORE_CRITICAL(...)  ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Critical, __VA_ARGS__)
 
 // Client Logging
 #define QS_TRACE(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Trace, __VA_ARGS__)
 #define QS_INFO(...)    ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Info, __VA_ARGS__)
 #define QS_WARN(...)    ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Warn, __VA_ARGS__)
 #define QS_ERROR(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Error, __VA_ARGS__)
-#define QS_FATAL(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Fatal, __VA_ARGS__)
+#define QS_CRITICAL(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Critical, __VA_ARGS__)
 
 namespace Quelos {
 	template<typename... Args>
@@ -137,7 +137,7 @@ namespace Quelos {
 			case Level::Error:
 				logger->error(formatted);
 				break;
-			case Level::Fatal:
+			case Level::Critical:
 				logger->critical(formatted);
 				break;
 			}
@@ -164,7 +164,7 @@ namespace Quelos {
 				case Level::Error:
 					logger->error("[{0}] {1}", tag, formatted);
 					break;
-				case Level::Fatal:
+				case Level::Critical:
 					logger->critical("[{0}] {1}", tag, formatted);
 					break;
 			}
@@ -189,7 +189,7 @@ namespace Quelos {
 				case Level::Error:
 					logger->error("[{0}] {1}", tag, message);
 					break;
-				case Level::Fatal:
+				case Level::Critical:
 					logger->critical("[{0}] {1}", tag, message);
 					break;
 			}

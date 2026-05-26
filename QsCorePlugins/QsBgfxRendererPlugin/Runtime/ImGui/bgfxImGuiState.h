@@ -3,7 +3,7 @@
 #include "Quelos/ImGui/ImGuiState.h"
 
 #include "imgui.h"
-#include "imgui_user.h"
+#include "../../../../Quelos/src/Quelos/ImGui/imgui_user.h"
 
 #include "Quelos/Plugin/PluginAPI.h"
 #include "bgfx/bgfx.h"
@@ -92,7 +92,7 @@ namespace Quelos {
     public:
         bgfxImGuiState() = default;
 
-        void Init(float fontSize) override;
+        void Init() override;
         void Destroy() override;
 
         void BeginFrame(uint32_t viewId) override;
@@ -109,7 +109,5 @@ namespace Quelos {
         bgfx::ProgramHandle m_ImageProgram = BGFX_INVALID_HANDLE;
         bgfx::UniformHandle s_Tex = BGFX_INVALID_HANDLE;
         bgfx::VertexLayout m_Layout;
-
-        ImFont* m_Font[ImGui::Font::Count]{};
     };
 }

@@ -35,6 +35,8 @@ namespace Quelos {
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 
+		virtual float GetDisplayScaling() const = 0;
+
 		virtual WindowingBackend GetWindowBacked() const = 0;
 
 		virtual bool IsWayland() const = 0;

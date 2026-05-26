@@ -29,3 +29,9 @@
 [submodule "Quelos/vendor/tracy"]
 	path = Quelos/vendor/tracy
 	url = https://github.com/Lasovar/tracy.git
+[submodule "QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine"]
+	path = QsCorePlugins/QsDiligentEnginePlugin/vendor/DiligentEngine
+	url = https://github.com/Lasovar/DiligentEngine.git
+[submodule "Quelos-Editor/vendor/slang"]
+	path = Quelos-Editor/vendor/slang
+	url = https://github.com/Lasovar/slang.git

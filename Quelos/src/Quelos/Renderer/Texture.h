@@ -11,20 +11,20 @@
 namespace Quelos {
     enum class QS_API ImageFormat {
         None = 0,
-        RED8UN,
-        RED8UI,
-        RED16UI,
-        RED32UI,
-        RED32F,
-        RG8,
-        RG16F,
-        RG32F,
+        RED8UNORM,
+        RED8UINT,
+        RED16UINT,
+        RED32UINT,
+        RED32FLOAT,
+        RG8UNORM,
+        RG16FLOAT,
+        RG32FLOAT,
         RGB,
         RGBA,
-        RGBA16F,
-        RGBA32F,
+        RGBA16FLOAT,
+        RGBA32FLOAT,
 
-        B10R11G11UF,
+        B10R11G11FLOAT,
 
         SRGB,
         SRGBA,
@@ -38,13 +38,25 @@ namespace Quelos {
     };
 
     enum class QS_API TextureWrap {
+        Unknown,
+        Repeat,
         Clamp,
-        Repeat
+        Mirror,
+        Border,
+
+        /// Similar to TEXTURE_ADDRESS_MIRROR and TEXTURE_ADDRESS_CLAMP. Takes the absolute
+        /// value of the texture coordinate (thus, mirroring around 0), and then clamps to
+        /// the maximum value. \n
+        /// Direct3D Counterpart: D3D11_TEXTURE_ADDRESS_MIRROR_ONCE/D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE. OpenGL counterpart: GL_MIRROR_CLAMP_TO_EDGE
+        /// \note GL_MIRROR_CLAMP_TO_EDGE is only available in OpenGL4.4+, and is not available until at least OpenGLES3.1
+        MirrorOnce,
+        Count
     };
 
     enum class QS_API TextureFilter {
+        Unknown,
+        Point,
         Linear,
-        Nearest,
         Anisotropic,
     };
 
@@ -68,11 +80,14 @@ namespace Quelos {
     };
 
     struct QS_API TextureSpecification {
+        std::string Name;
+
         ImageFormat Format = ImageFormat::RGBA;
         uint32_t Width = 1;
         uint32_t Height = 1;
         TextureWrap SamplerWrap = TextureWrap::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
+        TextureType Type = TextureType::Texture2D;
 
         bool IsBlitDestination = false;
         TextureRenderTarget RenderTarget = TextureRenderTarget::Off;
@@ -81,11 +96,11 @@ namespace Quelos {
 
     class Texture;
 
-    struct TextureHandle : Handle<Texture> {
+    struct QS_API TextureHandle : Handle<Texture> {
         TextureHandle() = default;
         TextureHandle(const Handle handle) : Handle(handle) {}
 
-        [[nodiscard]] uint16_t GetNativeHandle() const;
+        [[nodiscard]] uint64_t GetNativeHandle() const;
     };
 
     class QS_API Texture : public Asset {

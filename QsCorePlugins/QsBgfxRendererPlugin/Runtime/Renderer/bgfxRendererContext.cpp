@@ -230,7 +230,7 @@ namespace Quelos {
             switch (filter) {
             case TextureFilter::Linear:
                 return 0;
-            case TextureFilter::Nearest:
+            case TextureFilter::Point:
                 return BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT;
             case TextureFilter::Anisotropic:
                 return BGFX_SAMPLER_MIN_ANISOTROPIC | BGFX_SAMPLER_MAG_ANISOTROPIC;
@@ -327,7 +327,7 @@ namespace Quelos {
     static ResourceTable<bgfx::VertexBufferHandle, VertexBuffer> s_VertexBufferTable;
     static ResourceTable<bgfx::IndexBufferHandle, IndexBuffer> s_IndexBufferTable;
     static ResourceTable<bgfx::UniformHandle, UniformBuffer> s_UniformBufferTable;
-    static ResourceTable<ShaderData, Shader> s_ShaderTable;
+    static ResourceTable<ShaderData, GraphicsShader> s_ShaderTable;
     static ResourceTable<TextureData, Texture> s_TextureDataTable;
     static ResourceTable<FrameBufferData, FrameBuffer> s_FrameBufferTable;
 
@@ -365,7 +365,6 @@ namespace Quelos {
     }
 
     void bgfxRendererContext::StartSceneRender(
-        const FrameBufferHandle frameBuffer,
         const float4x4& view,
         const float4x4& projection
     ) {
@@ -608,7 +607,7 @@ namespace Quelos {
         TextureUtil::Resize(textureData, width, height);
     }
 
-    uint16_t bgfxRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
+    uint64_t bgfxRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
         const auto* handle = s_TextureDataTable.Get(textureHandle);
         if (!handle) {
             QS_CORE_ERROR_TAG(

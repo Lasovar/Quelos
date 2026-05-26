@@ -14,7 +14,6 @@ namespace Quelos {
         void EndFrame() override;
 
         void StartSceneRender(
-            FrameBufferHandle frameBuffer,
             const float4x4& view,
             const float4x4& projection
         ) override;
@@ -25,10 +24,10 @@ namespace Quelos {
 
         void Shutdown() override;
 
-        ShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
-        bool RecreateShader(ShaderHandle handle, Buffer vertex, Buffer fragment) override;
-        void Submit(ShaderHandle shaderHandle, uint32_t view) override;
-        void Destroy(ShaderHandle shaderHandle) override;
+        GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
+        bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) override;
+        void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) override;
+        void Destroy(GraphicsShaderHandle shaderHandle) override;
 
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;
@@ -50,7 +49,7 @@ namespace Quelos {
         bool TextureIsVFlipped() override;
 
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;
-        uint16_t TextureGetNativeHandle(TextureHandle textureHandle) override;
+        uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
         const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
 
         void Bind(TextureHandle textureHandle) override;

@@ -4,7 +4,7 @@
 #include "Quelos/Renderer/VertexBufferLayout.h"
 
 namespace Quelos {
-    Mesh::Mesh(MeshData* meshData) : m_MeshData(meshData) {
+    Mesh::Mesh(AssetRef<Model> model, MeshData* meshData) : m_MeshData(meshData), m_Model(std::move(model)) {
         if (!m_MeshData) {
             QS_CORE_ERROR_TAG("Mesh", "Failed to created mesh! invalid mesh data");
             return;

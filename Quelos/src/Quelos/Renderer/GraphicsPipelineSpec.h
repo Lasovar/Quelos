@@ -1,0 +1,8 @@
+//
+// Created by lasovar on 5/23/26.
+//
+
+#ifndef QUELOS_GRAPHICSPIPLINESPEC_H
+#define QUELOS_GRAPHICSPIPLINESPEC_H
+
+#endif //QUELOS_GRAPHICSPIPLINESPEC_H

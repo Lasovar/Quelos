@@ -5,12 +5,12 @@
 namespace Quelos {
     struct Color : float4 {
         constexpr Color() = default;
-        constexpr Color(const float4& f) : float4(f) {}
-        constexpr Color(const float r, const float g, const float b, const float a = 1.0f)
+        inline Color(const float4& f) : float4(f) {}
+        inline Color(const float r, const float g, const float b, const float a = 1.0f)
             : float4(r, g, b, a) {}
 
         [[nodiscard]]
-        static constexpr Color FromBytes(
+        static Color FromBytes(
             const uint8_t r,
             const uint8_t g,
             const uint8_t b,
@@ -53,10 +53,10 @@ namespace Quelos {
             return f32;
         }
 
-        static constexpr Color White() { return {1,1,1,1}; }
-        static constexpr Color Black() { return {0,0,0,1}; }
-        static constexpr Color Red()   { return {1,0,0,1}; }
-        static constexpr Color Green() { return {0,1,0,1}; }
-        static constexpr Color Blue()  { return {0,0,1,1}; }
+        static Color White() { return {1,1,1,1}; }
+        static Color Black() { return {0,0,0,1}; }
+        static Color Red()   { return {1,0,0,1}; }
+        static Color Green() { return {0,1,0,1}; }
+        static Color Blue()  { return {0,0,1,1}; }
     };
 }

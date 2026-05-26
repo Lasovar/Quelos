@@ -4,7 +4,7 @@
 #include "Renderer.h"
 
 namespace Quelos {
-    uint16_t TextureHandle::GetNativeHandle() const {
+    uint64_t TextureHandle::GetNativeHandle() const {
         return Renderer::TextureGetNativeHandle(*this);
     }
 

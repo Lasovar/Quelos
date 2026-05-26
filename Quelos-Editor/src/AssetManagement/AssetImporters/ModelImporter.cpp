@@ -229,15 +229,10 @@ namespace QuelosEditor {
 
                 if (it != modelMetadata.MeshesMetadata.end()) {
                     modelMesh.AssetId = it->Handle;
-                    QS_CORE_INFO_TAG(
-                        "ModelImporter",
-                        "Using existing mesh handle {} for mesh '{}'",
-                        it->Handle.ToString(), mesh->mName.C_Str()
-                    );
                 } else {
                     AssetID newHandle = AssetID::Generate();
                     modelMesh.AssetId = newHandle;
-                    QS_CORE_INFO_TAG(
+                    QS_CORE_TRACE_TAG(
                         "ModelImporter",
                         "Generated new mesh handle {} for mesh '{}'",
                         newHandle.ToString(),
@@ -386,13 +381,12 @@ namespace QuelosEditor {
 
             // Load model metadata to get sub-asset information
             std::string absolutePath = (Project::GetProjectPath() / assetPath).generic_string();
-            Model model;
-            ImportModel(&model, modelMetadata);
+            const ModelMetadata metadata = DeserializeModelMetadata(modelMetadata.FilePath);
 
             // Register mesh sub-assets
-            for (const auto& meshMeta : model.GetMeshes()) {
+            for (const auto& meshMeta : metadata.MeshesMetadata) {
                 AssetMetadata meshMetadata = {
-                    meshMeta.AssetId,
+                    meshMeta.Handle,
                     fmt::format("{}/Meshes/{}", modelMetadata.FilePath, meshMeta.Name),
                     Mesh::GetStaticType(),
                     modelMetadata.Handle,
@@ -422,14 +416,14 @@ namespace QuelosEditor {
             const AssetMetadata& meshMetadata
         ) {
             // Load the parent model and extract the mesh
-            const AssetRef<Model> model(meshMetadata.ParentId);
+            AssetRef<Model> model(meshMetadata.ParentId);
             if (!model) {
                 return false;
             }
 
             for (MeshData& mesh : model->GetMeshes()) {
                 if (mesh.AssetId == meshMetadata.Handle) {
-                    new (dataSlot) Mesh(&mesh);
+                    new (dataSlot) Mesh(std::move(model), &mesh);
                     return true;
                 }
             }

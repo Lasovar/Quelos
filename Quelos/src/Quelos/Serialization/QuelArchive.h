@@ -393,7 +393,7 @@ namespace Quelos::Serialization {
             );
         }
 
-        template <TupleLike T>
+        template <VectorType T>
         bool TryConvertTuple(const TextArchiveValue& src, T& out, const size_t expectedSize) {
             if (!src.IsTuple()) {
                 QS_CORE_ERROR_TAG("Serialization", "Expected tuple");
@@ -408,7 +408,7 @@ namespace Quelos::Serialization {
             }
 
             for (size_t i = 0; i < expectedSize; ++i) {
-                if (!TryConvert(m_Pool[elems[i]], out[i])) {
+                if (!TryConvert(m_Pool[elems[i]], math::value_ptr(out)[i])) {
                     QS_CORE_ERROR_TAG("Serialization", "Couldn't deserialize a tuple value");
                     return false;
                 }
@@ -430,11 +430,11 @@ namespace Quelos::Serialization {
         }
 
         bool TryConvert(const TextArchiveValue& src, Color& out) {
-            return TryConvertTuple(src, out, 4);
+            return TryConvertTuple(src, static_cast<float4&>(out), 4);
         }
 
         bool TryConvert(const TextArchiveValue& src, quaternion& out) {
-            return TryConvertTuple(src, out.f32, 4);
+            return TryConvertTuple(src, out, 4);
         }
 
         template <typename T>
