@@ -381,13 +381,12 @@ namespace QuelosEditor {
 
             // Load model metadata to get sub-asset information
             std::string absolutePath = (Project::GetProjectPath() / assetPath).generic_string();
-            Model model;
-            ImportModel(&model, modelMetadata);
+            const ModelMetadata metadata = DeserializeModelMetadata(modelMetadata.FilePath);
 
             // Register mesh sub-assets
-            for (const auto& meshMeta : model.GetMeshes()) {
+            for (const auto& meshMeta : metadata.MeshesMetadata) {
                 AssetMetadata meshMetadata = {
-                    meshMeta.AssetId,
+                    meshMeta.Handle,
                     fmt::format("{}/Meshes/{}", modelMetadata.FilePath, meshMeta.Name),
                     Mesh::GetStaticType(),
                     modelMetadata.Handle,
