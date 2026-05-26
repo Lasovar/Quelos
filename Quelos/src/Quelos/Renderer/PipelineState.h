@@ -89,8 +89,8 @@ namespace Quelos {
 
     struct PipelineResourceLayoutSpec {
         ShaderResourceVariableType DefaultVariableType;
-        Span<const ShaderResourceVariableSpec> Variables;
-        Span<const ImmutableSamplerSpec> ImmutableSamplers;
+        Span32<const ShaderResourceVariableSpec> Variables;
+        Span32<const ImmutableSamplerSpec> ImmutableSamplers;
     };
 
     enum class PipelineType {

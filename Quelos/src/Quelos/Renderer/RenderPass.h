@@ -67,14 +67,14 @@ namespace Quelos {
     };
 
     struct SubPassSpec {
-        Span<const AttachmentReference> RenderTargetAttachments;
+        Span32<const AttachmentReference> RenderTargetAttachments;
         AttachmentReference DepthAttachment;
     };
 
     struct RenderPassSpec {
         std::string_view Name;
-        Span<const SubPassSpec> SubPasses;
-        Span<const RenderPassAttachmentSpec> Attachments;
+        Span32<const SubPassSpec> SubPasses;
+        Span32<const RenderPassAttachmentSpec> Attachments;
     };
 
     class RenderPass;

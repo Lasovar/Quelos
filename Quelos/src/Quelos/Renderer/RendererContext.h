@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Buffer.h"
+#include "GpuBuffer.h"
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
 #include "PipelineState.h"
@@ -169,20 +169,20 @@ namespace Quelos {
             PipelineStateHandle pipelineStateHandle,
             ShaderType shaderType,
             std::string_view name,
-            GPUBufferHandle gpuBufferHandle
+            GpuBufferHandle gpuBufferHandle
         ) = 0;
 
         virtual void BindPipelineState(PipelineStateHandle pipelineStateHandle) = 0;
 
         virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;
-        virtual void Destroy(GPUBufferHandle bufferHandle) = 0;
+        virtual void Destroy(GpuBufferHandle bufferHandle) = 0;
 
         virtual GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) = 0;
         virtual bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) = 0;
         virtual void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) = 0;
         virtual void Destroy(GraphicsShaderHandle shaderHandle) = 0;
 
-        virtual GPUBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) = 0;
+        virtual GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) = 0;
 
         virtual ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -192,17 +192,17 @@ namespace Quelos {
         virtual void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
-            std::string_view name, GPUBufferHandle gpuBufferHandle
+            std::string_view name, GpuBufferHandle gpuBufferHandle
         ) = 0;
 
-        virtual void Map(GPUBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) = 0;
-        virtual void Unmap(GPUBufferHandle bufferHandle, MapType mapType) = 0;
+        virtual void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) = 0;
+        virtual void Unmap(GpuBufferHandle bufferHandle, MapType mapType) = 0;
 
         virtual void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
 
         virtual void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
 
-        virtual void UpdateBuffer(GPUBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) = 0;
+        virtual void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) = 0;
 
         virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
@@ -260,8 +260,8 @@ namespace Quelos {
         virtual void IncRef(Handle<VertexBuffer> textureHandle) = 0;
         virtual void DecRef(Handle<VertexBuffer> textureHandle) = 0;
 
-        virtual void IncRef(Handle<GPUBuffer> textureHandle) = 0;
-        virtual void DecRef(Handle<GPUBuffer> textureHandle) = 0;
+        virtual void IncRef(Handle<GpuBuffer> textureHandle) = 0;
+        virtual void DecRef(Handle<GpuBuffer> textureHandle) = 0;
 
         virtual void IncRef(Handle<RenderPass> textureHandle) = 0;
         virtual void DecRef(Handle<RenderPass> textureHandle) = 0;

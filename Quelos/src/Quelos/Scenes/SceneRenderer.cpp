@@ -25,7 +25,7 @@ namespace Quelos {
             desc.Size = sizeof(Material) * mGPUCapacity;
             desc.Usage = Usage::Default;
             desc.BindFlags = Bind::ShaderResource;
-            desc.Mode = BufferMode::Structured;
+            desc.Mode = GpuBufferMode::Structured;
             desc.ElementByteStride = sizeof(Material);
 
             // Upload all current data into the new buffer
@@ -49,7 +49,7 @@ namespace Quelos {
     }
 
     SceneRenderer::SceneRenderer(const flecs::world& world) : m_World(world) {
-        std::array<RenderPassAttachmentSpec, 2> attachments;
+        RenderPassAttachmentSpec attachments[2];
         attachments[0].Format = ImageFormat::RGBA;
         attachments[0].SampleCount = 1;
         attachments[0].LoadOp = AttachmentLoadOp::Clear;
@@ -72,7 +72,7 @@ namespace Quelos {
 
         RenderPassSpec renderPassSpec;
         renderPassSpec.Name = "Scene render pass";
-        renderPassSpec.SubPasses = Span(&subPassSpec, 1);
+        renderPassSpec.SubPasses = Span32(&subPassSpec, 1);
         renderPassSpec.Attachments = attachments;
 
         m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
@@ -96,7 +96,7 @@ namespace Quelos {
         instancesBufferSpec.Size = sizeof(InstanceData) * k_MaxInstances;
         instancesBufferSpec.Usage = Usage::Dynamic;
         instancesBufferSpec.BindFlags = Bind::ShaderResource;
-        instancesBufferSpec.Mode = BufferMode::Structured;
+        instancesBufferSpec.Mode = GpuBufferMode::Structured;
         instancesBufferSpec.CpuAccessFlags = CpuAccess::Write;
         instancesBufferSpec.ElementByteStride = sizeof(InstanceData);
 

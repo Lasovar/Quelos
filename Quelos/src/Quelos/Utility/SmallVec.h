@@ -5,13 +5,14 @@
 #include <new>
 #include <utility>
 #include <type_traits>
+#include <cstdint>
 
 namespace Quelos {
-    template <typename T, size_t N>
+    template <typename T, uint32_t N>
     class SmallVec {
     public:
         using value_type = T;
-        using size_type = size_t;
+        using size_type = uint32_t;
         using iterator = T*;
         using const_iterator = const T*;
 
@@ -88,8 +89,8 @@ namespace Quelos {
             return *this;
         }
 
-        T& operator[](size_t i) { return m_Data[i]; }
-        const T& operator[](size_t i) const { return m_Data[i]; }
+        T& operator[](size_type i) { return m_Data[i]; }
+        const T& operator[](size_type i) const { return m_Data[i]; }
 
         T* data() { return m_Data; }
         const T* data() const { return m_Data; }
@@ -102,11 +103,11 @@ namespace Quelos {
         const_iterator begin() const { return m_Data; }
         const_iterator end() const { return m_Data + m_Size; }
 
-        [[nodiscard]] size_t size() const { return m_Size; }
-        [[nodiscard]] size_t capacity() const { return m_Capacity; }
+        [[nodiscard]] size_type size() const { return m_Size; }
+        [[nodiscard]] size_type capacity() const { return m_Capacity; }
         [[nodiscard]] bool empty() const { return m_Size == 0; }
 
-        void reserve(const size_t newCap) {
+        void reserve(const size_type newCap) {
             if (newCap <= m_Capacity) {
                 return;
             }
@@ -179,10 +180,10 @@ namespace Quelos {
 
         template <std::input_iterator It>
         iterator insert(iterator pos, It first, It last) {
-            const size_t index = pos - begin();
+            const size_type index = pos - begin();
 
             if constexpr (std::forward_iterator<It>) {
-                const auto count = static_cast<size_t>(std::distance(
+                const auto count = static_cast<size_type>(std::distance(
                     first,
                     last
                 ));
@@ -194,13 +195,13 @@ namespace Quelos {
                 reserve(m_Size + count);
 
                 // move tail
-                for (size_t i = m_Size; i > index; --i) {
+                for (size_type i = m_Size; i > index; --i) {
                     new(m_Data + (i + count - 1)) T(std::move(m_Data[i - 1]));
                     m_Data[i - 1].~T();
                 }
 
                 // copy inserted range
-                size_t i = 0;
+                size_type i = 0;
                 for (; first != last; ++first, ++i) {
                     new(m_Data + index + i) T(*first);
                 }
@@ -219,7 +220,7 @@ namespace Quelos {
         }
 
         iterator insert(iterator pos, const T& value) {
-            const size_t index = pos - begin();
+            const size_type index = pos - begin();
 
             if (m_Size >= m_Capacity) {
                 grow();
@@ -227,7 +228,7 @@ namespace Quelos {
 
             pos = begin() + index;
 
-            for (size_t i = m_Size; i > index; --i) {
+            for (size_type i = m_Size; i > index; --i) {
                 new(m_Data + i) T(std::move(m_Data[i - 1]));
                 m_Data[i - 1].~T();
             }
@@ -240,7 +241,7 @@ namespace Quelos {
 
 
         iterator insert(iterator pos, T&& value) {
-            const size_t index = pos - begin();
+            const size_type index = pos - begin();
 
             if (m_Size >= m_Capacity) {
                 grow();
@@ -248,7 +249,7 @@ namespace Quelos {
 
             pos = begin() + index;
 
-            for (size_t i = m_Size; i > index; --i) {
+            for (size_type i = m_Size; i > index; --i) {
                 new(m_Data + i) T(std::move(m_Data[i - 1]));
                 m_Data[i - 1].~T();
             }
@@ -292,7 +293,7 @@ namespace Quelos {
             grow_to(m_Capacity * 2);
         }
 
-        void grow_to(const size_t newCap) {
+        void grow_to(const size_type newCap) {
             T* newData = static_cast<T*>(operator new(
                 newCap * sizeof(T)
             ));
@@ -339,31 +340,31 @@ namespace Quelos {
             other.m_Size = 0;
         }
 
-        static void destroy_range(T* data, const size_t count) {
+        static void destroy_range(T* data, const size_type count) {
             if constexpr (!std::is_trivially_destructible_v<T>) {
-                for (size_t i = 0; i < count; i++) {
+                for (size_type i = 0; i < count; i++) {
                     data[i].~T();
                 }
             }
         }
 
-        static void move_range(T* dst, T* src, const size_t count) {
+        static void move_range(T* dst, T* src, const size_type count) {
             if constexpr (std::is_trivially_copyable_v<T>) {
                 std::memcpy(dst, src, count * sizeof(T));
             }
             else {
-                for (size_t i = 0; i < count; ++i) {
+                for (size_type i = 0; i < count; ++i) {
                     new(&dst[i]) T(std::move(src[i]));
                 }
             }
         }
 
-        static void copy_range(T* dst, const T* src, const size_t count) {
+        static void copy_range(T* dst, const T* src, const size_type count) {
             if constexpr (std::is_trivially_copyable_v<T>) {
                 std::memcpy(dst, src, count * sizeof(T));
             }
             else {
-                for (size_t i = 0; i < count; ++i) {
+                for (size_type i = 0; i < count; ++i) {
                     new(&dst[i]) T(src[i]);
                 }
             }
@@ -373,7 +374,7 @@ namespace Quelos {
         alignas(T) unsigned char m_Inline[sizeof(T) * N]{};
 
         T* m_Data;
-        size_t m_Size;
-        size_t m_Capacity;
+        size_type m_Size;
+        size_type m_Capacity;
     };
 }

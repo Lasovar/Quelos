@@ -148,7 +148,7 @@ namespace Quelos {
         const PipelineStateHandle pipelineStateHandle,
         const ShaderType shaderType,
         const std::string_view name,
-        const GPUBufferHandle bufferHandle
+        const GpuBufferHandle bufferHandle
     ) {
         s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferHandle);
     }
@@ -194,15 +194,15 @@ namespace Quelos {
         s_RendererContext->Destroy(shaderHandle);
     }
 
-    GPUBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {
+    GpuBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {
         return s_RendererContext->CreateBuffer(bufferSpec, bufferView);
     }
 
-    void Renderer::UpdateBuffer(const GPUBufferHandle bufferHandle, const uint64_t offset, const BufferView data) {
+    void Renderer::UpdateBuffer(const GpuBufferHandle bufferHandle, const uint64_t offset, const BufferView data) {
         s_RendererContext->UpdateBuffer(bufferHandle, offset, data);
     }
 
-    void Renderer::Destroy(const GPUBufferHandle bufferHandle) {
+    void Renderer::Destroy(const GpuBufferHandle bufferHandle) {
         s_RendererContext->Destroy(bufferHandle);
     }
 
@@ -216,7 +216,7 @@ namespace Quelos {
         const ShaderType shaderType,
         const ShaderResourceBindingHandle srb,
         const std::string_view str,
-        const GPUBufferHandle instanceBuffer
+        const GpuBufferHandle instanceBuffer
     ) {
         s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer);
     }
@@ -345,8 +345,8 @@ namespace Quelos {
     void Renderer::DecRef(Handle<IndexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
     void Renderer::IncRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
     void Renderer::DecRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
-    void Renderer::IncRef(Handle<GPUBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
-    void Renderer::DecRef(Handle<GPUBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<GpuBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<GpuBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
     void Renderer::IncRef(Handle<RenderPass> textureHandle) { s_RendererContext->IncRef(textureHandle); }
     void Renderer::DecRef(Handle<RenderPass> textureHandle) { s_RendererContext->DecRef(textureHandle); }
     void Renderer::IncRef(Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->IncRef(textureHandle); }
@@ -358,11 +358,11 @@ namespace Quelos {
         return s_RendererContext->IsAlive(pipelineStateHandle);
     }
 
-    void Renderer::Map(const GPUBufferHandle bufferHandle, const MapType mapType, const MapFlags discard, void*& data) {
+    void Renderer::Map(const GpuBufferHandle bufferHandle, const MapType mapType, const MapFlags discard, void*& data) {
         s_RendererContext->Map(bufferHandle, mapType, discard, data);
     }
 
-    void Renderer::Unmap(const GPUBufferHandle bufferHandle, const MapType mapType) {
+    void Renderer::Unmap(const GpuBufferHandle bufferHandle, const MapType mapType) {
         s_RendererContext->Unmap(bufferHandle, mapType);
     }
 

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Buffer.h"
+#include "GpuBuffer.h"
 #include "PipelineState.h"
 
 namespace Quelos {

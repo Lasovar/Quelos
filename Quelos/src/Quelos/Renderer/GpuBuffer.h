@@ -9,7 +9,7 @@
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
-    enum class BufferMode : uint8_t {
+    enum class GpuBufferMode : uint8_t {
         /// Undefined mode.
         Undefined = 0,
 
@@ -33,7 +33,7 @@ namespace Quelos {
         Count
     };
 
-    enum class MiscBufferFlags : uint8_t {
+    enum class MiscGpuBufferFlags : uint8_t {
         /// No special flags are set.
         None = 0,
 
@@ -48,16 +48,16 @@ namespace Quelos {
         BindFlags BindFlags = Bind::None;
         Usage Usage = Usage::Default;
         CpuAccessFlags CpuAccessFlags = CpuAccess::None;
-        BufferMode Mode = BufferMode::Undefined;
-        MiscBufferFlags MiscFlags = MiscBufferFlags::None;
+        GpuBufferMode Mode = GpuBufferMode::Undefined;
+        MiscGpuBufferFlags MiscFlags = MiscGpuBufferFlags::None;
         uint32_t ElementByteStride = 0;
         uint64_t ImmediateContextMask = 1;
     };
 
-    class GPUBuffer;
+    class GpuBuffer;
 
-    struct GPUBufferHandle : Handle<GPUBuffer> {
-        GPUBufferHandle() = default;
-        GPUBufferHandle(const Handle handle) : Handle(handle) {}
+    struct GpuBufferHandle : Handle<GpuBuffer> {
+        GpuBufferHandle() = default;
+        GpuBufferHandle(const Handle handle) : Handle(handle) {}
     };
 }
