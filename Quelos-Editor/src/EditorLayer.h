@@ -36,7 +36,7 @@ namespace QuelosEditor {
 
         void OpenSceneWorkspace(const AssetID& handle);
 
-        static void RecompilerShader(const AssetRef<Shader>& shader) {
+        static void RecompilerShader(const AssetRef<GraphicsShader>& shader) {
             s_ShaderRecompilationStack.push_back(shader);
         }
 
@@ -70,10 +70,12 @@ namespace QuelosEditor {
         Ref<Scene> m_EditorScene;
         Ref<Scene> m_ActiveScene;
 
+        Ref<EditorAssetManager> m_EditorAssetManager;
+
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
-        Vec<Ref<Workspace>> m_Workspaces;
+        Vec<Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 
         bool m_CtrlKey : 1 = false;
@@ -83,6 +85,6 @@ namespace QuelosEditor {
 
         // SHADER
         static HashMap<const char*, QS_ShaderCompiler> s_ShaderCompilers;
-        static Vec<AssetRef<Shader>> s_ShaderRecompilationStack;
+        static Vec<AssetRef<GraphicsShader>> s_ShaderRecompilationStack;
     };
 }

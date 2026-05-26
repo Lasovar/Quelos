@@ -31,37 +31,49 @@ namespace Quelos {
 		if (!std::filesystem::exists(logsDirectory))
 			std::filesystem::create_directories(logsDirectory);
 
-		std::vector<spdlog::sink_ptr> quelosSinks = {
+		SmallVec<spdlog::sink_ptr, 2> quelosSinks = {
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/Quelos.log", true),
-#if QS_HAS_CONSOLE
-			std::make_shared<spdlog::sinks::stdout_color_sink_mt>()
-#endif
 		};
 
-		std::vector<spdlog::sink_ptr> appSinks = {
-			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 #if QS_HAS_CONSOLE
-			std::make_shared<spdlog::sinks::stdout_color_sink_mt>()
+		const auto quelosColorSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		quelosColorSink->set_color_mode(spdlog::color_mode::automatic);
+		quelosColorSink->set_pattern("%^[%T] %n: %v%$");
+
+		quelosSinks.push_back(quelosColorSink);
 #endif
+
+		SmallVec<spdlog::sink_ptr, 2> appSinks = {
+			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 		};
+
+#if QS_HAS_CONSOLE
+		const auto appColorSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		appColorSink->set_color_mode(spdlog::color_mode::automatic);
+		appColorSink->set_pattern("%^[%T] %n: %v%$");
+
+		appSinks.push_back(appColorSink);
+#endif
 
 		
-		std::vector<spdlog::sink_ptr> editorConsoleSinks =
-		{
+		SmallVec<spdlog::sink_ptr, 2> editorConsoleSinks = {
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
-#if QS_HAS_CONSOLE
-			std::make_shared<spdlog::sinks::stdout_color_sink_mt>()
-#endif
 		};
+
+#if QS_HAS_CONSOLE
+		const auto editorColorSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		editorColorSink->set_color_mode(spdlog::color_mode::automatic);
+
+		editorConsoleSinks.push_back(editorColorSink);
+#endif
 
 		quelosSinks[0]->set_pattern("[%T] [%l] %n: %v");
 		appSinks[0]->set_pattern("[%T] [%l] %n: %v");
 
 #if QS_HAS_CONSOLE
-		quelosSinks[1]->set_pattern("%^[%T] %n: %v%$");
-		appSinks[1]->set_pattern("%^[%T] %n: %v%$");
-		for (const auto& sink : editorConsoleSinks)
+		for (const auto& sink : editorConsoleSinks) {
 			sink->set_pattern("%^%v%$");
+		}
 #endif
 
 		s_CoreLogger = std::make_shared<spdlog::logger>("Quelos", quelosSinks.begin(), quelosSinks.end());

@@ -13,6 +13,7 @@
 #include "Quelos/ImGui/ImGuiState.h"
 
 #include "Quelos/Math/Math.h"
+#include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
     static Ref<Window> s_Window;
@@ -24,7 +25,6 @@ namespace Quelos {
     static Ref<RendererContext> s_RendererContext;
 
     static RendererFactory s_RendererContextFactory;
-
 
     static UniformBufferHandle u_lightDir;
     static UniformBufferHandle u_lightColor;
@@ -63,6 +63,7 @@ namespace Quelos {
 
         s_IsInitialized = true;
 
+        /*
         u_lightDir = CreateUniformBuffer("u_lightDir", UniformBufferType::Float4);
         u_lightColor = CreateUniformBuffer("u_lightColor", UniformBufferType::Float4);
         u_cameraPos = CreateUniformBuffer("u_cameraPos", UniformBufferType::Float4);
@@ -73,6 +74,11 @@ namespace Quelos {
         u_rampTex = CreateUniformBuffer("s_rampTex", UniformBufferType::Sampler);
 
         u_Color = CreateUniformBuffer("u_Color", UniformBufferType::Float4);
+    */
+    }
+
+    RendererAPI Renderer::GetRendererAPI() {
+        return s_RendererContext->GetRendererAPI();
     }
 
     void Renderer::StartFrame() {
@@ -84,33 +90,32 @@ namespace Quelos {
         s_RendererContext->StartFrame();
     }
 
-    void Renderer::StartSceneRender(
-        const Ref<FrameBuffer>& frameBuffer,
-        const WorldTransform& transform,
-        const float4x4& projection
-    ) {
-        StartSceneRender(frameBuffer, mathExt::view(transform.Value), projection);
-    }
-
-    void Renderer::StartSceneRender(const Ref<FrameBuffer>& frameBuffer, const float4x4& view,
-                                    const float4x4& projection) {
-        s_RendererContext->StartSceneRender(frameBuffer->GetHandle(), view, projection);
+    void Renderer::StartSceneRender(const float4x4& view, const float4x4& projection) {
+        s_RendererContext->StartSceneRender(view, projection);
 
         float4 lightDir = math::normalize(-float4(0.5f, -1.0f, 0.3f, 0.0f));
         SetUniformData(u_lightDir, math::value_ptr(lightDir));
 
-        float4 lightColorData{ 1.0f, 1.0f, 1.0f, 0.0f };
+        float4 lightColorData{1.0f, 1.0f, 1.0f, 0.0f};
         SetUniformData(u_lightColor, math::value_ptr(lightColorData));
 
         float4x4 invView = math::inverse(view);
         const float4& camPos(invView[3]);
         SetUniformData(u_cameraPos, math::value_ptr(camPos));
 
-        const float4 bandData{ 4.0f, 0.0f, 0.0f, 0.0f };
+        const float4 bandData{4.0f, 0.0f, 0.0f, 0.0f};
         SetUniformData(u_bandCount, math::value_ptr(bandData));
 
-        float4 shadowData{ 0.25f, 0.0f, 0.0f, 0.0f };
+        float4 shadowData{0.25f, 0.0f, 0.0f, 0.0f};
         SetUniformData(u_shadowThreshold, math::value_ptr(shadowData));
+    }
+
+    void Renderer::BeginRenderPass(const BeginRenderPassAttribs& attribs) {
+        s_RendererContext->BeginRenderPass(attribs);
+    }
+
+    void Renderer::EndRenderPass() {
+        s_RendererContext->EndRenderPass();
     }
 
     void Renderer::EndFrame() {
@@ -118,9 +123,42 @@ namespace Quelos {
         s_RendererContext->EndFrame();
     }
 
-    void Renderer::SubmitMesh(const uint32_t viewID, const MeshRenderer& mesh, const WorldTransform& transform) {
+    void Renderer::SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) {
         SetUniformData(u_Color, mesh.Color.value_ptr());
-        s_RendererContext->SubmitMesh(viewID, mesh, transform);
+        s_RendererContext->SubmitMesh(mesh, transform);
+    }
+
+    void Renderer::DrawIndexed(const DrawIndexedAttribs& attribs) {
+        s_RendererContext->DrawIndexed(attribs);
+    }
+
+    ShaderHandle Renderer::CreateShader(const ShaderCreateInfo& createInfo) {
+        return s_RendererContext->CreateShader(createInfo);
+    }
+
+    void Renderer::Destroy(const ShaderHandle shaderHandle) {
+        s_RendererContext->Destroy(shaderHandle);
+    }
+
+    PipelineStateHandle Renderer::CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo) {
+        return s_RendererContext->CreatePipelineState(pipelineStateCreateInfo);
+    }
+
+    void Renderer::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle,
+        const ShaderType shaderType,
+        const std::string_view name,
+        const GpuBufferHandle bufferHandle
+    ) {
+        s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferHandle);
+    }
+
+    void Renderer::BindPipelineState(const PipelineStateHandle pipelineHandle) {
+        s_RendererContext->BindPipelineState(pipelineHandle);
+    }
+
+    void Renderer::Destroy(const PipelineStateHandle pipelineStateHandle) {
+        s_RendererContext->Destroy(pipelineStateHandle);
     }
 
     void Renderer::Shutdown() {
@@ -140,20 +178,51 @@ namespace Quelos {
         return s_RendererContext->HomogenousDepth();
     }
 
-    ShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
+    GraphicsShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
         return s_RendererContext->CreateShader(std::move(vertex), std::move(fragment), name);
     }
 
-    bool Renderer::RecreateShader(const ShaderHandle handle, Buffer vertex, Buffer fragment) {
+    bool Renderer::RecreateShader(const GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) {
         return s_RendererContext->RecreateShader(handle, std::move(vertex), std::move(fragment));
     }
 
-    void Renderer::Submit(const ShaderHandle handle, const uint32_t view) {
+    void Renderer::Submit(const GraphicsShaderHandle handle, const uint32_t view) {
         s_RendererContext->Submit(handle, view);
     }
 
-    void Renderer::Destroy(const ShaderHandle shaderHandle) {
+    void Renderer::Destroy(const GraphicsShaderHandle shaderHandle) {
         s_RendererContext->Destroy(shaderHandle);
+    }
+
+    GpuBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {
+        return s_RendererContext->CreateBuffer(bufferSpec, bufferView);
+    }
+
+    void Renderer::UpdateBuffer(const GpuBufferHandle bufferHandle, const uint64_t offset, const BufferView data) {
+        s_RendererContext->UpdateBuffer(bufferHandle, offset, data);
+    }
+
+    void Renderer::Destroy(const GpuBufferHandle bufferHandle) {
+        s_RendererContext->Destroy(bufferHandle);
+    }
+
+    ShaderResourceBindingHandle Renderer::CreateShaderResourceBinding(
+        const PipelineStateHandle pipelineStateHandle, const bool initStaticResources
+    ) {
+        return s_RendererContext->CreateShaderResourceBinding(pipelineStateHandle, initStaticResources);
+    }
+
+    void Renderer::BindVariableByName(
+        const ShaderType shaderType,
+        const ShaderResourceBindingHandle srb,
+        const std::string_view str,
+        const GpuBufferHandle instanceBuffer
+    ) {
+        s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer);
+    }
+
+    void Renderer::CommitShaderResources(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        s_RendererContext->CommitShaderResources(shaderResourceBindingHandle);
     }
 
     VertexBufferHandle Renderer::CreateVertexBuffer(const BufferView vertices, const VertexLayout& bufferLayout) {
@@ -188,7 +257,9 @@ namespace Quelos {
         return s_RendererContext->CreateUniformBuffer(name, uniformType, count);
     }
 
-    void Renderer::SetUniformData(const UniformBufferHandle uniformBufferHandle, const void* data, const uint32_t count) {
+    void Renderer::SetUniformData(
+        const UniformBufferHandle uniformBufferHandle, const void* data, const uint32_t count
+    ) {
         s_RendererContext->SetUniformData(uniformBufferHandle, data, count);
     }
 
@@ -216,7 +287,7 @@ namespace Quelos {
         return s_RendererContext->GetSpecification(handle);
     }
 
-    uint16_t Renderer::TextureGetNativeHandle(const TextureHandle handle) {
+    uint64_t Renderer::TextureGetNativeHandle(const TextureHandle handle) {
         return s_RendererContext->TextureGetNativeHandle(handle);
     }
 
@@ -232,39 +303,70 @@ namespace Quelos {
         s_RendererContext->Destroy(textureHandle);
     }
 
-    FrameBufferHandle Renderer::CreateFrameBuffer(uint32_t viewID, Span<TextureHandle> attachments) {
-        return s_RendererContext->CreateFrameBuffer(viewID, attachments);
+    RenderPassHandle Renderer::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
+        return s_RendererContext->CreateRenderPass(renderPassSpec);
     }
 
-    uint32_t Renderer::FrameBufferGetWidth(FrameBufferHandle frameBufferHandle) {
+    void Renderer::Destroy(const RenderPassHandle renderPassHandle) {
+        s_RendererContext->Destroy(renderPassHandle);
+    }
+
+    FrameBufferHandle Renderer::CreateFrameBuffer(const FrameBufferSpec& frameBufferSpec) {
+        return s_RendererContext->CreateFrameBuffer(frameBufferSpec);
+    }
+
+    uint32_t Renderer::FrameBufferGetWidth(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetWidth(frameBufferHandle);
     }
 
-    uint32_t Renderer::FrameBufferGetHeight(FrameBufferHandle frameBufferHandle) {
+    uint32_t Renderer::FrameBufferGetHeight(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetHeight(frameBufferHandle);
     }
 
-    uint2 Renderer::FrameBufferGetSize(FrameBufferHandle frameBufferHandle) {
+    Extent2D Renderer::FrameBufferGetSize(const FrameBufferHandle frameBufferHandle) {
         return s_RendererContext->FrameBufferGetSize(frameBufferHandle);
     }
 
-    void Renderer::FrameBufferSetViewID(FrameBufferHandle frameBufferHandle, uint32_t viewId) {
-        s_RendererContext->FrameBufferSetViewID(frameBufferHandle, viewId);
-    }
-
-    uint32_t Renderer::FrameBufferGetViewID(FrameBufferHandle frameBufferHandle) {
-        return s_RendererContext->FrameBufferGetViewID(frameBufferHandle);
-    }
-
-    void Renderer::FrameBufferResize(const FrameBufferHandle frameBufferHandle, uint32_t width, uint32_t height) {
+    void Renderer::FrameBufferResize(
+        const FrameBufferHandle frameBufferHandle, const uint32_t width, const uint32_t height
+    ) {
         s_RendererContext->FrameBufferResize(frameBufferHandle, width, height);
-    }
-
-    void Renderer::Bind(const FrameBufferHandle frameBufferHandle) {
-        s_RendererContext->Bind(frameBufferHandle);
     }
 
     void Renderer::Destroy(const FrameBufferHandle frameBufferHandle) {
         s_RendererContext->Destroy(frameBufferHandle);
+    }
+
+    void Renderer::IncRef(Handle<Texture> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<Texture> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<FrameBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<FrameBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<IndexBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<IndexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<VertexBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<GpuBuffer> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<GpuBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<RenderPass> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<RenderPass> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(Handle<PipelineStateObject> textureHandle) { s_RendererContext->IncRef(textureHandle); }
+    void Renderer::DecRef(Handle<PipelineStateObject> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+
+    bool Renderer::IsAlive(PipelineStateHandle pipelineStateHandle) {
+        return s_RendererContext->IsAlive(pipelineStateHandle);
+    }
+
+    void Renderer::Map(const GpuBufferHandle bufferHandle, const MapType mapType, const MapFlags discard, void*& data) {
+        s_RendererContext->Map(bufferHandle, mapType, discard, data);
+    }
+
+    void Renderer::Unmap(const GpuBufferHandle bufferHandle, const MapType mapType) {
+        s_RendererContext->Unmap(bufferHandle, mapType);
+    }
+
+    void Renderer::Destroy(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        s_RendererContext->Destroy(shaderResourceBindingHandle);
     }
 }

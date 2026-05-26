@@ -7,6 +7,7 @@
 #include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
 #include "Quelos/AssetManager/TextureImporter.h"
+#include "Quelos/ImGui/ImGuiUI.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
 
@@ -62,10 +63,6 @@ namespace QuelosEditor {
             assetType
         };
 
-        efsw::WatchID watchId = m_FileWatcher.addWatch(
-            (Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
-        m_WatchedAssets[watchId] = assetMetadata.Handle;
-
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
     }
 
@@ -114,6 +111,74 @@ namespace QuelosEditor {
         }
     }
 
+    void EditorAssetManager::FlushReimportQueue() {
+        for (const AssetID& assetId : m_ReimportQueue) {
+            const AssetMetadata* metadata = GetAssetMetadata(assetId);
+            if (!metadata) [[unlikely]] {
+                QS_CORE_ERROR_TAG(
+                    "EditorAssetManager",
+                    "Faield to reimport asset! couldn't find asset metadata with AssetID {}",
+                    assetId.ToString()
+                );
+
+                continue;
+            }
+
+            const auto assetLoaded = m_LoadedAssets.find(assetId);
+            if (assetLoaded != m_LoadedAssets.end()) {
+                const auto assetHandle = assetLoaded->second;
+                const auto poolIt = m_AssetPools.find(assetHandle.Type);
+                if (poolIt == m_AssetPools.end()) {
+                    continue;
+                }
+
+                if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
+                    pool.ReleaseAt(pool.Data, assetHandle);
+                    Import(pool, assetHandle, *metadata);
+                }
+            }
+        }
+
+        m_ReimportQueue.clear();
+    }
+
+    bool EditorAssetManager::Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata) {
+        const AssetID assetId = metadata.Handle;
+        void* slotData = pool.GetSlotData(pool.Data, assetHandle);
+
+        if (metadata.IsSubAsset()) {
+            if (AssetRegistryExtensions::ResolveSubAsset(slotData, metadata)) {
+                pool.SetConstructed(pool.Data, assetHandle, true);
+                m_LoadedAssets[assetId] = assetHandle;
+                return true;
+            }
+
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager::Acquire",
+                "Failed to resolve sub-asset {} with parent {}",
+                assetId.ToString(), metadata.ParentId.ToString()
+            );
+
+            pool.DestroyAt(pool.Data, assetHandle);
+            return false;
+        }
+
+        if (!EditorAssetImporter::ImportAsset(slotData, metadata)) {
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager::Acquire",
+                "Failed to load asset with handle {}, path: '{}'",
+                assetId.ToString(), metadata.FilePath
+            );
+
+            pool.DestroyAt(pool.Data, assetHandle);
+            return false;
+        }
+
+        pool.SetConstructed(pool.Data, assetHandle, true);
+        m_LoadedAssets[assetId] = assetHandle;
+        return true;
+    }
+
     UntypedAssetHandle EditorAssetManager::Acquire(const AssetID assetId) {
         if (!IsAssetHandleValid(assetId)) {
             QS_CORE_ERROR_TAG("AssetManager", "Invalid asset handle {}", assetId.ToString());
@@ -143,38 +208,10 @@ namespace QuelosEditor {
 
         const auto pool = it->second;
         const UntypedAssetHandle assetHandle = pool.Allocate(pool.Data);
-        void* slotData = pool.GetSlotData(pool.Data, assetHandle);
-
-        if (metadata.IsSubAsset()) {
-            if (AssetRegistryExtensions::ResolveSubAsset(slotData, metadata)) {
-                pool.SetConstructed(pool.Data, assetHandle, true);
-                m_LoadedAssets[assetId] = assetHandle;
-                return assetHandle;
-            }
-
-            QS_CORE_ERROR_TAG(
-                "EditorAssetManager::Acquire",
-                "Failed to resolve sub-asset {} with parent {}",
-                assetId.ToString(), metadata.ParentId.ToString()
-            );
-
-            pool.DestroyAt(pool.Data, assetHandle);
+        if (!Import(pool, assetHandle, metadata)) {
             return {};
         }
 
-        if (!EditorAssetImporter::ImportAsset(slotData, metadata)) {
-            QS_CORE_ERROR_TAG(
-                "EditorAssetManager::Acquire",
-                "Failed to load asset with handle {}, path: '{}'",
-                assetId.ToString(), metadata.FilePath
-            );
-
-            pool.DestroyAt(pool.Data, assetHandle);
-            return {};
-        }
-
-        pool.SetConstructed(pool.Data, assetHandle, true);
-        m_LoadedAssets[assetId] = assetHandle;
         return assetHandle;
     }
 
@@ -199,10 +236,6 @@ namespace QuelosEditor {
     }
 
     bool EditorAssetManager::IsAlive(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return false;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return false;
@@ -213,10 +246,6 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::IncRef(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return;
@@ -227,17 +256,13 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::DecRef(const UntypedAssetHandle handle) {
-        if (!handle.IsValid()) {
-            return;
-        }
-
         const auto it = m_AssetPools.find(handle.Type);
         if (it == m_AssetPools.end()) {
             return;
         }
 
         const auto& pool = it->second;
-        pool.IncRef(pool.Data, handle);
+        pool.DecRef(pool.Data, handle);
     }
 
     void EditorAssetManager::CleanupAssetMap() {
@@ -294,7 +319,7 @@ namespace QuelosEditor {
         RegisterType<Model>();
         RegisterType<Mesh>();
         ShaderImporter::Initialize();
-        RegisterType<Shader>();
+        RegisterType<GraphicsShader>();
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
         AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
         RegisterType<Texture2D>();
@@ -414,15 +439,11 @@ namespace QuelosEditor {
             assetsMetadata[metadata.Handle] = metadata;
         }
 
-        for (auto& assetMetadata : assetsMetadata | std::views::values) {
-            if (assetMetadata.ParentId) {
-                continue;
-            }
-
-            efsw::WatchID watchId = m_FileWatcher.addWatch(
-                (Project::GetProjectPath() / assetMetadata.FilePath).generic_string(), this, true);
-            m_WatchedAssets[watchId] = assetMetadata.Handle;
-        }
+        m_WatchID = m_FileWatcher.addWatch(
+            Project::GetAssetsPath(),
+            this,
+            true
+        );
 
         m_FileWatcher.watch();
     }
@@ -435,25 +456,18 @@ namespace QuelosEditor {
         case efsw::Action::Delete:
             break;
         case efsw::Action::Modified: {
-            const auto it = m_WatchedAssets.find(watchId);
-            if (it != m_WatchedAssets.end()) {
-                const AssetID handle = it->second;
-                const auto assetLoaded = m_LoadedAssets.find(handle);
-                if (assetLoaded != m_LoadedAssets.end()) {
-                    const auto assetHandle = assetLoaded->second;
-                    const auto poolIt = m_AssetPools.find(assetHandle.Type);
-                    if (poolIt == m_AssetPools.end()) {
-                        break;
-                    }
+            const AssetMetadata* metadata = GetAssetMetadata(
+                std::filesystem::relative(
+                    UI::FormatTemp("{}/{}", dir, filename),
+                    Project::GetProjectPath()
+                ).generic_string()
+            );
 
-                    if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
-                        EditorAssetImporter::TryReimportAsset(
-                            pool.GetSlotData(pool.Data, assetHandle),
-                            m_AssetRegistry.GetAssetMetadata(handle)
-                        );
-                    }
-                }
+            if (!metadata || metadata->ParentId) {
+                break;
             }
+
+            m_ReimportQueue.push_back(metadata->Handle);
             break;
         }
         default:

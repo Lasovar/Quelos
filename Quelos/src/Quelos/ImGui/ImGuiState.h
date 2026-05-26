@@ -8,7 +8,7 @@ namespace Quelos {
     public:
         virtual ~ImGuiState() = default;
 
-        virtual void Init(float fontSize) = 0;
+        virtual void Init() = 0;
         virtual void Destroy() = 0;
 
         virtual void BeginFrame(uint32_t viewId) = 0;

@@ -22,8 +22,12 @@ public:
 
 QS_EditorAPI g_EditorAPI;
 
+/*
 extern "C" void RegisterBgfxRendererPlugin(Quelos::PluginContext& pluginContext);
 extern "C" void RegisterBgfxEditorPlugin(QS_EditorAPI* editorApi);
+*/
+
+extern "C" void RegisterDiligentEnginePlugin(Quelos::PluginContext& pluginContext);
 
 Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	ApplicationSpecification specs;
@@ -40,17 +44,18 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 #endif
 
 #if QS_PLATFORM_WINDOWS
-	specs.RendererAPI = RendererAPI::Vulkan;
+	specs.RendererAPI = RendererAPI::Direct3D12;
 #elif QS_PLATFORM_LINUX
 	specs.RendererAPI = RendererAPI::Vulkan;
 #elif QS_PLATFORM_MACOS
-	specs.RendererAPI = RendererAPI::Metal;
+	specs.RendererAPI = RendererAPI::Vulkan;
 #endif
 
 	PluginContext context;
-	RegisterBgfxRendererPlugin(context);
+	RegisterDiligentEnginePlugin(context);
+	//RegisterBgfxRendererPlugin(context);
 	g_EditorAPI.RegisterShaderCompiler = QuelosEditor::EditorLayer::RegisterShaderCompiler;
-	RegisterBgfxEditorPlugin(&g_EditorAPI);
+	//RegisterBgfxEditorPlugin(&g_EditorAPI);
 
 	const auto app = new QuelosEditorApp(specs);
 	const Ref<QuelosEditor::EditorLayer> editorLayer = app->PushLayer<QuelosEditor::EditorLayer>();

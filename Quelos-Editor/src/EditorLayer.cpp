@@ -18,6 +18,10 @@
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
 
+#include "slang.h"
+#include "../vendor/slang/include/slang-com-ptr.h"
+#include "../vendor/slang/source/core/slang-allocator.h"
+
 namespace QuelosEditor {
     static std::vector<PosColorVertex> cubeVertices = {
         {-1.0f, 1.0f, 1.0f, 0xff000000},
@@ -52,12 +56,13 @@ namespace QuelosEditor {
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
     HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
-    Vec<AssetRef<Shader>> EditorLayer::s_ShaderRecompilationStack;
+    Vec<AssetRef<GraphicsShader>> EditorLayer::s_ShaderRecompilationStack;
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
 
         m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
+        m_EditorAssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
@@ -113,10 +118,7 @@ namespace QuelosEditor {
                 });
             }, "RotatePlayer");*/
 
-        const uint64_t texture2DType = Hash::Fnv1a64("Quelos.Texture2D");
-        const uint64_t textureType = Hash::Fnv1a64(TypeNameDisplay<Texture2D>());
-
-        AssetRef<Shader> compiledShader = AssetRef<Shader>(AssetID("af5fda92-37f9-42e3-a189-3a5388090a14"));
+        //AssetRef<GraphicsShader> compiledShader = AssetRef<GraphicsShader>(AssetID("7d9db084-abd4-4b88-8815-ba0b4f5735b3"));
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;
@@ -138,6 +140,8 @@ namespace QuelosEditor {
         for (const auto& workspace : m_Workspaces) {
             workspace->Tick(deltaTime);
         }
+
+        m_EditorAssetManager->FlushReimportQueue();
     }
 
     void EditorLayer::ImGuiRender() {
@@ -268,6 +272,10 @@ namespace QuelosEditor {
         for (const auto& workspace : m_Workspaces) {
             workspace->OnImGuiRender(globalDockspaceID);
         }
+
+        std::erase_if(m_Workspaces, [](const Scope<Workspace>& workspace) {
+            return !workspace->IsOpen();
+        });
     }
 
     void EditorLayer::OnScenePlay() {
@@ -390,8 +398,8 @@ namespace QuelosEditor {
 
     void EditorLayer::OpenSceneWorkspace(const AssetID& handle) {
         Ref<Scene> scene = SceneImporter::ImportScene(handle, *Project::GetAssetManager()->GetAssetMetadata(handle));
-        const Ref<SceneWorkspace> sceneWorkspace = CreateRef<SceneWorkspace>(scene, m_UndoSystem);
-        m_Workspaces.push_back(sceneWorkspace);
+        Scope<SceneWorkspace> sceneWorkspace = CreateScope<SceneWorkspace>(scene, m_UndoSystem);
         sceneWorkspace->Focus();
+        m_Workspaces.push_back(std::move(sceneWorkspace));
     }
 }

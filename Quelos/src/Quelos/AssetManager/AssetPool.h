@@ -21,7 +21,7 @@ namespace Quelos {
     struct AssetSlot {
         alignas(T) byte Storage[sizeof(T)] = {};
 
-        uint32_t Generation = 1;
+        uint32_t Generation = 0;
         uint32_t RefCount = 0;
         bool Constructed = false;
 
@@ -40,7 +40,8 @@ namespace Quelos {
     template <typename T>
     requires (std::is_base_of_v<Asset, T>)
     struct AssetPool {
-        Vec<AssetSlot<T>> Slots;
+        // Should probably be replaced with a pager
+        Deque<AssetSlot<T>> Slots;
         Vec<uint32_t> FreeList;
 
         UntypedAssetHandle Allocate() {
@@ -52,7 +53,7 @@ namespace Quelos {
 
             const auto index = static_cast<uint32_t>(Slots.size());
             Slots.emplace_back();
-            return { T::GetStaticType(), index, 1 };
+            return { T::GetStaticType(), index, 0 };
         }
 
         void Free(UntypedAssetHandle assetHandle) {
@@ -72,6 +73,25 @@ namespace Quelos {
 
             FreeList.push_back(assetHandle.Index);
         }
+
+        /// Releases the asset data without invalidating the slot
+        /// @param assetHandle the asset handle to release
+        void Release(UntypedAssetHandle assetHandle) {
+            auto& slot = Slots[assetHandle.Index];
+
+            if (slot.Generation != assetHandle.Generation) {
+                return;
+            }
+
+            if (slot.Constructed) {
+                slot.Get()->~T();
+                slot.Constructed = false;
+            }
+        }
+
+        AssetPool() {
+            Slots.resize(32);
+        }
     };
 
     struct UntypedAssetPool {
@@ -84,14 +104,17 @@ namespace Quelos {
         void (*DecRef)(void*, UntypedAssetHandle) = nullptr;
         void (*SetConstructed)(void*, UntypedAssetHandle, bool) = nullptr;
         void (*DestroyAt)(void*, UntypedAssetHandle) = nullptr;
+        void (*ReleaseAt)(void*, UntypedAssetHandle) = nullptr;
         UntypedAssetHandle (*Allocate)(void*) = nullptr;
+        std::string DebugName;
 
         template <typename T>
         requires (std::is_base_of_v<Asset, T>)
-        static UntypedAssetPool Create() {
+        static UntypedAssetPool Create(std::string debugName = "") {
             auto* assetPool = new AssetPool<T>();
             UntypedAssetPool untypedPool;
 
+            untypedPool.DebugName = std::move(debugName);
             untypedPool.Data = assetPool;
             untypedPool.DestroyPool = [](void* p) {
                 delete static_cast<AssetPool<T>*>(p);
@@ -180,6 +203,10 @@ namespace Quelos {
 
             untypedPool.DestroyAt = [](void* pool, UntypedAssetHandle assetHandle) {
                 static_cast<AssetPool<T>*>(pool)->Free(assetHandle);
+            };
+
+            untypedPool.ReleaseAt = [](void* pool, UntypedAssetHandle assetHandle) {
+                static_cast<AssetPool<T>*>(pool)->Release(assetHandle);
             };
 
             return untypedPool;

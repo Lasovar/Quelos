@@ -2,7 +2,7 @@
 
 #include "AssetManagement/EditorAssetImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
-#include "Quelos/Renderer/Shader.h"
+#include "Quelos/Renderer/GraphicsShader.h"
 
 namespace QuelosEditor {
     using namespace Quelos;
@@ -10,7 +10,7 @@ namespace QuelosEditor {
     namespace ShaderImporter {
         bool IsAssetSupported(std::string_view assetPath);
 
-        bool RecompileShader(const Shader* shader);
+        bool RecompileShader(GraphicsShader* shader);
         bool Import(void* dataSlot, const AssetMetadata& metadata);
         bool Reimport(void* shader, const AssetMetadata& metadata);
 

@@ -257,7 +257,7 @@ namespace Quelos {
     }
 
     float4x4 EditorCamera::GetViewProjection() const {
-        return m_ViewMatrix * m_Projection;
+        return math::mul(m_ViewMatrix, m_Projection);
     }
 
     float3 EditorCamera::GetUpDirection() const {

@@ -25,7 +25,7 @@ namespace QuelosEditor {
 
         template <typename T>
             requires (std::is_base_of_v<Asset, T>)
-        bool EditAsset(const std::string& label, AssetRef<T>& value) {
+        bool EditAsset(const std::string& label, AssetID& value) {
             bool changed = false;
 
             ImGui::PushID(label.c_str());
@@ -52,8 +52,7 @@ namespace QuelosEditor {
 
             // TODO: Maybe find a way to cache this instead of calling it every frame?
             if (value) {
-                if (const AssetMetadata* meta = Project::GetAssetManager()->
-                    GetAssetMetadata(value.GetAssetID())) {
+                if (const AssetMetadata* meta = Project::GetAssetManager()->GetAssetMetadata(value)) {
                     assetName = FS::Filename(meta->FilePath);
                 }
             }
@@ -85,12 +84,8 @@ namespace QuelosEditor {
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(typeName.c_str())) {
                     if (const AssetID handle = *static_cast<const AssetID*>(payload->Data)) {
-                        AssetRef<T> newAsset(handle);
-
-                        if (newAsset) {
-                            value = newAsset;
-                            changed = true;
-                        }
+                        value = handle;
+                        changed = true;
                     }
                 }
 
@@ -164,12 +159,8 @@ namespace QuelosEditor {
 
                 for (auto& result : results) {
                     if (ImGui::Selectable(FormatTemp("{}", FS::Filename(result.Name)))) {
-                        AssetRef<T> newAsset(result.Metadata->Handle);
-
-                        if (newAsset) {
-                            value = newAsset;
-                            changed = true;
-                        }
+                        value = result.Metadata->Handle;
+                        changed = true;
 
                         ImGui::CloseCurrentPopup();
                     }

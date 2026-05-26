@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Mesh.h"
+#include "Quelos/AssetManager/Asset.h"
+#include "Quelos/Renderer/MeshData.h"
 
 namespace Quelos {
     class QS_API Model : public Asset {

@@ -7,6 +7,8 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
+#include "SceneRenderer.h"
+#include "Quelos/Renderer/RenderPassAttrib.h"
 
 namespace Quelos {
     enum class QS_API SystemGroup : uint8_t {
@@ -62,8 +64,9 @@ namespace Quelos {
         }
 
         void Tick(float deltaTime) const;
-        void StartRender(const Ref<FrameBuffer>& frameBuffer);
-        void Render(uint32_t viewId) const;
+        void StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs);
+        void StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs);
+        void Render() const;
         void EndRender();
 
         const std::string& GetName() const { return m_Name; }
@@ -85,6 +88,9 @@ namespace Quelos {
 
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
+
+        RenderPassHandle GetRenderPass() const { return m_SceneRenderer.GetRenderPass(); }
+        SceneRenderer& GetSceneRenderer() { return m_SceneRenderer; }
 
         Actor GetActor(const EntityID actorId) {
             if (!actorId) {
@@ -121,12 +127,14 @@ namespace Quelos {
         ComponentRegistry m_ComponentRegistry;
 
         flecs::world m_World;
+
         std::string m_Name;
+
+        SceneRenderer m_SceneRenderer;
 
         flecs::entity m_SceneRoot;
 
         flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;
-        flecs::query<const WorldTransform&, const MeshRenderer&> m_RenderingQuery;
 
         bool m_SceneRenderStarted = false;
 
