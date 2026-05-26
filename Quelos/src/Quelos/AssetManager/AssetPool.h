@@ -41,7 +41,7 @@ namespace Quelos {
     requires (std::is_base_of_v<Asset, T>)
     struct AssetPool {
         // Should probably be replaced with a pager
-        Deque<AssetSlot<T>> Slots{32};
+        Deque<AssetSlot<T>> Slots;
         Vec<uint32_t> FreeList;
 
         UntypedAssetHandle Allocate() {
@@ -87,6 +87,10 @@ namespace Quelos {
                 slot.Get()->~T();
                 slot.Constructed = false;
             }
+        }
+
+        AssetPool() {
+            Slots.resize(32);
         }
     };
 
