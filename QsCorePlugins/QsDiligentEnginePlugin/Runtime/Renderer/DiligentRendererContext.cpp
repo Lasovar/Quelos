@@ -662,15 +662,19 @@ namespace Quelos {
             EngineVkCreateInfo engineCi;
             engineCi.GraphicsAPIVersion = Version{1, 3};
 
+#ifndef QS_PLATFORM_MACOS
             VkPhysicalDeviceVulkan12Features vk12Features{};
             vk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
             vk12Features.drawIndirectCount = VK_TRUE;
             vk12Features.pNext = nullptr;
+#endif
 
             VkPhysicalDeviceVulkan11Features vk11Features{};
             vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
             vk11Features.shaderDrawParameters = VK_TRUE;
+#ifndef QS_PLATFORM_MACOS
             vk11Features.pNext = &vk12Features;
+#endif
 
             engineCi.pDeviceExtensionFeatures = &vk11Features;
 

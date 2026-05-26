@@ -130,7 +130,7 @@ else()
 endif()
 
 # TRY AUTOMATE/REMEBER TO UPDATE
-set(SLANG_VERSION "2026.8.1")
+set(SLANG_VERSION "2026.9")
 
 set(SLANG_RUNTIME_NAMES
         slang-compiler
