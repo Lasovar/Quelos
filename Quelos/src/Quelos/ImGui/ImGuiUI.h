@@ -159,7 +159,7 @@ namespace Quelos::UI {
 
         ImGui::BeginGroup();
 
-        for (int i = 0; i < count; i++) {
+        for (uint32_t i = 0; i < count; i++) {
             if (i == count - 1) {
                 dragWidth = ImGui::GetContentRegionAvail().x;
             }

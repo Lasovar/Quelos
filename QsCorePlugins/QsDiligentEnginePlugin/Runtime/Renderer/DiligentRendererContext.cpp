@@ -14,62 +14,6 @@
 using namespace magic_enum::bitwise_operators;
 
 namespace Quelos {
-    static const char* VSSource = R"(
-cbuffer Constants {
-    float4x4 g_WorldViewProj;
-};
-
-cbuffer Transform {
-    float4x4 g_Transform;
-};
-
-// Vertex shader takes two inputs: vertex position and color.
-// By convention, Diligent Engine expects vertex shader inputs to be
-// labeled 'ATTRIBn', where n is the attribute number.
-struct VSInput {
-    float3 Position : ATTRIB0;
-    float3 Normal : ATTRIB1;
-    float3 Tangent : ATTRIB2;
-    float2 UV : ATTRIB3;
-};
-
-struct PSInput {
-    float4 Position : SV_POSITION;
-    float3 Normal : NORMAL;
-    float2 UV : TEXCOORD0;
-};
-
-// Note that if separate shader objects are not supported (this is only the case for old GLES3.0 devices), vertex
-// shader output variable name must match exactly the name of the pixel shader input variable.
-// If the variable has structure type (like in this example), the structure declarations must also be identical.
-void main(in VSInput VSIn, out PSInput PSIn) {
-    PSIn.Position = mul(g_WorldViewProj, mul(g_Transform, float4(VSIn.Position, 1.0)));
-    PSIn.Normal = VSIn.Normal;
-    PSIn.UV = VSIn.UV;
-}
-)";
-
-    // Pixel shader will simply output interpolated vertex color
-    static const char* PSSource = R"(
-struct PSInput {
-    float4 Position : SV_POSITION;
-    float3 Normal : NORMAL;
-    float2 UV : TEXCOORD0;
-};
-
-struct PSOutput {
-    float4 Color : SV_TARGET;
-};
-
-// Note that if separate shader objects are not supported (this is only the case for old GLES3.0 devices), vertex
-// shader output variable name must match exactly the name of the pixel shader input variable.
-// If the variable has structure type (like in this example), the structure declarations must also be identical.
-void main(in PSInput  PSIn, out PSOutput PSOut) {
-    float3 N = normalize(PSIn.Normal);
-    PSOut.Color = float4(N * 0.5 + 0.5, 1.0);
-}
-)";
-
     namespace TextureUtil {
         static TEXTURE_FORMAT GetTextureFormat(const ImageFormat imageFormat) {
             switch (imageFormat) {
@@ -631,31 +575,31 @@ void main(in PSInput  PSIn, out PSOutput PSOut) {
             {
             case DEBUG_MESSAGE_SEVERITY_ERROR:
                 QS_CORE_ERROR_TAG(
-                    "DiligentRendererContext", "{} (at {}:{})",
+                    "DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    file ? file : "",
-                    line ? line : 0
+                    function ? UI::FormatTemp(" {}", function) : "",
+                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_FATAL_ERROR:
-                QS_CORE_CRITICAL_TAG("DiligentRendererContext", "{} (at {}:{})",
+                QS_CORE_CRITICAL_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    file ? file : "",
-                    line ? line : 0
+                    function ? UI::FormatTemp(" {}", function) : "",
+                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_WARNING:
-                QS_CORE_WARN_TAG("DiligentRendererContext", "{} (at {}:{})",
+                QS_CORE_WARN_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    file ? file : "",
-                    line ? line : 0
+                    function ? UI::FormatTemp(" {}", function) : "",
+                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_INFO:
-                QS_CORE_TRACE_TAG("DiligentRendererContext", "{} (at {}:{})",
+                QS_CORE_TRACE_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    file ? file : "",
-                    line ? line : 0
+                    function ? UI::FormatTemp(" {}", function) : "",
+                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             default:
