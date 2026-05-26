@@ -72,4 +72,40 @@ namespace Quelos {
             SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
         }
     };
+
+    template <typename T>
+    struct SetField<AssetRef<T>> {
+        ComponentID ComponentId{};
+        EntityID ActorId{};
+        Ref<Scene>& Scene;
+
+        SetFieldSerializeFn SerializeComponentFunc = nullptr;
+
+        std::string_view FieldKey;
+
+        AssetID Before;
+        AssetID After;
+
+        void Apply() {
+            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            QS_ASSERT(componentInfo->Guid);
+
+            const Actor actor = Scene->GetActor(ActorId);
+
+            AssetRef<T> temp(After);
+            SetFieldArchive archive(FieldKey, &temp);
+            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+        }
+
+        void Revert() {
+            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            QS_ASSERT(componentInfo->Guid);
+
+            const Actor actor = Scene->GetActor(ActorId);
+
+            AssetRef<T> temp(Before);
+            auto archive = SetFieldArchive(FieldKey, &temp);
+            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+        }
+    };
 }

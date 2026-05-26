@@ -8,12 +8,13 @@
 #include "Quelos/Renderer/ShaderResourceBinding.h"
 #include "Quelos/Serialization/Serializer.h"
 
+#include "Model.h"
+
 namespace Quelos {
-	class Model;
 
 	class QS_API Mesh : public Asset {
 	public:
-		explicit Mesh(MeshData* meshData);
+		explicit Mesh(AssetRef<Model> model, MeshData* meshData);
 		~Mesh() override;
 
 		Vec<Vertex>& GetVertices() const { return m_MeshData->Vertices; }
@@ -35,5 +36,6 @@ namespace Quelos {
 		IndexBufferHandle m_IndexBuffer;
 
 		MeshData* m_MeshData;
+		AssetRef<Model> m_Model;
 	};
 }

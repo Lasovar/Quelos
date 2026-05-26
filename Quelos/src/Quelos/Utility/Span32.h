@@ -34,7 +34,7 @@ namespace Quelos {
 
         constexpr Span32(pointer begin, pointer end) noexcept
             : m_Data(begin), m_Size(static_cast<uint32_t>(end - begin)
-              ) {
+        ) {
             assert(end >= begin);
         }
 

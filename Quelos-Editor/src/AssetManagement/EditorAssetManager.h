@@ -34,7 +34,7 @@ namespace QuelosEditor {
         template <typename T>
         requires (std::is_base_of_v<Asset, T>)
         void RegisterType() {
-            m_AssetPools[T::GetStaticType()] = UntypedAssetPool::Create<T>();
+            m_AssetPools[T::GetStaticType()] = UntypedAssetPool::Create<T>(T::GetStaticType().GetName());
         }
 
         void* TryGet(const UntypedAssetHandle handle) override {

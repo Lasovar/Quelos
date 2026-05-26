@@ -11,6 +11,10 @@ namespace Quelos {
     public:
         AssetRef() = default;
         explicit AssetRef(const AssetID assetId) {
+            if (!assetId.IsValid()) [[unlikely]] {
+                return;
+            }
+
             m_Handle = Project::GetAssetManager()->Acquire(assetId);
             Inc();
         }
@@ -64,6 +68,7 @@ namespace Quelos {
         AssetHandle<T> GetAssetHandle() const { return m_Handle; }
 
         void Reset() {
+            Dec();
             m_Handle = AssetHandle<T>();
         }
 
@@ -80,12 +85,12 @@ namespace Quelos {
         }
 
         // Whether the asset handle is valid or not
-        bool IsValid() const {
+        [[nodiscard]] bool IsValid() const {
             return m_Handle.IsValid();
         }
 
         // Whether the asset is loaded or not
-        bool IsAlive() const {
+        [[nodiscard]] bool IsAlive() const {
             return IsValid() && Project::GetAssetManager()->IsAlive(m_Handle);
         }
 
@@ -93,16 +98,25 @@ namespace Quelos {
             return IsAlive();
         }
 
-        AssetID GetAssetID() const {
-            return IsAlive() ? Get().GetAssetID() : AssetID();
+        [[nodiscard]] AssetID GetAssetID() const {
+            T* asset = TryGet();
+            return asset ? asset->GetAssetID() : AssetID();
         }
 
     private:
         void Inc() {
+            if (!m_Handle.IsValid()) [[unlikely]] {
+                return;
+            }
+
             Project::GetAssetManager()->IncRef(m_Handle);
         }
 
         void Dec() {
+            if (!m_Handle.IsValid()) [[unlikely]] {
+                return;
+            }
+
             Project::GetAssetManager()->DecRef(m_Handle);
         }
 

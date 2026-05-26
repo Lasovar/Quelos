@@ -51,7 +51,11 @@ namespace Quelos {
     }
 
     GraphicsShader::~GraphicsShader() {
-        Renderer::Destroy(m_VertexShader);
+        if (!Renderer::IsInitialized()) [[unlikely]] {
+            return;
+        }
+
         Renderer::Destroy(m_FragmentShader);
+        Renderer::Destroy(m_VertexShader);
     }
 }

@@ -63,7 +63,12 @@ namespace Quelos {
             }
 
             if (slot.Constructed) {
-                slot.Get()->~T();
+                if (T* asset = slot.Get()) {
+                    asset->~T();
+                } else {
+                    QS_CORE_ERROR_TAG("AssetPool", "Invalid asset data!");
+                }
+
                 slot.Constructed = false;
             }
 
@@ -85,13 +90,15 @@ namespace Quelos {
         void (*SetConstructed)(void*, UntypedAssetHandle, bool) = nullptr;
         void (*DestroyAt)(void*, UntypedAssetHandle) = nullptr;
         UntypedAssetHandle (*Allocate)(void*) = nullptr;
+        std::string DebugName;
 
         template <typename T>
         requires (std::is_base_of_v<Asset, T>)
-        static UntypedAssetPool Create() {
+        static UntypedAssetPool Create(std::string debugName = "") {
             auto* assetPool = new AssetPool<T>();
             UntypedAssetPool untypedPool;
 
+            untypedPool.DebugName = std::move(debugName);
             untypedPool.Data = assetPool;
             untypedPool.DestroyPool = [](void* p) {
                 delete static_cast<AssetPool<T>*>(p);
