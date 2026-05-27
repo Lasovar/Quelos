@@ -91,6 +91,19 @@ namespace Quelos {
 
     using BindFlags = Bind;
 
+    enum class SampleCount : uint8_t {
+        None,
+        x1    = 1,
+        x2    = 2,
+        x4    = 4,
+        x8    = 8,
+        x16   = 16,
+        x32   = 32,
+        x64   = 64,
+        Max  = x64,
+        Count  = (Max << 1) - 1,
+    };
+
     enum class CpuAccess : uint8_t {
         None = 0u, ///< No CPU access
         Read = 1u << 0u, ///< A resource can be mapped for reading

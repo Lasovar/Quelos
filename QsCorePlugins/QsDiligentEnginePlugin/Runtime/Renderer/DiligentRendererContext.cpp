@@ -14,8 +14,39 @@
 using namespace magic_enum::bitwise_operators;
 
 namespace Quelos {
-    namespace TextureUtil {
-        static TEXTURE_FORMAT GetTextureFormat(const ImageFormat imageFormat) {
+    namespace Utils {
+        static void CreateFrameBuffer(
+            IFramebuffer*& frameBuffer, IRenderDevice* device,
+            const Span32<ITexture*> attachments, IRenderPass* renderPass
+        ) {
+            SmallVec<ITextureView*, 2> viewAttachments;
+            viewAttachments.reserve(attachments.size());
+            for (uint64_t i = 0; i < attachments.size() - 1; i++) {
+                viewAttachments.push_back(attachments[i]->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET));
+            }
+
+            viewAttachments.push_back(
+                attachments[attachments.size() - 1]->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL)
+            );
+
+            FramebufferDesc desc;
+            desc.Name = "FrameBuffer";
+            desc.ppAttachments = viewAttachments.data();
+            desc.AttachmentCount = attachments.size();
+            if (renderPass) {
+                desc.pRenderPass = renderPass;
+            }
+            desc.Width = attachments[0]->GetDesc().GetWidth();
+            desc.Height = attachments[0]->GetDesc().GetHeight();
+            desc.NumArraySlices = 1;
+
+            device->CreateFramebuffer(
+                desc,
+                &frameBuffer
+            );
+        }
+
+        static TEXTURE_FORMAT GetFormat(const ImageFormat imageFormat) {
             switch (imageFormat) {
             case ImageFormat::None:
                 return TEX_FORMAT_UNKNOWN;
@@ -58,97 +89,6 @@ namespace Quelos {
             }
 
             return TEX_FORMAT_UNKNOWN;
-        }
-
-        static RESOURCE_DIMENSION GetTextureType(const TextureType textureType) {
-            switch (textureType) {
-            case TextureType::Texture2D:
-                return RESOURCE_DIM_TEX_2D;
-            case TextureType::TextureCube:
-                return RESOURCE_DIM_TEX_CUBE;
-            }
-
-            return RESOURCE_DIM_UNDEFINED;
-        }
-
-        static BIND_FLAGS GetBindFlags(const TextureSpecification& spec) {
-            BIND_FLAGS bindFlags = BIND_NONE;
-            if (spec.RenderTarget == TextureRenderTarget::ReadWrite) {
-                bindFlags |= BIND_SHADER_RESOURCE;
-                bindFlags |= BIND_RENDER_TARGET;
-            }
-
-            if (spec.Format == ImageFormat::DEPTH32F
-                || spec.Format == ImageFormat::DEPTH24STENCIL8
-                || spec.Format == ImageFormat::DEPTH32FSTENCIL8UINT
-            ) {
-                bindFlags |= BIND_DEPTH_STENCIL;
-            }
-
-            return bindFlags;
-        }
-
-        static void CreateTexture(IRenderDevice* device, QTextureData& textureData) {
-            const TextureSpecification& spec = textureData.Specification;
-
-            TextureDesc textureDesc;
-            textureDesc.Name = spec.Name.c_str();
-            textureDesc.Format = GetTextureFormat(spec.Format);
-            textureDesc.Width = spec.Width;
-            textureDesc.Height = spec.Height;
-            textureDesc.Type = GetTextureType(spec.Type);
-            textureDesc.BindFlags = GetBindFlags(spec);
-            textureDesc.SampleCount = spec.SampleCount;
-
-            device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
-        }
-
-        void Resize(
-            IRenderDevice* device,
-            QTextureData& data,
-            const uint32_t width,
-            const uint32_t height
-        ) {
-            data.Texture->Release();
-            data.Texture = nullptr;
-
-            data.Specification.Width = width;
-            data.Specification.Height = height;
-
-            CreateTexture(device, data);
-        }
-    }
-
-    namespace Utils {
-        static void CreateFrameBuffer(
-            IFramebuffer*& frameBuffer, IRenderDevice* device,
-            const Span32<ITexture*> attachments, IRenderPass* renderPass
-        ) {
-            SmallVec<ITextureView*, 2> viewAttachments;
-            viewAttachments.reserve(attachments.size());
-            for (uint64_t i = 0; i < attachments.size() - 1; i++) {
-                viewAttachments.push_back(attachments[i]->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET));
-            }
-
-            viewAttachments.push_back(
-                attachments[attachments.size() - 1]->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL)
-            );
-
-            FramebufferDesc desc;
-            desc.Name = "FrameBuffer";
-            desc.ppAttachments = viewAttachments.data();
-            desc.AttachmentCount = attachments.size();
-            if (renderPass) {
-                desc.pRenderPass = renderPass;
-            }
-            desc.Width = attachments[0]->GetDesc().GetWidth();
-            desc.Height = attachments[0]->GetDesc().GetHeight();
-            desc.NumArraySlices = 1;
-
-            device->CreateFramebuffer(
-                desc,
-                &frameBuffer
-            );
         }
 
         constexpr RESOURCE_STATE GetResourceState(const ResourceState state) {
@@ -241,7 +181,7 @@ namespace Quelos {
             desc.LoadOp = GetAttachmentLoadOp(spec.LoadOp);
             desc.StoreOp = GetAttachmentStoreOp(spec.StoreOp);
             desc.SampleCount = spec.SampleCount;
-            desc.Format = TextureUtil::GetTextureFormat(spec.Format);
+            desc.Format = GetFormat(spec.Format);
             desc.StencilLoadOp = GetAttachmentLoadOp(spec.StencilLoadOp);
             desc.StencilStoreOp = GetAttachmentStoreOp(spec.StencilStoreOp);
 
@@ -413,15 +353,15 @@ namespace Quelos {
             }
         };
 
-        constexpr FILTER_TYPE GetFilterType(const TextureFilter filter) {
+        constexpr FILTER_TYPE GetFilterType(const FilterMode filter) {
             switch (filter) {
-            case TextureFilter::Point:
+            case FilterMode::Point:
                 return FILTER_TYPE_POINT;
 
-            case TextureFilter::Linear:
+            case FilterMode::Linear:
                 return FILTER_TYPE_LINEAR;
 
-            case TextureFilter::Anisotropic:
+            case FilterMode::Anisotropic:
                 return FILTER_TYPE_ANISOTROPIC;
             default: ;
             }
@@ -429,21 +369,21 @@ namespace Quelos {
             return FILTER_TYPE_LINEAR;
         }
 
-        constexpr TEXTURE_ADDRESS_MODE GetTextureAddressMode(const TextureWrap wrap) {
+        constexpr TEXTURE_ADDRESS_MODE GetTextureAddressMode(const WrapMode wrap) {
             switch (wrap) {
-            case TextureWrap::Repeat:
+            case WrapMode::Repeat:
                 return TEXTURE_ADDRESS_WRAP;
 
-            case TextureWrap::Mirror:
+            case WrapMode::Mirror:
                 return TEXTURE_ADDRESS_MIRROR;
 
-            case TextureWrap::Clamp:
+            case WrapMode::Clamp:
                 return TEXTURE_ADDRESS_CLAMP;
 
-            case TextureWrap::Border:
+            case WrapMode::Border:
                 return TEXTURE_ADDRESS_BORDER;
 
-            case TextureWrap::MirrorOnce:
+            case WrapMode::MirrorOnce:
                 return TEXTURE_ADDRESS_MIRROR_ONCE;
             default: ;
             }
@@ -547,6 +487,54 @@ namespace Quelos {
 
         static BUFFER_MODE GetBufferMode(GpuBufferMode mode) {
             return static_cast<BUFFER_MODE>(mode);
+        }
+
+        constexpr uint8_t GetSampleCount(SampleCount sampleCount) {
+            return static_cast<uint8_t>(sampleCount);
+        }
+    }
+
+    namespace TextureUtil {
+
+        static RESOURCE_DIMENSION GetTextureType(const TextureType textureType) {
+            switch (textureType) {
+            case TextureType::Texture2D:
+                return RESOURCE_DIM_TEX_2D;
+            case TextureType::TextureCube:
+                return RESOURCE_DIM_TEX_CUBE;
+            }
+
+            return RESOURCE_DIM_UNDEFINED;
+        }
+
+        static void CreateTexture(IRenderDevice* device, QTextureData& textureData) {
+            const TextureSpecification& spec = textureData.Specification;
+
+            TextureDesc textureDesc;
+            textureDesc.Name = spec.Name.c_str();
+            textureDesc.Format = Utils::GetFormat(spec.Format);
+            textureDesc.Width = spec.Width;
+            textureDesc.Height = spec.Height;
+            textureDesc.Type = GetTextureType(spec.Type);
+            textureDesc.BindFlags = Utils::GetBindFlags(spec.BindFlags);
+            textureDesc.SampleCount = Utils::GetSampleCount(spec.SampleCount);
+
+            device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
+        }
+
+        void Resize(
+            IRenderDevice* device,
+            QTextureData& data,
+            const uint32_t width,
+            const uint32_t height
+        ) {
+            data.Texture->Release();
+            data.Texture = nullptr;
+
+            data.Specification.Width = width;
+            data.Specification.Height = height;
+
+            CreateTexture(device, data);
         }
     }
 
@@ -790,7 +778,7 @@ namespace Quelos {
         clearValues.reserve(beginRenderPassAttrib.ClearColors.size());
         for (const ClearValue& clearColor : beginRenderPassAttrib.ClearColors) {
             OptimizedClearValue optimizedClearValue;
-            optimizedClearValue.Format = TextureUtil::GetTextureFormat(clearColor.Format);
+            optimizedClearValue.Format = Utils::GetFormat(clearColor.Format);
             math::store(optimizedClearValue.Color, clearColor.Color);
             optimizedClearValue.DepthStencil.Depth = clearColor.DepthStencil.Depth;
             optimizedClearValue.DepthStencil.Stencil = clearColor.DepthStencil.Stencil;
@@ -1450,7 +1438,7 @@ namespace Quelos {
             gpSpec.RasterizerSpec.CullMode
         );
 
-        PSOCreateInfo.GraphicsPipeline.SmplDesc.Count = gpSpec.SampleSpec.Count;
+        PSOCreateInfo.GraphicsPipeline.SmplDesc.Count = Utils::GetSampleCount(gpSpec.SampleSpec.Count);
         PSOCreateInfo.GraphicsPipeline.SmplDesc.Quality = gpSpec.SampleSpec.Quality;
 
         PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.

@@ -1,2 +1,6 @@
 [Shader]
-handle = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
+assetId = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
+
+@MaterialProperties
+Color = Color
+Power = Float

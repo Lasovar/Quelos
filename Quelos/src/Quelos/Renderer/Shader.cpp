@@ -9,7 +9,12 @@ namespace Quelos {
         Renderer::Submit(*this, viewId);
     }
 
-    GraphicsShader::GraphicsShader(Buffer vertex, Buffer fragment, std::string name) : m_Name(std::move(name)) {
+    GraphicsShader::GraphicsShader(
+        Buffer vertex,
+        Buffer fragment,
+        std::string name,
+        const HashMap<std::string, MaterialProperty>& materialProperties
+    ) : m_Name(std::move(name)), m_MaterialProperties(materialProperties) {
         ShaderCreateInfo vertexCreateInfo;
         vertexCreateInfo.Specification.Name = m_Name;
         vertexCreateInfo.Specification.Type = ShaderType::Vertex;

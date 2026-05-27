@@ -39,10 +39,116 @@ namespace QuelosEditor {
             StringQuelWriter writer(buffer);
             writer.Write(SectionEvent{"Shader"});
             writer.CloseSection();
-            writer.WriteField("handle", UnquotedString{handle.ToFormattedString()});
+            writer.WriteField("assetId", UnquotedString{handle.ToFormattedString()});
 
             file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
             return true;
+        }
+
+        struct ShaderMetadata {
+            AssetID AssetId;
+            HashMap<std::string, MaterialProperty> MaterialProperties;
+        };
+
+        static bool SerializeShaderMetadata(
+            const OsPath& path,
+            const ShaderMetadata& shaderMetadata
+        ) {
+            using namespace Serialization;
+
+            std::ofstream file(path, std::ios::binary);
+            if (!file) {
+                QS_CORE_ERROR_TAG(
+                    "ShaderImporter",
+                    "Failed to serialize shader handle at {}",
+                    path.generic_string()
+                );
+
+                return false;
+            }
+
+            std::string buffer;
+            StringQuelWriter writer(buffer);
+            writer.Write(SectionEvent{"Shader"});
+            writer.CloseSection();
+            writer.WriteField("assetId", UnquotedString{shaderMetadata.AssetId.ToFormattedString()});
+            writer.Write(ComponentEvent { "MaterialProperties" });
+            for (const auto& [name, type] : shaderMetadata.MaterialProperties) {
+                writer.WriteField(name, UnquotedString { magic_enum::enum_name(type) });
+            }
+
+            file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+            return true;
+        }
+
+        static std::optional<ShaderMetadata> DeserializeShaderMetadata(const OsPath& path) {
+            using namespace Serialization;
+
+            if (!std::filesystem::exists(path)) {
+                return {};
+            }
+
+            std::ifstream file(path, std::ios::binary | std::ios::ate);
+            if (!file) {
+                QS_CORE_ERROR_TAG(
+                    "ShaderImporter",
+                    "DeserializeShaderMetadata: Failed to open metadata file '{}'!",
+                    path.generic_string()
+                );
+
+                return {};
+            }
+
+            const std::streamsize fileSize = file.tellg();
+            file.seekg(0);
+
+            std::string assetRegistryBuffer;
+            assetRegistryBuffer.resize(fileSize);
+            file.read(assetRegistryBuffer.data(), fileSize);
+
+            QuelReader reader(assetRegistryBuffer);
+            std::string_view currentSection;
+            std::string_view currentField;
+            std::string_view currentComponent;
+
+            ShaderMetadata metadata;
+
+            for (auto&& parserEvent : reader.Parse()) {
+                std::visit(
+                    Overloaded {
+                        [&](const SectionEvent& event) {
+                            currentSection = event.Name;
+                        },
+                        [&](const ComponentEvent& event) {
+                            currentComponent = event.Name;
+                        },
+                        [&](const FieldEvent& event) {
+                            currentField = event.Path;
+                        },
+                        [&](const ValueEvent& event) {
+                            if (currentSection != "Shader") {
+                                return;
+                            }
+
+                            if (currentComponent.empty()) {
+                                if (currentField == "assetId") {
+                                    metadata.AssetId = AssetID(std::get<std::string_view>(event.Value));
+                                }
+                            }
+                            else if (currentComponent == "MaterialProperties") {
+                                const MaterialProperty property = magic_enum::enum_cast<MaterialProperty>(
+                                    std::get<std::string_view>(event.Value)
+                                ).value_or(MaterialProperty::Unknown);
+
+                                metadata.MaterialProperties[std::string(currentField)] = property;
+                            }
+                        },
+                        []([[maybe_unused]] auto& e) {}
+                    },
+                    parserEvent);
+            }
+
+            return metadata;
         }
 
         static AssetID DeserializeHandle(const OsPath& path) {
@@ -73,8 +179,9 @@ namespace QuelosEditor {
             QuelReader reader(assetRegistryBuffer);
             std::string_view currentSection;
             std::string_view currentField;
+            std::string_view currentComponent;
 
-            AssetID handle;
+            AssetID assetId;
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit(Overloaded{
                                [&](const SectionEvent& event) {
@@ -82,10 +189,16 @@ namespace QuelosEditor {
                                },
                                [&](const FieldEvent& event) {
                                    currentField = event.Path;
+                               }, [&](const ComponentEvent& event) {
+                                   currentComponent = event.Name;
                                },
                                [&](const ValueEvent& event) {
-                                   if (currentSection == "Shader" && currentField == "handle") {
-                                       handle = AssetID(std::get<std::string_view>(event.Value));
+                                   if (currentSection != "Shader" || !currentComponent.empty()) {
+                                       return;
+                                   }
+
+                                   if (currentField == "assetId") {
+                                       assetId = AssetID(std::get<std::string_view>(event.Value));
                                    }
                                },
                                []([[maybe_unused]] auto& e) {}
@@ -93,13 +206,66 @@ namespace QuelosEditor {
                            parserEvent);
             }
 
-            return handle;
+            return assetId;
+        }
+
+        static MaterialProperty GetMaterialProperty(slang::VariableReflection* variable) {
+            slang::TypeReflection* fieldType = variable->getType();
+            switch (fieldType->getKind()) {
+            case slang::TypeReflection::Kind::None:
+            case slang::TypeReflection::Kind::ConstantBuffer:
+            case slang::TypeReflection::Kind::Resource:
+            case slang::TypeReflection::Kind::SamplerState:
+            case slang::TypeReflection::Kind::TextureBuffer:
+            case slang::TypeReflection::Kind::ShaderStorageBuffer:
+            case slang::TypeReflection::Kind::ParameterBlock:
+            case slang::TypeReflection::Kind::GenericTypeParameter:
+            case slang::TypeReflection::Kind::Interface:
+            case slang::TypeReflection::Kind::OutputStream:
+            case slang::TypeReflection::Kind::Specialized:
+            case slang::TypeReflection::Kind::Feedback:
+            case slang::TypeReflection::Kind::Pointer:
+            case slang::TypeReflection::Kind::DynamicResource:
+            case slang::TypeReflection::Kind::MeshOutput:
+            case slang::TypeReflection::Kind::Enum:
+            case slang::TypeReflection::Kind::Struct:
+            case slang::TypeReflection::Kind::Array:
+            case slang::TypeReflection::Kind::Matrix:
+                return MaterialProperty::Unknown;
+            case slang::TypeReflection::Kind::Scalar:
+                return MaterialProperty::Float;
+            case slang::TypeReflection::Kind::Vector:
+                switch (fieldType->getElementCount()) {
+                case 1:
+                    return MaterialProperty::Float;
+                case 2:
+                    return MaterialProperty::Float2;
+                case 3:
+                    return MaterialProperty::Float3;
+                case 4:
+                    for (uint32_t attribIndex = 0; attribIndex < variable->getUserAttributeCount(); attribIndex++) {
+                        const char* attributeName = variable->getUserAttributeByIndex(attribIndex)->getName();
+                        if (!strcmp(attributeName, "Color")) {
+                            return MaterialProperty::Color;
+                        }
+                    }
+
+                    return MaterialProperty::Float4;
+                default:
+                    return MaterialProperty::Unknown;
+                }
+            default:
+                return MaterialProperty::Unknown;
+            }
         }
 
         bool CompileShader(
-            const std::string& shaderPath, const AssetID handle, Buffer& vertexBuffer, Buffer& fragmentBuffer
+            const std::string& shaderPath,
+            const AssetID handle,
+            Buffer& vertexBuffer,
+            Buffer& fragmentBuffer,
+            HashMap<std::string, MaterialProperty>& materialProperties
         ) {
-
             //QS_PROFILE_SCOPED_N("Shader compilation");
             auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -128,7 +294,7 @@ namespace QuelosEditor {
             }
             case RendererAPI::OpenGL: {
                 targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
+                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
                 break;
             }
             default:
@@ -147,12 +313,27 @@ namespace QuelosEditor {
             Slang::ComPtr<slang::ISession> session;
             s_GlobalSession->createSession(sessionDesc, session.writeRef());
 
-            std::string moduleName(FS::Stem(shaderPath));
+            const std::string moduleName(FS::Stem(shaderPath));
             Slang::ComPtr<slang::IBlob> diagnostics;
             slang::IModule* module = session->loadModule(moduleName.c_str(), diagnostics.writeRef());
             if (diagnostics) {
                 QS_CORE_TRACE_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
                 diagnostics = nullptr;
+            }
+
+            slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
+            if (diagnostics) {
+                QS_CORE_ERROR_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+                diagnostics = nullptr;
+            }
+
+            for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
+                slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
+                slang::TypeReflection* type = parameter->getType()->getResourceResultType();
+                for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
+                    slang::VariableReflection* field = type->getFieldByIndex(typeFieldIndex);
+                    materialProperties[field->getName()] = GetMaterialProperty(field);
+                }
             }
 
             Slang::ComPtr<slang::IEntryPoint> vertexEntryPoint;
@@ -255,6 +436,11 @@ namespace QuelosEditor {
         }
 
         bool Import(void* dataSlot, const AssetMetadata& metadata) {
+            std::optional<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
+            if (!shaderMetadata) {
+                return false;
+            }
+
             const OsPath cookedPath = Project::GetCookedAssetsPath() / "Shaders";
             std::string handleStr = metadata.Handle.ToString();
             const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
@@ -266,7 +452,8 @@ namespace QuelosEditor {
             auto* shader = new(dataSlot) GraphicsShader(
                 std::move(vertexBuffer),
                 std::move(fragmentBuffer),
-                std::string(FS::Filename(metadata.FilePath))
+                std::string(FS::Filename(metadata.FilePath)),
+                shaderMetadata->MaterialProperties
             );
 
             shader->SetAssetID(metadata.Handle);
@@ -275,7 +462,6 @@ namespace QuelosEditor {
         }
 
         bool Reimport(void* shader, [[maybe_unused]] const AssetMetadata& metadata) {
-
             return RecompileShader(static_cast<GraphicsShader*>(shader));
         }
 
@@ -317,7 +503,8 @@ namespace QuelosEditor {
             }
 
             Buffer vertexBuffer, fragmentBuffer;
-            if (!CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer)) {
+            HashMap<std::string, MaterialProperty> materialProperties;
+            if (!CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer, materialProperties)) {
                 return false;
             }
 
@@ -345,7 +532,17 @@ namespace QuelosEditor {
                 return true;
             }
 
-            if (!CompileShader(metadata.FilePath, metadata.Handle, vertexBuffer, fragmentBuffer)) {
+            ShaderMetadata shaderMetadata;
+            shaderMetadata.AssetId = metadata.Handle;
+
+            if (!CompileShader(
+                    metadata.FilePath,
+                    metadata.Handle,
+                    vertexBuffer,
+                    fragmentBuffer,
+                    shaderMetadata.MaterialProperties
+                )
+            ) {
                 return false;
             }
 
@@ -355,6 +552,9 @@ namespace QuelosEditor {
 
             Utility::WriteFile(cookedVertexPath, vertexBuffer);
             Utility::WriteFile(cookedFragmentPath, fragmentBuffer);
+
+            SerializeShaderMetadata(GetMetadataPath(metadata.FilePath), shaderMetadata);
+
             return true;
         }
 
@@ -363,7 +563,14 @@ namespace QuelosEditor {
         }
 
         bool WriteAssetHandle(const std::string_view assetPath, const AssetID& handle) {
-            return SerializeHandle(GetMetadataPath(assetPath), handle);
+            const OsPath path = GetMetadataPath(assetPath);
+            std::optional<ShaderMetadata> metadata = DeserializeShaderMetadata(path);
+            if (!metadata) {
+                return false;
+            }
+
+            metadata.value().AssetId = handle;
+            return SerializeShaderMetadata(path, metadata.value());
         }
 
         bool HandlesAssetType(const AssetType& type, void* userData) {
