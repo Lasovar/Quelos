@@ -95,7 +95,7 @@ namespace Quelos {
         m_SceneRenderStarted = true;
     }
 
-    void Scene::Render() const {
+    void Scene::Render() {
         if (!m_SceneRenderStarted) {
             return;
         }

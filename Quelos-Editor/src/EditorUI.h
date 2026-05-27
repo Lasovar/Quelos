@@ -120,6 +120,10 @@ namespace QuelosEditor {
                 static Vec<AssetSearchResult> results;
                 results.clear();
 
+                if (ImGui::IsWindowAppearing()) {
+                    ImGui::SetKeyboardFocusHere();
+                }
+
                 static fmt::memory_buffer buffer;
                 buffer.clear();
                 ImGui::InputText(
@@ -157,9 +161,35 @@ namespace QuelosEditor {
                     }
                 }
 
-                for (auto& result : results) {
-                    if (ImGui::Selectable(FormatTemp("{}", FS::Filename(result.Name)))) {
-                        value = result.Metadata->Handle;
+                static uint32_t selectedIndex = 0;
+
+                if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+                    selectedIndex = std::min(
+                        selectedIndex + 1,
+                        static_cast<uint32_t>(results.size()) - 1
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+                    selectedIndex = std::max(selectedIndex - 1, 0u);
+                }
+
+                // Enter adds first result
+                if (ImGui::IsKeyPressed(ImGuiKey_Enter) &&
+                    !results.empty() &&
+                    !ImGui::IsAnyItemHovered())
+                {
+                    value = results[selectedIndex].Metadata->Handle;
+                    changed = true;
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                for (uint32_t i = 0; i < results.size(); i++) {
+                    const bool selected = selectedIndex == i;
+
+                    if (ImGui::Selectable(FormatTemp("{}", FS::Filename(results[i].Name)), selected)) {
+                        value = results[i].Metadata->Handle;
                         changed = true;
 
                         ImGui::CloseCurrentPopup();

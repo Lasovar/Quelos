@@ -60,7 +60,7 @@ namespace Quelos {
         explicit SceneRenderer(const flecs::world& world);
 
         void Begin(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
-        void Render() const;
+        void Render();
         void End();
 
         ~SceneRenderer();
@@ -77,6 +77,8 @@ namespace Quelos {
         flecs::query<const MeshRenderer&> m_PSOQuery;
 
         GpuBufferHandle m_GlobalBuffer;
-        GpuBufferHandle m_InstanceBuffer;
+
+        GpuBufferHandle m_InstancesGPUBuffer;
+        Vec<InstanceData> m_InstancesCPUBuffer;
     };
 }
