@@ -11,14 +11,13 @@ struct VertexOut {
     float2 uv : TEXCOORD0;
 };
 
-struct GlobalUniforms {
+__extern_cpp struct GlobalUniforms {
     float4x4 viewProj;
 };
 
-struct InstanceData {
+__extern_cpp struct InstanceData {
     float4x4 Transform;
-    uint MaterialID;
-    uint3 Padding;
+    uint4 MaterialIndex;
 }
 
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
