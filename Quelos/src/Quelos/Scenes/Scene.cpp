@@ -18,10 +18,8 @@ namespace Quelos {
     class WindowResizeEvent;
 
     Scene::Scene(std::string name)
-        : m_Name(std::move(name)), m_SceneRenderer(m_World)
+        : m_ComponentRegistry(m_World), m_Name(std::move(name)), m_SceneRenderer(m_World)
     {
-        m_ComponentRegistry.RegisterBuiltinTypes(m_World);
-
         m_SceneRoot = m_World.entity<SceneRoot>("Root")
                              .add<EntityID>()
                              .add(flecs::OrderedChildren);

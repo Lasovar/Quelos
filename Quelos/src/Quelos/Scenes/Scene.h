@@ -124,9 +124,9 @@ namespace Quelos {
         HashMap<EntityID, Actor> m_ActorsMap;
         HashMap<EntityID, Entity> m_EntitiesMap;
 
-        ComponentRegistry m_ComponentRegistry;
-
         flecs::world m_World;
+
+        ComponentRegistry m_ComponentRegistry;
 
         std::string m_Name;
 

@@ -34,11 +34,11 @@ namespace Quelos {
             }
             else {
                 m_Data = static_cast<T*>(operator new(src.size() * sizeof(T)));
-                m_Capacity = src.size();
+                m_Capacity = static_cast<size_type>(src.size());
             }
 
-            copy_range(m_Data, src.data(), src.size());
-            m_Size = src.size();
+            m_Size = static_cast<size_type>(src.size());
+            copy_range(m_Data, src.data(), m_Size);
         }
 
         SmallVec(std::initializer_list<T> list)
