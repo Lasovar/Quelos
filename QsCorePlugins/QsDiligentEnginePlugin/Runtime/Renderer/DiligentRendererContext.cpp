@@ -98,6 +98,7 @@ namespace Quelos {
             textureDesc.Height = spec.Height;
             textureDesc.Type = GetTextureType(spec.Type);
             textureDesc.BindFlags = GetBindFlags(spec);
+            textureDesc.SampleCount = spec.SampleCount;
 
             device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
         }
@@ -1088,6 +1089,9 @@ namespace Quelos {
         uint32_t renderTargetAttachmentRefsCount = 0;
         for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
             renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
+            if (subPass.ResolveAttachments) {
+                renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
+            }
         }
 
         slot->AttachmentReferences.reserve(renderTargetAttachmentRefsCount);
@@ -1106,6 +1110,15 @@ namespace Quelos {
                 subPass.RenderTargetAttachments.size()
             );
 
+            if (subPass.ResolveAttachments) {
+                const uint32_t resolveAttachmentIndex = slot->AttachmentReferences.size();
+                for (uint32_t i = 0; i < subPass.RenderTargetAttachments.size(); i++) {
+                    slot->AttachmentReferences.push_back(subPass.ResolveAttachments[i]);
+                }
+
+                ownedSubpass.ResolveAttachments = &slot->AttachmentReferences[resolveAttachmentIndex];
+            }
+
             ownedSubpass.DepthAttachment = subPass.DepthAttachment;
 
             slot->SubPasses.push_back(ownedSubpass);
@@ -1117,18 +1130,21 @@ namespace Quelos {
         spec.SubPasses = slot->SubPasses;
         spec.Attachments = slot->Attachments;
 
-        SmallVec<RenderPassAttachmentDesc, 2> attachments;
+        SmallVec<RenderPassAttachmentDesc, 3> attachments;
 
         for (const RenderPassAttachmentSpec& attachment : spec.Attachments) {
             attachments.push_back(Utils::GetRenderPassAttachmentDesc(attachment));
         }
 
         SmallVec<SubpassDesc, 2> subpasses;
-        SmallVec<Diligent::AttachmentReference, 2> attachmentRefs;
+        SmallVec<Diligent::AttachmentReference, 3> attachmentRefs;
 
         uint32_t totalAttachmentRefCount = 0;
         for (const SubPassSpec& pass : spec.SubPasses) {
             totalAttachmentRefCount += pass.RenderTargetAttachments.size() + 1;
+            if (pass.ResolveAttachments) {
+                totalAttachmentRefCount += pass.RenderTargetAttachments.size();
+            }
         }
 
         attachmentRefs.reserve(totalAttachmentRefCount);
@@ -1137,13 +1153,20 @@ namespace Quelos {
         for (const SubPassSpec& pass : spec.SubPasses) {
             SubpassDesc subPassDesc{};
 
-            const uint32_t attachmentIndex = attachmentRefs.size();
+            const uint32_t renderAttachmentIndex = attachmentRefs.size();
             for (const AttachmentReference& attachmentReference : pass.RenderTargetAttachments) {
                 attachmentRefs.push_back(Utils::GetAttachmentReference(attachmentReference));
             }
 
-            subPassDesc.pRenderTargetAttachments = attachmentRefs.data() + attachmentIndex;
+            subPassDesc.pRenderTargetAttachments = attachmentRefs.data() + renderAttachmentIndex;
             subPassDesc.RenderTargetAttachmentCount = pass.RenderTargetAttachments.size();
+
+            const uint32_t resolveAttachmentIndex = attachmentRefs.size();
+            for (uint32_t i = 0; i < pass.RenderTargetAttachments.size(); i++) {
+                attachmentRefs.push_back(Utils::GetAttachmentReference(pass.ResolveAttachments[i]));
+            }
+
+            subPassDesc.pResolveAttachments = attachmentRefs.data() + resolveAttachmentIndex;
 
             attachmentRefs.push_back(Utils::GetAttachmentReference(pass.DepthAttachment));
             subPassDesc.pDepthStencilAttachment = &attachmentRefs.back();
@@ -1426,6 +1449,9 @@ namespace Quelos {
         PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = Utils::GetCullMode(
             gpSpec.RasterizerSpec.CullMode
         );
+
+        PSOCreateInfo.GraphicsPipeline.SmplDesc.Count = gpSpec.SampleSpec.Count;
+        PSOCreateInfo.GraphicsPipeline.SmplDesc.Quality = gpSpec.SampleSpec.Quality;
 
         PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.
             FrontCounterClockwise;

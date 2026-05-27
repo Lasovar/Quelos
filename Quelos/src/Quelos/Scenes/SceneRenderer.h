@@ -79,6 +79,5 @@ namespace Quelos {
         GpuBufferHandle m_GlobalBuffer;
 
         GpuBufferHandle m_InstancesGPUBuffer;
-        Vec<InstanceData> m_InstancesCPUBuffer;
     };
 }

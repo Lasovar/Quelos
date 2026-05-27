@@ -64,9 +64,14 @@ namespace QuelosEditor {
                 m_EditorCamera.SetViewportSize(size.x, size.y);
             }
 
-            ClearValue clearValues[2];
+            ClearValue clearValues[3];
+            clearValues[0].Format = ImageFormat::RGBA;
             clearValues[0].Color = { 0.2667f, 0.2000f, 0.3333f, 1.0000f };
-            clearValues[1].DepthStencil.Depth = 1.0f;
+
+            clearValues[1] = {};
+
+            clearValues[2].Format = ImageFormat::DEPTH32F;
+            clearValues[2].DepthStencil.Depth = 1.0f;
 
             BeginRenderPassAttribs attribs;
             attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
@@ -83,12 +88,14 @@ namespace QuelosEditor {
                 m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
-            ClearValue clearValues[2];
+            ClearValue clearValues[3];
             clearValues[0].Format = ImageFormat::RGBA;
             clearValues[0].Color = { 0.2667f, 0.2000f, 0.3333f, 1.0000f };
 
-            clearValues[1].Format = ImageFormat::DEPTH32F;
-            clearValues[1].DepthStencil.Depth = 1.0f;
+            clearValues[1] = {};
+
+            clearValues[2].Format = ImageFormat::DEPTH32F;
+            clearValues[2].DepthStencil.Depth = 1.0f;
 
             BeginRenderPassAttribs attribs;
             attribs.FrameBufferHandle = m_GameViewportPanel.GetFrameBuffer()->GetHandle();

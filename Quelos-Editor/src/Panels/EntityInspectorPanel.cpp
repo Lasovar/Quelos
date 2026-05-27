@@ -150,7 +150,7 @@ namespace QuelosEditor {
             };
 
             RegisterCustomInspector(CustomInspector {
-                std::string(TypeNameShort<LocalTransform>()),
+                "Local Transform",
                 ComponentRegistry::GetComponentID<LocalTransform>(),
                 transformInspector
             });

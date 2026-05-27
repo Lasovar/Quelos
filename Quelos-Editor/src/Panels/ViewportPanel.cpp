@@ -11,31 +11,48 @@ namespace QuelosEditor {
         : m_Name(std::move(name))
     {
         {
-            TextureSpecification colorSpec;
-            colorSpec.Width = width;
-            colorSpec.Height = height;
+            TextureSpecification msaaColorSpec;
+            msaaColorSpec.Width = width;
+            msaaColorSpec.Height = height;
 
-            colorSpec.Format = ImageFormat::RGBA;
-            colorSpec.SamplerWrap = TextureWrap::Clamp;
+            msaaColorSpec.Format = ImageFormat::RGBA;
+            msaaColorSpec.SamplerWrap = TextureWrap::Clamp;
 
-            colorSpec.RenderTarget = TextureRenderTarget::ReadWrite;
-            colorSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
+            msaaColorSpec.RenderTarget = TextureRenderTarget::ReadWrite;
+            msaaColorSpec.SampleCount = 4;
 
-            m_ColorAttachment = Renderer::CreateTexture(colorSpec);
+            m_ColorAttachment = Renderer::CreateTexture(msaaColorSpec);
 
-            TextureSpecification depthSpec;
-            depthSpec.Width = width;
-            depthSpec.Height = height;
+            TextureSpecification sceneColor;
+            sceneColor.Width = width;
+            sceneColor.Height = height;
 
-            depthSpec.Format = ImageFormat::DEPTH32F;
-            depthSpec.SamplerWrap = TextureWrap::Repeat;
+            sceneColor.Format = ImageFormat::RGBA;
+            sceneColor.SamplerWrap = TextureWrap::Repeat;
 
-            depthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
-            depthSpec.MSAAType = RenderTargetMSAA::MSAA_X4;
+            sceneColor.RenderTarget = TextureRenderTarget::ReadWrite;
+            sceneColor.SampleCount = 1;
 
-            m_DepthAttachment = Renderer::CreateTexture(depthSpec);
+            m_SceneColorAttachment = Renderer::CreateTexture(sceneColor);
 
-            std::array attachments{m_ColorAttachment, m_DepthAttachment};
+            TextureSpecification msaaDepthSpec;
+            msaaDepthSpec.Width = width;
+            msaaDepthSpec.Height = height;
+
+            msaaDepthSpec.Format = ImageFormat::DEPTH32F;
+            msaaDepthSpec.SamplerWrap = TextureWrap::Repeat;
+
+            msaaDepthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
+            msaaDepthSpec.SampleCount = 4;
+
+            m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
+
+            TextureHandle attachments[] = {
+                m_ColorAttachment,
+                m_SceneColorAttachment,
+                m_DepthAttachment
+            };
+
             FrameBufferSpec spec;
             spec.Attachments = attachments;
             spec.Name = m_Name;
@@ -81,7 +98,7 @@ namespace QuelosEditor {
                                    : */float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    m_ColorAttachment.GetNativeHandle(),
+                    m_SceneColorAttachment.GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
