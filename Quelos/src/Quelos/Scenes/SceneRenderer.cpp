@@ -7,6 +7,8 @@
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
+    constexpr uint32_t k_MaxInstances = 512;
+
     void MaterialRegistry::FlushToGPU() {
         if (!m_Dirty) {
             return;
@@ -90,7 +92,6 @@ namespace Quelos {
 
         m_GlobalBuffer = Renderer::CreateBuffer(spec, {});
 
-        constexpr uint32_t k_MaxInstances = 512;
         GPUBufferSpec instancesBufferSpec{};
         instancesBufferSpec.Name = "Instances";
         instancesBufferSpec.Size = sizeof(InstanceData) * k_MaxInstances;
@@ -100,7 +101,9 @@ namespace Quelos {
         instancesBufferSpec.CpuAccessFlags = CpuAccess::Write;
         instancesBufferSpec.ElementByteStride = sizeof(InstanceData);
 
-        m_InstanceBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
+        m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
+
+        m_InstancesCPUBuffer.reserve(k_MaxInstances);
     }
 
     void SceneRenderer::Begin(
@@ -162,7 +165,7 @@ namespace Quelos {
             Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
 
             ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
-            Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstanceBuffer);
+            Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesGPUBuffer);
 
             entity.emplace<PipelineStateComponent>(
                 ResourceRef(pipelineStateHandle),
@@ -224,7 +227,7 @@ namespace Quelos {
         Renderer::BeginRenderPass(beginRenderPassAttribs);
     }
 
-    void SceneRenderer::Render() const {
+    void SceneRenderer::Render() {
         uint32_t i = 0;
         while (i < m_DrawCalls.size()) {
             //
@@ -301,22 +304,22 @@ namespace Quelos {
 
                 const uint32_t meshBegin = j;
 
-                Vec<InstanceData> pipelineInstanceBuffer;
-                while (j < pipelineEnd && m_DrawCalls[j].Mesh == mesh) {
+                m_InstancesCPUBuffer.clear();
+                while (j < pipelineEnd && m_InstancesCPUBuffer.size() < k_MaxInstances && m_DrawCalls[j].Mesh == mesh) {
                     const DrawCommand& drawItem = m_DrawCalls[j];
 
-                    pipelineInstanceBuffer.push_back({
-                        .Transform = drawItem.Transform,
+                    m_InstancesCPUBuffer.emplace_back(
+                        drawItem.Transform
                         //.MaterialId = materialRemap[drawItem.MaterialId],
-                    });
+                    );
 
                     ++j;
                 }
 
                 void* mapped;
-                Renderer::Map(m_InstanceBuffer, MapType::Write, MapFlags::Discard, mapped);
-                memcpy(mapped, pipelineInstanceBuffer.data(), pipelineInstanceBuffer.size() * sizeof(InstanceData));
-                Renderer::Unmap(m_InstanceBuffer, MapType::Write);
+                Renderer::Map(m_InstancesGPUBuffer, MapType::Write, MapFlags::Discard, mapped);
+                memcpy(mapped, m_InstancesCPUBuffer.data(), m_InstancesCPUBuffer.size() * sizeof(InstanceData));
+                Renderer::Unmap(m_InstancesGPUBuffer, MapType::Write);
 
                 const uint32_t instanceCount = j - meshBegin;
 

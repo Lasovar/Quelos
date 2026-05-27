@@ -332,6 +332,10 @@ namespace QuelosEditor {
 
                     ComponentRegistry& componentRegistry = m_Scene->GetComponentRegistry();
 
+                    if (ImGui::IsWindowAppearing()) {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+
                     static fmt::memory_buffer buffer;
                     buffer.clear();
                     ImGui::InputText(
@@ -360,17 +364,48 @@ namespace QuelosEditor {
                             [](const ComponentResult& a, const ComponentResult& b) { return a.Score > b.Score; }
                         );
 
-                        for (auto& result : results) {
+                        static uint32_t selectedIndex = 0;
+
+                        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+                            selectedIndex = std::min(
+                                selectedIndex + 1,
+                                static_cast<uint32_t>(results.size()) - 1
+                            );
+                        }
+
+                        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+                            selectedIndex = std::max(selectedIndex - 1, 0u);
+                        }
+
+                        // Enter adds first result
+                        if (ImGui::IsKeyPressed(ImGuiKey_Enter) &&
+                            !results.empty() &&
+                            !ImGui::IsAnyItemHovered())
+                        {
+                            m_UndoSystem.Push<AddComponentCommand>(
+                                m_SelectedActor.GetActorID(),
+                                m_Scene,
+                                results[selectedIndex].Info->Guid
+                            );
+
+                            ImGui::CloseCurrentPopup();
+                        }
+
+                        for (uint32_t i = 0; i < results.size(); i++) {
+                            const bool selected = selectedIndex == i;
+
                             if (ImGui::Selectable(
-                                UI::FormatTemp(
-                                    "{} ({})",
-                                    result.Info->Name.c_str(), result.Info->FullName)
+                                    UI::FormatTemp(
+                                        "{} ({})",
+                                        results[i].Info->Name.c_str(), results[i].Info->FullName
+                                    ),
+                                    selected
                                 )
                             ) {
                                 m_UndoSystem.Push<AddComponentCommand>(
                                     m_SelectedActor.GetActorID(),
                                     m_Scene,
-                                    result.Info->Guid
+                                    results[i].Info->Guid
                                 );
 
                                 ImGui::CloseCurrentPopup();

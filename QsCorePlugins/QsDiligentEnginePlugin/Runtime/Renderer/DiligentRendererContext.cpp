@@ -602,6 +602,8 @@ namespace Quelos {
         SCDesc.BufferCount = 3;
         SCDesc.Width = window->GetWidth();
         SCDesc.Height = window->GetHeight();
+        SCDesc.ColorBufferFormat = TEX_FORMAT_RGBA8_UNORM;
+        SCDesc.DepthBufferFormat = TEX_FORMAT_D32_FLOAT;
 
 #if QS_PLATFORM_WINDOWS
         Win32NativeWindow nativeWindow;

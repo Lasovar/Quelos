@@ -66,7 +66,7 @@ namespace Quelos {
         void Tick(float deltaTime) const;
         void StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs);
         void StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs);
-        void Render() const;
+        void Render();
         void EndRender();
 
         const std::string& GetName() const { return m_Name; }
