@@ -303,7 +303,7 @@ namespace Quelos {
 
                 Vec<InstanceData> pipelineInstanceBuffer;
                 while (j < pipelineEnd && m_DrawCalls[j].Mesh == mesh) {
-                    const DrawCall& drawItem = m_DrawCalls[j];
+                    const DrawCommand& drawItem = m_DrawCalls[j];
 
                     pipelineInstanceBuffer.push_back({
                         .Transform = drawItem.Transform,

@@ -222,10 +222,6 @@ namespace Quelos {
             return &m_Slots[index];
         }
 
-        SlotMap() {
-            m_Slots.reserve(32);
-        }
-
     private:
         // Maybe replaces with an arena allocator/Pager?
         Deque<Slot<TValue>> m_Slots;

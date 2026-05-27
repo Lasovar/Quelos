@@ -16,7 +16,7 @@ namespace Quelos {
         AssetID ShaderID;
     };
 
-    struct DrawCall {
+    struct DrawCommand {
         uint64_t SortKey;
         Mesh* Mesh;
         PipelineStateHandle PipelineState;
@@ -25,9 +25,8 @@ namespace Quelos {
     };
 
     struct InstanceData {
-        float4x4 Transform;
-        uint32_t MaterialId;
-        pfloat3 Padding;
+        pfloat4x4 Transform;
+        puint4 MaterialId;
     };
 
     class MaterialRegistry {
@@ -72,7 +71,7 @@ namespace Quelos {
         flecs::world m_World;
 
         HashMap<AssetID, Pair<PipelineStateHandle, ShaderResourceBindingHandle>> m_PipelineStates;
-        Vec<DrawCall> m_DrawCalls;
+        Vec<DrawCommand> m_DrawCalls;
 
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;

@@ -88,10 +88,6 @@ namespace Quelos {
                 slot.Constructed = false;
             }
         }
-
-        AssetPool() {
-            Slots.resize(32);
-        }
     };
 
     struct UntypedAssetPool {
