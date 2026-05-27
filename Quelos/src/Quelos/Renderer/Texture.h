@@ -91,7 +91,7 @@ namespace Quelos {
 
         bool IsBlitDestination = false;
         TextureRenderTarget RenderTarget = TextureRenderTarget::Off;
-        RenderTargetMSAA MSAAType = RenderTargetMSAA::None;
+        uint8_t SampleCount = 1;
     };
 
     class Texture;

@@ -51,26 +51,35 @@ namespace Quelos {
     }
 
     SceneRenderer::SceneRenderer(const flecs::world& world) : m_World(world) {
-        RenderPassAttachmentSpec attachments[2];
+        RenderPassAttachmentSpec attachments[3];
         attachments[0].Format = ImageFormat::RGBA;
-        attachments[0].SampleCount = 1;
+        attachments[0].SampleCount = 4;
         attachments[0].LoadOp = AttachmentLoadOp::Clear;
-        attachments[0].StoreOp = AttachmentStoreOp::Store;
-        attachments[0].InitialState = ResourceState::ShaderResource;
-        attachments[0].FinalState = ResourceState::ShaderResource;
+        attachments[0].StoreOp = AttachmentStoreOp::Discard;
+        attachments[0].InitialState = ResourceState::RenderTarget;
+        attachments[0].FinalState = ResourceState::RenderTarget;
 
-        attachments[1].Format = ImageFormat::DEPTH32F;
+        attachments[1].Format = ImageFormat::RGBA;
         attachments[1].SampleCount = 1;
         attachments[1].LoadOp = AttachmentLoadOp::Clear;
-        attachments[1].StoreOp = AttachmentStoreOp::Discard;
-        attachments[1].InitialState = ResourceState::DepthWrite;
-        attachments[1].FinalState = ResourceState::DepthWrite;
+        attachments[1].StoreOp = AttachmentStoreOp::Store;
+        attachments[1].InitialState = ResourceState::ResolveDest;
+        attachments[1].FinalState = ResourceState::ShaderResource;
+
+        attachments[2].Format = ImageFormat::DEPTH32F;
+        attachments[2].SampleCount = 4;
+        attachments[2].LoadOp = AttachmentLoadOp::Clear;
+        attachments[2].StoreOp = AttachmentStoreOp::Discard;
+        attachments[2].InitialState = ResourceState::DepthWrite;
+        attachments[2].FinalState = ResourceState::DepthWrite;
 
         AttachmentReference colorRef = {0, ResourceState::RenderTarget};
+        AttachmentReference resolveRef = {1, ResourceState::ResolveDest};
 
         SubPassSpec subPassSpec;
         subPassSpec.RenderTargetAttachments = Span(&colorRef, 1);
-        subPassSpec.DepthAttachment = {1, ResourceState::DepthWrite};
+        subPassSpec.DepthAttachment = {2, ResourceState::DepthWrite};
+        subPassSpec.ResolveAttachments = &resolveRef;
 
         RenderPassSpec renderPassSpec;
         renderPassSpec.Name = "Scene render pass";
@@ -102,8 +111,6 @@ namespace Quelos {
         instancesBufferSpec.ElementByteStride = sizeof(InstanceData);
 
         m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
-
-        m_InstancesCPUBuffer.reserve(k_MaxInstances);
     }
 
     void SceneRenderer::Begin(
@@ -140,6 +147,8 @@ namespace Quelos {
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
             pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+
+            pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = 4;
 
             LayoutElementBuilder<4> layoutBuilder{
                 LayoutElement{0, 0, ShaderDataType::Float3},
@@ -302,26 +311,20 @@ namespace Quelos {
             while (j < pipelineEnd) {
                 Mesh* mesh = m_DrawCalls[j].Mesh;
 
-                const uint32_t meshBegin = j;
+                void* mapped;
+                Renderer::Map(m_InstancesGPUBuffer, MapType::Write, MapFlags::Discard, mapped);
+                InstanceData* const instances = static_cast<InstanceData*>(mapped);
 
-                m_InstancesCPUBuffer.clear();
-                while (j < pipelineEnd && m_InstancesCPUBuffer.size() < k_MaxInstances && m_DrawCalls[j].Mesh == mesh) {
-                    const DrawCommand& drawItem = m_DrawCalls[j];
-
-                    m_InstancesCPUBuffer.emplace_back(
-                        drawItem.Transform
-                        //.MaterialId = materialRemap[drawItem.MaterialId],
-                    );
+                uint32_t instanceCount = 0;
+                while (j < pipelineEnd && instanceCount < k_MaxInstances && m_DrawCalls[j].Mesh == mesh) {
+                    instances[instanceCount++] = InstanceData {
+                        .Transform = m_DrawCalls[j].Transform
+                    };
 
                     ++j;
                 }
 
-                void* mapped;
-                Renderer::Map(m_InstancesGPUBuffer, MapType::Write, MapFlags::Discard, mapped);
-                memcpy(mapped, m_InstancesCPUBuffer.data(), m_InstancesCPUBuffer.size() * sizeof(InstanceData));
                 Renderer::Unmap(m_InstancesGPUBuffer, MapType::Write);
-
-                const uint32_t instanceCount = j - meshBegin;
 
                 Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
                 Renderer::BindIndexBuffer(mesh->GetIndexBuffer());

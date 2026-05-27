@@ -44,6 +44,7 @@ namespace QuelosEditor {
 
         TextureHandle m_ColorAttachment;
         TextureHandle m_DepthAttachment;
+        TextureHandle m_SceneColorAttachment;
 
         Ref<FrameBuffer> m_FrameBuffer;
     };

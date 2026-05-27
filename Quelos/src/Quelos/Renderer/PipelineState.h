@@ -11,7 +11,6 @@
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
-
     enum class SamplerFlags : uint8_t {
         /// No flags are set.
         None = 0,
@@ -177,6 +176,14 @@ namespace Quelos {
         //RenderTargetBlendDesc RenderTargets[DILIGENT_MAX_RENDER_TARGETS]; // TODO:
     };
 
+    struct SampleSpec {
+        /// Sample count
+        uint8_t Count = 1;
+
+        /// Quality
+        uint8_t Quality = 0;
+    };
+
     struct GraphicsPipelineSpec {
         BlendState BlendState;
 
@@ -191,6 +198,8 @@ namespace Quelos {
         DepthStencilStateSpec DepthStencilSpec;
         InputLayoutSpec InputLayout;
         RenderPassHandle RenderPass;
+
+        SampleSpec SampleSpec;
     };
 
     struct GraphicsPipelineStateCreateInfo : PipelineStateCreateInfo {
