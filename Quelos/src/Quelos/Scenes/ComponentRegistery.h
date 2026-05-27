@@ -36,6 +36,10 @@ namespace Quelos {
 
     class QS_API ComponentRegistry {
     public:
+        explicit ComponentRegistry(flecs::world& world) {
+            RegisterBuiltinTypes(world);
+        }
+
         void RegisterBuiltinTypes(flecs::world& world);
 
         template <typename T>

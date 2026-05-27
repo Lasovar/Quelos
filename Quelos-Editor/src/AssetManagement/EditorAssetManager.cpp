@@ -440,7 +440,7 @@ namespace QuelosEditor {
         }
 
         m_WatchID = m_FileWatcher.addWatch(
-            Project::GetAssetsPath(),
+            (Project::GetAssetsPath()).generic_string(),
             this,
             true
         );

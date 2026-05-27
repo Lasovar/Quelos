@@ -53,9 +53,13 @@ else()
     set(SLANG_CONFIG_DIR "Release")
 endif()
 
-set(SLANG_LIB_DIR
-        "${SLANG_BUILD_DIR}/Release/lib"
-)
+set(SLANG_LIB_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/lib")
+
+if(WIN32)
+    set(SLANG_RUNTIME_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/bin")
+else()
+    set(SLANG_RUNTIME_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/lib")
+endif()
 
 set(SLANG_SLANG_COMPILER ${SLANG_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}slang-compiler${CMAKE_SHARED_LIBRARY_SUFFIX})
 set(SLANG_SLANG_COMPILER_IMPLIB ${SLANG_LIB_DIR}/${CMAKE_IMPORT_LIBRARY_PREFIX}slang-compiler${CMAKE_IMPORT_LIBRARY_SUFFIX})
@@ -138,14 +142,14 @@ set(SLANG_VERSION "2026.8.1")
 
 set(SLANG_RUNTIME_NAMES
         slang-compiler
-        slang-glslang-${SLANG_VERSION}
-        slang-glsl-module-${SLANG_VERSION}
+        slang-glslang
+        slang-glsl-module
 )
 
 set(SLANG_DEPLOY_LIBS "")
 
 foreach(lib IN LISTS SLANG_RUNTIME_NAMES)
-    list(APPEND SLANG_DEPLOY_LIBS "${SLANG_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${lib}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    list(APPEND SLANG_DEPLOY_LIBS "${SLANG_RUNTIME_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${lib}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 endforeach()
 
 add_custom_command(TARGET Quelos-Editor POST_BUILD
