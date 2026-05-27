@@ -1,5 +1,12 @@
 import quelos;
 
+struct Material {
+    [Color] float4 Color;
+    float Power;
+};
+
+StructuredBuffer<Material> Materials;
+
 [shader("vertex")]
 VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     VertexOut output;

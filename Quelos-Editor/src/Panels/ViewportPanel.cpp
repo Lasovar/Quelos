@@ -6,6 +6,9 @@
 #include "imgui_internal.h"
 #include "Quelos/Renderer/Renderer.h"
 
+#include "magic_enum/magic_enum.hpp"
+using namespace magic_enum::bitwise_operators;
+
 namespace QuelosEditor {
     ViewportPanel::ViewportPanel(std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height)
         : m_Name(std::move(name))
@@ -16,10 +19,10 @@ namespace QuelosEditor {
             msaaColorSpec.Height = height;
 
             msaaColorSpec.Format = ImageFormat::RGBA;
-            msaaColorSpec.SamplerWrap = TextureWrap::Clamp;
+            msaaColorSpec.SamplerWrap = WrapMode::Clamp;
 
-            msaaColorSpec.RenderTarget = TextureRenderTarget::ReadWrite;
-            msaaColorSpec.SampleCount = 4;
+            msaaColorSpec.BindFlags = Bind::RenderTarget;
+            msaaColorSpec.SampleCount = SampleCount::x4;
 
             m_ColorAttachment = Renderer::CreateTexture(msaaColorSpec);
 
@@ -28,10 +31,10 @@ namespace QuelosEditor {
             sceneColor.Height = height;
 
             sceneColor.Format = ImageFormat::RGBA;
-            sceneColor.SamplerWrap = TextureWrap::Repeat;
+            sceneColor.SamplerWrap = WrapMode::Repeat;
 
-            sceneColor.RenderTarget = TextureRenderTarget::ReadWrite;
-            sceneColor.SampleCount = 1;
+            sceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+            sceneColor.SampleCount = SampleCount::x1;
 
             m_SceneColorAttachment = Renderer::CreateTexture(sceneColor);
 
@@ -40,10 +43,10 @@ namespace QuelosEditor {
             msaaDepthSpec.Height = height;
 
             msaaDepthSpec.Format = ImageFormat::DEPTH32F;
-            msaaDepthSpec.SamplerWrap = TextureWrap::Repeat;
+            msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
 
-            msaaDepthSpec.RenderTarget = TextureRenderTarget::WriteOnly;
-            msaaDepthSpec.SampleCount = 4;
+            msaaDepthSpec.BindFlags = Bind::DepthStencil;
+            msaaDepthSpec.SampleCount = SampleCount::x4;
 
             m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
 

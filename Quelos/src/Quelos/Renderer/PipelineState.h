@@ -27,12 +27,12 @@ namespace Quelos {
     };
 
     struct SamplerSpec {
-        TextureFilter MinFilter = TextureFilter::Linear;
-        TextureFilter MagFilter = TextureFilter::Linear;
-        TextureFilter MipFilter = TextureFilter::Linear;
-        TextureWrap WrapU = TextureWrap::Clamp;
-        TextureWrap WrapV = TextureWrap::Clamp;
-        TextureWrap WrapW = TextureWrap::Clamp;
+        FilterMode MinFilter = FilterMode::Linear;
+        FilterMode MagFilter = FilterMode::Linear;
+        FilterMode MipFilter = FilterMode::Linear;
+        WrapMode WrapU = WrapMode::Clamp;
+        WrapMode WrapV = WrapMode::Clamp;
+        WrapMode WrapW = WrapMode::Clamp;
         SamplerFlags Flags;
 
         /// Indicates whether to use unnormalized texture coordinates.
@@ -178,7 +178,7 @@ namespace Quelos {
 
     struct SampleSpec {
         /// Sample count
-        uint8_t Count = 1;
+        SampleCount Count = SampleCount::x1;
 
         /// Quality
         uint8_t Quality = 0;

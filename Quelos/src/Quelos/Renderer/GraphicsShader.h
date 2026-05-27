@@ -8,17 +8,30 @@
 #include "PipelineState.h"
 
 namespace Quelos {
+    enum class MaterialProperty {
+        Unknown,
+        Float, Float2, Float3, Float4,
+        Color, // Attributed float4
+        Int, Int2, Int3, Int4,
+        UInt, UInt2, UInt3, UInt4
+    };
+
     class QS_API GraphicsShader : public Asset {
     public:
-        GraphicsShader(Buffer vertex, Buffer fragment, std::string name);
+        GraphicsShader(
+            Buffer vertex,
+            Buffer fragment,
+            std::string name,
+            const HashMap<std::string, MaterialProperty>& materialProperties
+        );
         ~GraphicsShader() override;
 
-        const std::string& GetName() const { return m_Name; }
+        [[nodiscard]] const std::string& GetName() const { return m_Name; }
 
         void Recreate(Buffer vertex, Buffer fragment);
 
-        ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
-        ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
+        [[nodiscard]] ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
+        [[nodiscard]] ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
 
         void AddPipelineState(const PipelineStateHandle pipelineState) {
             m_PipelineStates.push_back(pipelineState);
@@ -35,9 +48,10 @@ namespace Quelos {
         ShaderHandle m_FragmentShader;
 
         Vec<PipelineStateHandle> m_PipelineStates;
+        HashMap<std::string, MaterialProperty> m_MaterialProperties;
 
     public:
-        const AssetType& GetAssetType() const override { return GetStaticType(); }
+        [[nodiscard]] const AssetType& GetAssetType() const override { return GetStaticType(); }
 
         static const AssetType& GetStaticType() {
             static AssetType s_AssetType = Quelos::GetAssetType<GraphicsShader>();

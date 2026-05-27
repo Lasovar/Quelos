@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "GraphicsTypes.h"
 #include "Quelos/Math/Math.h"
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Core/Buffer.h"
@@ -37,7 +38,7 @@ namespace Quelos {
         Depth = DEPTH24STENCIL8,
     };
 
-    enum class QS_API TextureWrap {
+    enum class QS_API WrapMode {
         Unknown,
         Repeat,
         Clamp,
@@ -53,7 +54,7 @@ namespace Quelos {
         Count
     };
 
-    enum class QS_API TextureFilter {
+    enum class QS_API FilterMode {
         Unknown,
         Point,
         Linear,
@@ -63,12 +64,6 @@ namespace Quelos {
     enum class QS_API TextureType {
         Texture2D,
         TextureCube
-    };
-
-    enum class QS_API TextureRenderTarget {
-        Off,
-        ReadWrite,
-        WriteOnly
     };
 
     enum class QS_API RenderTargetMSAA {
@@ -85,13 +80,13 @@ namespace Quelos {
         ImageFormat Format = ImageFormat::RGBA;
         uint32_t Width = 1;
         uint32_t Height = 1;
-        TextureWrap SamplerWrap = TextureWrap::Repeat;
-        TextureFilter SamplerFilter = TextureFilter::Linear;
+        WrapMode SamplerWrap = WrapMode::Repeat;
+        FilterMode SamplerFilter = FilterMode::Linear;
         TextureType Type = TextureType::Texture2D;
 
         bool IsBlitDestination = false;
-        TextureRenderTarget RenderTarget = TextureRenderTarget::Off;
-        uint8_t SampleCount = 1;
+        BindFlags BindFlags = Bind::None;
+        SampleCount SampleCount = SampleCount::x1;
     };
 
     class Texture;

@@ -148,7 +148,7 @@ namespace Quelos {
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
             pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
 
-            pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = 4;
+            pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
             LayoutElementBuilder<4> layoutBuilder{
                 LayoutElement{0, 0, ShaderDataType::Float3},
