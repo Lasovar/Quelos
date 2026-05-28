@@ -47,7 +47,8 @@ namespace QuelosEditor {
 
         struct ShaderMetadata {
             AssetID AssetId;
-            HashMap<std::string, MaterialProperty> MaterialProperties;
+            uint64_t MaterialSize = 0;
+            Vec<MaterialProperty> MaterialProperties;
         };
 
         static bool SerializeShaderMetadata(
@@ -72,9 +73,15 @@ namespace QuelosEditor {
             writer.Write(SectionEvent{"Shader"});
             writer.CloseSection();
             writer.WriteField("assetId", UnquotedString{shaderMetadata.AssetId.ToFormattedString()});
+            writer.WriteField("materialSize", shaderMetadata.MaterialSize);
             writer.Write(ComponentEvent { "MaterialProperties" });
-            for (const auto& [name, type] : shaderMetadata.MaterialProperties) {
-                writer.WriteField(name, UnquotedString { magic_enum::enum_name(type) });
+            for (const auto& materialProperty : shaderMetadata.MaterialProperties) {
+                writer.Write(FieldEvent { materialProperty.Name });
+                writer.Write(TupleBeginEvent{});
+                writer.Write(ValueEvent{ UnquotedString { magic_enum::enum_name(materialProperty.Type) } });
+                writer.Write(ValueEvent { materialProperty.Size });
+                writer.Write(ValueEvent { materialProperty.Offset });
+                writer.Write(TupleEndEvent{});
             }
 
             file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
@@ -110,6 +117,9 @@ namespace QuelosEditor {
             std::string_view currentSection;
             std::string_view currentField;
             std::string_view currentComponent;
+            bool inTuple = false;
+            uint32_t tupleIndex = 0;
+            MaterialProperty materialProperty;
 
             ShaderMetadata metadata;
 
@@ -124,6 +134,18 @@ namespace QuelosEditor {
                         },
                         [&](const FieldEvent& event) {
                             currentField = event.Path;
+
+                            if (currentComponent == "MaterialProperties") {
+                                materialProperty.Name = currentField;
+                            }
+                        },
+                        [&](const TupleBeginEvent&) {
+                            inTuple = true;
+                            tupleIndex = 0;
+                        }, [&](const TupleEndEvent&) {
+                            inTuple = false;
+                            metadata.MaterialProperties.push_back(materialProperty);
+                            materialProperty = {};
                         },
                         [&](const ValueEvent& event) {
                             if (currentSection != "Shader") {
@@ -133,14 +155,41 @@ namespace QuelosEditor {
                             if (currentComponent.empty()) {
                                 if (currentField == "assetId") {
                                     metadata.AssetId = AssetID(std::get<std::string_view>(event.Value));
+                                } else if (currentField == "materialSize") {
+                                    const auto materialSizeSv = std::get<std::string_view>(event.Value);
+
+                                    std::from_chars(
+                                        materialSizeSv.data(),
+                                        materialSizeSv.data() + materialSizeSv.size(),
+                                        metadata.MaterialSize
+                                    );
                                 }
                             }
-                            else if (currentComponent == "MaterialProperties") {
-                                const MaterialProperty property = magic_enum::enum_cast<MaterialProperty>(
-                                    std::get<std::string_view>(event.Value)
-                                ).value_or(MaterialProperty::Unknown);
+                            else if (currentComponent == "MaterialProperties" && inTuple) {
+                                if (tupleIndex == 0) {
+                                    materialProperty.Type = magic_enum::enum_cast<MaterialPropertyType>(
+                                       std::get<std::string_view>(event.Value)
+                                   ).value_or(MaterialPropertyType::Unknown);
+                                } else if (tupleIndex == 1) {
+                                    const auto sizeSv = std::get<std::string_view>(event.Value);
 
-                                metadata.MaterialProperties[std::string(currentField)] = property;
+                                    std::from_chars(
+                                        sizeSv.data(),
+                                        sizeSv.data() + sizeSv.size(),
+                                        materialProperty.Size
+                                    );
+
+                                } else if (tupleIndex == 2) {
+                                    const auto offsetSv = std::get<std::string_view>(event.Value);
+
+                                    std::from_chars(
+                                        offsetSv.data(),
+                                        offsetSv.data() + offsetSv.size(),
+                                        materialProperty.Size
+                                    );
+                                }
+
+                                tupleIndex++;
                             }
                         },
                         []([[maybe_unused]] auto& e) {}
@@ -183,6 +232,10 @@ namespace QuelosEditor {
 
             AssetID assetId;
             for (auto&& parserEvent : reader.Parse()) {
+                if (assetId) {
+                    break;
+                }
+
                 std::visit(Overloaded{
                                [&](const SectionEvent& event) {
                                    currentSection = event.Name;
@@ -209,8 +262,8 @@ namespace QuelosEditor {
             return assetId;
         }
 
-        static MaterialProperty GetMaterialProperty(slang::VariableReflection* variable) {
-            slang::TypeReflection* fieldType = variable->getType();
+        static MaterialPropertyType GetMaterialProperty(slang::VariableLayoutReflection* variableLayout) {
+            slang::TypeReflection* fieldType = variableLayout->getType();
             switch (fieldType->getKind()) {
             case slang::TypeReflection::Kind::None:
             case slang::TypeReflection::Kind::ConstantBuffer:
@@ -231,31 +284,33 @@ namespace QuelosEditor {
             case slang::TypeReflection::Kind::Struct:
             case slang::TypeReflection::Kind::Array:
             case slang::TypeReflection::Kind::Matrix:
-                return MaterialProperty::Unknown;
+                return MaterialPropertyType::Unknown;
             case slang::TypeReflection::Kind::Scalar:
-                return MaterialProperty::Float;
+                return MaterialPropertyType::Float;
             case slang::TypeReflection::Kind::Vector:
                 switch (fieldType->getElementCount()) {
                 case 1:
-                    return MaterialProperty::Float;
+                    return MaterialPropertyType::Float;
                 case 2:
-                    return MaterialProperty::Float2;
+                    return MaterialPropertyType::Float2;
                 case 3:
-                    return MaterialProperty::Float3;
-                case 4:
+                    return MaterialPropertyType::Float3;
+                case 4: {
+                    slang::VariableReflection* variable = variableLayout->getVariable();
                     for (uint32_t attribIndex = 0; attribIndex < variable->getUserAttributeCount(); attribIndex++) {
                         const char* attributeName = variable->getUserAttributeByIndex(attribIndex)->getName();
                         if (!strcmp(attributeName, "Color")) {
-                            return MaterialProperty::Color;
+                            return MaterialPropertyType::Color;
                         }
                     }
 
-                    return MaterialProperty::Float4;
+                    return MaterialPropertyType::Float4;
+                }
                 default:
-                    return MaterialProperty::Unknown;
+                    return MaterialPropertyType::Unknown;
                 }
             default:
-                return MaterialProperty::Unknown;
+                return MaterialPropertyType::Unknown;
             }
         }
 
@@ -264,7 +319,8 @@ namespace QuelosEditor {
             const AssetID handle,
             Buffer& vertexBuffer,
             Buffer& fragmentBuffer,
-            HashMap<std::string, MaterialProperty>& materialProperties
+            Vec<MaterialProperty>& materialProperties,
+            uint64_t& materialSize
         ) {
             //QS_PROFILE_SCOPED_N("Shader compilation");
             auto t0 = std::chrono::high_resolution_clock::now();
@@ -329,10 +385,26 @@ namespace QuelosEditor {
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
-                slang::TypeReflection* type = parameter->getType()->getResourceResultType();
+                if (strcmp(parameter->getName(), "Materials")) {
+                    continue;
+                }
+
+                slang::TypeLayoutReflection* type = parameter->getTypeLayout()->getElementTypeLayout();
+                uint64_t offset = 0;
+
+                materialSize = type->getSize();
                 for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
-                    slang::VariableReflection* field = type->getFieldByIndex(typeFieldIndex);
-                    materialProperties[field->getName()] = GetMaterialProperty(field);
+                    slang::VariableLayoutReflection* field = type->getFieldByIndex(typeFieldIndex);
+                    MaterialPropertyType propertyType = GetMaterialProperty(field);
+                    const uint64_t fieldSize = field->getTypeLayout()->getSize();
+
+                    if (propertyType == MaterialPropertyType::Unknown) {
+                        offset += fieldSize;
+                        continue;
+                    }
+
+                    materialProperties.emplace_back(field->getName(), propertyType, offset, fieldSize);
+                    offset += fieldSize;
                 }
             }
 
@@ -453,7 +525,8 @@ namespace QuelosEditor {
                 std::move(vertexBuffer),
                 std::move(fragmentBuffer),
                 std::string(FS::Filename(metadata.FilePath)),
-                shaderMetadata->MaterialProperties
+                shaderMetadata->MaterialProperties,
+                shaderMetadata->MaterialSize
             );
 
             shader->SetAssetID(metadata.Handle);
@@ -503,8 +576,16 @@ namespace QuelosEditor {
             }
 
             Buffer vertexBuffer, fragmentBuffer;
-            HashMap<std::string, MaterialProperty> materialProperties;
-            if (!CompileShader(metadata->FilePath, metadata->Handle, vertexBuffer, fragmentBuffer, materialProperties)) {
+            Vec<MaterialProperty> materialProperties;
+            uint64_t materialSize = 0;
+            if (!CompileShader(
+                metadata->FilePath,
+                metadata->Handle,
+                vertexBuffer,
+                fragmentBuffer,
+                materialProperties,
+                materialSize)
+            ) {
                 return false;
             }
 
@@ -540,7 +621,8 @@ namespace QuelosEditor {
                     metadata.Handle,
                     vertexBuffer,
                     fragmentBuffer,
-                    shaderMetadata.MaterialProperties
+                    shaderMetadata.MaterialProperties,
+                    shaderMetadata.MaterialSize
                 )
             ) {
                 return false;

@@ -5,6 +5,7 @@ struct Material {
     float Power;
 };
 
+
 StructuredBuffer<Material> Materials;
 
 [shader("vertex")]

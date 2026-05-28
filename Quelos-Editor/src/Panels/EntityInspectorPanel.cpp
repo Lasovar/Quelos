@@ -328,7 +328,6 @@ namespace QuelosEditor {
                     };
 
                     static Vec<ComponentResult> results;
-                    results.clear();
 
                     ComponentRegistry& componentRegistry = m_Scene->GetComponentRegistry();
 
@@ -336,15 +335,30 @@ namespace QuelosEditor {
                         ImGui::SetKeyboardFocusHere();
                     }
 
+                    static uint32_t selectedIndex = 0;
                     static fmt::memory_buffer buffer;
+
                     buffer.clear();
-                    ImGui::InputText(
+                    if (ImGui::InputText(
                         UI::FormatTemp("{}##componentSearch", ICON_FA_SEARCH),
-                        buffer.data(), buffer.capacity()
-                    );
+                        buffer.data(),
+                        buffer.capacity(),
+                        ImGuiInputTextFlags_EnterReturnsTrue
+                    )) {
+                        if (!results.empty()) {
+                            m_UndoSystem.Push<AddComponentCommand>(
+                               m_SelectedActor.GetActorID(),
+                               m_Scene,
+                               results[selectedIndex].Info->Guid
+                           );
+
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
 
                     const std::string_view query = buffer.data();
 
+                    results.clear();
                     for (auto& comp : componentRegistry.GetSerializableComponents()) {
                         std::string_view name = comp.Name;
                         const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
@@ -364,8 +378,6 @@ namespace QuelosEditor {
                             [](const ComponentResult& a, const ComponentResult& b) { return a.Score > b.Score; }
                         );
 
-                        static uint32_t selectedIndex = 0;
-
                         if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
                             selectedIndex = std::min(
                                 selectedIndex + 1,
@@ -375,6 +387,10 @@ namespace QuelosEditor {
 
                         if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
                             selectedIndex = std::max(selectedIndex - 1, 0u);
+                        }
+
+                        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+                            ImGui::CloseCurrentPopup();
                         }
 
                         // Enter adds first result

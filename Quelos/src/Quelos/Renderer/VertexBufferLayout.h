@@ -2,7 +2,7 @@
 #include <cstdint>
 
 namespace Quelos {
-    enum class ShaderDataType : uint8_t {
+    enum class ValueType : uint8_t {
         Undefined,
         Float, Float2, Float3, Float4,
         Float3x3, Float4x4,
@@ -24,91 +24,91 @@ namespace Quelos {
         SNorm16x4,
     };
 
-    constexpr uint32_t ShaderDataTypeSize(const ShaderDataType type) {
+    constexpr uint32_t ShaderDataTypeSize(const ValueType type) {
         switch (type) {
-        case ShaderDataType::Undefined: return 0;
-        case ShaderDataType::Float:  return 4;
-        case ShaderDataType::Float2: return 4 * 2;
-        case ShaderDataType::Float3: return 4 * 3;
-        case ShaderDataType::Float4: return 4 * 4;
-        case ShaderDataType::Float3x3:   return 4 * 3 * 3;
-        case ShaderDataType::Float4x4:   return 4 * 4 * 4;
+        case ValueType::Undefined: return 0;
+        case ValueType::Float:  return 4;
+        case ValueType::Float2: return 4 * 2;
+        case ValueType::Float3: return 4 * 3;
+        case ValueType::Float4: return 4 * 4;
+        case ValueType::Float3x3:   return 4 * 3 * 3;
+        case ValueType::Float4x4:   return 4 * 4 * 4;
 
-        case ShaderDataType::Int:  return 4;
-        case ShaderDataType::Int2: return 4 * 2;
-        case ShaderDataType::Int3: return 4 * 3;
-        case ShaderDataType::Int4: return 4 * 4;
-        case ShaderDataType::UInt: return 4;
-        case ShaderDataType::UInt16:  return 2;
-        case ShaderDataType::UInt10x3_A2: return 4;
+        case ValueType::Int:  return 4;
+        case ValueType::Int2: return 4 * 2;
+        case ValueType::Int3: return 4 * 3;
+        case ValueType::Int4: return 4 * 4;
+        case ValueType::UInt: return 4;
+        case ValueType::UInt16:  return 2;
+        case ValueType::UInt10x3_A2: return 4;
 
-        case ShaderDataType::UNorm8x2:  return 1 * 2;
-        case ShaderDataType::UNorm8x4:  return 1 * 4;
-        case ShaderDataType::UNorm16x2: return 2 * 2;
-        case ShaderDataType::UNorm16x4: return 2 * 4;
+        case ValueType::UNorm8x2:  return 1 * 2;
+        case ValueType::UNorm8x4:  return 1 * 4;
+        case ValueType::UNorm16x2: return 2 * 2;
+        case ValueType::UNorm16x4: return 2 * 4;
 
-        case ShaderDataType::SNorm8x2:  return 1 * 2;
-        case ShaderDataType::SNorm8x4:  return 1 * 4;
-        case ShaderDataType::SNorm16x2: return 2 * 2;
-        case ShaderDataType::SNorm16x4: return 2 * 4;
+        case ValueType::SNorm8x2:  return 1 * 2;
+        case ValueType::SNorm8x4:  return 1 * 4;
+        case ValueType::SNorm16x2: return 2 * 2;
+        case ValueType::SNorm16x4: return 2 * 4;
         }
 
         return 0;
     }
 
-    constexpr uint8_t ComponentCount(const ShaderDataType type) {
+    constexpr uint8_t ComponentCount(const ValueType type) {
         switch (type) {
-        case ShaderDataType::Int: return 1;
-        case ShaderDataType::Int2: return 2;
-        case ShaderDataType::Int3: return 3;
-        case ShaderDataType::Int4: return 4;
-        case ShaderDataType::UInt: return 1;
-        case ShaderDataType::UInt16:  return 1;
-        case ShaderDataType::UInt10x3_A2: return 4;
+        case ValueType::Int: return 1;
+        case ValueType::Int2: return 2;
+        case ValueType::Int3: return 3;
+        case ValueType::Int4: return 4;
+        case ValueType::UInt: return 1;
+        case ValueType::UInt16:  return 1;
+        case ValueType::UInt10x3_A2: return 4;
 
-        case ShaderDataType::Float:  return 1;
-        case ShaderDataType::Float2: return 2;
-        case ShaderDataType::Float3: return 3;
-        case ShaderDataType::Float4: return 4;
+        case ValueType::Float:  return 1;
+        case ValueType::Float2: return 2;
+        case ValueType::Float3: return 3;
+        case ValueType::Float4: return 4;
 
-        case ShaderDataType::Float3x3: return 9;
-        case ShaderDataType::Float4x4: return 16;
+        case ValueType::Float3x3: return 9;
+        case ValueType::Float4x4: return 16;
 
-        case ShaderDataType::UNorm8x2:  return 2;
-        case ShaderDataType::UNorm8x4:  return 4;
-        case ShaderDataType::UNorm16x2: return 2;
-        case ShaderDataType::UNorm16x4: return 4;
+        case ValueType::UNorm8x2:  return 2;
+        case ValueType::UNorm8x4:  return 4;
+        case ValueType::UNorm16x2: return 2;
+        case ValueType::UNorm16x4: return 4;
 
         default: return 4;
         }
     }
 
-    constexpr bool IsNormalized(const ShaderDataType type) {
+    constexpr bool IsNormalized(const ValueType type) {
         switch (type) {
-        case ShaderDataType::UNorm8x2:
-        case ShaderDataType::UNorm8x4:
-        case ShaderDataType::UNorm16x2:
-        case ShaderDataType::UNorm16x4:
-        case ShaderDataType::SNorm8x2:
-        case ShaderDataType::SNorm8x4:
-        case ShaderDataType::SNorm16x2:
-        case ShaderDataType::SNorm16x4:
+        case ValueType::UNorm8x2:
+        case ValueType::UNorm8x4:
+        case ValueType::UNorm16x2:
+        case ValueType::UNorm16x4:
+        case ValueType::SNorm8x2:
+        case ValueType::SNorm8x4:
+        case ValueType::SNorm16x2:
+        case ValueType::SNorm16x4:
             return true;
         default:
             return false;
         }
     }
 
-    constexpr bool IsIntegerType(const ShaderDataType type) {
+    constexpr bool IsIntegerType(const ValueType type) {
         switch (type) {
-        case ShaderDataType::UNorm8x2:
-        case ShaderDataType::UNorm8x4:
-        case ShaderDataType::UNorm16x2:
-        case ShaderDataType::UNorm16x4:
-        case ShaderDataType::SNorm8x2:
-        case ShaderDataType::SNorm8x4:
-        case ShaderDataType::SNorm16x2:
-        case ShaderDataType::SNorm16x4:
+        case ValueType::UNorm8x2:
+        case ValueType::UNorm8x4:
+        case ValueType::UNorm16x2:
+        case ValueType::UNorm16x4:
+        case ValueType::SNorm8x2:
+        case ValueType::SNorm8x4:
+        case ValueType::SNorm16x2:
+        case ValueType::SNorm16x4:
             return true;
         default:
             return false;
@@ -142,7 +142,7 @@ namespace Quelos {
     };
 
     struct QS_API BufferElement {
-        ShaderDataType Type;
+        ValueType Type;
         VertexAttribute Attribute;
         uint16_t Offset;
     };
@@ -154,7 +154,7 @@ namespace Quelos {
         uint8_t Count = 0;
         uint16_t Stride = 0;
 
-        constexpr void Add(const VertexAttribute attr, const ShaderDataType type) {
+        constexpr void Add(const VertexAttribute attr, const ValueType type) {
             BufferElement& element = Elements[Count];
             element.Type = type;
             element.Attribute = attr;

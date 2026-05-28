@@ -8,12 +8,40 @@
 #include "PipelineState.h"
 
 namespace Quelos {
-    enum class MaterialProperty {
+    enum class MaterialPropertyType : uint8_t {
         Unknown,
         Float, Float2, Float3, Float4,
         Color, // Attributed float4
         Int, Int2, Int3, Int4,
         UInt, UInt2, UInt3, UInt4
+    };
+
+    constexpr uint8_t GetMaterialPropertyTypeSize(const MaterialPropertyType materialProperty) {
+        switch (materialProperty) {
+        case MaterialPropertyType::Unknown: return 0;
+        case MaterialPropertyType::Float:   return 4;
+        case MaterialPropertyType::Float2:  return 4 * 2;
+        case MaterialPropertyType::Float3:  return 4 * 3;
+        case MaterialPropertyType::Float4:  return 4 * 4;
+        case MaterialPropertyType::Color:   return 4 * 4;
+        case MaterialPropertyType::Int:     return 4;
+        case MaterialPropertyType::Int2:    return 4 * 2;
+        case MaterialPropertyType::Int3:    return 4 * 3;
+        case MaterialPropertyType::Int4:    return 4 * 4;
+        case MaterialPropertyType::UInt:    return 4;
+        case MaterialPropertyType::UInt2:   return 4 * 2;
+        case MaterialPropertyType::UInt3:   return 4 * 3;
+        case MaterialPropertyType::UInt4:   return 4 * 4;
+        }
+
+        return 0;
+    }
+
+    struct QS_API MaterialProperty {
+        std::string Name;
+        MaterialPropertyType Type = MaterialPropertyType::Unknown;
+        uint64_t Size = 0;
+        uint64_t Offset = 0;
     };
 
     class QS_API GraphicsShader : public Asset {
@@ -22,8 +50,10 @@ namespace Quelos {
             Buffer vertex,
             Buffer fragment,
             std::string name,
-            const HashMap<std::string, MaterialProperty>& materialProperties
+            const Vec<MaterialProperty>& materialProperties,
+            uint64_t materialSize
         );
+
         ~GraphicsShader() override;
 
         [[nodiscard]] const std::string& GetName() const { return m_Name; }
@@ -41,6 +71,9 @@ namespace Quelos {
             std::erase(m_PipelineStates, pipelineStateHandle);
         }
 
+        [[nodiscard]] const Vec<MaterialProperty>& GetMaterialProperties() const { return m_MaterialProperties; }
+        [[nodiscard]] uint64_t GetMaterialSize() const { return m_MaterialSize; }
+
     private:
         std::string m_Name;
 
@@ -48,7 +81,9 @@ namespace Quelos {
         ShaderHandle m_FragmentShader;
 
         Vec<PipelineStateHandle> m_PipelineStates;
-        HashMap<std::string, MaterialProperty> m_MaterialProperties;
+        Vec<MaterialProperty> m_MaterialProperties;
+
+        uint64_t m_MaterialSize;
 
     public:
         [[nodiscard]] const AssetType& GetAssetType() const override { return GetStaticType(); }

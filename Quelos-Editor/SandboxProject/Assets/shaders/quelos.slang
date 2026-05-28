@@ -26,7 +26,7 @@ __extern_cpp struct GlobalUniforms {
 // The other elements are for padding purposes and can be used for other data if needed
 __extern_cpp struct InstanceData {
     float4x4 Transform;
-    uint4 MaterialID;
+    uint MaterialID;
 };
 
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
