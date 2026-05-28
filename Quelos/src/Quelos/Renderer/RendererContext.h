@@ -109,7 +109,7 @@ namespace Quelos {
         /// The type of elements in the index buffer.
 
         /// Allowed values: `UInt` and `UInt16`.
-        ShaderDataType IndexType = ShaderDataType::Undefined;
+        ValueType IndexType = ValueType::Undefined;
 
         /// Additional flags, see Diligent::DRAW_FLAGS.
         DrawFlags Flags = DrawFlags::None;

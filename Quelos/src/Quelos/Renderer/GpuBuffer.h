@@ -60,4 +60,16 @@ namespace Quelos {
         GpuBufferHandle() = default;
         GpuBufferHandle(const Handle handle) : Handle(handle) {}
     };
+
+    struct BufferViewSpec {
+        std::string_view Name;
+        uint64_t Size = 0;
+    };
+
+    class GpuBufferView;
+
+    struct GpuBufferViewHandle : Handle<GpuBufferView> {
+        GpuBufferViewHandle() = default;
+        GpuBufferViewHandle(const Handle handle) : Handle(handle) {}
+    };
 }

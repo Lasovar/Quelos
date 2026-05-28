@@ -57,8 +57,10 @@ set(SLANG_LIB_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/lib")
 
 if(WIN32)
     set(SLANG_RUNTIME_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/bin")
+    set(SLANG_VERSION "")
 else()
     set(SLANG_RUNTIME_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/lib")
+    set(SLANG_VERSION "-2026.8.1")
 endif()
 
 set(SLANG_SLANG_COMPILER ${SLANG_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}slang-compiler${CMAKE_SHARED_LIBRARY_SUFFIX})
@@ -137,13 +139,10 @@ else()
     message(STATUS "Slang already built, skipping ExternalProject")
 endif()
 
-# TRY AUTOMATE/REMEBER TO UPDATE
-set(SLANG_VERSION "2026.8.1")
-
 set(SLANG_RUNTIME_NAMES
         slang-compiler
-        slang-glslang
-        slang-glsl-module
+        slang-glslang${SLANG_VERSION}
+        slang-glsl-module${SLANG_VERSION}
 )
 
 set(SLANG_DEPLOY_LIBS "")

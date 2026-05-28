@@ -1,6 +1,7 @@
 [Shader]
 assetId = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
+materialSize = 32
 
 @MaterialProperties
-Color = Color
-Power = Float
+Color = (Color,0,16)
+Power = (Float,16,4)

@@ -275,48 +275,48 @@ namespace Quelos {
 
         constexpr VALUE_TYPE
         GetValueType(
-            const ShaderDataType type
+            const ValueType type
         ) {
             switch (type) {
-            case ShaderDataType::Undefined:
+            case ValueType::Undefined:
                 return VT_UNDEFINED;
-            case ShaderDataType::Float:
-            case ShaderDataType::Float2:
-            case ShaderDataType::Float3:
-            case ShaderDataType::Float4:
-            case ShaderDataType::Float3x3:
-            case ShaderDataType::Float4x4:
+            case ValueType::Float:
+            case ValueType::Float2:
+            case ValueType::Float3:
+            case ValueType::Float4:
+            case ValueType::Float3x3:
+            case ValueType::Float4x4:
                 return VT_FLOAT32;
 
-            case ShaderDataType::Int:
-            case ShaderDataType::Int2:
-            case ShaderDataType::Int3:
-            case ShaderDataType::Int4:
+            case ValueType::Int:
+            case ValueType::Int2:
+            case ValueType::Int3:
+            case ValueType::Int4:
                 return VT_INT32;
 
-            case ShaderDataType::UInt:
+            case ValueType::UInt:
                 return VT_UINT32;
-            case ShaderDataType::UInt16:
+            case ValueType::UInt16:
                 return VT_UINT16;
 
-            case ShaderDataType::UInt10x3_A2:
+            case ValueType::UInt10x3_A2:
                 QS_ASSERT(false && "UInt10x3_A2 is not supported by Diligent VALUE_TYPE");
                 return VT_UINT32;
 
-            case ShaderDataType::UNorm8x2:
-            case ShaderDataType::UNorm8x4:
+            case ValueType::UNorm8x2:
+            case ValueType::UNorm8x4:
                 return VT_UINT8;
 
-            case ShaderDataType::UNorm16x2:
-            case ShaderDataType::UNorm16x4:
+            case ValueType::UNorm16x2:
+            case ValueType::UNorm16x4:
                 return VT_UINT16;
 
-            case ShaderDataType::SNorm8x2:
-            case ShaderDataType::SNorm8x4:
+            case ValueType::SNorm8x2:
+            case ValueType::SNorm8x4:
                 return VT_INT8;
 
-            case ShaderDataType::SNorm16x2:
-            case ShaderDataType::SNorm16x4:
+            case ValueType::SNorm16x2:
+            case ValueType::SNorm16x4:
                 return VT_INT16;
             }
 
@@ -334,8 +334,8 @@ namespace Quelos {
                     Elements.emplace_back(
                             element.InputIndex,
                             element.BufferSlot,
-                            ComponentCount(element.ValueType),
-                            GetValueType(element.ValueType),
+                            ComponentCount(element.Type),
+                            GetValueType(element.Type),
                             element.IsNormalized,
                             element.RelativeOffset,
                             element.Stride,
@@ -757,6 +757,9 @@ namespace Quelos {
 
     void DiligentRendererContext::EndFrame() {
         m_pSwapChain->Present(0);
+        m_pImmediateContext->Flush();
+        m_pDevice->ReleaseStaleResources();
+        m_pImmediateContext->FinishFrame();
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -876,10 +879,22 @@ namespace Quelos {
             return;
         }
 
-        (*slot)->GetVariableByName(
+        IShaderResourceVariable* shaderResourceVariable = (*slot)->GetVariableByName(
             Utils::GetShaderType(shaderType),
             UI::FormatTemp("{}", name)
-        )->Set(m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+        );
+
+        if (!shaderResourceVariable) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRenderer",
+                "Failed to find shader variable by the name '{}'!",
+                name
+            );
+
+            return;
+        }
+
+        shaderResourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
     }
 
     void DiligentRendererContext::Map(

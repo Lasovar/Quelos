@@ -11,10 +11,10 @@ namespace Quelos {
         }
 
         VertexLayout layout;
-        layout.Add(VertexAttribute::Position, ShaderDataType::Float3);
-        layout.Add(VertexAttribute::Normal, ShaderDataType::Float3);
-        layout.Add(VertexAttribute::Tangent, ShaderDataType::Float3);
-        layout.Add(VertexAttribute::TexCoord0, ShaderDataType::Float2);
+        layout.Add(VertexAttribute::Position, ValueType::Float3);
+        layout.Add(VertexAttribute::Normal, ValueType::Float3);
+        layout.Add(VertexAttribute::Tangent, ValueType::Float3);
+        layout.Add(VertexAttribute::TexCoord0, ValueType::Float2);
 
         m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(meshData->Vertices)), layout);
         m_IndexBuffer = Renderer::CreateIndexBuffer(meshData->Indices);

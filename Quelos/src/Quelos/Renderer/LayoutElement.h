@@ -34,7 +34,7 @@ namespace Quelos {
         uint32_t BufferSlot = 0;
 
         /// Type of the element components, see Quelos::ShaderDataType for details.
-        ShaderDataType ValueType = ShaderDataType::Float;
+        ValueType Type = ValueType::Float;
 
         /// Indicates if the value should be normalized.
 
@@ -71,13 +71,13 @@ namespace Quelos {
         LayoutElement(
             const uint32_t inputIndex,
             const uint32_t bufferSlot,
-            const ShaderDataType type,
+            const ValueType type,
             const InputElementFrequency frequency = InputElementFrequency::PerVertex,
             const uint32_t stepRate = 1
         )
             : InputIndex(inputIndex),
               BufferSlot(bufferSlot),
-              ValueType(type),
+              Type(type),
               RelativeOffset(0),
               Stride(0),
               Frequency(frequency),
@@ -94,12 +94,12 @@ namespace Quelos {
 
         template<typename... T>
         constexpr LayoutElementBuilder(T&&... entries) {
-            (Add(entries.InputIndex, entries.ValueType), ...);
+            (Add(entries.InputIndex, entries.Type), ...);
         }
 
         constexpr LayoutElementBuilder& Add(
             const uint32_t inputIndex,
-            const ShaderDataType type,
+            const ValueType type,
             const uint32_t bufferSlot = 0,
             const InputElementFrequency frequency = InputElementFrequency::PerVertex,
             const uint32_t stepRate = 1
@@ -110,7 +110,7 @@ namespace Quelos {
 
             element.InputIndex = inputIndex;
             element.BufferSlot = bufferSlot;
-            element.ValueType = type;
+            element.Type = type;
             element.IsNormalized = IsNormalized(type);
             element.RelativeOffset = Stride;
             element.Stride = 0; // filled later
@@ -145,7 +145,7 @@ namespace Quelos {
                     continue;
                 }
 
-                stride += ShaderDataTypeSize(element.ValueType);
+                stride += ShaderDataTypeSize(element.Type);
             }
 
             for (uint32_t i = 0; i < Count; i++) {

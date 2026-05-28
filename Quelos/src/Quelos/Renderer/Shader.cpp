@@ -13,8 +13,9 @@ namespace Quelos {
         Buffer vertex,
         Buffer fragment,
         std::string name,
-        const HashMap<std::string, MaterialProperty>& materialProperties
-    ) : m_Name(std::move(name)), m_MaterialProperties(materialProperties) {
+        const Vec<MaterialProperty>& materialProperties,
+        const uint64_t materialSize
+    ) : m_Name(std::move(name)), m_MaterialProperties(materialProperties), m_MaterialSize(materialSize) {
         ShaderCreateInfo vertexCreateInfo;
         vertexCreateInfo.Specification.Name = m_Name;
         vertexCreateInfo.Specification.Type = ShaderType::Vertex;
