@@ -128,16 +128,12 @@ function(setup_quelos_target target type)
             PRIVATE
             #glfw
             SDL3::SDL3-static
-            libDaScript
+            #libDaScript
             freetype
             stb_image
-            TracyClient
             qxxhash
-    )
-
-    target_include_directories(${target}
             PUBLIC
-            $<TARGET_PROPERTY:TracyClient,INTERFACE_INCLUDE_DIRECTORIES>
+            Tracy::TracyClient
     )
 
     if(type STREQUAL "SHARED")
