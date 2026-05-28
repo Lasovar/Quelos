@@ -58,8 +58,11 @@ set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(Quelos/vendor/SDL)
 
-add_subdirectory(Quelos/vendor/GLFW)
+#add_subdirectory(Quelos/vendor/GLFW)
+set(TRACY_ENABLE    ON CACHE BOOL "" FORCE)
+set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
 add_subdirectory(Quelos/vendor/tracy)
+
 add_subdirectory(Quelos/vendor/freetype)
 add_subdirectory(Quelos/vendor/flecs)
 add_subdirectory(Quelos/vendor/xxhash)
@@ -106,6 +109,7 @@ set(ASSIMP_INSTALL OFF)
 set(ASSIMP_BUILD_TESTS OFF)
 set(ASSIMP_BUILD_FBX_IMPORTER ON)
 add_subdirectory(Quelos-Editor/vendor/assimp)
+
 
 add_subdirectory(Quelos-Editor/vendor/rapidfuzz-cpp)
 

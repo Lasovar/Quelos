@@ -12,28 +12,9 @@
 namespace Quelos {
     class MaterialRegistry {
     public:
-        MaterialRegistry(const std::string& pipelineName, const uint64_t materialSize);
+        MaterialRegistry(const std::string& pipelineName, uint64_t materialSize);
 
-        MaterialRegistry(const MaterialRegistry&) = delete;
-        MaterialRegistry& operator=(const MaterialRegistry&) = delete;
-        GpuBufferHandle GetGpuBufferHandle() const { return m_GPUBuffer; }
-
-        MaterialRegistry(MaterialRegistry&& other) noexcept
-            : m_GPUBuffer(other.m_GPUBuffer)
-        {
-            other.m_GPUBuffer = {};
-        }
-
-        MaterialRegistry& operator=(MaterialRegistry&& other) noexcept {
-            if (this != &other) {
-                Release();
-
-                m_GPUBuffer = other.m_GPUBuffer;
-                other.m_GPUBuffer = {};
-            }
-
-            return *this;
-        }
+        [[nodiscard]] GpuBufferHandle GetGpuBufferHandle() const { return m_GPUBuffer; }
 
         // Returns the materialId to store in MeshUniforms
         uint32_t Add(const AssetRef<Material>& mat) {
@@ -57,8 +38,6 @@ namespace Quelos {
 
         bool WasReallocated() const { return m_WasReallocated; } // signal to rebind
         void Release() const;
-
-        ~MaterialRegistry();
 
     private:
         std::string m_PipelineName;
@@ -101,7 +80,7 @@ namespace Quelos {
         void End();
 
         ~SceneRenderer();
-        RenderPassHandle GetRenderPass() const { return m_RenderPass; }
+        [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
 
     private:
         RenderPassHandle m_RenderPass;

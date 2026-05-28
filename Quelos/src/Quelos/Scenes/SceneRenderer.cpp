@@ -96,10 +96,6 @@ namespace Quelos {
         }
     }
 
-    MaterialRegistry::~MaterialRegistry() {
-        Release();
-    }
-
     SceneRenderer::SceneRenderer(const flecs::world& world) : m_World(world) {
         RenderPassAttachmentSpec attachments[3];
         attachments[0].Format = ImageFormat::RGBA;
@@ -430,6 +426,12 @@ namespace Quelos {
     }
 
     SceneRenderer::~SceneRenderer() {
+        for (auto& pipelineState : m_PipelineStates | std::views::values) {
+            pipelineState.MaterialRegistry.Release();
+            Renderer::Destroy(pipelineState.PSO);
+            Renderer::Destroy(pipelineState.SRB);
+        }
+
         Renderer::Destroy(m_RenderPass);
     }
 }
