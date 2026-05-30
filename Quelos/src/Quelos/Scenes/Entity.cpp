@@ -12,6 +12,6 @@ namespace Quelos {
     }
 
     void Entity::SetName(const std::string_view name) const {
-        m_ID.set_doc_name(UI::FormatTemp("{}", name));
+        m_ID.set_doc_name(FormatTemp("{}", name));
     }
 }

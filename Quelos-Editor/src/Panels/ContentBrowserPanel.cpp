@@ -11,6 +11,7 @@
 #include "Quelos/ImGui/ImGuiUI.h"
 
 #include "EditorUI.h"
+#include "AssetManagement/AssetImporters/MaterialImporter.h"
 #include "Quelos/Utility/FileSystem.h"
 
 namespace QuelosEditor {
@@ -24,7 +25,7 @@ namespace QuelosEditor {
             m_CurrentPath = path;
         }
 
-        ImGui::TextWrapped("%s", UI::FormatTemp("{}", directoryName));
+        ImGui::TextWrapped("%s", FormatTemp("{}", directoryName));
 
         ImGui::EndGroup();
         ImGui::PopID();
@@ -47,7 +48,7 @@ namespace QuelosEditor {
         }
 
         if (ImGui::BeginPopupContextItem("AssetContext")) {
-            if (ImGui::MenuItem(UI::FormatTemp("{} {}", ICON_FA_TRASH, "Delete"))) {
+            if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_TRASH, "Delete"))) {
                 m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.Handle);
                 m_QueueDirectoryTreeRebuild = true;
 
@@ -61,7 +62,7 @@ namespace QuelosEditor {
                 }
             }
 
-            if (asset.IsImportable && ImGui::MenuItem("Reimport")) {
+            if (!asset.IsImportable && ImGui::MenuItem("Reimport")) {
                 if (asset.Metadata.Handle) {
                     m_AssetManager->Reimport(asset.Metadata.Handle);
                     m_QueueDirectoryTreeRebuild = true;
@@ -84,10 +85,7 @@ namespace QuelosEditor {
         }
 
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-            //TODO: OpenAsset(asset.Metadata.Handle);
-            if (asset.Metadata.Type == Scene::GetStaticType()) {
-                EditorLayer::Get().OpenSceneWorkspace(asset.Metadata.Handle);
-            }
+            EditorLayer::Get().OpenAssetWorkspace(asset.Metadata);
         }
 
         // Drag & Drop
@@ -132,7 +130,7 @@ namespace QuelosEditor {
 
             ImGui::SameLine();
 
-            if (ImGui::Button(UI::FormatTemp("{}", part))) {
+            if (ImGui::Button(FormatTemp("{}", part))) {
                 const std::string_view path(m_CurrentPath.data(), i);
                 m_CurrentPath = path;
                 break;
@@ -195,7 +193,7 @@ namespace QuelosEditor {
         }
 
         const bool open = ImGui::TreeNodeEx(
-            UI::FormatTemp("{} {}", ICON_FA_FOLDER, FS::Filename(path)),
+            FormatTemp("{} {}", ICON_FA_FOLDER, FS::Filename(path)),
             flags
         );
 
@@ -230,11 +228,16 @@ namespace QuelosEditor {
 
             if (ImGui::BeginChild("##main", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
                 if (ImGui::BeginPopupContextWindow("MainViewContext")) {
-                    if (ImGui::MenuItem(UI::FormatTemp("{} {}", ICON_FA_FILE, "Create Scene"))) {
+                    if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_FILE, "Create Scene"))) {
                         Ref<Scene> scene = CreateRef<Scene>("NewScene");
                         SceneSerializer serializer(scene, m_CurrentPath + "/NewScene");
                         serializer.Deserialize();
                         m_QueueDirectoryTreeRebuild = true;
+                    }
+
+                    if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_PAINT_BRUSH, "Create Material"))) {
+                        MaterialImporter::CreateDefaultMaterialAsset(m_CurrentPath, "NewMaterial");
+                        //m_AssetManager->ProcessAssetRegistration();
                     }
 
                     ImGui::EndPopup();

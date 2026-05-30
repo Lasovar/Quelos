@@ -27,7 +27,7 @@ namespace Quelos {
                 return static_cast<uint32_t>(it - m_CpuMaterials.begin());
             }
 
-            const uint32_t id = static_cast<uint32_t>(m_CpuMaterials.size());
+            const auto id = static_cast<uint32_t>(m_CpuMaterials.size());
             m_CpuMaterials.push_back(mat);
             m_IsDirty = true;
             return id;

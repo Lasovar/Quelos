@@ -1,12 +1,11 @@
 [actor guid=544C82E014F3F6E1 state=added]
 name = "Cube"
 
-@Quelos.LocalTransform
+#Quelos.LocalTransform
 position = (-4.8,1,3.6)
 rotation = (0,0,0,1)
 scale = (1,1,1)
 
-@Quelos.MeshRenderer
+#Quelos.MeshRenderer
 mesh = 34f0b084-42c2-4c26-87d5-366a344b13cd
-shader = 5830a917-9591-48b3-8941-7f080914f2c5
-color = (1,1,1,1)
+material = 8fc22766-715e-400d-bd33-51c6eb05e3a8

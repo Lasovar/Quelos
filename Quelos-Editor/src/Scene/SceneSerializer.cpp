@@ -289,6 +289,10 @@ namespace Quelos {
         QS_CORE_ERROR_TAG("Serialization", "Parser error in line '{}': {}", e.Line, e.Message);
     }
 
+    void SceneSerializer::OnEvent(const FieldMapEvent& e) {
+        QS_CORE_ASSERT(false, "SceneSerializer field map handling isn't implemented!");
+    }
+
     void SceneSerializer::PushBackToContainer(const size_t childIndex) {
         const size_t parentIndex = m_ContainerStack.back();
         TextArchiveValue& parent = m_ValuePool[parentIndex];

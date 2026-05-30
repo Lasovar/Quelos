@@ -14,10 +14,11 @@ namespace Quelos::Serialization {
         LSection, RSection, // [ ]
 
         At, // @
+        Hash, // #
 
         EndOfLine,
         EndOfFile,
-        Error
+        Error,
     };
 
     constexpr std::string TokenTypeToString(const TokenType type) {
@@ -34,6 +35,7 @@ namespace Quelos::Serialization {
             case TokenType::RCurly: return std::string{"RCurly"};
             case TokenType::RSection: return std::string{"RSection"};
             case TokenType::At: return std::string{"At"};
+            case TokenType::Hash: return std::string{"Hash"};
             case TokenType::EndOfLine: return std::string{"EndOfLine"};
             case TokenType::EndOfFile: return std::string{"EndOfFile"};
             case TokenType::Error: return std::string{"Error"};

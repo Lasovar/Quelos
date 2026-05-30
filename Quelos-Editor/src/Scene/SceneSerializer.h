@@ -206,8 +206,8 @@ namespace Quelos {
         void OnEvent(const Serialization::TupleEndEvent& e);
         void OnEvent(const Serialization::ArrayBeginEvent& e);
         void OnEvent(const Serialization::ArrayEndEvent& e);
-
         static void OnEvent(const Serialization::ParseError& e);
+        void OnEvent(const Serialization::FieldMapEvent& e);
 
         void PushBackToContainer(size_t childIndex);
 

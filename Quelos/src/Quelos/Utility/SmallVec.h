@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <cstdint>
 
+#include "Quelos/Core/Profiling.h"
+
 namespace Quelos {
     template <typename T, uint32_t N>
     class SmallVec {
@@ -24,6 +26,7 @@ namespace Quelos {
             clear();
             if (!is_inline()) {
                 operator delete(m_Data);
+                QS_PROFILE_FREE(m_Data);
             }
         }
 
@@ -34,6 +37,7 @@ namespace Quelos {
             }
             else {
                 m_Data = static_cast<T*>(operator new(src.size() * sizeof(T)));
+                QS_PROFILE_ALLOC(m_Data, src.size() * sizeof(T));
                 m_Capacity = static_cast<size_type>(src.size());
             }
 
@@ -68,6 +72,7 @@ namespace Quelos {
                 clear();
                 if (!is_inline()) {
                     operator delete(m_Data);
+                    QS_PROFILE_FREE(m_Data);
                 }
 
                 init_from(other);
@@ -81,6 +86,7 @@ namespace Quelos {
                 clear();
                 if (!is_inline()) {
                     operator delete(m_Data);
+                    QS_PROFILE_FREE(m_Data);
                 }
 
                 move_from(std::move(other));
@@ -303,6 +309,7 @@ namespace Quelos {
 
             if (!is_inline()) {
                 operator delete(m_Data);
+                QS_PROFILE_FREE(m_Data);
             }
 
             m_Data = newData;
@@ -316,6 +323,7 @@ namespace Quelos {
             }
             else {
                 m_Data = static_cast<T*>(operator new(other.m_Size * sizeof(T)));
+                QS_PROFILE_ALLOC(m_Data, other.m_Size * sizeof(T));
                 m_Capacity = other.m_Size;
             }
 

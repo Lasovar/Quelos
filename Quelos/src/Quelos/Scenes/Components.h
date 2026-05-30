@@ -50,6 +50,7 @@ namespace Quelos {
         }
     };
 
+    // Runtime component
     struct QS_API WorldTransform {
         float4x4 Value;
     };
@@ -91,20 +92,13 @@ namespace Quelos {
     };
 
     struct QS_API MeshRenderer {
-        AssetRef<Mesh> MeshData;
-        AssetRef<GraphicsShader> ShaderData;
-        Color Color = Color::White();
-        //Ref<Material> MaterialData = CreateRef<Material>();
+        AssetRef<Mesh> Mesh;
+        AssetRef<Material> Material;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshRenderer& data) {
-            archive.Field("mesh", data.MeshData);
-            archive.Field("shader", data.ShaderData);
-            archive.Field("color", data.Color);
-
-            if constexpr (TArchive::IsLoading) {
-                //data.MaterialData = CreateRef<Material>();
-            }
+            archive.Field("mesh", data.Mesh);
+            archive.Field("material", data.Material);
         }
     };
 

@@ -1,6 +1,6 @@
 [actor guid=CCB344300694566B state=changed]
 name = "Plane"
 
-@Quelos.MeshRenderer
+#Quelos.MeshRenderer
 shader = 54abe8a3-f05f-4114-80a5-b01ab22bf596
 color = (0.75113124,0.36706865,0,1)

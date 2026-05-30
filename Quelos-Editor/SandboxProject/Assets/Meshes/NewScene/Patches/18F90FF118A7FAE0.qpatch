@@ -1,12 +1,11 @@
 [actor guid=18F90FF118A7FAE0 state=added]
 name = "Sphere"
 
-@Quelos.LocalTransform
+#Quelos.LocalTransform
 position = (4.3,1,-5.7)
 rotation = (0,0,0,1)
 scale = (1,1,1)
 
-@Quelos.MeshRenderer
+#Quelos.MeshRenderer
 mesh = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
-shader = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
-color = (1,1,1,1)
+material = 8fc22766-715e-400d-bd33-51c6eb05e3a8

@@ -1,44 +1,32 @@
 #include "qspch.h"
 #include "SceneWorkspace.h"
 
-#include "imgui.h"
 #include "imgui_internal.h"
-
-#include "Quelos/Renderer/Renderer.h"
+#include "AssetManagement/AssetImporters/SceneImporter.h"
 
 namespace QuelosEditor {
-    SceneWorkspace::SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem) : Workspace(scene->GetName()),
-        m_Scene(scene), m_UndoSystem(undoSystem), m_InspectorPanel(EntityInspectorPanel(scene, undoSystem)),
-        m_EntityHierarchyPanel(scene, undoSystem)
+    SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
+        : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
+          m_Scene(SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata)),
+          m_InspectorPanel(EntityInspectorPanel(m_Scene, undoSystem)),
+          m_EntityHierarchyPanel(m_Scene, undoSystem)
     {
         m_EntityHierarchyPanel.AddListenerOnEntitySelected([this](const Actor& actor) {
             m_InspectorPanel.SetSelectedEntity(actor);
         });
 
         m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
+        m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
+        m_ShouldDock = true;
 
         m_GameViewportPanel = ViewportPanel("Game View", m_Scene->GetRenderPass(), 1, 1);
         m_SceneViewportPanel = ViewportPanel("Scene View", m_Scene->GetRenderPass(), 1, 1);
 
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
 
-        const AssetMetadata* metadata = RefAs<EditorAssetManager>(
-            Project::GetAssetManager())->GetAssetMetadata(m_Scene->GetAssetID()
-        );
-
-        if (!metadata) {
-            QS_CORE_ERROR_TAG(
-                "SceneWorkspace",
-                "Failed to get scene metadata for scene '{}'({})",
-                scene->GetName(),
-                scene->GetAssetID().ToString()
-            );
-
-            return;
-        }
-
-        m_SceneSerializer = SceneSerializer(m_Scene, metadata->FilePath);
+        m_SceneSerializer = SceneSerializer(m_Scene, assetMetadata.FilePath);
         m_UndoSystem.AddSceneSerializer(m_Scene, &m_SceneSerializer);
+
         m_ContentBrowserPanel.Init();
     }
 

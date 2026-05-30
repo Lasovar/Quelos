@@ -71,12 +71,12 @@ private:
     void          DestroyTexture(ImTextureData* tex);
 
 private:
-    RefCntAutoPtr<IRenderDevice>          m_pDevice;
+    IRenderDevice*                        m_pDevice;
     RefCntAutoPtr<IBuffer>                m_pVB;
     RefCntAutoPtr<IBuffer>                m_pIB;
     RefCntAutoPtr<IBuffer>                m_pVertexConstantBuffer;
     RefCntAutoPtr<IPipelineState>         m_pPSO;
-    RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
+    IShaderResourceBinding* m_pSRB = nullptr;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
 
     const TEXTURE_FORMAT              m_BackBufferFmt;

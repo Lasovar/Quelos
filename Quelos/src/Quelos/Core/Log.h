@@ -7,6 +7,27 @@
 #include "Quelos/Math/Math.h"
 
 namespace Quelos {
+	// Formats a string to a temporary buffer
+	// There is no guarantee that the cstr will be valid after the next call
+	// So either copy the result or use it immediately
+	// But should be good for most ImGui calls since those copy the buffer internally
+	template <typename... Args>
+	const char* FormatTemp(fmt::format_string<Args...> fmtStr, Args&&... args) {
+		// Ring buffer for extra safety
+		// (I think? cases where you're formatting more than once in a single line for some reason)
+		constexpr int k_BufferCount = 4;
+		thread_local fmt::memory_buffer buffers[k_BufferCount];
+		thread_local uint32_t index = 0;
+
+		auto& buffer = buffers[index++ % k_BufferCount];
+		buffer.clear();
+
+		fmt::format_to(std::back_inserter(buffer), fmtStr, std::forward<Args>(args)...);
+
+		buffer.push_back('\0');
+		return buffer.data();
+	}
+
 	class QS_API Log {
 	public:
 		enum class Type : uint8_t {
@@ -239,15 +260,18 @@ struct fmt::formatter<Quelos::float3> {
 	}
 };
 
-template <>
-struct fmt::formatter<Quelos::float4> {
-	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+template<>
+struct fmt::formatter<hlslpp::float4> {
+	constexpr auto parse(fmt::format_parse_context& ctx) {
+		return ctx.begin();
+	}
 
-	template <typename FormatContext>
-	auto format(const Quelos::float4& v, FormatContext& ctx) {
+	template<typename FormatContext>
+	auto format(const hlslpp::float4& v, FormatContext& ctx) const {
 		return fmt::format_to(ctx.out(), "({},{},{},{})", v[0], v[1], v[2], v[3]);
 	}
 };
+
 
 template <>
 struct fmt::formatter<Quelos::quaternion> {

@@ -4,18 +4,23 @@
 #include "Quelos/ImGui/ImGuiUI.h"
 
 namespace QuelosEditor {
-    Workspace::Workspace(std::string workspaceName) : m_WorkspaceName(std::move(workspaceName)) {
-        m_WorkspaceID = ImHashStr(UI::FormatTemp("{}_Dockspace", m_WorkspaceName));
+    Workspace::Workspace(std::string workspaceName, UndoSystem& undoSystem)
+        : m_UndoSystem(undoSystem), m_WorkspaceName(std::move(workspaceName))
+    {
+        m_WorkspaceID = ImHashStr(FormatTemp("{}_Dockspace", m_WorkspaceName));
 
         m_WorkspaceClass.ClassId = ImHashStr(m_WorkspaceName.c_str());
         m_WorkspaceClass.DockingAllowUnclassed = false;
     }
 
-    void Workspace::OnImGuiRender(const ImGuiID dockspaceID) {
+    void Workspace::OnImGuiRender(const ImGuiWindowClass& dockspaceClass, const ImGuiID dockspaceID) {
         // Force this workspace to live in the main central dock
-        if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockspaceID); node && node->CentralNode) {
-            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
+        const ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockspaceID);
+        if (m_ShouldDock && node && node->CentralNode) {
+            ImGui::SetNextWindowDockID(node->CentralNode->ID, m_DefaultWorkspaceDockingCondition);
         }
+
+        ImGui::SetNextWindowClass(&dockspaceClass);
 
         constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 

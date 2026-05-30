@@ -37,7 +37,7 @@ namespace Quelos {
         return 0;
     }
 
-    struct QS_API MaterialProperty {
+    struct QS_API MaterialPropertySpec {
         std::string Name;
         MaterialPropertyType Type = MaterialPropertyType::Unknown;
         uint64_t Size = 0;
@@ -50,7 +50,7 @@ namespace Quelos {
             Buffer vertex,
             Buffer fragment,
             std::string name,
-            const Vec<MaterialProperty>& materialProperties,
+            const Vec<MaterialPropertySpec>& materialProperties,
             uint64_t materialSize
         );
 
@@ -71,7 +71,7 @@ namespace Quelos {
             std::erase(m_PipelineStates, pipelineStateHandle);
         }
 
-        [[nodiscard]] const Vec<MaterialProperty>& GetMaterialProperties() const { return m_MaterialProperties; }
+        [[nodiscard]] const Vec<MaterialPropertySpec>& GetMaterialProperties() const { return m_MaterialProperties; }
         [[nodiscard]] uint64_t GetMaterialSize() const { return m_MaterialSize; }
 
     private:
@@ -81,7 +81,7 @@ namespace Quelos {
         ShaderHandle m_FragmentShader;
 
         Vec<PipelineStateHandle> m_PipelineStates;
-        Vec<MaterialProperty> m_MaterialProperties;
+        Vec<MaterialPropertySpec> m_MaterialProperties;
 
         uint64_t m_MaterialSize;
 

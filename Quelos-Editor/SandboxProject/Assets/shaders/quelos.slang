@@ -9,6 +9,7 @@ struct VertexOut {
     float4 position : SV_Position;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
+    uint instanceID : SV_InstanceID;
 };
 
 // Allows you to indicate that a vector is a color

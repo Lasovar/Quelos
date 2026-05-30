@@ -48,7 +48,7 @@ namespace QuelosEditor {
         struct ShaderMetadata {
             AssetID AssetId;
             uint64_t MaterialSize = 0;
-            Vec<MaterialProperty> MaterialProperties;
+            Vec<MaterialPropertySpec> MaterialProperties;
         };
 
         static bool SerializeShaderMetadata(
@@ -119,7 +119,7 @@ namespace QuelosEditor {
             std::string_view currentComponent;
             bool inTuple = false;
             uint32_t tupleIndex = 0;
-            MaterialProperty materialProperty;
+            MaterialPropertySpec materialProperty;
 
             ShaderMetadata metadata;
 
@@ -170,7 +170,7 @@ namespace QuelosEditor {
                                     materialProperty.Type = magic_enum::enum_cast<MaterialPropertyType>(
                                        std::get<std::string_view>(event.Value)
                                    ).value_or(MaterialPropertyType::Unknown);
-                                } else if (tupleIndex == 1) {
+                                } else if (tupleIndex == 2) {
                                     const auto sizeSv = std::get<std::string_view>(event.Value);
 
                                     std::from_chars(
@@ -178,14 +178,13 @@ namespace QuelosEditor {
                                         sizeSv.data() + sizeSv.size(),
                                         materialProperty.Size
                                     );
-
-                                } else if (tupleIndex == 2) {
+                                } else if (tupleIndex == 1) {
                                     const auto offsetSv = std::get<std::string_view>(event.Value);
 
                                     std::from_chars(
                                         offsetSv.data(),
                                         offsetSv.data() + offsetSv.size(),
-                                        materialProperty.Size
+                                        materialProperty.Offset
                                     );
                                 }
 
@@ -319,7 +318,7 @@ namespace QuelosEditor {
             const AssetID handle,
             Buffer& vertexBuffer,
             Buffer& fragmentBuffer,
-            Vec<MaterialProperty>& materialProperties,
+            Vec<MaterialPropertySpec>& materialProperties,
             uint64_t& materialSize
         ) {
             //QS_PROFILE_SCOPED_N("Shader compilation");
@@ -576,7 +575,7 @@ namespace QuelosEditor {
             }
 
             Buffer vertexBuffer, fragmentBuffer;
-            Vec<MaterialProperty> materialProperties;
+            Vec<MaterialPropertySpec> materialProperties;
             uint64_t materialSize = 0;
             if (!CompileShader(
                 metadata->FilePath,

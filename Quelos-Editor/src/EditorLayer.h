@@ -34,7 +34,7 @@ namespace QuelosEditor {
         void UI_Toolbar();
         void OnEvent(Event& event) override;
 
-        void OpenSceneWorkspace(const AssetID& handle);
+        void OpenAssetWorkspace(const AssetMetadata& metadata);
 
         static void RecompilerShader(const AssetRef<GraphicsShader>& shader) {
             s_ShaderRecompilationStack.push_back(shader);
@@ -77,6 +77,8 @@ namespace QuelosEditor {
 
         Vec<Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
+
+        HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;
 
         bool m_CtrlKey : 1 = false;
         bool m_ZKey : 1 = false;

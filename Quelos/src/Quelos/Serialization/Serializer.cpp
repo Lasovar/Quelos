@@ -48,7 +48,7 @@ namespace Quelos::Serialization {
         while (token.Type != TokenType::EndOfFile) {
             // Section
             if (token.Type == TokenType::LSection) {
-                Token name = m_Lexer.Next();
+                const Token name = m_Lexer.Next();
 
                 if (name.Type != TokenType::Identifier) {
                     co_yield ParseError{name.Line, "Expected section name"};
@@ -92,7 +92,7 @@ namespace Quelos::Serialization {
                 }
             }
             // Component
-            else if (token.Type == TokenType::At) {
+            else if (token.Type == TokenType::Hash) {
                 Token name = m_Lexer.Next();
 
                 if (name.Type != TokenType::Identifier) {
@@ -103,6 +103,16 @@ namespace Quelos::Serialization {
                 co_yield ComponentEvent { name.Text };
             }
             // Field
+            else if (token.Type == TokenType::At) {
+                const Token name = m_Lexer.Next();
+
+                if (name.Type != TokenType::Identifier) {
+                    co_yield ParseError{name.Line, "Expected field map name"};
+                    co_return;
+                }
+
+                co_yield FieldMapEvent { name.Text };
+            }
             else if (token.Type == TokenType::Identifier) {
                 if (Token next = m_Lexer.Next(); next.Type != TokenType::Equals) {
                     co_yield ParseError{next.Line, std::format("Expected '=' after key, found '{}'", std::string(next.Text))};
@@ -445,8 +455,17 @@ namespace Quelos::Serialization {
 
                 NewLine();
 
-                m_Out.push_back('@');
+                m_Out.push_back('#');
                 m_Out.append(e.Name);
+                NewLine();
+            },
+            [&](const FieldMapEvent& e) {
+                CloseSectionHeader();
+
+                NewLine();
+
+                m_Out.push_back('@');
+                m_Out.append(e.Path);
                 NewLine();
             },
             [&](const FieldEvent& e) {
@@ -527,7 +546,14 @@ namespace Quelos::Serialization {
                     NewLine();
                 }
             },
-            [&](const ParseError&) { /* ignored */ }
+            [&](const ParseError& parseError) {
+                QS_CORE_ERROR_TAG(
+                    "StringQuelWriter",
+                    "Failed to parse string at line {}: {}",
+                    parseError.Line,
+                    parseError.Message
+                );
+            }
 
         }, parserEvent);
     }

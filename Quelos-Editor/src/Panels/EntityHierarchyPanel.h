@@ -19,7 +19,7 @@ namespace QuelosEditor {
 
         void AddListenerOnEntitySelected(SelectionCallback callback) {
             m_OnSelectionChangedCallbacks.push_back(std::move(callback));
-        };
+        }
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
@@ -34,6 +34,7 @@ namespace QuelosEditor {
                 callback(m_SelectedActor);
             }
         }
+
         void DrawActor(const Entity& actor, int depth, std::vector<bool>& stack, uint32_t order);
 
     private:

@@ -14,7 +14,7 @@ namespace Quelos {
 
     enum QS_API EventCategory
     {
-        None = 0,
+        EventCategoryNone = 0,
         EventCategoryApplication		= GetBit(0),
         EventCategoryInput				= GetBit(1),
         EventCategoryKeyboard			= GetBit(2),

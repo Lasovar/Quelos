@@ -11,6 +11,9 @@ namespace Quelos {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
 
+    template <class T1, class T2>
+    [[nodiscard]] Scope<T1> ScopeAs(Scope<T2>&& scope) noexcept { return Scope<T1>(std::move(scope)); }
+
     template <typename T>
     using RefCounted = std::enable_shared_from_this<T>;
 
