@@ -124,7 +124,6 @@ namespace Quelos {
     }
 
     void Renderer::SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) {
-        SetUniformData(u_Color, mesh.Color.value_ptr());
         s_RendererContext->SubmitMesh(mesh, transform);
     }
 

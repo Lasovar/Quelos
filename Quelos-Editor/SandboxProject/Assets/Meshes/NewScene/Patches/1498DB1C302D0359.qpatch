@@ -1,12 +1,11 @@
 [actor guid=1498DB1C302D0359 state=added]
 name = "Plane"
 
-@Quelos.LocalTransform
+#Quelos.LocalTransform
 position = (0,0,0)
 rotation = (0.7071068,0,0,0.7071068)
 scale = (10,10,1)
 
-@Quelos.MeshRenderer
+#Quelos.MeshRenderer
 mesh = 7454a857-a0d2-464c-a711-6ca3088cfd5e
-shader = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
-color = (1,1,1,1)
+material = 8fc22766-715e-400d-bd33-51c6eb05e3a8

@@ -53,3 +53,7 @@ path = "Assets/shaders/mesh.slang"
 [Quelos.GraphicsShader]
 handle = 5830a917-9591-48b3-8941-7f080914f2c5
 path = "Assets/shaders/fallback.slang"
+
+[Quelos.Material]
+handle = 8fc22766-715e-400d-bd33-51c6eb05e3a8
+path = "Assets/Materials/NewMaterial.qmat"

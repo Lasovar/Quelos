@@ -14,6 +14,7 @@
 #include <filesystem>
 
 #include "API.h"
+#include "Profiling.h"
 
 #define QS_STRINGIFY_IMPL(x) #x
 #define QS_STRINGIFY(x) QS_STRINGIFY_IMPL(x)
@@ -21,6 +22,23 @@
 namespace Quelos {
     using byte = std::byte;
     consteval int GetBit(const int x) { return 1 << x; }
+
+    inline void* Allocate(const size_t size) {
+#ifdef QS_ENABLE_PROFILING
+        void* pointer = std::malloc(size);
+        TracyAlloc(pointer, size);
+        return pointer;
+#else
+        return std::malloc(size);
+#endif
+    }
+
+    inline void Free(void* pointer) {
+#ifdef QS_ENABLE_PROFILING
+        TracyFree(pointer);
+#endif
+        std::free(pointer);
+    }
 
     template <typename TKey, typename TValue>
     using HashMap = ankerl::unordered_dense::map<TKey, TValue>;
@@ -53,6 +71,10 @@ namespace Quelos {
     using MutBufferView = Span<byte>;
 
     using OsPath = std::filesystem::path;
+
+    template <typename T>
+    using Option = std::optional<T>;
+    inline constexpr std::nullopt_t None { std::nullopt_t::_Construct::_Token };
 
     template <typename T>
     constexpr std::string_view TypeName() {

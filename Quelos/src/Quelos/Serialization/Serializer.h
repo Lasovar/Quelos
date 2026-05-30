@@ -23,6 +23,10 @@ namespace Quelos::Serialization {
             : Path(path) { }
     };
 
+    struct QS_API FieldMapEvent {
+        std::string_view Path;
+    };
+
     struct QS_API UnquotedString {
         std::string_view Value;
     };
@@ -65,6 +69,7 @@ namespace Quelos::Serialization {
         SectionEvent,
         ComponentEvent,
         FieldEvent,
+        FieldMapEvent,
         ValueEvent,
         TupleBeginEvent,
         TupleEndEvent,

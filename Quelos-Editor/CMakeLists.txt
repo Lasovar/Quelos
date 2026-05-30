@@ -41,13 +41,13 @@ set(TRACY_OUT_DIR "${CMAKE_BINARY_DIR}/tracy_profiler_build")
 ExternalProject_Add(tracy_profiler
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/Quelos/vendor/tracy/profiler
     CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${TRACY_OUT_DIR}
         -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG=${TRACY_OUT_DIR}
         -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${TRACY_OUT_DIR}
         -DCPM_SOURCE_CACHE=${CMAKE_SOURCE_DIR}/Quelos/vendor/tracy/.cpm-cache
-    BUILD_COMMAND   ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
+    BUILD_COMMAND   ${CMAKE_COMMAND} --build . --config Release
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS "${TRACY_OUT_DIR}/${TRACY_BINARY_NAME}"
 )
@@ -55,19 +55,20 @@ ExternalProject_Add(tracy_profiler
 add_dependencies(Quelos-Editor tracy_profiler)
 
 # Copy to Tools/bin after build
-#[[
 add_custom_command(
-        TARGET Quelos-Editor
+        TARGET tracy_profiler
         POST_BUILD
+
         COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin/"
+        "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin"
+
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${TRACY_OUT_DIR}/${TRACY_BINARY_NAME}"
-        "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin/${TRACY_BINARY_NAME}"
-        COMMENT "Copying Tracy profiler to Tools/bin"
-)
+        "$<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin"
 
-]]
+        COMMAND ${CMAKE_COMMAND} -E echo
+        "Copying from: ${TRACY_OUT_DIR}/${TRACY_BINARY_NAME} to $<TARGET_FILE_DIR:Quelos-Editor>/Tools/bin"
+)
 
 set(SLANG_BUILD_DIR
         ${CMAKE_BINARY_DIR}/slang-build

@@ -11,8 +11,8 @@ namespace Quelos {
             : m_Data(data), m_Size(size), m_Deleter(deleter) {}
 
         static Buffer Allocate(const uint64_t size) {
-            void* ptr = std::malloc(size);
-            return { static_cast<byte*>(ptr), size, std::free };
+            void* ptr = Quelos::Allocate(size);
+            return { static_cast<byte*>(ptr), size, Free };
         }
 
         static Buffer Adopt(void* data, const uint64_t size, const Deleter deleter) {

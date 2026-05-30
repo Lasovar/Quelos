@@ -13,7 +13,7 @@ namespace Quelos {
         Buffer vertex,
         Buffer fragment,
         std::string name,
-        const Vec<MaterialProperty>& materialProperties,
+        const Vec<MaterialPropertySpec>& materialProperties,
         const uint64_t materialSize
     ) : m_Name(std::move(name)), m_MaterialProperties(materialProperties), m_MaterialSize(materialSize) {
         ShaderCreateInfo vertexCreateInfo;

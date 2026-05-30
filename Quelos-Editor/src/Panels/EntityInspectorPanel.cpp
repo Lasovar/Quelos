@@ -340,7 +340,7 @@ namespace QuelosEditor {
 
                     buffer.clear();
                     if (ImGui::InputText(
-                        UI::FormatTemp("{}##componentSearch", ICON_FA_SEARCH),
+                        FormatTemp("{}##componentSearch", ICON_FA_SEARCH),
                         buffer.data(),
                         buffer.capacity(),
                         ImGuiInputTextFlags_EnterReturnsTrue
@@ -411,7 +411,7 @@ namespace QuelosEditor {
                             const bool selected = selectedIndex == i;
 
                             if (ImGui::Selectable(
-                                    UI::FormatTemp(
+                                    FormatTemp(
                                         "{} ({})",
                                         results[i].Info->Name.c_str(), results[i].Info->FullName
                                     ),

@@ -15,7 +15,7 @@ namespace QuelosEditor {
 
     class SceneWorkspace : public Workspace {
     public:
-        explicit SceneWorkspace(const Ref<Scene>& scene, UndoSystem& undoSystem);
+        explicit SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata);
 
         void SelectEntity(Entity entity);
 
@@ -26,7 +26,6 @@ namespace QuelosEditor {
 
     private:
         Ref<Scene> m_Scene;
-        UndoSystem& m_UndoSystem;
         SceneSerializer m_SceneSerializer;
 
         ViewportPanel m_GameViewportPanel;

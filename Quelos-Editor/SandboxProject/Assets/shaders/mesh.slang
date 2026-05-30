@@ -5,8 +5,11 @@ struct Material {
     float Power;
 };
 
-
 StructuredBuffer<Material> Materials;
+
+Material GetMaterial(uint instanceId) {
+    return Materials[Instances[instanceId].MaterialID];
+}
 
 [shader("vertex")]
 VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
@@ -18,6 +21,7 @@ VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     output.position = mul(mul(worldPos, instance.Transform), global.viewProj);
     output.normal = mul(input.normal, (float3x3)instance.Transform);
     output.uv = input.texcoord0;
+    output.instanceID = instanceID;
 
     return output;
 }
@@ -31,8 +35,7 @@ FragmentOut fragmentMain(VertexOut v) {
     FragmentOut output;
 
     float3 N = normalize(v.normal);
-    output.color = float4(N * 0.5 + 0.5, 1.0);
-    //output.color = float4(1.0, 0.0, 0.0, 1.0);
+    output.color = float4(N * 0.5 + 0.5, 1.0) * GetMaterial(v.instanceID).Color;;
 
     return output;
 }

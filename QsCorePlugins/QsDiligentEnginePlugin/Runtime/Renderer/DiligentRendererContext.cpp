@@ -557,29 +557,29 @@ namespace Quelos {
                 QS_CORE_ERROR_TAG(
                     "DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    function ? UI::FormatTemp(" {}", function) : "",
-                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
+                    function ? FormatTemp(" {}", function) : "",
+                    file ? FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_FATAL_ERROR:
                 QS_CORE_CRITICAL_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    function ? UI::FormatTemp(" {}", function) : "",
-                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
+                    function ? FormatTemp(" {}", function) : "",
+                    file ? FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_WARNING:
                 QS_CORE_WARN_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    function ? UI::FormatTemp(" {}", function) : "",
-                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
+                    function ? FormatTemp(" {}", function) : "",
+                    file ? FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             case DEBUG_MESSAGE_SEVERITY_INFO:
                 QS_CORE_TRACE_TAG("DiligentRendererContext", "{}{}{}",
                     message ? message : "",
-                    function ? UI::FormatTemp(" {}", function) : "",
-                    file ? UI::FormatTemp(" (at {}:{})", file, line) : ""
+                    function ? FormatTemp(" {}", function) : "",
+                    file ? FormatTemp(" (at {}:{})", file, line) : ""
                 );
                 break;
             default:
@@ -756,10 +756,8 @@ namespace Quelos {
     }
 
     void DiligentRendererContext::EndFrame() {
-        m_pSwapChain->Present(0);
         m_pImmediateContext->Flush();
-        m_pDevice->ReleaseStaleResources();
-        m_pImmediateContext->FinishFrame();
+        m_pSwapChain->Present(0);
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -881,7 +879,7 @@ namespace Quelos {
 
         IShaderResourceVariable* shaderResourceVariable = (*slot)->GetVariableByName(
             Utils::GetShaderType(shaderType),
-            UI::FormatTemp("{}", name)
+            FormatTemp("{}", name)
         );
 
         if (!shaderResourceVariable) [[unlikely]] {
@@ -1290,7 +1288,7 @@ namespace Quelos {
         const MeshRenderer& mesh,
         const WorldTransform& transform
     ) {
-        Mesh& meshAsset = mesh.MeshData.Get();
+        Mesh& meshAsset = mesh.Mesh.Get();
         BindVertexBuffer(meshAsset.GetVertexBuffer(), 0);
         BindIndexBuffer(meshAsset.GetIndexBuffer());
 
@@ -1542,7 +1540,7 @@ namespace Quelos {
 
         IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
             Utils::GetShaderType(shaderType),
-            UI::FormatTemp("{}", name)
+            FormatTemp("{}", name)
         );
 
         if (resourceVariable) {

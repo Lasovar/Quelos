@@ -137,6 +137,7 @@ namespace Quelos::Serialization {
         case '{': m_Input.remove_prefix(1); return {TokenType::LCurly, {}, m_Line};
         case '}': m_Input.remove_prefix(1); return {TokenType::RCurly, {}, m_Line};
         case '@': m_Input.remove_prefix(1); return {TokenType::At, {}, m_Line};
+        case '#': m_Input.remove_prefix(1); return {TokenType::Hash, {}, m_Line};
         case '"': return ReadString();
         default: ;
         }

@@ -4,6 +4,7 @@
 #include "AssetImporters/ModelImporter.h"
 #include "AssetImporters/SceneImporter.h"
 #include "EditorAssetImporter.h"
+#include "AssetImporters/MaterialImporter.h"
 #include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
 #include "Quelos/AssetManager/TextureImporter.h"
@@ -94,21 +95,7 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::Reimport(const AssetID assetId) {
-        const auto assetLoaded = m_LoadedAssets.find(assetId);
-        if (assetLoaded != m_LoadedAssets.end()) {
-            const auto assetHandle = assetLoaded->second;
-            const auto poolIt = m_AssetPools.find(assetHandle.Type);
-            if (poolIt == m_AssetPools.end()) {
-                return;
-            }
-
-            if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
-                EditorAssetImporter::TryReimportAsset(
-                    pool.GetSlotData(pool.Data, assetHandle),
-                    m_AssetRegistry.GetAssetMetadata(assetId)
-                );
-            }
-        }
+        m_ReimportQueue.push_back(assetId);
     }
 
     void EditorAssetManager::FlushReimportQueue() {
@@ -117,7 +104,7 @@ namespace QuelosEditor {
             if (!metadata) [[unlikely]] {
                 QS_CORE_ERROR_TAG(
                     "EditorAssetManager",
-                    "Faield to reimport asset! couldn't find asset metadata with AssetID {}",
+                    "Failed to reimport asset! couldn't find asset metadata with AssetID {}",
                     assetId.ToString()
                 );
 
@@ -318,9 +305,15 @@ namespace QuelosEditor {
         ModelImporter::Initialize();
         RegisterType<Model>();
         RegisterType<Mesh>();
+
         ShaderImporter::Initialize();
         RegisterType<GraphicsShader>();
+
+        MaterialImporter::Initialize();
+        RegisterType<Material>();
+
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
+
         AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
         RegisterType<Texture2D>();
     }
@@ -458,7 +451,7 @@ namespace QuelosEditor {
         case efsw::Action::Modified: {
             const AssetMetadata* metadata = GetAssetMetadata(
                 std::filesystem::relative(
-                    UI::FormatTemp("{}/{}", dir, filename),
+                    FormatTemp("{}/{}", dir, filename),
                     Project::GetProjectPath()
                 ).generic_string()
             );

@@ -545,7 +545,11 @@ void ImGuiDiligentRenderer::InvalidateDeviceObjects()
     m_pIB.Release();
     m_pVertexConstantBuffer.Release();
     m_pPSO.Release();
-    m_pSRB.Release();
+    // TODO: Crash on vulkan if no shader resources were commited throughout it's lifetime
+    if (m_pSRB) {
+        m_pSRB->Release();
+        m_pSRB = nullptr;
+    }
 }
 
 void ImGuiDiligentRenderer::CreateDeviceObjects()
@@ -725,7 +729,11 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     }
     m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_pVertexConstantBuffer);
 
-    m_pSRB.Release();
+    if (m_pSRB) {
+        m_pSRB->Release();
+        m_pSRB = nullptr;
+    }
+
     m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
     m_pTextureVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture");
     VERIFY_EXPR(m_pTextureVar != nullptr);

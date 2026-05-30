@@ -73,6 +73,10 @@ namespace Quelos {
         }
 
         T* TryGet() const {
+            if (!IsValid()) {
+                return nullptr;
+            }
+
             return static_cast<T*>(Project::GetAssetManager()->TryGet(m_Handle));
         }
 

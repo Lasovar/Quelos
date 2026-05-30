@@ -18,9 +18,7 @@
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
 
-#include "slang.h"
-#include "../vendor/slang/include/slang-com-ptr.h"
-#include "../vendor/slang/source/core/slang-allocator.h"
+#include "Workspaces/MaterialWorkspace/MaterialWorkspace.h"
 
 namespace QuelosEditor {
     static std::vector<PosColorVertex> cubeVertices = {
@@ -61,7 +59,8 @@ namespace QuelosEditor {
     void EditorLayer::OnAttach() {
         s_Instance = this;
 
-        m_ProjectSerializer = ProjectSerializer(Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
+        m_ProjectSerializer = ProjectSerializer(
+            Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
         m_EditorAssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
@@ -124,6 +123,16 @@ namespace QuelosEditor {
         m_EditorLayerClass.DockingAllowUnclassed = false;
 
         m_ContentBrowserPanel.Init();
+
+        m_WorkspaceFactories[Scene::GetStaticType()] =
+            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> Scope<Workspace> {
+                return CreateScope<SceneWorkspace>(undoSystem, metadata);
+            };
+
+        m_WorkspaceFactories[Material::GetStaticType()] =
+            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> Scope<Workspace> {
+                return CreateScope<MaterialWorkspace>(undoSystem, metadata);
+            };
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {
@@ -166,6 +175,7 @@ namespace QuelosEditor {
             ImGuiWindowFlags_NoDocking |
             ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoNavFocus |
             ImGuiWindowFlags_NoBringToFrontOnFocus |
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove;
@@ -206,11 +216,13 @@ namespace QuelosEditor {
                 ImGui::MenuItem("Padding", nullptr, &opt_padding);
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "",
+                if (ImGui::MenuItem("Flag: NoDockingOverCentralNode",
+                                    "",
                                     (dockspace_flags & ImGuiDockNodeFlags_NoDockingOverCentralNode) != 0)) {
                     dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode;
                 }
-                if (ImGui::MenuItem("Flag: NoDockingSplit", "",
+                if (ImGui::MenuItem("Flag: NoDockingSplit",
+                                    "",
                                     (dockspace_flags & ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
                     dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit;
                 }
@@ -220,12 +232,15 @@ namespace QuelosEditor {
                 if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0)) {
                     dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
                 }
-                if (ImGui::MenuItem("Flag: AutoHideTabBar", "",
+                if (ImGui::MenuItem("Flag: AutoHideTabBar",
+                                    "",
                                     (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
                     dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
                 }
-                if (ImGui::MenuItem("Flag: PassthruCentralNode", "",
-                                    (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) {
+                if (ImGui::MenuItem("Flag: PassthruCentralNode",
+                                    "",
+                                    (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0,
+                                    opt_fullscreen)) {
                     dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
                 }
                 ImGui::Separator();
@@ -258,28 +273,29 @@ namespace QuelosEditor {
         ImGui::End();
 
         if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID); node && node->CentralNode) {
-            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
+            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_FirstUseEver);
         }
 
+        ImGui::SetNextWindowClass(&m_EditorLayerClass);
         ImGui::ShowDemoWindow();
 
         if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID); node && node->CentralNode) {
-            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_None);
+            ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_FirstUseEver);
         }
 
         m_ContentBrowserPanel.OnImGuiRender(globalDockspaceID, m_EditorLayerClass);
 
         for (const auto& workspace : m_Workspaces) {
-            workspace->OnImGuiRender(globalDockspaceID);
+            workspace->OnImGuiRender(m_EditorLayerClass, globalDockspaceID);
         }
 
-        std::erase_if(m_Workspaces, [](const Scope<Workspace>& workspace) {
-            return !workspace->IsOpen();
-        });
+        std::erase_if(m_Workspaces,
+                      [](const Scope<Workspace>& workspace) {
+                          return !workspace->IsOpen();
+                      });
     }
 
-    void EditorLayer::OnScenePlay() {
-    }
+    void EditorLayer::OnScenePlay() {}
 
     void EditorLayer::UI_Toolbar() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
@@ -293,7 +309,9 @@ namespace QuelosEditor {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(hovered.x, hovered.y, hovered.z, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(active.x, active.y, active.z, 0.5f));
 
-        if (ImGui::Begin("##toolbar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
+        if (ImGui::Begin("##toolbar",
+                         nullptr,
+                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
                          | ImGuiWindowFlags_NoScrollWithMouse)) {
             float size = ImGui::GetWindowHeight() - 4.0f;
 
@@ -396,10 +414,24 @@ namespace QuelosEditor {
         }
     }
 
-    void EditorLayer::OpenSceneWorkspace(const AssetID& handle) {
-        Ref<Scene> scene = SceneImporter::ImportScene(handle, *Project::GetAssetManager()->GetAssetMetadata(handle));
-        Scope<SceneWorkspace> sceneWorkspace = CreateScope<SceneWorkspace>(scene, m_UndoSystem);
-        sceneWorkspace->Focus();
-        m_Workspaces.push_back(std::move(sceneWorkspace));
+    void EditorLayer::OpenAssetWorkspace(const AssetMetadata& metadata) {
+        const auto it = m_WorkspaceFactories.find(metadata.Type);
+        if (it == m_WorkspaceFactories.end()) {
+            return;
+        }
+
+        Scope<Workspace> workspace = it->second(m_UndoSystem, metadata);
+        if (!workspace) {
+            QS_CORE_ERROR_TAG(
+                "EditorLayer",
+                "Failed to create workspace for asset '{}'!",
+                metadata.FilePath
+            );
+
+            return;
+        }
+
+        workspace->Focus();
+        m_Workspaces.push_back(std::move(workspace));
     }
 }

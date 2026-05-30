@@ -12,25 +12,10 @@ namespace Quelos {
     MaterialRegistry::MaterialRegistry(const std::string& pipelineName, const uint64_t materialSize)
         : m_PipelineName(pipelineName), m_MaterialSize(materialSize)
     {
-        if (m_MaterialSize <= 0) {
-            return;
-        }
-
-        m_GPUCapacity = 16;
-
-        GPUBufferSpec desc{};
-        desc.Name = m_PipelineName;
-        desc.Size = m_MaterialSize * m_GPUCapacity;
-        desc.Usage = Usage::Default;
-        desc.BindFlags = Bind::ShaderResource;
-        desc.Mode = GpuBufferMode::Structured;
-        desc.ElementByteStride = m_MaterialSize;
-
-        m_GPUBuffer = Renderer::CreateBuffer(desc, {});
     }
 
     void MaterialRegistry::FlushToGPU() {
-        if (!m_IsDirty || m_MaterialSize <= 0) {
+        if (m_MaterialSize <= 0) {
             return;
         }
 
@@ -47,35 +32,23 @@ namespace Quelos {
             GPUBufferSpec desc{};
             desc.Name = m_PipelineName;
             desc.Size = m_MaterialSize * m_GPUCapacity;
-            desc.Usage = Usage::Default;
+            desc.Usage = Usage::Dynamic;
             desc.BindFlags = Bind::ShaderResource;
             desc.Mode = GpuBufferMode::Structured;
+            desc.CpuAccessFlags = CpuAccess::Write;
             desc.ElementByteStride = m_MaterialSize;
-
-            // Upload all current data into the new buffer
-            Vec<byte> buffer(m_MaterialSize * needed);
-
-            for (uint32_t i = 0; i < m_CpuMaterials.size(); i++) {
-                const AssetRef<Material>& cpuMaterial = m_CpuMaterials[i];
-
-                if (!cpuMaterial) {
-                    continue;
-                }
-
-                std::memcpy(buffer.data() + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
-            }
 
             if (m_GPUBuffer.IsValid()) {
                 Renderer::Destroy(m_GPUBuffer);
                 m_GPUBuffer = {};
             }
 
-            m_GPUBuffer = Renderer::CreateBuffer(desc, buffer);
-            m_WasReallocated = true;
-        }
-        else {
-            Vec<byte> buffer(m_MaterialSize * needed);
+            m_GPUBuffer = Renderer::CreateBuffer(desc, {});
 
+            void* mapped;
+            Renderer::Map(m_GPUBuffer, Map::Write, MapFlags::Discard, mapped);
+
+            byte* materials = static_cast<byte*>(mapped);
             for (uint32_t i = 0; i < m_CpuMaterials.size(); i++) {
                 const AssetRef<Material>& cpuMaterial = m_CpuMaterials[i];
 
@@ -83,10 +56,29 @@ namespace Quelos {
                     continue;
                 }
 
-                std::memcpy(buffer.data() + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
+                std::memcpy(materials + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
             }
 
-            Renderer::UpdateBuffer(m_GPUBuffer, 0, buffer);
+            Renderer::Unmap(m_GPUBuffer, Map::Write);
+
+            m_WasReallocated = true;
+        }
+        else {
+            void* mapped;
+            Renderer::Map(m_GPUBuffer, Map::Write, MapFlags::Discard, mapped);
+
+            byte* materials = static_cast<byte*>(mapped);
+            for (uint32_t i = 0; i < m_CpuMaterials.size(); i++) {
+                const AssetRef<Material>& cpuMaterial = m_CpuMaterials[i];
+
+                if (!cpuMaterial) {
+                    continue;
+                }
+
+                std::memcpy(materials + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
+            }
+
+            Renderer::Unmap(m_GPUBuffer, Map::Write);
         }
     }
 
@@ -165,18 +157,24 @@ namespace Quelos {
         m_World.defer_begin();
 
         m_PSOQuery.each([&](flecs::entity entity, const MeshRenderer& meshRenderer) {
-            if (!meshRenderer.MeshData || !meshRenderer.ShaderData) {
+            if (!meshRenderer.Mesh || !meshRenderer.Material) {
                 return;
             }
 
-            const auto it = m_PipelineStates.find(meshRenderer.ShaderData.GetAssetID());
+            Material& material = meshRenderer.Material.Get();
+            if (!material.GetShader()) {
+                return;
+            }
+
+            GraphicsShader& shader = material.GetShader().Get();
+            const auto it = m_PipelineStates.find(shader.GetAssetID());
             if (it != m_PipelineStates.end()) {
                 if (Renderer::IsAlive(it->second.PSO)) {
                     entity.emplace<PipelineStateComponent>(
                         ResourceRef(it->second.PSO),
                         ResourceRef(it->second.SRB),
-                        0u,
-                        meshRenderer.ShaderData.GetAssetID()
+                        it->second.MaterialRegistry.Add(meshRenderer.Material),
+                        shader.GetAssetID()
                     );
 
                     return;
@@ -184,8 +182,6 @@ namespace Quelos {
 
                 m_PipelineStates.erase(it);
             }
-
-            GraphicsShader& shader = meshRenderer.ShaderData.Get();
 
             GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
             pipelineStateCreateInfo.Name = shader.GetName();
@@ -217,7 +213,7 @@ namespace Quelos {
             const uint64_t materialSize = shader.GetMaterialSize();
 
             if (materialSize > 0) {
-                vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static);
+                vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable);
             }
 
             pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
@@ -228,43 +224,46 @@ namespace Quelos {
 
             ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
             Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesGPUBuffer);
+            Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesGPUBuffer);
 
             MaterialRegistry& materialRegistry = m_PipelineStates.try_emplace(
-                meshRenderer.ShaderData.GetAssetID(),
+                shader.GetAssetID(),
                 pipelineStateHandle,
                 srb,
                 MaterialRegistry(shader.GetName(), shader.GetMaterialSize())
             ).first->second.MaterialRegistry;
 
-            materialRegistry.FlushToGPU();
-
-            if (materialSize > 0) {
-                Renderer::BindStaticVariableByName(
-                   pipelineStateHandle,
-                   ShaderType::Vertex,
-                   "Materials",
-                   materialRegistry.GetGpuBufferHandle()
-               );
-
-                Renderer::BindStaticVariableByName(
-                   pipelineStateHandle,
-                   ShaderType::Fragment,
-                   "Materials",
-                   materialRegistry.GetGpuBufferHandle()
-               );
-            }
-
             entity.emplace<PipelineStateComponent>(
                 ResourceRef(pipelineStateHandle),
                 ResourceRef(srb),
-                0u,
-                meshRenderer.ShaderData.GetAssetID()
+                materialRegistry.Add(meshRenderer.Material),
+                shader.GetAssetID()
             );
 
             shader.AddPipelineState(pipelineStateHandle);
         });
 
         m_World.defer_end();
+
+        for (auto& pipelineInfo : m_PipelineStates | std::views::values) {
+            pipelineInfo.MaterialRegistry.FlushToGPU();
+
+            if (pipelineInfo.MaterialRegistry.WasReallocated()) {
+                Renderer::BindVariableByName(
+                    ShaderType::Vertex,
+                    pipelineInfo.SRB,
+                    "Materials",
+                    pipelineInfo.MaterialRegistry.GetGpuBufferHandle()
+                );
+
+                Renderer::BindVariableByName(
+                    ShaderType::Fragment,
+                    pipelineInfo.SRB,
+                    "Materials",
+                    pipelineInfo.MaterialRegistry.GetGpuBufferHandle()
+                );
+            }
+        }
 
         m_DrawCalls.clear();
         m_DrawCalls.reserve(m_RenderingQuery.count());
@@ -275,9 +274,9 @@ namespace Quelos {
             flecs::entity entity, const WorldTransform& transform, const MeshRenderer& meshRenderer,
             const PipelineStateComponent& pipelineStateComponent
         ) {
-                if (!meshRenderer.MeshData
-                    || !meshRenderer.ShaderData
-                    || meshRenderer.ShaderData.GetAssetID() != pipelineStateComponent.ShaderID
+                if (!meshRenderer.Mesh
+                    || !meshRenderer.Material
+                    || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
                     || !Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())
                 ) {
                     entity.remove<PipelineStateComponent>();
@@ -285,11 +284,11 @@ namespace Quelos {
                 }
 
                 uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetHandle().Index()) << 32
-                    | static_cast<uint64_t>(meshRenderer.MeshData.GetAssetHandle().Index);
+                    | static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
 
                 m_DrawCalls.emplace_back(
                     sortKey,
-                    &meshRenderer.MeshData.Get(),
+                    &meshRenderer.Mesh.Get(),
                     pipelineStateComponent.PSO.GetHandle(),
                     pipelineStateComponent.SRB.GetHandle(),
                     transform.Value
@@ -428,8 +427,6 @@ namespace Quelos {
     SceneRenderer::~SceneRenderer() {
         for (auto& pipelineState : m_PipelineStates | std::views::values) {
             pipelineState.MaterialRegistry.Release();
-            Renderer::Destroy(pipelineState.PSO);
-            Renderer::Destroy(pipelineState.SRB);
         }
 
         Renderer::Destroy(m_RenderPass);

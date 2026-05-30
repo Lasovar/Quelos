@@ -15,27 +15,6 @@
 #include "Quelos/Renderer/Color.h"
 
 namespace Quelos::UI {
-    // Formats a string to a temporary buffer
-    // There is no guarantee that the cstr will be valid after the next call
-    // So either copy the result or use it immediately
-    // But should be good for most ImGui calls since those copy the buffer internally
-    template <typename... Args>
-    const char* FormatTemp(fmt::format_string<Args...> fmtStr, Args&&... args) {
-        // Ring buffer for extra safety
-        // (I think? cases where you're formatting more than once in a single line for some reason)
-        constexpr int k_BufferCount = 4;
-        thread_local fmt::memory_buffer buffers[k_BufferCount];
-        thread_local uint32_t index = 0;
-
-        auto& buffer = buffers[index++ % k_BufferCount];
-        buffer.clear();
-
-        fmt::format_to(std::back_inserter(buffer), fmtStr, std::forward<Args>(args)...);
-
-        buffer.push_back('\0');
-        return buffer.data();
-    }
-
     inline bool EditFloat(
         const std::string& label,
         float& value,

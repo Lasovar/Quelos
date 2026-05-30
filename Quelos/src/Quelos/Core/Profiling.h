@@ -27,11 +27,6 @@ inline void tracy_free_impl(void* p) {
     free(p);
 }
 
-#define malloc(s)    tracy_malloc_impl(s)
-#define calloc(n,s)  tracy_calloc_impl(n, s)
-#define realloc(p,s) tracy_realloc_impl(p, s)
-#define free(p)      tracy_free_impl(p)
-
 #define QS_PROFILE_SCOPED() ZoneScoped
 #define QS_PROFILE_SCOPED_N(name) ZoneScopedN(name)
 #define QS_PROFILE_SCOPED_C(color) ZoneScopedC(color)
@@ -40,6 +35,10 @@ inline void tracy_free_impl(void* p) {
 #define QS_PROFILE_FRAME_NAMED(name) FrameMarkNamed(name)
 #define QS_PROFILE_FRAME_START(name) FrameMarkStart(name)
 #define QS_PROFILE_FRAME_END(name) FrameMarkEnd(name)
+#define QS_PROFILE_ALLOC(pointer, size) TracyAlloc(pointer, size)
+#define QS_PROFILE_ALLOC_N(pointer, size, name) TracyAllocN(pointer, size, name)
+#define QS_PROFILE_FREE(pointer) TracyFree(pointer)
+#define QS_PROFILE_FREE_N(pointer, name) TracyFreeN(pointer, name)
 #else
 #define QS_PROFILE_SCOPED()
 #define QS_PROFILE_SCOPED_N(name)

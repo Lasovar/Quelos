@@ -1,7 +1,7 @@
 [actor guid=CB22456E60215646 state=added]
 name = "Camera"
 
-@Quelos.CameraComponent
+#Quelos.CameraComponent
 projection = Perspective
 lens.fov = 60
 lens.near = 0.01
@@ -10,7 +10,7 @@ ortho.size = 15.6
 ortho.near = -100
 ortho.far = 100
 
-@Quelos.LocalTransform
+#Quelos.LocalTransform
 position = (-5.2,2.8,-8.9)
 rotation = (0.07381288,0.30725837,-0.023912104,0.94845784)
 scale = (1,1,1)
