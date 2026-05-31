@@ -12,6 +12,13 @@ struct VertexOut {
     uint instanceID : SV_InstanceID;
 };
 
+// Allows you to indicate that a struct is material
+// Allows the reflection system to properly bind material data with the shader
+// And show proper UI in the editor for editing the material fields
+// usage: [Material] struct { float _Value; };
+[__AttributeUsage(_AttributeTargets.Struct)]
+struct MaterialAttribute {}
+
 // Allows you to indicate that a vector is a color
 // Allows the reflection system to show proper color pickers in the editor for the field
 // usage: [Color] float4 _AlbedoColor;
@@ -39,7 +46,8 @@ __extern_cpp struct InstanceData {
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
 __extern_cpp StructuredBuffer<InstanceData> Instances;
 
-#define MAX_TEXTURES 1024
+static const uint k_MaxTextures = 1024;
+static const uint k_MaxSamplers = 4;
 
-__extern_cpp Texture2D g_Textures[MAX_TEXTURES];
+__extern_cpp Texture2D g_Textures[k_MaxTextures];
 __extern_cpp SamplerState g_Textures_sampler;

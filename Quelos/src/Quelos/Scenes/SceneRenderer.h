@@ -20,6 +20,10 @@ namespace Quelos {
         }
 
         uint32_t GetID(const AssetRef<Texture2D>& textureHandle) {
+            if (!textureHandle) {
+                return m_MagentaTexture.GetNativeHandle();
+            }
+
             const uint64_t nativeHandle = textureHandle.Get().GetHandle().GetNativeHandle();
             const auto it = std::ranges::find_if(
                 m_Textures,
