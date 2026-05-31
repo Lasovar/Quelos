@@ -22,6 +22,7 @@ namespace QuelosEditor {
         [[nodiscard]] bool IsAssetPathValid(std::string_view path) const;
 
         [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type) const override;
+        void RenameAsset(AssetID handle, std::string_view newPath);
 
         [[nodiscard]] static bool IsAssetSupported(std::string_view path);
 

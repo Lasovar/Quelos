@@ -18,6 +18,12 @@ struct VertexOut {
 [__AttributeUsage(_AttributeTargets.Var)]
 struct ColorAttribute {}
 
+// Allows you to indicate that a uint is a texture 2D
+// Allows the reflection system to show proper asset pickers in the editor for the field
+// usage: [Texture2D] uint _AlbedoTexture;
+[__AttributeUsage(_AttributeTargets.Var)]
+struct Texture2DAttribute {}
+
 __extern_cpp struct GlobalUniforms {
     float4x4 viewProj;
 };
@@ -32,3 +38,8 @@ __extern_cpp struct InstanceData {
 
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
 __extern_cpp StructuredBuffer<InstanceData> Instances;
+
+#define MAX_TEXTURES 1024
+
+__extern_cpp Texture2D g_Textures[MAX_TEXTURES];
+__extern_cpp SamplerState g_Textures_sampler;

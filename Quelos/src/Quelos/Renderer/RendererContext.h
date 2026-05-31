@@ -131,6 +131,35 @@ namespace Quelos {
         uint32_t FirstInstanceLocation = 0;
     };
 
+    enum class ResourceStateTransitionMode : uint8_t {
+        /// Perform no state transitions and no state validation.
+        /// Resource states are not accessed (either read or written) by the command.
+        None = 0,
+
+        /// Transition resources to the states required by the specific command.
+        /// Resources in unknown state are ignored.
+        ///
+        /// Any method that uses this mode may alter the state of the resources it works with.
+        /// As automatic state management is not thread-safe, no other thread is allowed to read
+        /// or write the state of the resources being transitioned.
+        /// If the application intends to use the same resources in other threads simultaneously, it needs to
+        /// explicitly manage the states using IDeviceContext::TransitionResourceStates() method.
+        ///
+        /// \note    If a resource is used in multiple threads by multiple contexts, there will be race condition accessing
+        ///          internal resource state. An application should use manual resource state management in this case.
+        Transition,
+
+        /// Do not transition, but verify that states are correct.
+        /// No validation is performed if the state is unknown to the engine.
+        /// This mode only has effect in debug and development builds. No validation
+        /// is performed in release build.
+        ///
+        /// \note    Any method that uses this mode will read the state of resources it works with.
+        ///          As automatic state management is not thread-safe, no other thread is allowed to alter
+        ///          the state of resources being used by the command. It is safe to read these states.
+        Verify
+    };
+
     class QS_API RendererContext {
     public:
         virtual void Init(const Ref<Window>& ref, RendererAPI api) = 0;
@@ -165,6 +194,12 @@ namespace Quelos {
             const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
         ) = 0;
 
+        virtual PipelineResourceSignatureHandle CreatePipelineResourceSignature(
+            const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec
+        ) = 0;
+
+        virtual void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle) = 0;
+
         virtual void BindStaticVariableByName(
             PipelineStateHandle pipelineStateHandle,
             ShaderType shaderType,
@@ -195,10 +230,17 @@ namespace Quelos {
             std::string_view name, GpuBufferHandle gpuBufferHandle
         ) = 0;
 
+        virtual void BindArrayByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle shaderResourceBindingHandle,
+            std::string_view name,
+            Span32<const uint64_t> nativeTextureHandles
+        ) = 0;
+
         virtual void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) = 0;
         virtual void Unmap(GpuBufferHandle bufferHandle, MapType mapType) = 0;
 
-        virtual void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
+        virtual void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle, ResourceStateTransitionMode resourceStateTransitionMode) = 0;
 
         virtual void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
 

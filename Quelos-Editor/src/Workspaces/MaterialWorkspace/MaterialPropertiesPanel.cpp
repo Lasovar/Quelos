@@ -23,9 +23,9 @@ namespace QuelosEditor {
             for (const MaterialPropertySpec& materialProperty : material.GetMaterialProperties()) {
                 switch (materialProperty.Type) {
                 case MaterialPropertyType::Float: {
-                    auto value = material.GetProperty<float>(materialProperty.Offset, materialProperty.Size);
+                    auto value = material.GetProperty<float>(materialProperty.Offset);
                     if (UI::EditFloat(materialProperty.Name, value)) {
-                        material.SetProperty(materialProperty.Offset, materialProperty.Size, &value);
+                        material.SetProperty<float>(materialProperty.Offset, value);
                     }
 
                     break;
@@ -34,9 +34,9 @@ namespace QuelosEditor {
                 case MaterialPropertyType::Float3:
                 case MaterialPropertyType::Float4:
                 case MaterialPropertyType::Color: {
-                    auto value = material.GetProperty<Color>(materialProperty.Offset, materialProperty.Size);
+                    auto value = material.GetProperty<Color>(materialProperty.Offset);
                     if (UI::EditColor4(materialProperty.Name, value)) {
-                        material.SetProperty(materialProperty.Offset, materialProperty.Size, &value);
+                        material.SetProperty(materialProperty.Offset, value);
                     }
                     break;
                 }
@@ -46,6 +46,14 @@ namespace QuelosEditor {
                 case MaterialPropertyType::Int3:
                 case MaterialPropertyType::Int4:
                 case MaterialPropertyType::UInt:
+                case MaterialPropertyType::Texture2D: {
+                    const auto& value = material.GetProperty<AssetRef<Texture2D>>(materialProperty.Offset);
+                    AssetID assetId = value.GetAssetID();
+                    if (UI::EditAsset<Texture2D>(materialProperty.Name, assetId)) {
+                        material.SetProperty(materialProperty.Offset, AssetRef<Texture2D>(assetId));
+                    }
+                    break;
+                }
                 case MaterialPropertyType::UInt2:
                 case MaterialPropertyType::UInt3:
                 case MaterialPropertyType::UInt4:

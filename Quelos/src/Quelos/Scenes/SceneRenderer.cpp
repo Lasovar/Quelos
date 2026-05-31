@@ -9,8 +9,12 @@
 namespace Quelos {
     constexpr uint32_t k_MaxInstances = 512;
 
-    MaterialRegistry::MaterialRegistry(const std::string& pipelineName, const uint64_t materialSize)
-        : m_PipelineName(pipelineName), m_MaterialSize(materialSize)
+    MaterialRegistry::MaterialRegistry(
+        const std::string& pipelineName,
+        TextureRegistry& textureRegistry,
+        const uint64_t materialSize
+    )
+        : m_PipelineName(pipelineName), m_MaterialSize(materialSize), m_TextureRegistry(&textureRegistry)
     {
     }
 
@@ -56,7 +60,40 @@ namespace Quelos {
                     continue;
                 }
 
-                std::memcpy(materials + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
+                const Vec<MaterialPropertySpec>& specs = cpuMaterial->GetMaterialProperties();
+                const Vec<MaterialPropertyValue>& values = cpuMaterial->GetMaterialPropertyValues();
+
+                if (specs.size() != values.size()) {
+                    continue;
+                }
+
+                for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
+                    // Specialization for textures
+                    if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
+                        uint32_t textureId = m_TextureRegistry->GetID(*texture);
+
+                        std::memcpy(
+                            materials + i * m_MaterialSize + specs[propertyIndex].Offset,
+                            &textureId,
+                            specs[propertyIndex].Size
+                        );
+
+                        continue;
+                    }
+
+                    const void* ptr = std::visit(
+                        [](const auto& value) -> const void* {
+                            return static_cast<const void*>(&value);
+                        },
+                        values[propertyIndex]
+                    );
+
+                    std::memcpy(
+                        materials + i * m_MaterialSize + specs[propertyIndex].Offset,
+                        ptr,
+                        specs[propertyIndex].Size
+                    );
+                }
             }
 
             Renderer::Unmap(m_GPUBuffer, Map::Write);
@@ -75,7 +112,40 @@ namespace Quelos {
                     continue;
                 }
 
-                std::memcpy(materials + i * m_MaterialSize, cpuMaterial->GetBufferView().data(), m_MaterialSize);
+                const Vec<MaterialPropertySpec>& specs = cpuMaterial->GetMaterialProperties();
+                const Vec<MaterialPropertyValue>& values = cpuMaterial->GetMaterialPropertyValues();
+
+                if (specs.size() != values.size()) {
+                    continue;
+                }
+
+                for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
+                    // Specialization for textures
+                    if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
+                        uint32_t textureId = m_TextureRegistry->GetID(*texture);
+
+                        std::memcpy(
+                            materials + i * m_MaterialSize + specs[propertyIndex].Offset,
+                            &textureId,
+                            specs[propertyIndex].Size
+                        );
+
+                        continue;
+                    }
+
+                    const void* ptr = std::visit(
+                        [](const auto& value) -> const void* {
+                            return static_cast<const void*>(&value);
+                        },
+                        values[propertyIndex]
+                    );
+
+                    std::memcpy(
+                        materials + i * m_MaterialSize + specs[propertyIndex].Offset,
+                        ptr,
+                        specs[propertyIndex].Size
+                    );
+                }
             }
 
             Renderer::Unmap(m_GPUBuffer, Map::Write);
@@ -149,11 +219,47 @@ namespace Quelos {
         instancesBufferSpec.ElementByteStride = sizeof(InstanceData);
 
         m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
+
+        TextureSpecification magentaSpec;
+        magentaSpec.Name = "UnknownTexture";
+        magentaSpec.BindFlags = Bind::ShaderResource;
+        magentaSpec.Width = 1;
+        magentaSpec.Height = 1;
+        magentaSpec.Format = ImageFormat::RGBA;
+        magentaSpec.SampleCount = SampleCount::x1;
+        magentaSpec.Type = TextureType::Texture2D;
+
+        Buffer magentaData = Buffer::Allocate(4);
+        *reinterpret_cast<uint32_t*>(magentaData.data()) = 0xFF00FFFF;
+        m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::move(magentaData));
+
+        m_TextureRegistry.Init(m_MagentaTexture);
     }
 
     void SceneRenderer::Begin(
         const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection
     ) {
+        bool isDirty = false;
+
+        m_World.defer_begin();
+
+        m_RenderingQuery.each([&](
+            const flecs::entity entity, const WorldTransform&, const MeshRenderer& meshRenderer,
+            const PipelineStateComponent& pipelineStateComponent
+        ) {
+            if (!meshRenderer.Mesh
+                || !meshRenderer.Material
+                || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
+                || !Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())
+            ) {
+                m_PipelineStates.erase(pipelineStateComponent.ShaderID);
+                entity.remove<PipelineStateComponent>();
+                isDirty = true;
+            }
+        });
+
+        m_World.defer_end();
+
         m_World.defer_begin();
 
         m_PSOQuery.each([&](flecs::entity entity, const MeshRenderer& meshRenderer) {
@@ -165,6 +271,8 @@ namespace Quelos {
             if (!material.GetShader()) {
                 return;
             }
+
+            isDirty = true;
 
             GraphicsShader& shader = material.GetShader().Get();
             const auto it = m_PipelineStates.find(shader.GetAssetID());
@@ -205,9 +313,10 @@ namespace Quelos {
             pipelineStateCreateInfo.VertexShader = shader.GetVertexShaderHandle();
             pipelineStateCreateInfo.FragmentShader = shader.GetFragmentShaderHandle();
 
-            SmallVec<ShaderResourceVariableSpec, 3> vars = {
+            SmallVec<ShaderResourceVariableSpec, 4> vars = {
                 {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                 {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
+                {"g_Textures", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
             };
 
             const uint64_t materialSize = shader.GetMaterialSize();
@@ -216,7 +325,20 @@ namespace Quelos {
                 vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable);
             }
 
+            SamplerSpec samplerSpec;
+            samplerSpec.WrapU = WrapMode::Repeat;
+            samplerSpec.WrapV = WrapMode::Repeat;
+            samplerSpec.MinFilter = FilterMode::Linear;
+            samplerSpec.MagFilter = FilterMode::Linear;
+            samplerSpec.MipFilter = FilterMode::Linear;
+
+            ImmutableSamplerSpec immutableSampler;
+            immutableSampler.SamplerOrTextureName = "g_Textures";
+            immutableSampler.Specification = samplerSpec;
+            immutableSampler.ShaderStages = ShaderType::Fragment;
+
             pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
+            pipelineStateCreateInfo.Spec.ResourceLayout.ImmutableSamplers = { &immutableSampler, 1 };
 
             PipelineStateHandle pipelineStateHandle = Renderer::CreatePipelineState(pipelineStateCreateInfo);
 
@@ -230,7 +352,7 @@ namespace Quelos {
                 shader.GetAssetID(),
                 pipelineStateHandle,
                 srb,
-                MaterialRegistry(shader.GetName(), shader.GetMaterialSize())
+                MaterialRegistry(shader.GetName(), m_TextureRegistry, shader.GetMaterialSize())
             ).first->second.MaterialRegistry;
 
             entity.emplace<PipelineStateComponent>(
@@ -242,6 +364,30 @@ namespace Quelos {
 
             shader.AddPipelineState(pipelineStateHandle);
         });
+
+        m_World.defer_end();
+
+        m_DrawCalls.clear();
+        m_DrawCalls.reserve(m_RenderingQuery.count());
+
+        m_World.defer_begin();
+
+        m_RenderingQuery.each([&](
+            const WorldTransform& transform, const MeshRenderer& meshRenderer,
+            const PipelineStateComponent& pipelineStateComponent
+        ) {
+                uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetHandle().Index()) << 32
+                    | static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
+
+                m_DrawCalls.emplace_back(
+                    sortKey,
+                    &meshRenderer.Mesh.Get(),
+                    pipelineStateComponent.PSO.GetHandle(),
+                    pipelineStateComponent.SRB.GetHandle(),
+                    transform.Value
+                );
+            }
+        );
 
         m_World.defer_end();
 
@@ -263,39 +409,20 @@ namespace Quelos {
                     pipelineInfo.MaterialRegistry.GetGpuBufferHandle()
                 );
             }
+
+            m_TextureRegistry.UpdateTexturesArray();
+
+            Renderer::BindArrayByName(
+                ShaderType::Fragment,
+                pipelineInfo.SRB,
+                "g_Textures",
+                m_TextureRegistry.GetTextureViews()
+            );
+
+            Renderer::CommitShaderResources(pipelineInfo.SRB, ResourceStateTransitionMode::Transition);
         }
 
-        m_DrawCalls.clear();
-        m_DrawCalls.reserve(m_RenderingQuery.count());
-
-        m_World.defer_begin();
-
-        m_RenderingQuery.each([&](
-            flecs::entity entity, const WorldTransform& transform, const MeshRenderer& meshRenderer,
-            const PipelineStateComponent& pipelineStateComponent
-        ) {
-                if (!meshRenderer.Mesh
-                    || !meshRenderer.Material
-                    || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
-                    || !Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())
-                ) {
-                    entity.remove<PipelineStateComponent>();
-                    return;
-                }
-
-                uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetHandle().Index()) << 32
-                    | static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
-
-                m_DrawCalls.emplace_back(
-                    sortKey,
-                    &meshRenderer.Mesh.Get(),
-                    pipelineStateComponent.PSO.GetHandle(),
-                    pipelineStateComponent.SRB.GetHandle(),
-                    transform.Value
-                );
-            });
-
-        m_World.defer_end();
+        m_TextureRegistry.SetDirty(false);
 
         std::ranges::sort(
             m_DrawCalls,
@@ -380,7 +507,7 @@ namespace Quelos {
             // DRAW MESH RANGES
             //
 
-            Renderer::CommitShaderResources(srb);
+            Renderer::CommitShaderResources(srb, ResourceStateTransitionMode::None);
 
             uint32_t j = pipelineBegin;
             uint32_t instanceOffset = 0;
@@ -430,5 +557,6 @@ namespace Quelos {
         }
 
         Renderer::Destroy(m_RenderPass);
+        Renderer::Destroy(m_MagentaTexture);
     }
 }

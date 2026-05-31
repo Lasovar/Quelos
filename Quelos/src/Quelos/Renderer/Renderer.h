@@ -56,6 +56,9 @@ namespace Quelos {
         static void BindPipelineState(PipelineStateHandle pipelineHandle);
         static void Destroy(PipelineStateHandle pipelineStateHandle);
 
+        static PipelineResourceSignatureHandle CreatePipelineResourceSignature(const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec);
+        static void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle);
+
         static GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);
         static bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment);
         static void Submit(GraphicsShaderHandle handle, uint32_t view);
@@ -72,7 +75,14 @@ namespace Quelos {
             ShaderType shaderType, ShaderResourceBindingHandle srb, std::string_view str, GpuBufferHandle instanceBuffer
         );
 
-        static void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle);
+        static void BindArrayByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle srb,
+            std::string_view name,
+            Span32<const uint64_t> nativeTextureHandles
+        );
+
+        static void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle, ResourceStateTransitionMode resourceStateTransitionMode);
 
         static void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags discard, void*& data);
         static void Unmap(GpuBufferHandle bufferHandle, MapType mapType);

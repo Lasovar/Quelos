@@ -160,6 +160,12 @@ namespace Quelos {
         s_RendererContext->Destroy(pipelineStateHandle);
     }
 
+    PipelineResourceSignatureHandle Renderer::CreatePipelineResourceSignature(
+        const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec
+    ) {
+        return s_RendererContext->CreatePipelineResourceSignature(pipelineResourceSignatureSpec);
+    }
+
     void Renderer::Shutdown() {
         s_RendererContext->Shutdown();
         s_IsInitialized = false;
@@ -220,8 +226,20 @@ namespace Quelos {
         s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer);
     }
 
-    void Renderer::CommitShaderResources(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
-        s_RendererContext->CommitShaderResources(shaderResourceBindingHandle);
+    void Renderer::BindArrayByName(
+        const ShaderType shaderType,
+        const ShaderResourceBindingHandle srb,
+        const std::string_view name,
+        const Span32<const uint64_t> nativeTextureHandles
+    ) {
+        s_RendererContext->BindArrayByName(shaderType, srb, name, nativeTextureHandles);
+    }
+
+    void Renderer::CommitShaderResources(
+        const ShaderResourceBindingHandle shaderResourceBindingHandle,
+        const ResourceStateTransitionMode resourceStateTransitionMode
+    ) {
+        s_RendererContext->CommitShaderResources(shaderResourceBindingHandle, resourceStateTransitionMode);
     }
 
     VertexBufferHandle Renderer::CreateVertexBuffer(const BufferView vertices, const VertexLayout& bufferLayout) {

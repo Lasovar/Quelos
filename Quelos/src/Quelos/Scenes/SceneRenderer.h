@@ -10,9 +10,63 @@
 #include "Quelos/Renderer/RenderResource.h"
 
 namespace Quelos {
+    constexpr size_t k_MaxTextures = 1024;
+
+    class TextureRegistry {
+    public:
+        void Init(const TextureHandle magentaTexture) {
+            m_MagentaTexture = magentaTexture;
+            std::ranges::fill(m_TextureArray, magentaTexture.GetNativeHandle());
+        }
+
+        uint32_t GetID(const AssetRef<Texture2D>& textureHandle) {
+            const uint64_t nativeHandle = textureHandle.Get().GetHandle().GetNativeHandle();
+            const auto it = std::ranges::find_if(
+                m_Textures,
+                [&](const AssetRef<Texture2D>& texture) {
+                    return texture.GetAssetID() == textureHandle.GetAssetID();
+                }
+            );
+
+            if (it != m_Textures.end()) {
+                const size_t id = it - m_Textures.begin();
+                if (m_TextureArray[id] != it->Get().GetHandle().GetNativeHandle()) {
+                    UpdateTexturesArray();
+                }
+
+                return static_cast<uint32_t>(id);
+            }
+
+            const uint32_t id = m_Textures.size();
+            m_TextureArray[id] = nativeHandle;
+            m_Textures.push_back(textureHandle);
+            m_IsDirty = true;
+            return id;
+        }
+
+        bool IsDirty() const { return m_IsDirty; }
+        void SetDirty(const bool value) { m_IsDirty = value; }
+        Span32<const uint64_t> GetTextureViews() { return m_TextureArray; }
+
+        void UpdateTexturesArray() {
+            std::ranges::fill(m_TextureArray, m_MagentaTexture.GetNativeHandle());
+
+            for (uint32_t i = 0; i < m_Textures.size(); i++) {
+                m_TextureArray[i] = m_Textures[i].Get().GetHandle().GetNativeHandle();
+            }
+        }
+
+    private:
+        Vec<AssetRef<Texture2D>> m_Textures;
+        TextureHandle m_MagentaTexture;
+        std::array<uint64_t, k_MaxTextures> m_TextureArray = {};
+
+        bool m_IsDirty = false;
+    };
+
     class MaterialRegistry {
     public:
-        MaterialRegistry(const std::string& pipelineName, uint64_t materialSize);
+        MaterialRegistry(const std::string& pipelineName, TextureRegistry& textureRegistry, uint64_t materialSize);
 
         [[nodiscard]] GpuBufferHandle GetGpuBufferHandle() const { return m_GPUBuffer; }
 
@@ -45,6 +99,7 @@ namespace Quelos {
 
         Vec<AssetRef<Material>> m_CpuMaterials;
         GpuBufferHandle m_GPUBuffer;
+        TextureRegistry* m_TextureRegistry;
         size_t m_GPUCapacity = 0;
         bool m_IsDirty = false;
         bool m_WasReallocated = false;
@@ -85,6 +140,8 @@ namespace Quelos {
     private:
         RenderPassHandle m_RenderPass;
         flecs::world m_World;
+        TextureRegistry m_TextureRegistry;
+        TextureHandle m_MagentaTexture;
 
         struct PipelineInfo {
             PipelineStateHandle PSO;

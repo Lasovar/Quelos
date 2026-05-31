@@ -492,6 +492,70 @@ namespace Quelos {
         constexpr uint8_t GetSampleCount(SampleCount sampleCount) {
             return static_cast<uint8_t>(sampleCount);
         }
+
+        static ImmutableSamplerDesc GetImmutableSampler(const ImmutableSamplerSpec& immutableSamplerSpec) {
+            ImmutableSamplerDesc samplerDesc;
+            samplerDesc.SamplerOrTextureName = immutableSamplerSpec.SamplerOrTextureName.data();
+            samplerDesc.Desc = GetSamplerDesc(immutableSamplerSpec.Specification);
+            samplerDesc.ShaderStages = GetShaderType(immutableSamplerSpec.ShaderStages);
+
+            return samplerDesc;
+        }
+
+        constexpr PIPELINE_RESOURCE_FLAGS GetPipelineResourceFlags(PipelineResourceFlag resourceFlag) {
+            return static_cast<PIPELINE_RESOURCE_FLAGS>(resourceFlag);
+        }
+
+        constexpr SHADER_RESOURCE_TYPE GetShaderResourceType(ShaderResourceType resourceType) {
+            return static_cast<SHADER_RESOURCE_TYPE>(resourceType);
+        }
+
+        static PipelineResourceDesc GetPipelineResourceDesc(const PipelineResourceSpec& pipelineResourceSpec) {
+            PipelineResourceDesc desc;
+            desc.ShaderStages = GetShaderType(pipelineResourceSpec.ShaderStages);
+            desc.Name = pipelineResourceSpec.Name.data();
+            desc.ArraySize = pipelineResourceSpec.ArraySize;
+            desc.Flags = GetPipelineResourceFlags(pipelineResourceSpec.Flags);
+            desc.ResourceType = GetShaderResourceType(pipelineResourceSpec.ResourceType);
+            desc.VarType = GetShaderResourceVariableType(pipelineResourceSpec.VariableType);
+
+            return desc;
+        }
+
+        static PipelineResourceSignatureDesc GetPipelineResourceSignatureDesc(const PipelineResourceSignatureSpec& spec) {
+            PipelineResourceSignatureDesc desc;
+
+            desc.Name = spec.Name.data();
+
+            Vec<ImmutableSamplerDesc> samplers;
+            samplers.reserve(spec.ImmutableSamplers.size());
+            for (const ImmutableSamplerSpec& immutableSampler : spec.ImmutableSamplers) {
+                samplers.push_back(GetImmutableSampler(immutableSampler));
+            }
+
+            desc.ImmutableSamplers = samplers.data();
+            desc.NumImmutableSamplers = samplers.size();
+
+            Vec<PipelineResourceDesc> resources;
+            resources.reserve(spec.Resources.size());
+            for (const PipelineResourceSpec& resource : spec.Resources) {
+                resources.push_back(GetPipelineResourceDesc(resource));
+            }
+
+            desc.Resources = resources.data();
+            desc.NumResources = resources.size();
+
+            desc.CombinedSamplerSuffix = spec.CombinedSamplerSuffix.data();
+            desc.UseCombinedTextureSamplers = spec.UseCombinedTextureSamplers;
+            desc.BindingIndex = spec.BindingIndex;
+            desc.SRBAllocationGranularity = spec.SRBAllocationGranularity;
+
+            return desc;
+        }
+
+        constexpr RESOURCE_STATE_TRANSITION_MODE GetResourceStateTransition(ResourceStateTransitionMode resourceStateTransitionMode) {
+            return static_cast<RESOURCE_STATE_TRANSITION_MODE>(resourceStateTransitionMode);
+        }
     }
 
     namespace TextureUtil {
@@ -507,7 +571,7 @@ namespace Quelos {
             return RESOURCE_DIM_UNDEFINED;
         }
 
-        static void CreateTexture(IRenderDevice* device, QTextureData& textureData) {
+        static void CreateTexture(IRenderDevice* device, QTextureData& textureData, const TextureData* data) {
             const TextureSpecification& spec = textureData.Specification;
 
             TextureDesc textureDesc;
@@ -519,7 +583,7 @@ namespace Quelos {
             textureDesc.BindFlags = Utils::GetBindFlags(spec.BindFlags);
             textureDesc.SampleCount = Utils::GetSampleCount(spec.SampleCount);
 
-            device->CreateTexture(textureDesc, nullptr, &textureData.Texture);
+            device->CreateTexture(textureDesc, data, &textureData.Texture);
         }
 
         void Resize(
@@ -534,7 +598,7 @@ namespace Quelos {
             data.Specification.Width = width;
             data.Specification.Height = height;
 
-            CreateTexture(device, data);
+            CreateTexture(device, data, nullptr);
         }
     }
 
@@ -657,6 +721,8 @@ namespace Quelos {
             VkPhysicalDeviceVulkan12Features vk12Features{};
             vk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
             vk12Features.drawIndirectCount = VK_TRUE;
+            vk12Features.runtimeDescriptorArray   = VK_TRUE;
+            vk12Features.descriptorBindingPartiallyBound = VK_TRUE;
             vk12Features.pNext = nullptr;
 #endif
 
@@ -757,7 +823,7 @@ namespace Quelos {
 
     void DiligentRendererContext::EndFrame() {
         m_pImmediateContext->Flush();
-        m_pSwapChain->Present(0);
+        m_pSwapChain->Present(1);
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -895,6 +961,56 @@ namespace Quelos {
         shaderResourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
     }
 
+    void DiligentRendererContext::BindArrayByName(
+        const ShaderType shaderType,
+        const ShaderResourceBindingHandle shaderResourceBindingHandle,
+        std::string_view name,
+        const Span32<const uint64_t> nativeTextureHandles
+    ) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find shader resource binding in slot ({},{})",
+                shaderResourceBindingHandle.Index(),
+                shaderResourceBindingHandle.Generation()
+            );
+
+            return;
+        }
+
+        IShaderResourceVariable* shaderResourceVariable = (*slot)->GetVariableByName(
+            Utils::GetShaderType(shaderType),
+            FormatTemp("{}", name)
+        );
+
+        if (!shaderResourceVariable) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRenderer",
+                "Failed to find shader variable by the name '{}'!",
+                name
+            );
+
+            QS_CORE_TRACE("Variables found:");
+            for (uint32_t i = 0; i < (*slot)->GetVariableCount(SHADER_TYPE_PIXEL); i++) {
+                const auto* var = (*slot)->GetVariableByIndex(SHADER_TYPE_PIXEL, i);
+                ShaderResourceDesc desc;
+                var->GetResourceDesc(desc);
+                QS_CORE_TRACE("\tVariable: {}", desc.Name);
+            }
+
+            return;
+        }
+
+        shaderResourceVariable->SetArray(
+            reinterpret_cast<IDeviceObject* const*>(nativeTextureHandles.data()),
+            0,
+            nativeTextureHandles.size(),
+            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+        );
+    }
+
     void DiligentRendererContext::Map(
         GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData
     ) {
@@ -910,7 +1026,10 @@ namespace Quelos {
         m_pImmediateContext->UnmapBuffer(m_BufferTable.At(bufferHandle)->Buffer, Utils::GetMapType(mapType));
     }
 
-    void DiligentRendererContext::CommitShaderResources(const ShaderResourceBindingHandle shaderResourceBindingHandle) {
+    void DiligentRendererContext::CommitShaderResources(
+        const ShaderResourceBindingHandle shaderResourceBindingHandle,
+        const ResourceStateTransitionMode resourceStateTransitionMode
+    ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
@@ -924,7 +1043,7 @@ namespace Quelos {
 
         m_pImmediateContext->CommitShaderResources(
             *slot,
-            RESOURCE_STATE_TRANSITION_MODE_NONE
+            Utils::GetResourceStateTransition(resourceStateTransitionMode)
         );
     }
 
@@ -1013,13 +1132,28 @@ namespace Quelos {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.At(handle);
         slot->Specification = spec;
-        TextureUtil::CreateTexture(m_pDevice, *slot);
+
+        TextureUtil::CreateTexture(m_pDevice, *slot, nullptr);
 
         return handle;
     }
 
-    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, Buffer data) {
-        return CreateTexture(spec);
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, const Buffer data) {
+        const Handle<Texture> handle = m_TextureTable.Emplace();
+        QTextureData* slot = m_TextureTable.At(handle);
+        slot->Specification = spec;
+
+        TextureSubResData subRes{};
+        subRes.pData = data.data();
+        subRes.Stride = spec.Width * 4; // 4 bytes per pixel (RGBA)
+
+        TextureData textureData;
+        textureData.pSubResources = &subRes;
+        textureData.NumSubresources = 1;
+
+        TextureUtil::CreateTexture(m_pDevice, *slot, &textureData);
+
+        return handle;
     }
 
     TextureHandle DiligentRendererContext::CreateTexture(
@@ -1528,6 +1662,78 @@ namespace Quelos {
         return handle;
     }
 
+    PipelineResourceSignatureHandle DiligentRendererContext::CreatePipelineResourceSignature(
+        const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec
+    ) {
+        Handle<PipelineResourceSignature> handle = m_PipelineResourceSignatureTable.Emplace();
+        PipelineResourceSignatureData* slot = m_PipelineResourceSignatureTable.At(handle);
+
+        // Own data
+        auto& spec = slot->Specification;
+
+        slot->Name = pipelineResourceSignatureSpec.Name;
+
+        for (const PipelineResourceSpec& resource : pipelineResourceSignatureSpec.Resources) {
+            PipelineResourceSpec owned = resource;
+            slot->OwnedStrings.emplace_back(resource.Name);
+            owned.Name = slot->OwnedStrings.back();
+
+            slot->Resources.push_back(owned);
+        }
+        spec.Resources = slot->Resources;
+
+        for (const ImmutableSamplerSpec& immutableSampler : pipelineResourceSignatureSpec.ImmutableSamplers) {
+            ImmutableSamplerSpec owned = immutableSampler;
+            slot->OwnedStrings.emplace_back(immutableSampler.SamplerOrTextureName);
+            owned.SamplerOrTextureName = slot->OwnedStrings.back();
+
+            slot->ImmutableSamplers.push_back(owned);
+        }
+        spec.ImmutableSamplers = slot->ImmutableSamplers;
+
+        slot->CombinedSamplerSuffix = pipelineResourceSignatureSpec.CombinedSamplerSuffix;
+        spec.CombinedSamplerSuffix = slot->CombinedSamplerSuffix;
+
+        spec.UseCombinedTextureSamplers = pipelineResourceSignatureSpec.UseCombinedTextureSamplers;
+        spec.BindingIndex = pipelineResourceSignatureSpec.BindingIndex;
+        spec.SRBAllocationGranularity = pipelineResourceSignatureSpec.SRBAllocationGranularity;
+
+        // Create signature
+        PipelineResourceSignatureDesc desc = Utils::GetPipelineResourceSignatureDesc(spec);
+        m_pDevice->CreatePipelineResourceSignature(desc, &slot->Signature);
+
+        if (!slot->Signature) {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "CreatePipelineResourceSignature(PipelineResourceSignatureSpec):"
+                " Failed to create pipeline resource signature object (name: {})",
+                spec.Name
+            );
+
+            m_PipelineResourceSignatureTable.Erase(handle);
+            return {};
+        }
+
+        return handle;
+    }
+
+    void DiligentRendererContext::Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle) {
+        PipelineResourceSignatureData* slot = m_PipelineResourceSignatureTable.At(pipelineResourceSignatureHandle);
+        if (!slot) {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContex",
+                "Failed to find PipelineResourceSignatureData at slot ({},{})",
+                pipelineResourceSignatureHandle.Index(), pipelineResourceSignatureHandle.Generation()
+            );
+
+            return;
+        }
+
+        slot->Signature->Release();
+
+        m_PipelineResourceSignatureTable.Erase(pipelineResourceSignatureHandle);
+    }
+
     void DiligentRendererContext::BindStaticVariableByName(
         const PipelineStateHandle pipelineStateHandle,
         const ShaderType shaderType,
@@ -1537,6 +1743,15 @@ namespace Quelos {
         IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
 
         QS_CORE_ASSERT(pso, "Pipeline state object is nullptr!");
+
+
+        QS_CORE_TRACE("Variables found:");
+        for (uint32_t i = 0; i < pso->GetStaticVariableCount(SHADER_TYPE_PIXEL); i++) {
+            const auto* var = pso->GetStaticVariableByIndex(SHADER_TYPE_PIXEL, i);
+            ShaderResourceDesc desc;
+            var->GetResourceDesc(desc);
+            QS_CORE_TRACE("\tVariable: {}", desc.Name);
+        }
 
         IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
             Utils::GetShaderType(shaderType),

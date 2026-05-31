@@ -101,6 +101,16 @@ namespace Quelos {
         GPUBufferSpec Specification;
     };
 
+    struct PipelineResourceSignatureData {
+        IPipelineResourceSignature* Signature = nullptr;
+        std::string Name;
+        std::string CombinedSamplerSuffix;
+        Deque<std::string> OwnedStrings;
+        Vec<PipelineResourceSpec> Resources;
+        Vec<ImmutableSamplerSpec> ImmutableSamplers;
+        PipelineResourceSignatureSpec Specification;
+    };
+
     class DiligentRendererContext : public RendererContext {
     public:
         void Init(const Ref<Window>& window, RendererAPI api) override;
@@ -127,6 +137,11 @@ namespace Quelos {
         PipelineStateHandle CreatePipelineState(
             const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
         ) override;
+
+        PipelineResourceSignatureHandle CreatePipelineResourceSignature(
+            const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec
+        ) override;
+        void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle) override;
 
         void BindStaticVariableByName(
             PipelineStateHandle pipelineStateHandle,
@@ -157,10 +172,17 @@ namespace Quelos {
             std::string_view name, GpuBufferHandle gpuBufferHandle
         ) override;
 
+        void BindArrayByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle shaderResourceBindingHandle,
+            std::string_view name,
+            Span32<const uint64_t> nativeTextureHandles
+        ) override;
+
         void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) override;
         void Unmap(GpuBufferHandle bufferHandle, MapType mapType) override;
 
-        void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
+        void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle, ResourceStateTransitionMode resourceStateTransitionMode) override;
 
         void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
 
@@ -240,6 +262,7 @@ namespace Quelos {
         ResourceTable<QBufferData, GpuBuffer> m_BufferTable;
         ResourceTable<PipelineStateData, PipelineStateObject> m_PipelineStateTable;
         ResourceTable<IShaderResourceBinding*, ShaderResourceBinding> m_ShaderResourceBindingTable;
+        ResourceTable<PipelineResourceSignatureData, PipelineResourceSignature> m_PipelineResourceSignatureTable;
 
         RefCntAutoPtr<IRenderDevice> m_pDevice;
         RefCntAutoPtr<IDeviceContext> m_pImmediateContext;

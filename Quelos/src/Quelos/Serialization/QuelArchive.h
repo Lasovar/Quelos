@@ -277,7 +277,6 @@ namespace Quelos::Serialization {
             m_Writer.WriteField(name, UnquotedString {value.GetAssetID().ToFormattedString() });
         }
 
-
         void WriteComplex(const std::string_view name, const AssetID& value) const {
             m_Writer.Write(FieldEvent { name });
             WriteComplex(value);

@@ -19,13 +19,16 @@ namespace Quelos {
         int width, height, channels;
 
         const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
+        stbi_set_flip_vertically_on_load(1);
         stbi_uc* data = stbi_load(
             assetPath.string().c_str(),
             &width,
             &height,
             &channels,
-            0
+            STBI_rgb_alpha
         );
+
+        channels = 4;
 
         if (!data) {
             QS_CORE_ERROR_TAG(
@@ -43,6 +46,7 @@ namespace Quelos {
         TextureSpecification textureSpecs;
         textureSpecs.Width = width;
         textureSpecs.Height = height;
+        textureSpecs.BindFlags = Bind::ShaderResource;
 
         switch (channels) {
         case 3:
