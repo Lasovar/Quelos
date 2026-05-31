@@ -33,6 +33,7 @@ namespace QuelosEditor {
 
     private:
         void DrawDirectoryTile(const std::string& path);
+        void RenameAsset(const AssetEntry& asset, std::string_view newName);
         void DrawAssetTile(AssetEntry& asset);
         void DrawTopBar();
         void DrawAssetGrid();
@@ -46,6 +47,9 @@ namespace QuelosEditor {
         std::string m_RootPath;
         std::string m_RelativeRootPath = ".";
         std::string m_CurrentPath = ".";
+
+        fmt::memory_buffer m_RenameBuffer;
+        AssetID m_RenamingAsset;
 
         SortedMap<std::string, DirectoryData> m_Directories;
         bool m_QueueDirectoryTreeRebuild = false;

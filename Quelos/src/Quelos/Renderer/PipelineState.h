@@ -1,90 +1,15 @@
 #pragma once
 
-#include "Color.h"
 #include "DepthStencilState.h"
 #include "GraphicsTypes.h"
 #include "LayoutElement.h"
+#include "PipelineResourceSignature.h"
 #include "RasterizerState.h"
 #include "RenderPass.h"
 #include "Shader.h"
-#include "Texture.h"
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
-    enum class SamplerFlags : uint8_t {
-        /// No flags are set.
-        None = 0,
-
-        /// Specifies that the sampler will read from a subsampled texture created with MISC_TEXTURE_FLAG_SUBSAMPLED flag.
-        /// Requires SHADING_RATE_CAP_FLAG_SUBSAMPLED_RENDER_TARGET capability.
-        Subsampled = 1u << 0,
-
-        /// Specifies that the GPU is allowed to use fast approximation when reconstructing full-resolution value from
-        /// the subsampled texture accessed by the sampler.
-        /// Requires SHADING_RATE_CAP_FLAG_SUBSAMPLED_RENDER_TARGET capability.
-        SubsampledCoarseReconstruction = 1u << 1,
-        Last = SubsampledCoarseReconstruction
-    };
-
-    struct SamplerSpec {
-        FilterMode MinFilter = FilterMode::Linear;
-        FilterMode MagFilter = FilterMode::Linear;
-        FilterMode MipFilter = FilterMode::Linear;
-        WrapMode WrapU = WrapMode::Clamp;
-        WrapMode WrapV = WrapMode::Clamp;
-        WrapMode WrapW = WrapMode::Clamp;
-        SamplerFlags Flags;
-
-        /// Indicates whether to use unnormalized texture coordinates.
-
-        /// When set to `True`, the range of the image coordinates used to lookup
-        /// the texel is in the range of 0 to the image size in each dimension.
-        /// When set to `False`, the range of image coordinates is 0.0 to 1.0.
-        ///
-        /// Unnormalized coordinates are only supported in Vulkan and Metal.
-        bool UnnormalizedCoords = false;
-
-        /// Offset from the calculated mipmap level.
-
-        /// For example, if a sampler calculates that a texture should be sampled at mipmap
-        /// level 1.2 and MipLODBias is 2.3, then the texture will be sampled at
-        /// mipmap level 3.5.
-        ///
-        /// Default value: 0.
-        float MipLODBias = 0.0f;
-
-        /// Maximum anisotropy level for the anisotropic filter. Default value: 0.
-        uint32_t MaxAnisotropy = 0;
-
-        /// A function that compares sampled data against existing sampled data when comparison filter is used.
-
-        /// Default value: Diligent::COMPARISON_FUNC_NEVER.
-        ComparisonFunc ComparisonFunc = ComparisonFunc::Never;
-
-        /// Border color to use if TEXTURE_ADDRESS_BORDER is specified for `AddressU`, `AddressV`, or `AddressW`.
-
-        /// Default value: `{0, 0, 0, 0}`
-        Color BorderColor = Color::Black();
-
-        /// Specifies the minimum value that LOD is clamped to before accessing the texture MIP levels.
-
-        /// Must be less than or equal to `MaxLOD`.
-        ///
-        /// Default value: 0.
-        float MinLOD = 0;
-
-        /// Specifies the maximum value that LOD is clamped to before accessing the texture MIP levels.
-
-        /// Must be greater than or equal to `MinLOD`.
-        /// Default value: `+FLT_MAX`.
-        float MaxLOD = +3.402823466e+38F;
-    };
-
-    struct ImmutableSamplerSpec {
-        ShaderType ShaderStages = ShaderType::Unknown;
-        std::string_view SamplerOrTextureName;
-        SamplerSpec Specification;
-    };
 
     struct PipelineResourceLayoutSpec {
         ShaderResourceVariableType DefaultVariableType;

@@ -31,6 +31,20 @@ namespace QuelosEditor {
         ImGui::PopID();
     }
 
+    void ContentBrowserPanel::RenameAsset(const AssetEntry& asset, const std::string_view newName) {
+        std::string namePath = FormatTemp(
+            "{}/{}",
+            FS::Parent(asset.Metadata.FilePath), newName
+        );
+
+        // For some reason format temp is failing to add the extension? for now adding it manually
+        // Though could just be the debugger not updating properly
+        namePath += FS::Extension(asset.Metadata.FilePath);
+
+        m_AssetManager->RenameAsset(asset.Metadata.Handle, namePath);
+        m_QueueDirectoryTreeRebuild = true;
+    }
+
     void ContentBrowserPanel::DrawAssetTile(AssetEntry& asset) {
         ImGui::PushID(asset.Name.c_str());
 
@@ -53,6 +67,12 @@ namespace QuelosEditor {
                 m_QueueDirectoryTreeRebuild = true;
 
                 // TODO: delete from file system
+            }
+
+            if (ImGui::MenuItem("Rename")) {
+                m_RenamingAsset = asset.Metadata.Handle;
+                fmt::format_to(std::back_inserter(m_RenameBuffer), "{}", FS::Stem(asset.Name));
+                m_RenameBuffer.push_back('\0');
             }
 
             if (!asset.IsImportable && ImGui::MenuItem("Remove from registry")) {
@@ -99,7 +119,34 @@ namespace QuelosEditor {
             ImGui::EndDragDropSource();
         }
 
-        ImGui::TextWrapped("%s", asset.Name.c_str());
+        if (m_RenamingAsset == asset.Metadata.Handle) {
+            ImGui::SetNextItemWidth(80.0f);
+
+            if (ImGui::InputText(
+                    "##Rename",
+                    m_RenameBuffer.data(),
+                    m_RenameBuffer.size(),
+                    ImGuiInputTextFlags_EnterReturnsTrue
+                )
+            ) {
+                RenameAsset(asset, std::string_view(m_RenameBuffer));
+                m_RenamingAsset = {};
+            }
+
+            if (ImGui::IsItemDeactivated()) {
+                RenameAsset(asset, std::string_view(m_RenameBuffer));
+                m_RenamingAsset = {};
+            }
+
+            if (ImGui::IsItemFocused() &&
+                ImGui::IsKeyPressed(ImGuiKey_Escape))
+            {
+                m_RenamingAsset = {};
+            }
+        }
+        else {
+            ImGui::TextWrapped("%s", asset.Name.c_str());
+        }
 
         ImGui::EndGroup();
 

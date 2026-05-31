@@ -50,7 +50,7 @@ namespace QuelosEditor {
             }
 
             size_t size = materialFile.tellg();
-            materialFile.seekg(0, materialFile.beg);
+            materialFile.seekg(0);
 
             std::string buffer;
             buffer.resize(size);
@@ -82,39 +82,14 @@ namespace QuelosEditor {
             materialMetadata.AssetId = assetId;
             materialMetadata.ShaderId = material.GetShader().GetAssetID();
 
-            for (const MaterialPropertySpec& materialProperty : materialAsset->GetMaterialProperties()) {
+            const Vec<MaterialPropertySpec>& specs = material.GetMaterialProperties();
+            const Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
+
+            for (uint32_t i = 0; i < specs.size(); i++) {
+                const MaterialPropertySpec& materialProperty = specs[i];
                 MaterialProperty property;
                 property.Type = materialProperty.Type;
-
-                switch (property.Type) {
-                case MaterialPropertyType::Float: {
-                    property.Value = material.GetProperty<float>(materialProperty.Offset, materialProperty.Size);
-                    break;
-                }
-                case MaterialPropertyType::Float2:
-                    property.Value = material.GetProperty<float2>(materialProperty.Offset, materialProperty.Size);
-                    break;
-                case MaterialPropertyType::Float3:
-                    property.Value = material.GetProperty<float3>(materialProperty.Offset, materialProperty.Size);
-                    break;
-                case MaterialPropertyType::Float4:
-                    property.Value = material.GetProperty<float4>(materialProperty.Offset, materialProperty.Size);
-                    break;
-                case MaterialPropertyType::Color:
-                    property.Value = material.GetProperty<Color>(materialProperty.Offset, materialProperty.Size);
-                    break;
-                case MaterialPropertyType::Unknown:
-                case MaterialPropertyType::Int:
-                case MaterialPropertyType::Int2:
-                case MaterialPropertyType::Int3:
-                case MaterialPropertyType::Int4:
-                case MaterialPropertyType::UInt:
-                case MaterialPropertyType::UInt2:
-                case MaterialPropertyType::UInt3:
-                case MaterialPropertyType::UInt4:
-                    break;
-                }
-
+                property.Value = values[i];
                 materialMetadata.Properties[materialProperty.Name] = property;
             }
 
@@ -168,7 +143,7 @@ namespace QuelosEditor {
                 const auto& propertyValue = it->second;
                 std::visit(
                     [&](const auto& value) {
-                        material->SetProperty(materialProperty.Offset, materialProperty.Size, &value);
+                        material->SetProperty(materialProperty.Offset, value);
                     },
                     propertyValue.Value
                 );

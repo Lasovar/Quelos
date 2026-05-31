@@ -11,7 +11,6 @@
 namespace QuelosEditor {
     using namespace Quelos;
 
-    using MaterialPropertyValue = std::variant<float, float2, float3, float4, Color>;
     struct MaterialProperty {
         MaterialPropertyType Type;
         MaterialPropertyValue Value;
@@ -20,43 +19,14 @@ namespace QuelosEditor {
         static void Serialize(TArchive& archive, MaterialProperty& materialProperty) {
             archive.Value(materialProperty.Type);
 
-            switch (materialProperty.Type) {
-            case MaterialPropertyType::Float: {
-                archive.Value(EnsureType<float>(materialProperty.Value));
-                break;
-            }
-            case MaterialPropertyType::Float2:
-                archive.Value(EnsureType<float2>(materialProperty.Value));
-                break;
-            case MaterialPropertyType::Float3:
-                archive.Value(EnsureType<float3>(materialProperty.Value));
-                break;
-            case MaterialPropertyType::Float4:
-                archive.Value(EnsureType<float4>(materialProperty.Value));
-                break;
-            case MaterialPropertyType::Color: {
-                archive.Value(EnsureType<Color>(materialProperty.Value));
-                break;
-            }
-            case MaterialPropertyType::Int:
-            case MaterialPropertyType::Int2:
-            case MaterialPropertyType::Int3:
-            case MaterialPropertyType::Int4:
-            case MaterialPropertyType::UInt:
-            case MaterialPropertyType::UInt2:
-            case MaterialPropertyType::UInt3:
-            case MaterialPropertyType::UInt4:
-            case MaterialPropertyType::Unknown:
-                break;
-            }
-        }
-    private:
-        template <typename T, typename Variant>
-        static T& EnsureType(Variant& variant) {
-            if (auto* value = std::get_if<T>(&variant))
-                return *value;
+            Material::EnsureType(materialProperty.Type, materialProperty.Value);
 
-            return variant.template emplace<T>();
+            std::visit(
+                [&](auto& value) {
+                    archive.Value(value);
+                },
+                materialProperty.Value
+            );
         }
     };
 

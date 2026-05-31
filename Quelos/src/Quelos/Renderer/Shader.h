@@ -60,6 +60,36 @@ namespace Quelos {
         Count
     };
 
+    enum class ShaderResourceType : uint8_t {
+        Unknown = 0,
+
+        /// Constant (uniform) buffer
+        ConstantBuffer,
+
+        /// Shader resource view of a texture (sampled image)
+        TextureSRV,
+
+        /// Shader resource view of a buffer (read-only storage image)
+        BufferSRV,
+
+        /// Unordered access view of a texture (storage image)
+        TextureUAV,
+
+        /// Unordered access view of a buffer (storage buffer)
+        BufferUAV,
+
+        /// Sampler (separate sampler)
+        Sampler,
+
+        /// Input attachment in a render pass
+        InputAttachment,
+
+        /// Acceleration structure
+        AccelStruct,
+
+        Last = AccelStruct
+    };
+
     enum class ShaderVariableFlags : uint8_t {
         /// Shader variable has no special properties.
         None = 0,

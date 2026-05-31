@@ -75,7 +75,7 @@ namespace QuelosEditor {
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
-        Vec<Scope<Workspace>> m_Workspaces;
+        HashMap<AssetID, Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 
         HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;

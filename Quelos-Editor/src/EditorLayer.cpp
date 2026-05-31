@@ -146,7 +146,7 @@ namespace QuelosEditor {
 
         s_ShaderRecompilationStack.clear();
 
-        for (const auto& workspace : m_Workspaces) {
+        for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->Tick(deltaTime);
         }
 
@@ -285,13 +285,13 @@ namespace QuelosEditor {
 
         m_ContentBrowserPanel.OnImGuiRender(globalDockspaceID, m_EditorLayerClass);
 
-        for (const auto& workspace : m_Workspaces) {
+        for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->OnImGuiRender(m_EditorLayerClass, globalDockspaceID);
         }
 
         std::erase_if(m_Workspaces,
-                      [](const Scope<Workspace>& workspace) {
-                          return !workspace->IsOpen();
+                      [](const Pair<AssetID, Scope<Workspace>>& workspace) {
+                          return !workspace.second->IsOpen();
                       });
     }
 
@@ -409,7 +409,7 @@ namespace QuelosEditor {
             return false;
         });
 
-        for (const auto& workspace : m_Workspaces) {
+        for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->OnEvent(event);
         }
     }
@@ -417,6 +417,16 @@ namespace QuelosEditor {
     void EditorLayer::OpenAssetWorkspace(const AssetMetadata& metadata) {
         const auto it = m_WorkspaceFactories.find(metadata.Type);
         if (it == m_WorkspaceFactories.end()) {
+            QS_CORE_WARN_TAG(
+                "No suitable workspace found for asset '{}'!",
+                metadata.FilePath
+            );
+
+            return;
+        }
+
+        if (const auto workspaceIt = m_Workspaces.find(metadata.Handle); workspaceIt != m_Workspaces.end()) {
+            workspaceIt->second->Focus();
             return;
         }
 
@@ -432,6 +442,6 @@ namespace QuelosEditor {
         }
 
         workspace->Focus();
-        m_Workspaces.push_back(std::move(workspace));
+        m_Workspaces.emplace(metadata.Handle, std::move(workspace));
     }
 }

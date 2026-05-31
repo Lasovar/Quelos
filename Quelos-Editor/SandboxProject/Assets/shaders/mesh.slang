@@ -3,6 +3,8 @@ import quelos;
 struct Material {
     [Color] float4 Color;
     float Power;
+    [Texture2D] uint _MainTex;
+    [Texture2D] uint _NormalTex;
 };
 
 StructuredBuffer<Material> Materials;
@@ -34,8 +36,12 @@ struct FragmentOut {
 FragmentOut fragmentMain(VertexOut v) {
     FragmentOut output;
 
+    Material mat = GetMaterial(v.instanceID);
+
+    Texture2D mainTex = g_Textures[GetMaterial(v.instanceID)._MainTex];
+    Texture2D normalTex = g_Textures[GetMaterial(v.instanceID)._NormalTex];
     float3 N = normalize(v.normal);
-    output.color = float4(N * 0.5 + 0.5, 1.0) * GetMaterial(v.instanceID).Color;;
+    output.color = g_Textures[mat._MainTex].Sample(g_Textures_sampler, v.uv) * mat.Color;
 
     return output;
 }

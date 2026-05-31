@@ -14,6 +14,7 @@ VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     return output;
 }
 
+
 struct FragmentOut {
     float4 color : SV_Target0;
 }

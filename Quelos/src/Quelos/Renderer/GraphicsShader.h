@@ -13,7 +13,9 @@ namespace Quelos {
         Float, Float2, Float3, Float4,
         Color, // Attributed float4
         Int, Int2, Int3, Int4,
-        UInt, UInt2, UInt3, UInt4
+        Texture2D,
+        UInt,
+        UInt2, UInt3, UInt4
     };
 
     constexpr uint8_t GetMaterialPropertyTypeSize(const MaterialPropertyType materialProperty) {
@@ -22,13 +24,18 @@ namespace Quelos {
         case MaterialPropertyType::Float:   return 4;
         case MaterialPropertyType::Float2:  return 4 * 2;
         case MaterialPropertyType::Float3:  return 4 * 3;
+
+        case MaterialPropertyType::Color:
         case MaterialPropertyType::Float4:  return 4 * 4;
-        case MaterialPropertyType::Color:   return 4 * 4;
+
         case MaterialPropertyType::Int:     return 4;
         case MaterialPropertyType::Int2:    return 4 * 2;
         case MaterialPropertyType::Int3:    return 4 * 3;
         case MaterialPropertyType::Int4:    return 4 * 4;
+
+        case MaterialPropertyType::Texture2D:
         case MaterialPropertyType::UInt:    return 4;
+
         case MaterialPropertyType::UInt2:   return 4 * 2;
         case MaterialPropertyType::UInt3:   return 4 * 3;
         case MaterialPropertyType::UInt4:   return 4 * 4;

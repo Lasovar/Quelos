@@ -284,8 +284,17 @@ namespace QuelosEditor {
             case slang::TypeReflection::Kind::Array:
             case slang::TypeReflection::Kind::Matrix:
                 return MaterialPropertyType::Unknown;
-            case slang::TypeReflection::Kind::Scalar:
+            case slang::TypeReflection::Kind::Scalar: {
+                slang::VariableReflection* variable = variableLayout->getVariable();
+                for (uint32_t attribIndex = 0; attribIndex < variable->getUserAttributeCount(); attribIndex++) {
+                    const char* attributeName = variable->getUserAttributeByIndex(attribIndex)->getName();
+                    if (!strcmp(attributeName, "Texture2D")) {
+                        return MaterialPropertyType::Texture2D;
+                    }
+                }
+
                 return MaterialPropertyType::Float;
+            }
             case slang::TypeReflection::Kind::Vector:
                 switch (fieldType->getElementCount()) {
                 case 1:
@@ -384,7 +393,7 @@ namespace QuelosEditor {
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
-                if (strcmp(parameter->getName(), "Materials")) {
+                if (strcmp(parameter->getName(), "Materials") != 0) {
                     continue;
                 }
 

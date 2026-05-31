@@ -289,6 +289,20 @@ namespace QuelosEditor {
         return results;
     }
 
+    void EditorAssetManager::RenameAsset(const AssetID handle, const std::string_view newPath) {
+        auto& metadata = m_AssetRegistry.GetAssetsMetadata();
+        const auto it = metadata.find(handle);
+        if (it == metadata.end()) {
+            return;
+        }
+
+        const OsPath oldOsPath = Project::GetProjectPath() / it->second.FilePath;
+        const OsPath newOsPath = Project::GetProjectPath() / newPath;
+
+        std::filesystem::rename(oldOsPath, newOsPath);
+        it->second.FilePath = newPath;
+    }
+
     bool EditorAssetManager::IsAssetSupported(const std::string_view path) {
         return AssetImporter::IsAssetSupported(path);
     }
