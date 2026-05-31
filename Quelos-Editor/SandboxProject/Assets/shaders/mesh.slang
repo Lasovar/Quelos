@@ -1,5 +1,6 @@
 import quelos;
 
+[Material]
 struct Material {
     [Color] float4 Color;
     float Power;
@@ -41,6 +42,7 @@ FragmentOut fragmentMain(VertexOut v) {
     Texture2D mainTex = g_Textures[GetMaterial(v.instanceID)._MainTex];
     Texture2D normalTex = g_Textures[GetMaterial(v.instanceID)._NormalTex];
     float3 N = normalize(v.normal);
+
     output.color = g_Textures[mat._MainTex].Sample(g_Textures_sampler, v.uv) * mat.Color;
 
     return output;
