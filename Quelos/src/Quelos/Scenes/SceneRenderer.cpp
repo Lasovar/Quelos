@@ -224,7 +224,7 @@ namespace Quelos {
         m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
 
         TextureSpecification whiteSpec;
-        whiteSpec.Name = "UnknownTexture";
+        whiteSpec.Name = "DefaultWhiteTexture";
         whiteSpec.BindFlags = Bind::ShaderResource;
         whiteSpec.Width = 1;
         whiteSpec.Height = 1;
@@ -232,12 +232,11 @@ namespace Quelos {
         whiteSpec.SampleCount = SampleCount::x1;
         whiteSpec.Type = TextureType::Texture2D;
 
-        Buffer whiteData = Buffer::Allocate(4);
-        *reinterpret_cast<uint32_t*>(whiteData.data()) = 0xFFFFFFFF;
-        m_WhiteTexture = Renderer::CreateTexture(whiteSpec, std::move(whiteData));
+        uint32_t whiteColor = 0xFFFFFFFF;
+        m_WhiteTexture = Renderer::CreateTexture(whiteSpec, std::as_bytes(Span(&whiteColor, 1)));
 
         TextureSpecification magentaSpec;
-        magentaSpec.Name = "UnknownTexture";
+        magentaSpec.Name = "UndefinedTexture";
         magentaSpec.BindFlags = Bind::ShaderResource;
         magentaSpec.Width = 1;
         magentaSpec.Height = 1;
@@ -245,9 +244,8 @@ namespace Quelos {
         magentaSpec.SampleCount = SampleCount::x1;
         magentaSpec.Type = TextureType::Texture2D;
 
-        Buffer magentaData = Buffer::Allocate(4);
-        *reinterpret_cast<uint32_t*>(magentaData.data()) = 0xFFFFFFFF;
-        m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::move(magentaData));
+        uint32_t magentaColor = 0xFF00FFFF;
+        m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::as_bytes(Span(&magentaColor, 1)));
 
         m_TextureRegistry.Init(m_WhiteTexture, m_MagentaTexture);
     }

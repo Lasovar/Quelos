@@ -1138,7 +1138,7 @@ namespace Quelos {
         return handle;
     }
 
-    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, const Buffer data) {
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, const BufferView data) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.At(handle);
         slot->Specification = spec;

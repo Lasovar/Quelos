@@ -123,12 +123,12 @@ namespace Quelos {
 
     class QS_API Texture2D : public Texture {
     public:
-        Texture2D(const TextureSpecification& spec, Buffer data);
+        Texture2D(const TextureSpecification& spec, BufferView data);
         Texture2D(const TextureHandle& handle) : m_Handle(handle) {}
         ~Texture2D() override;
 
         static Ref<Texture2D> Create(const TextureSpecification& spec);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, Buffer data);
+        static Ref<Texture2D> Create(const TextureSpecification& spec, BufferView data);
         static Ref<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
 
     public:

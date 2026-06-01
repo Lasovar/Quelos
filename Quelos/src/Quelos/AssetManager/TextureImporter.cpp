@@ -65,7 +65,7 @@ namespace Quelos {
             return false;
         }
 
-        auto* texture = new(dataSlot) Texture2D(textureSpecs, std::move(dataBuffer));
+        auto* texture = new(dataSlot) Texture2D(textureSpecs, dataBuffer.view());
         texture->SetAssetID(metadata.Handle);
 
         return true;

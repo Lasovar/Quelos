@@ -105,7 +105,7 @@ namespace Quelos {
 
         // Texture
         static TextureHandle CreateTexture(const TextureSpecification& spec);
-        static TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data);
+        static TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data);
         static TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path);
 
         static bool TextureIsVFlipped();
