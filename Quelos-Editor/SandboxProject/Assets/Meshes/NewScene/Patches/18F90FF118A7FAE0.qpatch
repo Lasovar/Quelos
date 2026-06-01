@@ -1,5 +1,7 @@
 [actor guid=18F90FF118A7FAE0 state=added]
 name = "Sphere"
+parent = root
+order = 0x0000000080000000
 
 #Quelos.LocalTransform
 position = (4.3,1,-5.7)

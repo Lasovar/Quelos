@@ -359,10 +359,20 @@ namespace QuelosEditor {
 
         std::string buffer;
         StringQuelWriter writer(buffer);
-        for (auto& [handle, metadata] : m_AssetRegistry.GetAssetsMetadata()) {
+
+        auto& assetRegistry = m_AssetRegistry.GetAssetsMetadata();
+        Vec<AssetMetadata> assets;
+        assets.reserve(assetRegistry.size());
+
+        assets.append_range(assetRegistry | std::views::values);
+        std::ranges::sort(assets, [](const AssetMetadata& a, const AssetMetadata& b) {
+            return a.Type < b.Type;
+        });
+
+        for (auto& metadata : assets) {
             writer.Write(SectionEvent{metadata.Type.GetName()});
             writer.CloseSection();
-            writer.WriteField("handle", UnquotedString{handle.ToString()});
+            writer.WriteField("handle", UnquotedString{metadata.Handle.ToString()});
             if (metadata.IsSubAsset()) {
                 writer.WriteField("parent", UnquotedString{metadata.ParentId.ToFormattedString()});
             }

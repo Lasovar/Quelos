@@ -55,6 +55,17 @@ namespace Quelos {
         float4x4 Value;
     };
 
+    struct QS_API DirectionalLight {
+        Color Color;
+        float Intensity = 0.0f;
+
+        template <typename TArchive>
+        static void Serialize(TArchive& archive, DirectionalLight& data) {
+            archive.Field("color", data.Color);
+            archive.Field("intensity", data.Intensity);
+        }
+    };
+
     struct QS_API CameraComponent {
         SceneCamera Camera;
 
@@ -114,5 +125,5 @@ namespace Quelos {
     template <typename... Component>
     struct ComponentGroup { };
 
-    using AllComponents = ComponentGroup<LocalTransform, CameraComponent, MeshRenderer, SpriteRenderer>;
+    using AllComponents = ComponentGroup<LocalTransform, DirectionalLight, CameraComponent, MeshRenderer, SpriteRenderer>;
 }

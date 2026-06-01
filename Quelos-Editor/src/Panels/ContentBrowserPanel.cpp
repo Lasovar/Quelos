@@ -31,6 +31,12 @@ namespace QuelosEditor {
         ImGui::PopID();
     }
 
+    void ContentBrowserPanel::StartAssetRename(const std::string_view assetName, const AssetID assetId) {
+        m_RenamingAsset = assetId;
+        fmt::format_to(std::back_inserter(m_RenameBuffer), "{}", FS::Stem(assetName));
+        m_RenameBuffer.push_back('\0');
+    }
+
     void ContentBrowserPanel::RenameAsset(const AssetEntry& asset, const std::string_view newName) {
         std::string namePath = FormatTemp(
             "{}/{}",
@@ -70,9 +76,7 @@ namespace QuelosEditor {
             }
 
             if (ImGui::MenuItem("Rename")) {
-                m_RenamingAsset = asset.Metadata.Handle;
-                fmt::format_to(std::back_inserter(m_RenameBuffer), "{}", FS::Stem(asset.Name));
-                m_RenameBuffer.push_back('\0');
+                StartAssetRename(asset.Name, asset.Metadata.Handle);
             }
 
             if (!asset.IsImportable && ImGui::MenuItem("Remove from registry")) {
@@ -119,7 +123,7 @@ namespace QuelosEditor {
             ImGui::EndDragDropSource();
         }
 
-        if (m_RenamingAsset == asset.Metadata.Handle) {
+        if (!asset.IsImportable && m_RenamingAsset == asset.Metadata.Handle) {
             ImGui::SetNextItemWidth(80.0f);
 
             if (ImGui::InputText(
@@ -283,8 +287,14 @@ namespace QuelosEditor {
                     }
 
                     if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_PAINT_BRUSH, "Create Material"))) {
-                        MaterialImporter::CreateDefaultMaterialAsset(m_CurrentPath, "NewMaterial");
-                        //m_AssetManager->ProcessAssetRegistration();
+                        const std::string assetPath = m_CurrentPath + "/NewMaterial.qmat";
+                        AssetID newMaterialId = MaterialImporter::CreateDefaultMaterialAsset(
+                            assetPath
+                        );
+
+                        m_AssetManager->ProcessAssetRegistration(assetPath);
+                        StartAssetRename(FS::Filename(assetPath), newMaterialId);
+                        m_QueueDirectoryTreeRebuild = true;
                     }
 
                     ImGui::EndPopup();

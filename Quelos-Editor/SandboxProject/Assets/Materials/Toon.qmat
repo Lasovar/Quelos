@@ -1,0 +1,7 @@
+[Material]
+assetId = ca12b8a3-0ebd-4b87-991f-4367f4f3c395
+shader = a50703a3-7416-44e3-a477-97850513d27c
+
+@properties
+Color = (Color,(1,1,1,1))
+MainTex = (Texture2D,null)

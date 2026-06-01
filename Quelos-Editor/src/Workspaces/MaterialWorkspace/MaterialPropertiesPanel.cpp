@@ -28,12 +28,16 @@ namespace QuelosEditor {
                     static float startValue = 0.0f;
                     static bool startedEditing = false;
 
-                    const float value = material.GetProperty<float>(materialProperty.Offset);
-                    float temp = value;
+                    const float* value = material.GetProperty<float>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    float temp = *value;
                     if (UI::EditFloat(materialProperty.Name, temp)) {
                         if (!startedEditing) {
                             startedEditing = true;
-                            startValue = value;
+                            startValue = *value;
                         }
 
                         material.SetProperty<float>(materialProperty.Offset, temp);
@@ -59,12 +63,16 @@ namespace QuelosEditor {
                     static Color startValue;
                     static bool startedEditing = false;
 
-                    auto value = material.GetProperty<Color>(materialProperty.Offset);
-                    Color temp = value;
+                    const Color* value = material.GetProperty<Color>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    Color temp = *value;
                     if (UI::EditColor4(materialProperty.Name, temp)) {
                         if (!startedEditing) {
                             startedEditing = true;
-                            startValue = value;
+                            startValue = *value;
                         }
 
                         material.SetProperty(materialProperty.Offset, temp);
@@ -90,12 +98,16 @@ namespace QuelosEditor {
                 case MaterialPropertyType::UInt:
                 case MaterialPropertyType::Texture2D: {
                     const auto& value = material.GetProperty<AssetRef<Texture2D>>(materialProperty.Offset);
-                    AssetID assetId = value.GetAssetID();
+                    if (!value) {
+                        break;
+                    }
+
+                    AssetID assetId = value->GetAssetID();
                     if (UI::EditAsset<Texture2D>(materialProperty.Name, assetId)) {
                         m_UndoSystem.Push<SetMaterialProperty<AssetRef<Texture2D>>>(
                             m_Material,
                             materialProperty.Offset,
-                            value.GetAssetID(),
+                            value->GetAssetID(),
                             assetId
                         );
                     }

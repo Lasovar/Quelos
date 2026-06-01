@@ -1,5 +1,7 @@
 [actor guid=1498DB1C302D0359 state=added]
 name = "Plane"
+parent = root
+order = 0x0000000040000000
 
 #Quelos.LocalTransform
 position = (0,0,0)

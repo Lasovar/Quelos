@@ -33,6 +33,7 @@ struct Texture2DAttribute {}
 
 __extern_cpp struct GlobalUniforms {
     float4x4 viewProj;
+    float4 LightDirection;
 };
 
 // Data accessed per instance from the Instances StructuredBuffer with SV_InstanceID

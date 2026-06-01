@@ -1,5 +1,7 @@
 [actor guid=CB22456E60215646 state=added]
 name = "Camera"
+parent = root
+order = 0x0000000008000000
 
 #Quelos.CameraComponent
 projection = Perspective
