@@ -34,7 +34,8 @@ namespace Quelos {
             }
 
             GPUBufferSpec desc{};
-            desc.Name = m_PipelineName;
+            const std::string name = m_PipelineName + " Material buffer";
+            desc.Name = name;
             desc.Size = m_MaterialSize * m_GPUCapacity;
             desc.Usage = Usage::Dynamic;
             desc.BindFlags = Bind::ShaderResource;
@@ -201,9 +202,11 @@ namespace Quelos {
                             .without<PipelineStateComponent>()
                             .build();
 
+        m_DirectionalLightQuery = m_World.query<const WorldTransform&, const DirectionalLight&>();
+
         GPUBufferSpec spec;
         spec.Name = "global";
-        spec.Size = sizeof(float4x4);
+        spec.Size = sizeof(Globals);
         spec.Usage = Usage::Default;
         spec.BindFlags = Bind::UniformBuffer;
 
@@ -220,6 +223,19 @@ namespace Quelos {
 
         m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
 
+        TextureSpecification whiteSpec;
+        whiteSpec.Name = "UnknownTexture";
+        whiteSpec.BindFlags = Bind::ShaderResource;
+        whiteSpec.Width = 1;
+        whiteSpec.Height = 1;
+        whiteSpec.Format = ImageFormat::RGBA;
+        whiteSpec.SampleCount = SampleCount::x1;
+        whiteSpec.Type = TextureType::Texture2D;
+
+        Buffer whiteData = Buffer::Allocate(4);
+        *reinterpret_cast<uint32_t*>(whiteData.data()) = 0xFFFFFFFF;
+        m_WhiteTexture = Renderer::CreateTexture(whiteSpec, std::move(whiteData));
+
         TextureSpecification magentaSpec;
         magentaSpec.Name = "UnknownTexture";
         magentaSpec.BindFlags = Bind::ShaderResource;
@@ -230,10 +246,10 @@ namespace Quelos {
         magentaSpec.Type = TextureType::Texture2D;
 
         Buffer magentaData = Buffer::Allocate(4);
-        *reinterpret_cast<uint32_t*>(magentaData.data()) = 0xFF00FFFF;
+        *reinterpret_cast<uint32_t*>(magentaData.data()) = 0xFFFFFFFF;
         m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::move(magentaData));
 
-        m_TextureRegistry.Init(m_MagentaTexture);
+        m_TextureRegistry.Init(m_WhiteTexture, m_MagentaTexture);
     }
 
     void SceneRenderer::Begin(
@@ -250,11 +266,14 @@ namespace Quelos {
             if (!meshRenderer.Mesh
                 || !meshRenderer.Material
                 || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
-                || !Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())
             ) {
-                m_PipelineStates.erase(pipelineStateComponent.ShaderID);
                 entity.remove<PipelineStateComponent>();
                 isDirty = true;
+            }
+
+            if (!Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())) {
+                m_PipelineStates.erase(pipelineStateComponent.ShaderID);
+                entity.remove<PipelineStateComponent>();
             }
         });
 
@@ -431,10 +450,19 @@ namespace Quelos {
             }
         );
 
+        Globals globals{};
+        globals.ViewProjection = viewProjection;
+        globals.LightDirection = float4(0, 0, 0, 0);
+
+        if (m_DirectionalLightQuery.count() > 0) {
+            flecs::entity directionLight = m_DirectionalLightQuery.first();
+            globals.LightDirection = directionLight.get<WorldTransform>().Value[2];
+        }
+
         Renderer::UpdateBuffer(
             m_GlobalBuffer,
             0,
-            Span(reinterpret_cast<const byte*>(math::value_ptr(viewProjection)), sizeof(float4x4))
+            std::as_bytes(Span(&globals, 1))
         );
 
         Renderer::BeginRenderPass(beginRenderPassAttribs);
@@ -557,6 +585,7 @@ namespace Quelos {
         }
 
         Renderer::Destroy(m_RenderPass);
+        Renderer::Destroy(m_WhiteTexture);
         Renderer::Destroy(m_MagentaTexture);
     }
 }

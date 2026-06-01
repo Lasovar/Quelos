@@ -46,13 +46,13 @@ namespace Quelos {
         }
 
         template <typename T>
-        const T& GetProperty(const uint64_t offset) const {
+        const T* GetProperty(const uint64_t offset) const {
             const size_t index = GetPropertyIndexByOffset(offset);
             if (index == m_MaterialProperties.size()) {
-                return {};
+                return nullptr;
             }
 
-            return std::get<T>(m_Values[index]);
+            return &std::get<T>(m_Values[index]);
         }
     private:
         [[nodiscard]] size_t GetPropertyIndexByOffset(const uint64_t offset) const {

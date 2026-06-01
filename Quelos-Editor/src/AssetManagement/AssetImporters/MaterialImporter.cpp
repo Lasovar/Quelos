@@ -15,12 +15,12 @@ namespace QuelosEditor {
     namespace MaterialImporter {
         const char* k_MaterialExtension = ".qmat";
 
-        OsPath GetMetadataPath(const std::string_view assetDirectory, const std::string_view assetName) {
-            return Project::GetProjectPath() / assetDirectory / assetName;
-        }
-
         OsPath GetMetadataPath(const std::string_view assetPath) {
-            return Project::GetProjectPath() / assetPath;
+            return Project::GetProjectPath() / (
+                FS::Extension(assetPath) == k_MaterialExtension
+                    ? assetPath
+                    : FormatTemp("{}{}", assetPath, k_MaterialExtension)
+            );
         }
 
         bool SerializeMaterial(const OsPath& materialPath, MaterialMetadata& metadata) {
@@ -99,19 +99,19 @@ namespace QuelosEditor {
             );
         }
 
-        AssetID CreateDefaultMaterialAsset(const std::string_view parentDirectory, const std::string_view materialName) {
-            const OsPath parentDirectoryPath(parentDirectory);
+        AssetID CreateDefaultMaterialAsset(const std::string_view materialPath) {
+            const OsPath parentDirectoryPath(FS::Parent(materialPath));
             if (!std::filesystem::exists(parentDirectoryPath)) {
                 std::filesystem::create_directories(parentDirectoryPath);
             }
 
-            const OsPath materialPath = GetMetadataPath(parentDirectory, materialName);
+            const OsPath materialOsPath = GetMetadataPath(materialPath);
 
             MaterialMetadata materialMetadata;
             materialMetadata.AssetId = AssetID::Generate();
             materialMetadata.ShaderId = {};
 
-            if (!SerializeMaterial(materialPath, materialMetadata)) {
+            if (!SerializeMaterial(materialOsPath, materialMetadata)) {
                 return {};
             }
 

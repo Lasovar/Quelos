@@ -14,14 +14,22 @@ namespace Quelos {
 
     class TextureRegistry {
     public:
-        void Init(const TextureHandle magentaTexture) {
+        void Init(const TextureHandle whiteTexture, const TextureHandle magentaTexture) {
+            m_WhiteTexture = whiteTexture;
             m_MagentaTexture = magentaTexture;
-            std::ranges::fill(m_TextureArray, magentaTexture.GetNativeHandle());
+            std::ranges::fill(m_TextureArray, m_MagentaTexture.GetNativeHandle());
+            m_TextureArray[k_MaxTextures - 1] = m_WhiteTexture.GetNativeHandle();
         }
 
         uint32_t GetID(const AssetRef<Texture2D>& textureHandle) {
             if (!textureHandle) {
-                return m_MagentaTexture.GetNativeHandle();
+                return k_MaxTextures - 1;
+            }
+
+            if (m_Textures.size() >= k_MaxTextures - 1) {
+                // TODO: More data about which pipeline/material/texture lost would be nice
+                QS_CORE_WARN_TAG("TextureRegistry", "TextureRegistry is full!");
+                return k_MaxTextures - 1;
             }
 
             const uint64_t nativeHandle = textureHandle.Get().GetHandle().GetNativeHandle();
@@ -53,15 +61,14 @@ namespace Quelos {
         Span32<const uint64_t> GetTextureViews() { return m_TextureArray; }
 
         void UpdateTexturesArray() {
-            std::ranges::fill(m_TextureArray, m_MagentaTexture.GetNativeHandle());
-
-            for (uint32_t i = 0; i < m_Textures.size(); i++) {
+            for (uint32_t i = 0; i < m_Textures.size() && i < k_MaxTextures - 1; i++) {
                 m_TextureArray[i] = m_Textures[i].Get().GetHandle().GetNativeHandle();
             }
         }
 
     private:
         Vec<AssetRef<Texture2D>> m_Textures;
+        TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
         std::array<uint64_t, k_MaxTextures> m_TextureArray = {};
 
@@ -124,6 +131,11 @@ namespace Quelos {
         pfloat4x4 Transform;
     };
 
+    struct alignas(16) Globals {
+        pfloat4x4 ViewProjection;
+        pfloat4 LightDirection;
+    };
+
     struct alignas(16) InstanceData {
         pfloat4x4 Transform;
         uint32_t MaterialId;
@@ -145,6 +157,7 @@ namespace Quelos {
         RenderPassHandle m_RenderPass;
         flecs::world m_World;
         TextureRegistry m_TextureRegistry;
+        TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
 
         struct PipelineInfo {
@@ -158,6 +171,7 @@ namespace Quelos {
 
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
+        flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;
 
         GpuBufferHandle m_GlobalBuffer;
 

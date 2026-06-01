@@ -1,0 +1,7 @@
+[Shader]
+assetId = a50703a3-7416-44e3-a477-97850513d27c
+materialSize = 32
+
+#MaterialProperties
+Color = (Color,0,16)
+MainTex = (Texture2D,16,4)

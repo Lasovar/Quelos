@@ -33,6 +33,7 @@ namespace QuelosEditor {
 
     private:
         void DrawDirectoryTile(const std::string& path);
+        void StartAssetRename(std::string_view assetName, AssetID assetId);
         void RenameAsset(const AssetEntry& asset, std::string_view newName);
         void DrawAssetTile(AssetEntry& asset);
         void DrawTopBar();

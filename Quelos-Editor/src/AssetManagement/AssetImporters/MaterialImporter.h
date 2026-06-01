@@ -50,7 +50,7 @@ namespace QuelosEditor {
 
     namespace MaterialImporter {
         void SaveMaterial(const AssetRef<Material>& materialAsset);
-        AssetID CreateDefaultMaterialAsset(std::string_view parentDirectory, std::string_view materialName);
+        AssetID CreateDefaultMaterialAsset(std::string_view materialPath);
 
         bool IsAssetSupported(std::string_view materialPath);
         bool LoadAsset(void* slot, const AssetMetadata& assetMetadata);

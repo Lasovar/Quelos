@@ -2,21 +2,9 @@
 handle = fa481eed-75fd-40c1-a646-e845648b118e
 path = "Assets/NewScene"
 
-[Quelos.Texture2D]
-handle = 6437571e-866a-461f-b6d3-822e7ab55a87
-path = "Assets/Textures/minecraft.png"
-
-[Quelos.Texture2D]
-handle = 70be76dd-f4c9-4ae0-ab85-5dab76194ef8
-path = "Assets/Textures/yuri.png"
-
-[Quelos.Shader]
-handle = af5fda92-37f9-42e3-a189-3a5388090a14
-path = "Assets/shaders/mesh.qshader"
-
-[Quelos.Model]
-handle = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
-path = "Assets/Meshes/Cube.fbx"
+[Quelos.Scene]
+handle = 009bd427-eec8-4038-829b-4b49be965a3a
+path = "Assets/Meshes/NewScene"
 
 [Quelos.Mesh]
 handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
@@ -33,18 +21,14 @@ handle = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
 parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 path = "Assets/Meshes/Cube.fbx/Meshes/Suzanne"
 
-[Quelos.Model]
-handle = d1b9f3ab-4152-419e-919b-4a08e7d70829
-path = "Assets/Meshes/Plane.fbx"
-
 [Quelos.Mesh]
 handle = 7454a857-a0d2-464c-a711-6ca3088cfd5e
 parent = d1b9f3ab-4152-419e-919b-4a08e7d70829
 path = "Assets/Meshes/Plane.fbx/Meshes/Plane"
 
-[Quelos.Scene]
-handle = 009bd427-eec8-4038-829b-4b49be965a3a
-path = "Assets/Meshes/NewScene"
+[Quelos.GraphicsShader]
+handle = a50703a3-7416-44e3-a477-97850513d27c
+path = "Assets/shaders/toon.slang"
 
 [Quelos.GraphicsShader]
 handle = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
@@ -55,9 +39,29 @@ handle = 5830a917-9591-48b3-8941-7f080914f2c5
 path = "Assets/shaders/fallback.slang"
 
 [Quelos.Material]
+handle = ca12b8a3-0ebd-4b87-991f-4367f4f3c395
+path = "Assets/Materials/Toon.qmat"
+
+[Quelos.Material]
 handle = 8fc22766-715e-400d-bd33-51c6eb05e3a8
 path = "Assets/Materials/DefaultMat.qmat"
+
+[Quelos.Model]
+handle = d1b9f3ab-4152-419e-919b-4a08e7d70829
+path = "Assets/Meshes/Plane.fbx"
+
+[Quelos.Model]
+handle = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
+path = "Assets/Meshes/Cube.fbx"
 
 [Quelos.Texture2D]
 handle = 4933d90d-bff7-40ab-8063-aaad31768068
 path = "Assets/Textures/sonion.png"
+
+[Quelos.Texture2D]
+handle = 70be76dd-f4c9-4ae0-ab85-5dab76194ef8
+path = "Assets/Textures/yuri.png"
+
+[Quelos.Texture2D]
+handle = 6437571e-866a-461f-b6d3-822e7ab55a87
+path = "Assets/Textures/minecraft.png"

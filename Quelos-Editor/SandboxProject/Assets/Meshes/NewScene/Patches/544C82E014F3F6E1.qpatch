@@ -1,5 +1,7 @@
 [actor guid=544C82E014F3F6E1 state=added]
 name = "Cube"
+parent = root
+order = 0x0000000010000000
 
 #Quelos.LocalTransform
 position = (-4.8,1,3.6)
