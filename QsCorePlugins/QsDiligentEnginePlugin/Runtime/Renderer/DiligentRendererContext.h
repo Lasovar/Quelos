@@ -200,7 +200,7 @@ namespace Quelos {
         void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count) override;
         void Destroy(UniformBufferHandle uniformBufferHandle) override;
         TextureHandle CreateTexture(const TextureSpecification& spec) override;
-        TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data) override;
+        TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) override;
         TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) override;
         bool TextureIsVFlipped() override;
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;

@@ -288,8 +288,8 @@ namespace Quelos {
         return s_RendererContext->CreateTexture(spec);
     }
 
-    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, Buffer data) {
-        return s_RendererContext->CreateTexture(spec, std::move(data));
+    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const BufferView data) {
+        return s_RendererContext->CreateTexture(spec, data);
     }
 
     TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const OsPath& path) {

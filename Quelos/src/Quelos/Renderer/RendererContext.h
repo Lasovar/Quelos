@@ -262,7 +262,7 @@ namespace Quelos {
 
         // Texture
         virtual TextureHandle CreateTexture(const TextureSpecification& spec) = 0;
-        virtual TextureHandle CreateTexture(const TextureSpecification& spec, Buffer data) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) = 0;
         virtual TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) = 0;
 
         virtual bool TextureIsVFlipped() = 0;

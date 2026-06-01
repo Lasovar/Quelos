@@ -1,4 +1,3 @@
-#include "qspch.h"
 #include "Texture.h"
 
 #include "Renderer.h"
@@ -8,8 +7,8 @@ namespace Quelos {
         return Renderer::TextureGetNativeHandle(*this);
     }
 
-    Texture2D::Texture2D(const TextureSpecification& spec, Buffer data) {
-        m_Handle = Renderer::CreateTexture(spec, std::move(data));
+    Texture2D::Texture2D(const TextureSpecification& spec, const BufferView data) {
+        m_Handle = Renderer::CreateTexture(spec, data);
     }
 
     Texture2D::~Texture2D() {
@@ -20,8 +19,8 @@ namespace Quelos {
         return CreateRef<Texture2D>(Renderer::CreateTexture(spec));
     }
 
-    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, Buffer data) {
-        return CreateRef<Texture2D>(Renderer::CreateTexture(spec, std::move(data)));
+    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const BufferView data) {
+        return CreateRef<Texture2D>(Renderer::CreateTexture(spec, data));
     }
 
     Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const OsPath& texturePath) {
