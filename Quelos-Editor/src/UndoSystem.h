@@ -5,7 +5,9 @@
 #include "Quelos/Serialization/QuelArchive.h"
 #include "Scene/SceneSerializer.h"
 
-namespace Quelos {
+namespace QuelosEditor {
+    using namespace Quelos;
+
     template<typename T>
     concept IsSceneCommand = requires(const T& cmd) {
         { cmd.Scene } -> std::convertible_to<Ref<Scene>>;
@@ -56,6 +58,10 @@ namespace Quelos {
     class UndoSystem {
     public:
         UndoSystem(const size_t capacity = 1024 * 1024) {
+            if (!s_Instance) {
+                s_Instance = this;
+            }
+
             m_Buffer = CreateScope<byte[]>(capacity);
             m_Capacity = capacity;
             m_Head = 0;
@@ -65,6 +71,8 @@ namespace Quelos {
         UndoSystem& operator=(UndoSystem&&) noexcept = default;
 
         ~UndoSystem() = default;
+
+        static UndoSystem& Get() { return *s_Instance; }
 
         template <typename T, typename... Args>
         void Push(Args&&... args) {
@@ -211,6 +219,8 @@ namespace Quelos {
             std::erase(m_RedoStack, offset);
         }
 
+    private:
+        static UndoSystem* s_Instance;
     private:
         Scope<byte[]> m_Buffer;
         size_t m_Capacity = 0;

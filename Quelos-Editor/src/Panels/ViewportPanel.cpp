@@ -4,66 +4,67 @@
 #include "EditorUI.h"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "imgui_internal.h"
+#include "UndoSystem.h"
 #include "Quelos/Renderer/Renderer.h"
 
 #include "magic_enum/magic_enum.hpp"
+
 using namespace magic_enum::bitwise_operators;
 
 namespace QuelosEditor {
-    ViewportPanel::ViewportPanel(std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height)
-        : m_Name(std::move(name))
-    {
-        {
-            TextureSpecification msaaColorSpec;
-            msaaColorSpec.Width = width;
-            msaaColorSpec.Height = height;
+    ViewportPanel::ViewportPanel(
+        std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height
+    )
+        : m_Name(std::move(name)) {
+        TextureSpecification msaaColorSpec;
+        msaaColorSpec.Width = width;
+        msaaColorSpec.Height = height;
 
-            msaaColorSpec.Format = ImageFormat::RGBA;
-            msaaColorSpec.SamplerWrap = WrapMode::Clamp;
+        msaaColorSpec.Format = ImageFormat::RGBA8UNorm;
+        msaaColorSpec.SamplerWrap = WrapMode::Clamp;
 
-            msaaColorSpec.BindFlags = Bind::RenderTarget;
-            msaaColorSpec.SampleCount = SampleCount::x4;
+        msaaColorSpec.BindFlags = Bind::RenderTarget;
+        msaaColorSpec.SampleCount = SampleCount::x4;
 
-            m_ColorAttachment = Renderer::CreateTexture(msaaColorSpec);
+        m_ColorAttachment = Renderer::CreateTexture(msaaColorSpec);
 
-            TextureSpecification sceneColor;
-            sceneColor.Width = width;
-            sceneColor.Height = height;
+        TextureSpecification sceneColor;
+        sceneColor.Width = width;
+        sceneColor.Height = height;
 
-            sceneColor.Format = ImageFormat::RGBA;
-            sceneColor.SamplerWrap = WrapMode::Repeat;
+        sceneColor.Format = ImageFormat::RGBA8UNorm;
+        sceneColor.SamplerWrap = WrapMode::Repeat;
 
-            sceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
-            sceneColor.SampleCount = SampleCount::x1;
+        sceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+        sceneColor.SampleCount = SampleCount::x1;
 
-            m_SceneColorAttachment = Renderer::CreateTexture(sceneColor);
+        m_SceneColorAttachment = Renderer::CreateTexture(sceneColor);
 
-            TextureSpecification msaaDepthSpec;
-            msaaDepthSpec.Width = width;
-            msaaDepthSpec.Height = height;
+        TextureSpecification msaaDepthSpec;
+        msaaDepthSpec.Width = width;
+        msaaDepthSpec.Height = height;
 
-            msaaDepthSpec.Format = ImageFormat::DEPTH32F;
-            msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
+        msaaDepthSpec.Format = ImageFormat::DEPTH32Float;
+        msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
 
-            msaaDepthSpec.BindFlags = Bind::DepthStencil;
-            msaaDepthSpec.SampleCount = SampleCount::x4;
+        msaaDepthSpec.BindFlags = Bind::DepthStencil;
+        msaaDepthSpec.SampleCount = SampleCount::x4;
 
-            m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
+        m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
 
-            TextureHandle attachments[] = {
-                m_ColorAttachment,
-                m_SceneColorAttachment,
-                m_DepthAttachment
-            };
+        const TextureViewHandle attachments[] = {
+            Renderer::GetTextureView(m_ColorAttachment, TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_SceneColorAttachment, TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_DepthAttachment, TextureViewType::DepthStencil)
+        };
 
-            FrameBufferSpec spec;
-            spec.Attachments = attachments;
-            spec.Name = m_Name;
-            spec.RenderPassHandle = renderPassHandle;
-            spec.Size = { width, height };
+        FrameBufferSpec spec;
+        spec.Attachments = attachments;
+        spec.Name = m_Name;
+        spec.RenderPassHandle = renderPassHandle;
+        spec.Size = {width, height};
 
-            m_FrameBuffer = FrameBuffer::Create(spec);
-        }
+        m_FrameBuffer = FrameBuffer::Create(spec);
     }
 
     bool ViewportPanel::ResizeIfNeeded() {
@@ -87,6 +88,8 @@ namespace QuelosEditor {
         if (m_IsEnabled) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
             if (UI::Begin(m_Name, dockspaceID, windowClass, &m_IsEnabled, flags)) {
+                BeforeViewport();
+
                 const auto viewportOffset = ImGui::GetCursorPos(); // Includes the tab bar
 
                 ImVec2 viewPortPanelSize = ImGui::GetContentRegionAvail();
@@ -107,12 +110,11 @@ namespace QuelosEditor {
                     {uv.z, uv.w}
                 );
 
-                const auto windowSize = ImGui::GetContentRegionAvail();
                 ImVec2 minBound = ImGui::GetWindowPos();
                 minBound.x += viewportOffset.x;
                 minBound.y += viewportOffset.y;
 
-                ImVec2 maxBound = {minBound.x + windowSize.x, minBound.y + windowSize.y};
+                ImVec2 maxBound = {minBound.x + viewPortPanelSize.x, minBound.y + viewPortPanelSize.y};
                 m_ViewportBounds[0] = {minBound.x, minBound.y};
                 m_ViewportBounds[1] = {maxBound.x, maxBound.y};
 
@@ -121,7 +123,10 @@ namespace QuelosEditor {
 
                 const ImGuiDockNode* node = ImGui::GetWindowDockNode();
                 m_ViewportVisible = !node /* floating window (supposedly) */ ? true : node->IsVisible;
-            } UI::End();
+
+                AfterViewport();
+            }
+            UI::End();
 
             ImGui::PopStyleVar(1);
         }

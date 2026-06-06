@@ -17,74 +17,61 @@ namespace Quelos {
     namespace Utils {
         static void CreateFrameBuffer(
             IFramebuffer*& frameBuffer, IRenderDevice* device,
-            const Span32<ITexture*> attachments, IRenderPass* renderPass
+            const Span32<ITextureView*> attachments, IRenderPass* renderPass
         ) {
-            SmallVec<ITextureView*, 2> viewAttachments;
-            viewAttachments.reserve(attachments.size());
-            for (uint64_t i = 0; i < attachments.size() - 1; i++) {
-                viewAttachments.push_back(attachments[i]->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET));
-            }
-
-            viewAttachments.push_back(
-                attachments[attachments.size() - 1]->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL)
-            );
-
             FramebufferDesc desc;
             desc.Name = "FrameBuffer";
-            desc.ppAttachments = viewAttachments.data();
+            desc.ppAttachments = attachments.data();
             desc.AttachmentCount = attachments.size();
             if (renderPass) {
                 desc.pRenderPass = renderPass;
             }
-            desc.Width = attachments[0]->GetDesc().GetWidth();
-            desc.Height = attachments[0]->GetDesc().GetHeight();
+            desc.Width = attachments[0]->GetTexture()->GetDesc().GetWidth();
+            desc.Height = attachments[0]->GetTexture()->GetDesc().GetHeight();
             desc.NumArraySlices = 1;
 
-            device->CreateFramebuffer(
-                desc,
-                &frameBuffer
-            );
+            device->CreateFramebuffer(desc, &frameBuffer);
         }
 
         static TEXTURE_FORMAT GetFormat(const ImageFormat imageFormat) {
             switch (imageFormat) {
             case ImageFormat::None:
                 return TEX_FORMAT_UNKNOWN;
-            case ImageFormat::RED8UNORM:
+            case ImageFormat::R8UNorm:
                 return TEX_FORMAT_R8_UNORM;
-            case ImageFormat::RED8UINT:
+            case ImageFormat::R8UInt:
                 return TEX_FORMAT_R8_UINT;
-            case ImageFormat::RED16UINT:
+            case ImageFormat::R16UInt:
                 return TEX_FORMAT_R16_UINT;
-            case ImageFormat::RED32UINT:
+            case ImageFormat::R32UInt:
                 return TEX_FORMAT_R32_UINT;
-            case ImageFormat::RED32FLOAT:
+            case ImageFormat::R32Float:
                 return TEX_FORMAT_R32_FLOAT;
-            case ImageFormat::RG8UNORM:
+            case ImageFormat::RG8UNorm:
                 return TEX_FORMAT_RG8_UNORM;
-            case ImageFormat::RG16FLOAT:
+            case ImageFormat::RG16Float:
                 return TEX_FORMAT_RG16_FLOAT;
-            case ImageFormat::RG32FLOAT:
+            case ImageFormat::RG32Float:
                 return TEX_FORMAT_RG32_FLOAT;
             case ImageFormat::RGB:
                 return TEX_FORMAT_ETC2_RGB8_UNORM;
-            case ImageFormat::RGBA:
+            case ImageFormat::RGBA8UNorm:
                 return TEX_FORMAT_RGBA8_UNORM;
-            case ImageFormat::RGBA16FLOAT:
+            case ImageFormat::RGBA16Float:
                 return TEX_FORMAT_RGBA16_FLOAT;
-            case ImageFormat::RGBA32FLOAT:
+            case ImageFormat::RGBA32Float:
                 return TEX_FORMAT_RGBA32_FLOAT;
-            case ImageFormat::B10R11G11FLOAT:
+            case ImageFormat::B10R11G11Float:
                 return TEX_FORMAT_R11G11B10_FLOAT;
             case ImageFormat::SRGB:
                 return TEX_FORMAT_BC7_UNORM_SRGB;
             case ImageFormat::SRGBA:
                 return TEX_FORMAT_RGBA8_UNORM_SRGB;
-            case ImageFormat::DEPTH32FSTENCIL8UINT:
+            case ImageFormat::Depth32FloatStencil8UInt:
                 return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
-            case ImageFormat::DEPTH32F:
+            case ImageFormat::DEPTH32Float:
                 return TEX_FORMAT_D32_FLOAT;
-            case ImageFormat::DEPTH24STENCIL8:
+            case ImageFormat::Depth24Stencil8:
                 return TEX_FORMAT_D24_UNORM_S8_UINT;
             }
 
@@ -465,7 +452,7 @@ namespace Quelos {
             return static_cast<CPU_ACCESS_FLAGS>(cpuAccess);
         }
 
-        constexpr USAGE GetBufferUsage(Usage usage) {
+        constexpr USAGE GetUsage(Usage usage) {
             return static_cast<USAGE>(usage);
         }
 
@@ -556,6 +543,10 @@ namespace Quelos {
         constexpr RESOURCE_STATE_TRANSITION_MODE GetResourceStateTransition(ResourceStateTransitionMode resourceStateTransitionMode) {
             return static_cast<RESOURCE_STATE_TRANSITION_MODE>(resourceStateTransitionMode);
         }
+
+        constexpr TEXTURE_VIEW_TYPE GetTextureViewType(TextureViewType textureView) {
+            return static_cast<TEXTURE_VIEW_TYPE>(textureView);
+        }
     }
 
     namespace TextureUtil {
@@ -582,6 +573,8 @@ namespace Quelos {
             textureDesc.Type = GetTextureType(spec.Type);
             textureDesc.BindFlags = Utils::GetBindFlags(spec.BindFlags);
             textureDesc.SampleCount = Utils::GetSampleCount(spec.SampleCount);
+            textureDesc.Usage = Utils::GetUsage(spec.Usage);
+            textureDesc.CPUAccessFlags = Utils::GetCPUAccessFlags(spec.CpuAccessFlags);
 
             device->CreateTexture(textureDesc, data, &textureData.Texture);
         }
@@ -590,7 +583,8 @@ namespace Quelos {
             IRenderDevice* device,
             QTextureData& data,
             const uint32_t width,
-            const uint32_t height
+            const uint32_t height,
+            ResourceTable<TextureViewData, TextureView>& textureViewTable
         ) {
             data.Texture->Release();
             data.Texture = nullptr;
@@ -599,6 +593,17 @@ namespace Quelos {
             data.Specification.Height = height;
 
             CreateTexture(device, data, nullptr);
+
+            for (const TextureViewHandle& textureView : data.TextureViews) {
+                auto* textureViewData = textureViewTable.At(textureView);
+                if (!textureViewData) {
+                    continue;
+                }
+
+                textureViewData->TextureView = data.Texture->GetDefaultView(
+                    Utils::GetTextureViewType(textureViewData->Specification.ViewType)
+                );
+            }
         }
     }
 
@@ -895,7 +900,7 @@ namespace Quelos {
         desc.BindFlags = Utils::GetBindFlags(bufferSpec.BindFlags);
         desc.CPUAccessFlags = Utils::GetCPUAccessFlags(bufferSpec.CpuAccessFlags);
         desc.MiscFlags = Utils::GetMiscFlags(bufferSpec.MiscFlags);
-        desc.Usage = Utils::GetBufferUsage(bufferSpec.Usage);
+        desc.Usage = Utils::GetUsage(bufferSpec.Usage);
         desc.Mode = Utils::GetBufferMode(bufferSpec.Mode);
         desc.Size = bufferSpec.Size;
         desc.ElementByteStride = bufferSpec.ElementByteStride;
@@ -1174,7 +1179,7 @@ namespace Quelos {
         const uint32_t width,
         const uint32_t height
     ) {
-        TextureUtil::Resize(m_pDevice, *m_TextureTable.At(textureHandle), width, height);
+        TextureUtil::Resize(m_pDevice, *m_TextureTable.At(textureHandle), width, height, m_TextureViewTable);
     }
 
     const TextureSpecification* DiligentRendererContext::GetSpecification(const TextureHandle textureHandle) {
@@ -1191,6 +1196,64 @@ namespace Quelos {
         return reinterpret_cast<uint64_t>(data->Texture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
     }
 
+    TextureViewHandle DiligentRendererContext::GetTextureView(
+        const TextureHandle texture, const TextureViewType textureViewType
+    ) {
+        auto* textureData = m_TextureTable.At(texture);
+        if (!textureData) [[unlikely]] {
+            return {};
+        }
+
+        const TextureViewHandle handle = m_TextureViewTable.Emplace();
+        TextureViewData* slot = m_TextureViewTable.At(handle);
+        slot->Texture = texture;
+        slot->Specification.ViewType = textureViewType;
+        slot->Specification.TextureType = textureData->Specification.Type;
+        slot->Specification.Format = textureData->Specification.Format;
+
+        slot->TextureView = textureData->Texture->GetDefaultView(Utils::GetTextureViewType(textureViewType));
+        textureData->TextureViews.push_back(handle);
+
+        return handle;
+    }
+
+    void DiligentRendererContext::CopyTexture(const CopyTextureAttribs& copyAttribs) {
+        Diligent::CopyTextureAttribs copy{};
+        copy.pSrcTexture              = m_TextureTable.At(copyAttribs.Source)->Texture;
+        copy.pDstTexture              = m_TextureTable.At(copyAttribs.Destination)->Texture;
+        copy.SrcTextureTransitionMode = Utils::GetResourceStateTransition(copyAttribs.SourceTransitionMode);
+        copy.DstTextureTransitionMode = Utils::GetResourceStateTransition(copyAttribs.DestinationTransitionMode);
+        m_pImmediateContext->CopyTexture(copy);
+    }
+
+    void DiligentRendererContext::MapTextureSubresource(
+        TextureHandle textureHandle, uint32_t mipLevel, uint32_t arraySlice, MapType mapType, MapFlags mapFlags,
+        MappedTextureSubresource& mappedData
+    ) {
+        Diligent::MappedTextureSubresource mapped;
+        m_pImmediateContext->MapTextureSubresource(
+            m_TextureTable.At(textureHandle)->Texture,
+            mipLevel,
+            arraySlice,
+            Utils::GetMapType(mapType),
+            Utils::GetMapFlags(mapFlags),
+            nullptr,
+            mapped
+        );
+
+        mappedData.Data = mapped.pData;
+        mappedData.Stride = mapped.Stride;
+        mappedData.DepthStride = mapped.DepthStride;
+    }
+
+    void DiligentRendererContext::UnmapTextureSubresource(
+        const TextureHandle textureHandle,
+        const uint32_t mipLevel,
+        const uint32_t arraySlice
+    ) {
+        m_pImmediateContext->UnmapTextureSubresource(m_TextureTable.At(textureHandle)->Texture, mipLevel, arraySlice);
+    }
+
     void DiligentRendererContext::Bind(TextureHandle textureHandle) {
         // TODO:
     }
@@ -1205,6 +1268,10 @@ namespace Quelos {
             );
 
             return;
+        }
+
+        for (const TextureViewHandle& textureView : slot->TextureViews) {
+            m_TextureViewTable.Erase(textureView);
         }
 
         slot->Texture->Release();
@@ -1224,7 +1291,7 @@ namespace Quelos {
         uint32_t renderTargetAttachmentRefsCount = 0;
         for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
             renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
-            if (subPass.ResolveAttachments) {
+            if (subPass.pResolveAttachments) {
                 renderTargetAttachmentRefsCount += subPass.RenderTargetAttachments.size();
             }
         }
@@ -1245,16 +1312,16 @@ namespace Quelos {
                 subPass.RenderTargetAttachments.size()
             );
 
-            if (subPass.ResolveAttachments) {
+            if (subPass.pResolveAttachments) {
                 const uint32_t resolveAttachmentIndex = slot->AttachmentReferences.size();
                 for (uint32_t i = 0; i < subPass.RenderTargetAttachments.size(); i++) {
-                    slot->AttachmentReferences.push_back(subPass.ResolveAttachments[i]);
+                    slot->AttachmentReferences.push_back(subPass.pResolveAttachments[i]);
                 }
 
-                ownedSubpass.ResolveAttachments = &slot->AttachmentReferences[resolveAttachmentIndex];
+                ownedSubpass.pResolveAttachments = &slot->AttachmentReferences[resolveAttachmentIndex];
             }
 
-            ownedSubpass.DepthAttachment = subPass.DepthAttachment;
+            ownedSubpass.pDepthAttachment = subPass.pDepthAttachment;
 
             slot->SubPasses.push_back(ownedSubpass);
         }
@@ -1277,7 +1344,7 @@ namespace Quelos {
         uint32_t totalAttachmentRefCount = 0;
         for (const SubPassSpec& pass : spec.SubPasses) {
             totalAttachmentRefCount += pass.RenderTargetAttachments.size() + 1;
-            if (pass.ResolveAttachments) {
+            if (pass.pResolveAttachments) {
                 totalAttachmentRefCount += pass.RenderTargetAttachments.size();
             }
         }
@@ -1296,15 +1363,20 @@ namespace Quelos {
             subPassDesc.pRenderTargetAttachments = attachmentRefs.data() + renderAttachmentIndex;
             subPassDesc.RenderTargetAttachmentCount = pass.RenderTargetAttachments.size();
 
-            const uint32_t resolveAttachmentIndex = attachmentRefs.size();
-            for (uint32_t i = 0; i < pass.RenderTargetAttachments.size(); i++) {
-                attachmentRefs.push_back(Utils::GetAttachmentReference(pass.ResolveAttachments[i]));
+            if (pass.pResolveAttachments) {
+                const uint32_t resolveAttachmentIndex = attachmentRefs.size();
+                for (uint32_t i = 0; i < pass.RenderTargetAttachments.size(); i++) {
+                    attachmentRefs.push_back(Utils::GetAttachmentReference(pass.pResolveAttachments[i]));
+                }
+
+                subPassDesc.pResolveAttachments = attachmentRefs.data() + resolveAttachmentIndex;
             }
 
-            subPassDesc.pResolveAttachments = attachmentRefs.data() + resolveAttachmentIndex;
+            if (pass.pDepthAttachment) {
+                attachmentRefs.push_back(Utils::GetAttachmentReference(*pass.pDepthAttachment));
+                subPassDesc.pDepthStencilAttachment = &attachmentRefs.back();
+            }
 
-            attachmentRefs.push_back(Utils::GetAttachmentReference(pass.DepthAttachment));
-            subPassDesc.pDepthStencilAttachment = &attachmentRefs.back();
             subpasses.push_back(subPassDesc);
         }
 
@@ -1339,18 +1411,18 @@ namespace Quelos {
 
         // Own data
         slot->Name = frameBufferSpec.Name;
-        slot->Attachments = SmallVec<TextureHandle, 2>(frameBufferSpec.Attachments);
+        slot->Attachments = SmallVec<TextureViewHandle, 2>(frameBufferSpec.Attachments);
 
         FrameBufferSpec& spec = slot->Specification;
         spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.Size};
 
-        SmallVec<ITexture*, 2> textureAttachments;
+        SmallVec<ITextureView*, 2> textureAttachments;
         textureAttachments.reserve(spec.Attachments.size());
-        for (const TextureHandle Attachment : spec.Attachments) {
-            textureAttachments.push_back(m_TextureTable.At(Attachment)->Texture);
+        for (const TextureViewHandle attachment : spec.Attachments) {
+            textureAttachments.push_back(m_TextureViewTable.At(attachment)->TextureView);
         }
 
-        auto& textureDesc = textureAttachments[0]->GetDesc();
+        auto& textureDesc = textureAttachments[0]->GetTexture()->GetDesc();
         QS_CORE_ASSERT(
             spec.Size.Width == textureDesc.Width && spec.Size.Height == textureDesc.Height,
             "Frame buffer size does not match texture size!"
@@ -1389,11 +1461,12 @@ namespace Quelos {
         QFrameBufferData* data = m_FrameBufferTable.At(frameBufferHandle);
         data->Specification.Size = {width, height};
 
-        SmallVec<ITexture*, 2> textureAttachments;
-        for (const TextureHandle attachment : data->Attachments) {
-            QTextureData* texture = m_TextureTable.At(attachment);
-            TextureUtil::Resize(m_pDevice, *texture, width, height);
-            textureAttachments.push_back(texture->Texture);
+        SmallVec<ITextureView*, 2> textureViews;
+        for (const TextureViewHandle attachment : data->Attachments) {
+            const TextureViewData* textureViewData = m_TextureViewTable.At(attachment);
+            QTextureData* texture = m_TextureTable.At(textureViewData->Texture);
+            TextureUtil::Resize(m_pDevice, *texture, width, height, m_TextureViewTable);
+            textureViews.push_back(textureViewData->TextureView);
         }
 
         data->FrameBuffer->Release();
@@ -1404,7 +1477,7 @@ namespace Quelos {
             renderPass = m_RenderPassTable.At(data->Specification.RenderPassHandle)->RenderPass;
         }
 
-        Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span32(textureAttachments), renderPass);
+        Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span32(textureViews), renderPass);
     }
 
     void DiligentRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {

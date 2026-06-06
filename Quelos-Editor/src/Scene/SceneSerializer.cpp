@@ -717,17 +717,21 @@ namespace Quelos {
                 }
 
                 if (compPatchState == PatchState::Changed) {
-                    fieldsToWrite.clear();
+                    HashSet<std::string_view>* fields = nullptr;
+                    if (compPatch.AllFields == 0) {
+                        fields = &fieldsToWrite;
 
-                    for (auto& [field, changesCount] : compPatch.Fields) {
-                        if (changesCount < 1) {
-                            continue;
+                        fields->clear();
+                        for (auto& [field, changesCount] : compPatch.Fields) {
+                            if (changesCount < 1) {
+                                continue;
+                            }
+
+                            fields->emplace(field);
                         }
-
-                        fieldsToWrite.emplace(field);
                     }
 
-                    QuelWriteArchive archive(quelWriter, &fieldsToWrite);
+                    QuelWriteArchive archive(quelWriter, fields);
                     info->SerializeTextWriteFunc(archive, ptr);
                 }
                 else {
