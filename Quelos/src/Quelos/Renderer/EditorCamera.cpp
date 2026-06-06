@@ -175,16 +175,16 @@ namespace Quelos {
                     break;
                 case KeyCode::W:
                     m_Forward = true;
-                    break;
+                    return m_RMB;
                 case KeyCode::S:
                     m_Backwards = true;
-                    break;
+                    return m_RMB;
                 case KeyCode::A:
                     m_Left = true;
-                    break;
+                    return m_RMB;
                 case KeyCode::D:
                     m_Right = true;
-                    break;
+                    return m_RMB;
                 default: break;
                 }
 

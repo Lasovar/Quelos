@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Panels/ViewportPanel.h"
+#include "Quelos/ImGui/widgets/gizmo.h"
 
 namespace QuelosEditor {
     class SceneWorkspace;
@@ -33,6 +34,9 @@ namespace QuelosEditor {
 
     private:
         SceneWorkspace& m_SceneWorkspace;
+
+        ImGuizmo::MODE m_GizmoMode = ImGuizmo::MODE::WORLD;
+        ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 
         uint2 m_SelectRequestPosition;
         bool m_SelectRequest = false;
