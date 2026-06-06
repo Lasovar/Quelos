@@ -174,15 +174,13 @@ namespace Quelos {
         using hlslpp::transpose;
 
         inline void decompose(const float4x4& m, float3& position, quaternion& rotation, float3& scale) {
-            // Extract columns as float4 in one load each
+            position = m[3].xyz;
+
             float4 col0 = m[0];
             float4 col1 = m[1];
             float4 col2 = m[2];
 
-            // Position in one grab
-            position = m[3].xyz;
-
-            // Scale — length of each basis column
+            // Scale length of each basis column
             float sx = length(col0);
             float sy = length(col1);
             float sz = length(col2);
@@ -193,7 +191,7 @@ namespace Quelos {
             float3 r1 = float3(col1.xyz) / sy;
             float3 r2 = float3(col2.xyz) / sz;
 
-            // Shepperd's method — quaternion from rotation matrix
+            // Shepperd's method
             // avoids trig, numerically stable
             float trace = r0.x + r1.y + r2.z;
 

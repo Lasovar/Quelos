@@ -27,6 +27,25 @@ namespace QuelosEditor {
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
 
+        if (ImGui::IsKeyPressed(ImGuiKey_W, false)) {
+            m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_E, false)) {
+            m_GizmoOperation = ImGuizmo::OPERATION::ROTATE;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
+            m_GizmoOperation = ImGuizmo::OPERATION::SCALE;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
+            m_GizmoMode = ImGuizmo::MODE::WORLD;
+        } else if (ImGui::IsKeyPressed(ImGuiKey_X, false)) {
+            m_GizmoMode = ImGuizmo::MODE::LOCAL;
+        }
+
+        bool shouldSnap = false;
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+            shouldSnap = true;
+        }
+
         if (m_Selected.IsValid()) {
             const float4x4& view = m_View;
             const float4x4& proj = m_Projection;
@@ -34,12 +53,52 @@ namespace QuelosEditor {
             WorldTransform transform = m_Selected.Get<WorldTransform>();
             LocalTransform& localTransform = m_Selected.GetMut<LocalTransform>();
 
+            constexpr float translationSnap = 1.0f;
+            constexpr float rotationSnap = 15.0f;
+            constexpr float scale = 0.5f;
+
+            const float* snapValue = nullptr;
+
+            if (shouldSnap) {
+                switch (m_GizmoOperation) {
+                case ImGuizmo::UNIVERSAL:
+                    break;
+                case ImGuizmo::TRANSLATE_X:
+                case ImGuizmo::TRANSLATE_Y:
+                case ImGuizmo::TRANSLATE_Z:
+                case ImGuizmo::TRANSLATE:
+                    snapValue = &translationSnap;
+                    break;
+                case ImGuizmo::ROTATE:
+                case ImGuizmo::ROTATE_X:
+                case ImGuizmo::ROTATE_Y:
+                case ImGuizmo::ROTATE_Z:
+                case ImGuizmo::ROTATE_SCREEN:
+                    snapValue = &rotationSnap;
+                    break;
+                case ImGuizmo::SCALE_X:
+                case ImGuizmo::SCALE_Y:
+                case ImGuizmo::SCALE_Z:
+                case ImGuizmo::SCALE_XU:
+                case ImGuizmo::SCALE_YU:
+                case ImGuizmo::SCALE_ZU:
+                case ImGuizmo::SCALEU:
+                case ImGuizmo::SCALE:
+                    snapValue = &scale;
+                    break;
+                case ImGuizmo::BOUNDS:
+                    break;
+                }
+            }
+
             ImGuizmo::Manipulate(
                 math::value_ptr(view),
                 math::value_ptr(proj),
-                ImGuizmo::OPERATION::TRANSLATE,
-                ImGuizmo::MODE::WORLD,
-                math::value_ptr(transform.Value)
+                m_GizmoOperation,
+                m_GizmoMode,
+                math::value_ptr(transform.Value),
+                nullptr,
+                snapValue
             );
 
             if (const Entity parent = m_Selected.GetParent(); parent.IsValid()) {
