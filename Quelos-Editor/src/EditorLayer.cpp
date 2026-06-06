@@ -133,6 +133,8 @@ namespace QuelosEditor {
             [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> Scope<Workspace> {
                 return CreateScope<MaterialWorkspace>(undoSystem, metadata);
             };
+
+        ImGuizmo::Create();
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {
@@ -164,6 +166,8 @@ namespace QuelosEditor {
             }
         }
         ImGui::End();*/
+
+        ImGuizmo::BeginFrame();
 
         static ImGuiDockNodeFlags dockspace_flags =
             ImGuiDockNodeFlags_NoSplit |

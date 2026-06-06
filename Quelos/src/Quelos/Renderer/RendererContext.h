@@ -160,6 +160,13 @@ namespace Quelos {
         Verify
     };
 
+    struct CopyTextureAttribs {
+        TextureHandle Source;
+        TextureHandle Destination;
+        ResourceStateTransitionMode SourceTransitionMode = ResourceStateTransitionMode::Transition;
+        ResourceStateTransitionMode DestinationTransitionMode = ResourceStateTransitionMode::Transition;
+    };
+
     class QS_API RendererContext {
     public:
         virtual void Init(const Ref<Window>& ref, RendererAPI api) = 0;
@@ -263,13 +270,31 @@ namespace Quelos {
         // Texture
         virtual TextureHandle CreateTexture(const TextureSpecification& spec) = 0;
         virtual TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) = 0;
-        virtual TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpecification& spec, const OsPath& path) = 0;
 
         virtual bool TextureIsVFlipped() = 0;
 
         virtual void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) = 0;
         virtual const TextureSpecification* GetSpecification(TextureHandle textureHandle) = 0;
         virtual uint64_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
+
+        virtual TextureViewHandle GetTextureView(TextureHandle texture, TextureViewType textureViewType) = 0;
+        virtual void CopyTexture(const CopyTextureAttribs& copyAttribs) = 0;
+
+        virtual void MapTextureSubresource(
+            TextureHandle textureHandle,
+            uint32_t mipLevel,
+            uint32_t arraySlice,
+            MapType mapType,
+            MapFlags mapFlags,
+            MappedTextureSubresource& mappedData
+        ) = 0;
+
+        virtual void UnmapTextureSubresource(
+            TextureHandle textureHandle,
+            uint32_t mipLevel,
+            uint32_t arraySlice
+        ) = 0;
 
         virtual void Bind(TextureHandle textureHandle) = 0;
         virtual void Destroy(TextureHandle textureHandle) = 0;

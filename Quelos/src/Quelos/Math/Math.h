@@ -173,6 +173,61 @@ namespace Quelos {
         using hlslpp::inverse;
         using hlslpp::transpose;
 
+        inline void decompose(const float4x4& m, float3& position, quaternion& rotation, float3& scale) {
+            // Extract columns as float4 in one load each
+            float4 col0 = m[0];
+            float4 col1 = m[1];
+            float4 col2 = m[2];
+
+            // Position in one grab
+            position = m[3].xyz;
+
+            // Scale — length of each basis column
+            float sx = length(col0);
+            float sy = length(col1);
+            float sz = length(col2);
+            scale = float3(sx, sy, sz);
+
+            // Normalize columns to get pure rotation
+            float3 r0 = float3(col0.xyz) / sx;
+            float3 r1 = float3(col1.xyz) / sy;
+            float3 r2 = float3(col2.xyz) / sz;
+
+            // Shepperd's method — quaternion from rotation matrix
+            // avoids trig, numerically stable
+            float trace = r0.x + r1.y + r2.z;
+
+            float qx, qy, qz, qw;
+
+            if (trace > 0.0f) {
+                float s = 0.5f / sqrtf(trace + 1.0f);
+                qw = 0.25f / s;
+                qx = (r1.z - r2.y) * s; // actually (r2.y - r1.z) depends on convention
+                qy = (r2.x - r0.z) * s;
+                qz = (r0.y - r1.x) * s;
+            } else if (r0.x > r1.y && r0.x > r2.z) {
+                float s = 2.0f * sqrtf(1.0f + r0.x - r1.y - r2.z);
+                qw = (r1.z - r2.y) / s;  // (r2.y - r1.z)
+                qx = 0.25f * s;
+                qy = (r1.x + r0.y) / s;
+                qz = (r2.x + r0.z) / s;
+            } else if (r1.y > r2.z) {
+                float s = 2.0f * sqrtf(1.0f + r1.y - r0.x - r2.z);
+                qw = (r2.x - r0.z) / s;
+                qx = (r1.x + r0.y) / s;
+                qy = 0.25f * s;
+                qz = (r2.y + r1.z) / s;
+            } else {
+                float s = 2.0f * sqrtf(1.0f + r2.z - r0.x - r1.y);
+                qw = (r0.y - r1.x) / s;
+                qx = (r2.x + r0.z) / s;
+                qy = (r2.y + r1.z) / s;
+                qz = 0.25f * s;
+            }
+
+            rotation = quaternion(qx, qy, qz, qw);
+        }
+
         /// @tparam T the multi component type
         /// @return the number of components in a type
         template <typename T>

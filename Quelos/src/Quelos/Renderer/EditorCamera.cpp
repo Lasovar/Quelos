@@ -122,7 +122,7 @@ namespace Quelos {
                 switch (event.GetMouseButton()) {
                 case MouseButton::Left:
                     m_LMB = true;
-                    return true;
+                    return false;
                 case MouseButton::Right:
                     m_RMB = true;
                     Application::Get().GetWindow()->SetCursorMode(CursorMode::Locked);
@@ -140,7 +140,7 @@ namespace Quelos {
                 switch (event.GetMouseButton()) {
                 case MouseButton::Left:
                     m_LMB = false;
-                    return true;
+                    return false;
                 case MouseButton::Right:
                     m_RMB = false;
                     Application::Get().GetWindow()->SetCursorMode(CursorMode::Normal);

@@ -27,6 +27,7 @@ namespace Quelos {
     };
 
     struct ComponentPatch {
+        uint32_t AllFields = 0;
         HashMap<std::string_view, uint32_t> Fields;
         Deque<PatchState> PatchStates;
 
@@ -114,26 +115,46 @@ namespace Quelos {
         }
 
         void Record(const AddComponentCommand& cmd) {
-            auto& entityPatch = m_Actors[cmd.ActorId];
+            auto& entityPatch = m_Actors[cmd.EntityId];
             entityPatch.Components[cmd.ComponentId].StatePushBack(PatchState::Added);
             entityPatch.StatePushBack(PatchState::Changed);
         }
 
         void Remove(const AddComponentCommand& cmd) {
-            auto& entityPatch = m_Actors[cmd.ActorId];
+            auto& entityPatch = m_Actors[cmd.EntityId];
             entityPatch.Components[cmd.ComponentId].StatePopBack();
             entityPatch.StatePopBack();
         }
 
         void Record(const RemoveComponentCommand& cmd) {
-            auto& entityPatch = m_Actors[cmd.ActorId];
-            entityPatch.Components[cmd.ComponentId].StatePushBack(PatchState::Removed);
+            auto& entityPatch = m_Actors[cmd.EntityId];
+            entityPatch.Components[cmd.Snapshot.GetComponentID()].StatePushBack(PatchState::Removed);
             entityPatch.StatePushBack(PatchState::Changed);
         }
 
         void Remove(const RemoveComponentCommand& cmd) {
-            auto& entityPatch = m_Actors[cmd.ActorId];
-            entityPatch.Components[cmd.ComponentId].StatePopBack();
+            auto& entityPatch = m_Actors[cmd.EntityId];
+            entityPatch.Components[cmd.Snapshot.GetComponentID()].StatePopBack();
+            entityPatch.StatePopBack();
+        }
+
+        void Record(const SetComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.EntityId];
+
+            ComponentPatch& componentPatch = entityPatch.Components[cmd.Before.GetComponentID()];
+            componentPatch.StatePushBack(PatchState::Changed);
+            componentPatch.AllFields++;
+
+            entityPatch.StatePushBack(PatchState::Changed);
+        }
+
+        void Remove(const SetComponentCommand& cmd) {
+            auto& entityPatch = m_Actors[cmd.EntityId];
+
+            ComponentPatch& componentPatch = entityPatch.Components[cmd.Before.GetComponentID()];
+            componentPatch.StatePopBack();
+            componentPatch.AllFields--;
+
             entityPatch.StatePopBack();
         }
 

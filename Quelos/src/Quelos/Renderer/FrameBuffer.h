@@ -8,7 +8,7 @@ namespace Quelos {
     // Holds some temp values... keep temp values alive until creation
     struct FrameBufferSpec {
         std::string_view Name;
-        Span<const TextureHandle> Attachments;
+        Span32<const TextureViewHandle> Attachments;
         RenderPassHandle RenderPassHandle;
         Extent2D Size;
     };

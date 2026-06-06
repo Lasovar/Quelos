@@ -7,6 +7,7 @@
 #include "UndoSystem.h"
 
 namespace QuelosEditor {
+    class SceneWorkspace;
     using namespace Quelos;
 
     using InspectorArchiveSerializeFn = void(*)(InspectorArchive&, void*);
@@ -28,19 +29,16 @@ namespace QuelosEditor {
 
     class EntityInspectorPanel {
     public:
-        explicit EntityInspectorPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
+        explicit EntityInspectorPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
-        void SetSelectedEntity(const Actor& entity) {
-            m_SelectedActor = entity;
-            std::snprintf(m_EntityNameField.data(), m_EntityNameField.size(), "%s", entity.GetName());
-        }
+        void SetInspectorEntityName(const Entity& entity);
 
         void RegisterCustomInspector(const CustomInspector& customInspector) {
             m_CustomInspectors[m_Scene->GetComponentRegistry().GetComponentInfo(customInspector.ComponentId)->RuntimeID]
                 = customInspector;
         }
 
-        void ClearSelectedEntity() { m_SelectedActor = {}; }
+        void ClearSelectedEntity() const;
 
         bool ComponentHeader(const char* label, RuntimeID runtimeId);
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
@@ -53,8 +51,8 @@ namespace QuelosEditor {
         HashMap<Entity, HashSet<RuntimeID>> m_CollapsedComponents;
         HashMap<RuntimeID, CustomInspector> m_CustomInspectors;
 
-        Actor m_SelectedActor;
         Ref<Scene> m_Scene;
+        SceneWorkspace& m_SceneWorkspace;
         UndoSystem& m_UndoSystem;
     };
 }

@@ -12,30 +12,30 @@
 namespace Quelos {
     enum class QS_API ImageFormat {
         None = 0,
-        RED8UNORM,
-        RED8UINT,
-        RED16UINT,
-        RED32UINT,
-        RED32FLOAT,
-        RG8UNORM,
-        RG16FLOAT,
-        RG32FLOAT,
+        R8UNorm,
+        R8UInt,
+        R16UInt,
+        R32UInt,
+        R32Float,
+        RG8UNorm,
+        RG16Float,
+        RG32Float,
         RGB,
-        RGBA,
-        RGBA16FLOAT,
-        RGBA32FLOAT,
+        RGBA8UNorm,
+        RGBA16Float,
+        RGBA32Float,
 
-        B10R11G11FLOAT,
+        B10R11G11Float,
 
         SRGB,
         SRGBA,
 
-        DEPTH32FSTENCIL8UINT,
-        DEPTH32F,
-        DEPTH24STENCIL8,
+        Depth32FloatStencil8UInt,
+        DEPTH32Float,
+        Depth24Stencil8,
 
         // Defaults
-        Depth = DEPTH24STENCIL8,
+        Depth = Depth24Stencil8,
     };
 
     enum class QS_API WrapMode {
@@ -77,16 +77,18 @@ namespace Quelos {
     struct QS_API TextureSpecification {
         std::string Name;
 
-        ImageFormat Format = ImageFormat::RGBA;
+        ImageFormat Format = ImageFormat::RGBA8UNorm;
         uint32_t Width = 1;
         uint32_t Height = 1;
         WrapMode SamplerWrap = WrapMode::Repeat;
         FilterMode SamplerFilter = FilterMode::Linear;
         TextureType Type = TextureType::Texture2D;
+        Usage Usage = Usage::Default;
 
         bool IsBlitDestination = false;
         BindFlags BindFlags = Bind::None;
         SampleCount SampleCount = SampleCount::x1;
+        CpuAccessFlags CpuAccessFlags = CpuAccess::None;
     };
 
     class Texture;
@@ -152,5 +154,63 @@ namespace Quelos {
 
     private:
         TextureHandle m_Handle;
+    };
+
+    enum class QS_API TextureViewType : uint8_t {
+        /// Undefined view type
+        Undefined = 0,
+
+        /// A texture view will define a shader resource view that will be used
+        /// as the source for the shader read operations
+        ShaderResource,
+
+        /// A texture view will define a render target view that will be used
+        /// as the target for rendering operations
+        RenderTarget,
+
+        /// A texture view will define a depth stencil view that will be used
+        /// as the target for rendering operations
+        DepthStencil,
+
+        /// A texture view will define a read-only depth stencil view that will be used
+        /// as depth stencil source for rendering operations, but can also be simultaneously
+        /// read from shaders.
+        ReadOnlyDepthStencil,
+
+        /// A texture view will define an unordered access view that will be used
+        /// for unordered read/write operations from the shaders
+        UnorderedAccess,
+
+        /// A texture view will define a variable shading rate view that will be used
+        /// as the shading rate source for rendering operations
+        ShadingRate,
+
+        /// Helper value that stores that total number of texture views
+        Count
+    };
+
+    struct TextureViewSpec {
+        TextureViewType ViewType = TextureViewType::Undefined;
+        TextureType TextureType = TextureType::Texture2D;
+        ImageFormat Format = ImageFormat::None;
+    };
+
+    class TextureView;
+
+    struct TextureViewHandle : Handle<TextureView> {
+        TextureViewHandle() = default;
+        TextureViewHandle(const Handle handle) : Handle(handle) {}
+    };
+
+
+    struct MappedTextureSubresource {
+        /// Pointer to the mapped subresource data in CPU memory.
+        void* Data = nullptr;
+
+        /// Row stride in bytes.
+        uint64_t Stride = 0;
+
+        /// Depth slice stride in bytes.
+        uint64_t DepthStride = 0;
     };
 }

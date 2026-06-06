@@ -3,6 +3,7 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "imgui.h"
+#include "Quelos/Scenes/Entity.h"
 
 namespace QuelosEditor {
     using namespace Quelos;
@@ -10,6 +11,8 @@ namespace QuelosEditor {
     public:
         ViewportPanel() = default;
         ViewportPanel(std::string name, RenderPassHandle renderPassHandle, uint32_t width, uint32_t height);
+
+        virtual ~ViewportPanel() = default;
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
@@ -23,10 +26,13 @@ namespace QuelosEditor {
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
+        virtual void BeforeViewport() {}
+        virtual void AfterViewport() {}
+
         [[nodiscard]] bool ShouldDraw() const { return m_ViewportVisible; }
     private:
         void QueueResize(float width, float height);
-    private:
+    protected:
         std::string m_Name;
         bool m_IsEnabled = true;
 

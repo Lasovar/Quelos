@@ -59,12 +59,19 @@ namespace Quelos {
     struct QTextureData {
         ITexture* Texture = nullptr;
         TextureSpecification Specification;
+        Vec<TextureViewHandle> TextureViews;
+    };
+
+    struct TextureViewData {
+        TextureHandle Texture;
+        ITextureView* TextureView = nullptr;
+        TextureViewSpec Specification;
     };
 
     struct QFrameBufferData {
         IFramebuffer* FrameBuffer = nullptr;
         std::string Name;
-        SmallVec<TextureHandle, 2> Attachments;
+        SmallVec<TextureViewHandle, 2> Attachments;
 
         FrameBufferSpec Specification;
     };
@@ -202,11 +209,29 @@ namespace Quelos {
         TextureHandle CreateTexture(const TextureSpecification& spec) override;
         TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) override;
         TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) override;
+
         bool TextureIsVFlipped() override;
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;
+
         const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
         uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
+
+        TextureViewHandle GetTextureView(TextureHandle texture, TextureViewType textureViewType) override;
+        void CopyTexture(const CopyTextureAttribs& copyAttribs) override;
+
+        void MapTextureSubresource(
+            TextureHandle textureHandle,
+            uint32_t mipLevel,
+            uint32_t arraySlice,
+            MapType mapType,
+            MapFlags mapFlags,
+            MappedTextureSubresource& mappedData
+        ) override;
+
+        void UnmapTextureSubresource(TextureHandle textureHandle, uint32_t mipLevel, uint32_t arraySlice) override;
+
         void Bind(TextureHandle textureHandle) override;
+
         void Destroy(TextureHandle textureHandle) override;
 
         // Render Pass
@@ -257,6 +282,7 @@ namespace Quelos {
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;
         ResourceTable<ShaderData, Shader> m_ShaderTable;
         ResourceTable<QTextureData, Texture> m_TextureTable;
+        ResourceTable<TextureViewData, TextureView> m_TextureViewTable;
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
         ResourceTable<QBufferData, GpuBuffer> m_BufferTable;

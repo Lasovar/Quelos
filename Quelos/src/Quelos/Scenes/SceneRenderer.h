@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "Entity.h"
 #include "flecs.h"
 
 #include "Quelos/Renderer/RenderPass.h"
@@ -11,6 +12,7 @@
 
 namespace Quelos {
     constexpr size_t k_MaxTextures = 1024;
+    constexpr uint32_t k_MaxInstances = 512;
 
     class TextureRegistry {
     public:
@@ -101,7 +103,7 @@ namespace Quelos {
         // Call once per frame (or when dirty) before drawing
         void FlushToGPU();
 
-        bool WasReallocated() const { return m_WasReallocated; } // signal to rebind
+        [[nodiscard]] bool WasReallocated() const { return m_WasReallocated; } // signal to rebind
         void Release() const;
 
     private:
@@ -125,9 +127,11 @@ namespace Quelos {
 
     struct DrawCommand {
         uint64_t SortKey;
+        Entity Entity;
         Mesh* Mesh;
         PipelineStateHandle PipelineState;
         ShaderResourceBindingHandle SRB;
+        uint32_t MaterialIndex;
         pfloat4x4 Transform;
     };
 
@@ -139,6 +143,7 @@ namespace Quelos {
     struct alignas(16) InstanceData {
         pfloat4x4 Transform;
         uint32_t MaterialId;
+        uint32_t EntityIndex;
     };
 
     class SceneRenderer {
@@ -150,12 +155,17 @@ namespace Quelos {
         void Render();
         void End();
 
+        [[nodiscard]] const Vec<DrawCommand>& GetDrawCalls() const { return m_DrawCalls; }
+        [[nodiscard]] GpuBufferHandle GetInstancesGpuBuffer() const { return m_InstancesGPUBuffer; }
+        [[nodiscard]] GpuBufferHandle GetGlobalBuffer() const { return m_GlobalBuffer; }
+
         ~SceneRenderer();
         [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
 
     private:
         RenderPassHandle m_RenderPass;
         flecs::world m_World;
+
         TextureRegistry m_TextureRegistry;
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
@@ -174,7 +184,6 @@ namespace Quelos {
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;
 
         GpuBufferHandle m_GlobalBuffer;
-
         GpuBufferHandle m_InstancesGPUBuffer;
     };
 }

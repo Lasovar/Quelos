@@ -26,7 +26,7 @@ namespace Quelos {
     class ResourceRef {
     public:
         ResourceRef() = default;
-        explicit ResourceRef(const Handle<T> renderResourceHandle) {
+        ResourceRef(const Handle<T> renderResourceHandle) {
             m_Handle = renderResourceHandle;
             Inc();
         }
@@ -73,6 +73,7 @@ namespace Quelos {
         }
 
         Handle<T> GetHandle() const { return m_Handle; }
+        operator Handle<T>() const { return m_Handle; }
 
         void Reset() {
             m_Handle = Handle<T>();

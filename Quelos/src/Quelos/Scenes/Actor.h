@@ -18,12 +18,20 @@ namespace Quelos {
         Actor(const Entity entity, const EntityID entityId) : Entity(entity), m_EntityId(entityId) { }
 
         Actor(const Entity entity) : Entity(entity) {
+            if (!entity.IsValid()) {
+                return;
+            }
+
             if (auto* id = entity.TryGet<EntityID>()) {
                 m_EntityId = *id;
             }
         }
 
         Actor(const flecs::entity id) : Entity(id) {
+            if (!id.is_valid()) {
+                return;
+            }
+
             if (auto* entityId = id.try_get<EntityID>()) {
                 m_EntityId = *entityId;
             }

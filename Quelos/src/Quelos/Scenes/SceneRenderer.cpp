@@ -7,8 +7,6 @@
 #include "Quelos/Renderer/Renderer.h"
 
 namespace Quelos {
-    constexpr uint32_t k_MaxInstances = 512;
-
     MaterialRegistry::MaterialRegistry(
         const std::string& pipelineName,
         TextureRegistry& textureRegistry,
@@ -161,21 +159,21 @@ namespace Quelos {
 
     SceneRenderer::SceneRenderer(const flecs::world& world) : m_World(world) {
         RenderPassAttachmentSpec attachments[3];
-        attachments[0].Format = ImageFormat::RGBA;
+        attachments[0].Format = ImageFormat::RGBA8UNorm;
         attachments[0].SampleCount = 4;
         attachments[0].LoadOp = AttachmentLoadOp::Clear;
         attachments[0].StoreOp = AttachmentStoreOp::Discard;
         attachments[0].InitialState = ResourceState::RenderTarget;
         attachments[0].FinalState = ResourceState::RenderTarget;
 
-        attachments[1].Format = ImageFormat::RGBA;
+        attachments[1].Format = ImageFormat::RGBA8UNorm;
         attachments[1].SampleCount = 1;
         attachments[1].LoadOp = AttachmentLoadOp::Clear;
         attachments[1].StoreOp = AttachmentStoreOp::Store;
         attachments[1].InitialState = ResourceState::ResolveDest;
         attachments[1].FinalState = ResourceState::ShaderResource;
 
-        attachments[2].Format = ImageFormat::DEPTH32F;
+        attachments[2].Format = ImageFormat::DEPTH32Float;
         attachments[2].SampleCount = 4;
         attachments[2].LoadOp = AttachmentLoadOp::Clear;
         attachments[2].StoreOp = AttachmentStoreOp::Discard;
@@ -184,11 +182,12 @@ namespace Quelos {
 
         AttachmentReference colorRef = {0, ResourceState::RenderTarget};
         AttachmentReference resolveRef = {1, ResourceState::ResolveDest};
+        AttachmentReference depthAttachment = {2, ResourceState::DepthWrite};
 
         SubPassSpec subPassSpec;
-        subPassSpec.RenderTargetAttachments = Span(&colorRef, 1);
-        subPassSpec.DepthAttachment = {2, ResourceState::DepthWrite};
-        subPassSpec.ResolveAttachments = &resolveRef;
+        subPassSpec.RenderTargetAttachments = Span32(&colorRef, 1);
+        subPassSpec.pDepthAttachment = &depthAttachment;
+        subPassSpec.pResolveAttachments = &resolveRef;
 
         RenderPassSpec renderPassSpec;
         renderPassSpec.Name = "Scene render pass";
@@ -228,7 +227,7 @@ namespace Quelos {
         whiteSpec.BindFlags = Bind::ShaderResource;
         whiteSpec.Width = 1;
         whiteSpec.Height = 1;
-        whiteSpec.Format = ImageFormat::RGBA;
+        whiteSpec.Format = ImageFormat::RGBA8UNorm;
         whiteSpec.SampleCount = SampleCount::x1;
         whiteSpec.Type = TextureType::Texture2D;
 
@@ -240,7 +239,7 @@ namespace Quelos {
         magentaSpec.BindFlags = Bind::ShaderResource;
         magentaSpec.Width = 1;
         magentaSpec.Height = 1;
-        magentaSpec.Format = ImageFormat::RGBA;
+        magentaSpec.Format = ImageFormat::RGBA8UNorm;
         magentaSpec.SampleCount = SampleCount::x1;
         magentaSpec.Type = TextureType::Texture2D;
 
@@ -390,6 +389,7 @@ namespace Quelos {
         m_World.defer_begin();
 
         m_RenderingQuery.each([&](
+            flecs::entity entity,
             const WorldTransform& transform, const MeshRenderer& meshRenderer,
             const PipelineStateComponent& pipelineStateComponent
         ) {
@@ -398,9 +398,11 @@ namespace Quelos {
 
                 m_DrawCalls.emplace_back(
                     sortKey,
+                    entity,
                     &meshRenderer.Mesh.Get(),
                     pipelineStateComponent.PSO.GetHandle(),
                     pipelineStateComponent.SRB.GetHandle(),
+                    pipelineStateComponent.MaterialIndex,
                     transform.Value
                 );
             }
@@ -548,7 +550,9 @@ namespace Quelos {
                 uint32_t instanceCount = 0;
                 while (j < pipelineEnd && instanceCount < k_MaxInstances && m_DrawCalls[j].Mesh == mesh) {
                     instances[instanceCount++] = InstanceData {
-                        .Transform = m_DrawCalls[j].Transform
+                        .Transform = m_DrawCalls[j].Transform,
+                        .MaterialId = m_DrawCalls[j].MaterialIndex,
+                        .EntityIndex = j + 1
                     };
 
                     ++j;

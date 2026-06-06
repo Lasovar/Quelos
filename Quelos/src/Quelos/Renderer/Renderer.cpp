@@ -300,6 +300,10 @@ namespace Quelos {
         return s_RendererContext->TextureIsVFlipped();
     }
 
+    TextureViewHandle Renderer::GetTextureView(const TextureHandle textureHandle, const TextureViewType textureView) {
+        return s_RendererContext->GetTextureView(textureHandle, textureView);
+    }
+
     const TextureSpecification* Renderer::GetSpecification(const TextureHandle handle) {
         return s_RendererContext->GetSpecification(handle);
     }
@@ -310,6 +314,29 @@ namespace Quelos {
 
     void Renderer::TextureResize(const TextureHandle textureHandle, const uint32_t width, const uint32_t height) {
         s_RendererContext->TextureResize(textureHandle, width, height);
+    }
+
+    void Renderer::CopyTexture(const CopyTextureAttribs& copy) {
+        s_RendererContext->CopyTexture(copy);
+    }
+
+    void Renderer::MapTextureSubresource(
+        const TextureHandle textureHandle,
+        const uint32_t mipLevel,
+        const uint32_t arraySlice,
+        const MapType mapType,
+        const MapFlags mapFlags,
+        MappedTextureSubresource& mappedData
+    ) {
+        s_RendererContext->MapTextureSubresource(textureHandle, mipLevel, arraySlice, mapType, mapFlags, mappedData);
+    }
+
+    void Renderer::UnmapTextureSubresource(
+        const TextureHandle textureHandle,
+        const uint32_t mipLevel,
+        const uint32_t arraySlice
+    ) {
+        s_RendererContext->UnmapTextureSubresource(textureHandle, mipLevel, arraySlice);
     }
 
     void Renderer::Bind(const TextureHandle textureHandle) {

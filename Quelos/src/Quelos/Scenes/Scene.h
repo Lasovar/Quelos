@@ -92,6 +92,19 @@ namespace Quelos {
         RenderPassHandle GetRenderPass() const { return m_SceneRenderer.GetRenderPass(); }
         SceneRenderer& GetSceneRenderer() { return m_SceneRenderer; }
 
+        Entity GetEntity(const EntityID entityId) {
+            if (!entityId) {
+                return m_SceneRoot;
+            }
+
+            const auto it = m_EntitiesMap.find(entityId);
+            if (it == m_EntitiesMap.end()) {
+                return {};
+            }
+
+            return it->second;
+        }
+
         Actor GetActor(const EntityID actorId) {
             if (!actorId) {
                 return { m_SceneRoot, actorId };

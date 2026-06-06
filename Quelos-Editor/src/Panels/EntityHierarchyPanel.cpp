@@ -7,13 +7,14 @@
 #include "Scene/Commands/CreateActorCommand.h"
 #include "Scene/Commands/ReorderChildrenCommand.h"
 #include "Scene/Commands/SetParentCommand.h"
+#include "Workspaces/SceneWorkspace.h"
 
 #include "Quelos/ImGui/icons_font_awesome.h"
 
 namespace QuelosEditor {
     EntityHierarchyPanel::EntityHierarchyPanel(
-        const Ref<Scene>& scene, UndoSystem& undoSystem
-    ) : m_Scene(scene), m_UndoSystem(undoSystem) {
+        const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem
+    ) : m_Scene(scene), m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) {
         m_SceneRoot = m_Scene->GetSceneRoot().GetInternalID();
     }
 
@@ -87,6 +88,10 @@ namespace QuelosEditor {
         } UI::End();
     }
 
+    void EntityHierarchyPanel::SetSelectedActor(const Actor& actor) const {
+        m_SceneWorkspace.SetSelectEntity(static_cast<Entity>(actor));
+    }
+
     static bool IsDescendant(const Entity& parent, Entity candidate) {
         while (candidate.IsValid()) {
             if (candidate == parent) {
@@ -108,7 +113,7 @@ namespace QuelosEditor {
         ImGui::PushID(actor.GetInternalID());
 
         // Row
-        const bool selected = ImGui::Selectable("##row", m_SelectedActor == actor);
+        const bool selected = ImGui::Selectable("##row", m_SceneWorkspace.GetSelectedEntity() == actor);
 
         const int count = actor.ChildrenCount();
         const bool hasChildren = count > 0;
@@ -212,7 +217,7 @@ namespace QuelosEditor {
         );
 
         if (ImGui::BeginPopupContextItem("EntityContext")) {
-            m_SelectedActor = actor;
+            SetSelectedActor(actor);
 
             if (ImGui::MenuItem("Create Child")) { }
 

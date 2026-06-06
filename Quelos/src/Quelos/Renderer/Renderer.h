@@ -110,9 +110,27 @@ namespace Quelos {
 
         static bool TextureIsVFlipped();
 
+        static TextureViewHandle GetTextureView(TextureHandle textureHandle, TextureViewType textureView);
         static const TextureSpecification* GetSpecification(TextureHandle handle);
         static uint64_t TextureGetNativeHandle(TextureHandle handle);
         static void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height);
+
+        static void CopyTexture(const CopyTextureAttribs& copy);
+
+        static void MapTextureSubresource(
+            TextureHandle textureHandle,
+            uint32_t mipLevel,
+            uint32_t arraySlice,
+            MapType mapType,
+            MapFlags mapFlags,
+            MappedTextureSubresource& mappedData
+        );
+
+        static void UnmapTextureSubresource(
+            TextureHandle textureHandle,
+            uint32_t mipLevel,
+            uint32_t arraySlice
+        );
 
         static void Bind(TextureHandle textureHandle);
         static void Destroy(TextureHandle textureHandle);

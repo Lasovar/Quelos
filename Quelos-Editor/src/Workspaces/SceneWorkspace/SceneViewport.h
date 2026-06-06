@@ -1,0 +1,44 @@
+//
+// Created by lasovar on 6/6/26.
+//
+
+#pragma once
+
+#include "Panels/ViewportPanel.h"
+
+namespace QuelosEditor {
+    class SceneWorkspace;
+
+    class SceneViewport : public ViewportPanel {
+    public:
+        SceneViewport(
+            std::string name,
+            SceneWorkspace& sceneWorkspace,
+            RenderPassHandle renderPassHandle,
+            uint32_t width,
+            uint32_t height
+        );
+
+        [[nodiscard]] const uint2& GetSelectRequestPosition() const { return m_SelectRequestPosition; }
+        [[nodiscard]] bool IsSelectRequest() const { return m_SelectRequest; }
+        void SetSelectRequest(const bool value) { m_SelectRequest = value; }
+
+        void SetFrame(const Entity value, const float4x4& view, const float4x4& proj) {
+            m_Selected = value;
+            m_View = view;
+            m_Projection = proj;
+        }
+
+        void AfterViewport() override;
+
+    private:
+        SceneWorkspace& m_SceneWorkspace;
+
+        uint2 m_SelectRequestPosition;
+        bool m_SelectRequest = false;
+
+        Entity m_Selected;
+        float4x4 m_View;
+        float4x4 m_Projection;
+    };
+}

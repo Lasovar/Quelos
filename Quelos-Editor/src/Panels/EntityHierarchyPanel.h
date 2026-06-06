@@ -9,38 +9,24 @@ namespace Quelos {
 }
 
 namespace QuelosEditor {
+    class SceneWorkspace;
     using namespace Quelos;
-
-    using SelectionCallback = std::function<void(const Actor&)>;
 
     class EntityHierarchyPanel {
     public:
-        EntityHierarchyPanel(const Ref<Scene>& scene, UndoSystem& undoSystem);
-
-        void AddListenerOnEntitySelected(SelectionCallback callback) {
-            m_OnSelectionChangedCallbacks.push_back(std::move(callback));
-        }
+        EntityHierarchyPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
-        void SetSelectedActor(const Actor& actor) {
-            m_SelectedActor = actor;
-            NotifyOnEntitySelectedListeners();
-        }
-
-        void NotifyOnEntitySelectedListeners() {
-            for (auto& callback : m_OnSelectionChangedCallbacks) {
-                callback(m_SelectedActor);
-            }
-        }
+        void SetSelectedActor(const Actor& actor) const;
 
         void DrawActor(const Entity& actor, int depth, std::vector<bool>& stack, uint32_t order);
 
     private:
         Ref<Scene> m_Scene;
+        SceneWorkspace& m_SceneWorkspace;
         UndoSystem& m_UndoSystem;
-        Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
         Actor m_SceneRoot;
 
@@ -52,7 +38,5 @@ namespace QuelosEditor {
         EntityID m_ReorderTargetParent;
         EntityID m_ReorderTargetAfter;
         EntityID m_ReorderTarget;
-
-        Actor m_SelectedActor;
     };
 }

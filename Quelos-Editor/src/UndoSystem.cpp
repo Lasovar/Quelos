@@ -1,5 +1,5 @@
 #include "UndoSystem.h"
 
-namespace Quelos {
-
+namespace QuelosEditor {
+    UndoSystem* UndoSystem::s_Instance = nullptr;
 }
