@@ -36,9 +36,21 @@ FragmentOut fragmentMain(VertexOut v) {
     FragmentOut output;
 
     ToonMaterial mat = GetMaterial(v.instanceID);
-    float3 N = normalize(v.normal);
 
-    output.color = g_Textures[mat.MainTex].Sample(g_Textures_sampler, v.uv) * mat.Color;
+    float3 N = normalize(v.normal);
+    float3 L = normalize(-global.LightDirection.xyz);
+
+    float ndotl = saturate(dot(N, L));
+
+    float ToonLevels = 4.0;
+    float shade = floor(ndotl * ToonLevels) / ToonLevels;
+    shade = lerp(0.35, 1.0, shade);
+
+    float4 albedo = g_Textures[mat.MainTex]
+                                .Sample(g_Textures_sampler, v.uv) 
+                                * mat.Color;
+
+    output.color = albedo * shade;
 
     return output;
 }

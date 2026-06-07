@@ -963,7 +963,10 @@ namespace Quelos {
             return;
         }
 
-        shaderResourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE));
+        shaderResourceVariable->Set(
+            m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE),
+            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+        );
     }
 
     void DiligentRendererContext::BindArrayByName(
@@ -1832,7 +1835,7 @@ namespace Quelos {
         );
 
         if (resourceVariable) {
-            resourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer);
+            resourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer, SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE);
         }
     }
 

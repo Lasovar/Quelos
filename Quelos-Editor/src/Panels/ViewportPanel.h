@@ -3,6 +3,7 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "imgui.h"
+#include "Quelos/Renderer/RenderResource.h"
 #include "Quelos/Scenes/Entity.h"
 
 namespace QuelosEditor {
@@ -13,6 +14,8 @@ namespace QuelosEditor {
         ViewportPanel(std::string name, RenderPassHandle renderPassHandle, uint32_t width, uint32_t height);
 
         virtual ~ViewportPanel() = default;
+
+        void SetRenderPass(RenderPassHandle renderPassHandle);
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
@@ -48,9 +51,9 @@ namespace QuelosEditor {
 
         bool m_ViewportVisible = false;
 
-        TextureHandle m_ColorAttachment;
-        TextureHandle m_DepthAttachment;
-        TextureHandle m_SceneColorAttachment;
+        ResourceRef<Texture> m_ColorAttachment;
+        ResourceRef<Texture> m_DepthAttachment;
+        ResourceRef<Texture> m_SceneColorAttachment;
 
         Ref<FrameBuffer> m_FrameBuffer;
     };

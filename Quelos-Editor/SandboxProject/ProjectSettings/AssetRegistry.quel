@@ -1,10 +1,6 @@
 [Quelos.Scene]
-handle = fa481eed-75fd-40c1-a646-e845648b118e
-path = "Assets/NewScene"
-
-[Quelos.Scene]
 handle = 009bd427-eec8-4038-829b-4b49be965a3a
-path = "Assets/Meshes/NewScene"
+path = "Assets/Sandbox"
 
 [Quelos.Mesh]
 handle = 34f0b084-42c2-4c26-87d5-366a344b13cd

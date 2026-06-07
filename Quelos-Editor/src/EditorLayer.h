@@ -15,10 +15,6 @@ namespace QuelosEditor {
 
     using namespace Quelos;
 
-    enum class SceneState {
-        Edit = 0, Play
-    };
-
     class EditorLayer : public Layer {
     public:
         explicit EditorLayer(const std::string& name = "Editor Layer")
@@ -54,27 +50,21 @@ namespace QuelosEditor {
                 .FreeBuffer = nullptr
             };
         }
+    private:
+        void FlushOpenAssetWorkspace();
 
     private:
         static EditorLayer* s_Instance;
 
     private:
-        SceneState m_SceneState = SceneState::Edit;
-        bool m_ScenePaused = false;
-        bool m_SceneStep = false;
-
         ProjectSerializer m_ProjectSerializer;
-
-        Ref<Texture2D> m_IconPlay, m_IconPause, m_IconStop, m_IconStep, m_Container;
-
-        Ref<Scene> m_EditorScene;
-        Ref<Scene> m_ActiveScene;
 
         Ref<EditorAssetManager> m_EditorAssetManager;
 
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
+        Vec<AssetMetadata> m_OpenAssetWorkspaceRequests;
         HashMap<AssetID, Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 

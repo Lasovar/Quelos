@@ -33,6 +33,8 @@ namespace QuelosEditor {
 
         void SetInspectorEntityName(const Entity& entity);
 
+        void SetScene(const Ref<Scene>& scene);
+
         void RegisterCustomInspector(const CustomInspector& customInspector) {
             m_CustomInspectors[m_Scene->GetComponentRegistry().GetComponentInfo(customInspector.ComponentId)->RuntimeID]
                 = customInspector;

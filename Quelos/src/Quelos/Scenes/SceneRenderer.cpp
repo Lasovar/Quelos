@@ -452,7 +452,7 @@ namespace Quelos {
 
         Globals globals{};
         globals.ViewProjection = viewProjection;
-        globals.LightDirection = float4(0, 0, 0, 0);
+        globals.LightDirection = float4(0, -1.f, 0, 0);
 
         if (m_DirectionalLightQuery.count() > 0) {
             flecs::entity directionLight = m_DirectionalLightQuery.first();

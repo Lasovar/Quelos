@@ -55,19 +55,14 @@ namespace QuelosEditor {
     }
 
     EntityInspectorPanel::EntityInspectorPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem)
-        : m_Scene(scene), m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) {
+        : m_Scene(scene), m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem)
+    {
+        m_SceneWorkspace.OnEntitySelectionChanged([this](const Entity entity) {
+            SetInspectorEntityName(entity);
+        });
+
         if (s_InspectorArchiveSerialize.empty()) {
             RegisterComponents(AllComponents{}, m_Scene->GetWorld(), s_InspectorArchiveSerialize);
-
-            m_SceneWorkspace.OnEntitySelectionChanged([this](const Entity entity) {
-                SetInspectorEntityName(entity);
-            });
-
-            /*
-            static auto meshInspector = [](void* meshComponentData) {
-                const MeshRenderer& meshComponent = *static_cast<MeshRenderer*>(meshComponentData);
-            };
-            */
 
             static auto transformInspector = [&](void* transformData, const InspectorComponent& component, const Entity entity) {
                 LocalTransform& localTransform = *static_cast<LocalTransform*>(transformData);
@@ -167,6 +162,10 @@ namespace QuelosEditor {
         if (entity.IsValid()) {
             std::snprintf(m_EntityNameField.data(), m_EntityNameField.size(), "%s", entity.GetName());
         }
+    }
+
+    void EntityInspectorPanel::SetScene(const Ref<Scene>& scene) {
+        m_Scene = scene;
     }
 
     static const char* s_AddComponentPopupName = "AddComponentPopup";

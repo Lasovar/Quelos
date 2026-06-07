@@ -14,24 +14,15 @@
 #include "Quelos/Renderer/Renderer.h"
 #include "Quelos/Core/Profiling.h"
 
+#include "SceneSnapshot.h"
+
 namespace Quelos {
     class WindowResizeEvent;
 
-    Scene::Scene(std::string name)
-        : m_ComponentRegistry(m_World), m_Name(std::move(name)), m_SceneRenderer(m_World)
+    Scene::Scene(const flecs::world& world, std::string name)
+        : m_World(world), m_ComponentRegistry(m_World), m_Name(std::move(name)), m_SceneRenderer(m_World)
     {
-        m_SceneRoot = m_World.entity<SceneRoot>("Root")
-                             .add<EntityID>()
-                             .add(flecs::OrderedChildren);
-
-        m_SceneRoot.set(SceneRoot { this });
-
-        m_World.observer<LocalTransform>()
-               .event(flecs::OnAdd)
-               .each([](const flecs::entity e, const LocalTransform&) {
-                   e.ensure<WorldTransform>();
-               });
-
+        Init();
         m_TransformUpdate = m_World.entity("TransformUpdate")
                                    .add(flecs::Phase)
                                    .depends_on(flecs::OnUpdate);
@@ -40,11 +31,10 @@ namespace Quelos {
                                         .add(flecs::Phase)
                                         .depends_on(m_TransformUpdate);
 
-        m_World.system<const LocalTransform&, WorldTransform&>()
-               .with(flecs::ChildOf, m_SceneRoot)
-               .kind(m_TransformUpdate)
-               .each([](const LocalTransform& local, WorldTransform& world) {
-                   world.Value = mathExt::srt(local.Scale, local.Rotation, local.Position);
+        m_World.observer<LocalTransform>()
+               .event(flecs::OnAdd)
+               .each([](const flecs::entity e, const LocalTransform&) {
+                   e.ensure<WorldTransform>();
                });
 
         m_World.system<const LocalTransform&, WorldTransform&>()
@@ -55,7 +45,6 @@ namespace Quelos {
                });
 
         m_World.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
-               .without(flecs::ChildOf, m_SceneRoot)
                .with(flecs::ChildOf, flecs::Wildcard)
                .term_at(2).cascade()
                .kind(m_TransformChildUpdate)
@@ -151,7 +140,7 @@ namespace Quelos {
                                               .add(flecs::OrderedChildren);
 
         const Entity entity(entityId);
-        entity.GetInternalID().set_name(guid.ToString().c_str());
+        entityId.set_doc_uuid(guid.ToString().c_str());
         entity.SetName(entityName);
         m_EntitiesMap[guid] = entity;
         return entity;
@@ -193,12 +182,23 @@ namespace Quelos {
         });
     }
 
-    Ref<Scene> Scene::Copy(const Ref<Scene>& scene) {
-        Ref<Scene> sceneCopy = CreateRef<Scene>();
+    void Scene::Disable() const {
+        m_SceneRoot.disable();
+    }
 
-        auto x = sceneCopy->m_World.to_json();
-        sceneCopy->m_Name = scene->m_Name;
+    void Scene::Destroy() {
+        m_EntitiesMap.clear();
+        m_ActorsMap.clear();
 
-        return sceneCopy;
+        m_SceneRoot.destruct();
+    }
+
+    void Scene::Init() {
+        m_SceneRoot = m_World.entity()
+                             .add<EntityID>()
+                             .add(flecs::OrderedChildren);
+
+        m_SceneRoot.set(SceneRoot { this });
+        m_SceneRoot.set(WorldTransform { .Value = float4x4::identity() });
     }
 }

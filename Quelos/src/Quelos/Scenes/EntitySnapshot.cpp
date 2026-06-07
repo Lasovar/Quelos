@@ -249,8 +249,12 @@ namespace Quelos {
         return entity;
     }
 
-    Entity EntitySnapshot::Load(const Ref<Scene>& scene, const EntitySnapshot& snapshot) {
-        Serialization::BinaryReader reader(snapshot.Data);
+    Entity EntitySnapshot::Load(const Ref<Scene>& scene) const {
+        return Load(scene, Data);
+    }
+
+    Entity EntitySnapshot::Load(const Ref<Scene>& scene, const BufferView& entitySnapshot) {
+        Serialization::BinaryReader reader(entitySnapshot);
         return LoadEntity(scene, reader, scene->GetComponentRegistry(), scene->GetWorld());
     }
 }

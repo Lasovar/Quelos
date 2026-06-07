@@ -16,9 +16,14 @@ namespace QuelosEditor {
         std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height
     )
         : m_Name(std::move(name)) {
+        m_ViewportSize = { width, height };
+        SetRenderPass(renderPassHandle);
+    }
+
+    void ViewportPanel::SetRenderPass(const RenderPassHandle renderPassHandle) {
         TextureSpecification msaaColorSpec;
-        msaaColorSpec.Width = width;
-        msaaColorSpec.Height = height;
+        msaaColorSpec.Width = m_ViewportSize.x;
+        msaaColorSpec.Height = m_ViewportSize.y;
 
         msaaColorSpec.Format = ImageFormat::RGBA8UNorm;
         msaaColorSpec.SamplerWrap = WrapMode::Clamp;
@@ -29,8 +34,8 @@ namespace QuelosEditor {
         m_ColorAttachment = Renderer::CreateTexture(msaaColorSpec);
 
         TextureSpecification sceneColor;
-        sceneColor.Width = width;
-        sceneColor.Height = height;
+        sceneColor.Width = m_ViewportSize.x;
+        sceneColor.Height = m_ViewportSize.y;
 
         sceneColor.Format = ImageFormat::RGBA8UNorm;
         sceneColor.SamplerWrap = WrapMode::Repeat;
@@ -41,8 +46,8 @@ namespace QuelosEditor {
         m_SceneColorAttachment = Renderer::CreateTexture(sceneColor);
 
         TextureSpecification msaaDepthSpec;
-        msaaDepthSpec.Width = width;
-        msaaDepthSpec.Height = height;
+        msaaDepthSpec.Width = m_ViewportSize.x;
+        msaaDepthSpec.Height = m_ViewportSize.y;
 
         msaaDepthSpec.Format = ImageFormat::DEPTH32Float;
         msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
@@ -53,18 +58,19 @@ namespace QuelosEditor {
         m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
 
         const TextureViewHandle attachments[] = {
-            Renderer::GetTextureView(m_ColorAttachment, TextureViewType::RenderTarget),
-            Renderer::GetTextureView(m_SceneColorAttachment, TextureViewType::RenderTarget),
-            Renderer::GetTextureView(m_DepthAttachment, TextureViewType::DepthStencil)
+            Renderer::GetTextureView(m_ColorAttachment.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_SceneColorAttachment.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_DepthAttachment.GetHandle(), TextureViewType::DepthStencil)
         };
 
         FrameBufferSpec spec;
         spec.Attachments = attachments;
         spec.Name = m_Name;
         spec.RenderPassHandle = renderPassHandle;
-        spec.Size = {width, height};
+        spec.Size = {static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y)};
 
         m_FrameBuffer = FrameBuffer::Create(spec);
+        m_NeedResize = true;
     }
 
     bool ViewportPanel::ResizeIfNeeded() {
@@ -88,6 +94,7 @@ namespace QuelosEditor {
         if (m_IsEnabled) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
             if (UI::Begin(m_Name, dockspaceID, windowClass, &m_IsEnabled, flags)) {
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
                 BeforeViewport();
 
                 const auto viewportOffset = ImGui::GetCursorPos(); // Includes the tab bar
@@ -104,11 +111,12 @@ namespace QuelosEditor {
                                    : */float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    m_SceneColorAttachment.GetNativeHandle(),
+                    TextureHandle(m_SceneColorAttachment.GetHandle()).GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
                 );
+                ImGui::PopStyleVar();
 
                 ImVec2 minBound = ImGui::GetWindowPos();
                 minBound.x += viewportOffset.x;
