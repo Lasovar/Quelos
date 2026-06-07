@@ -8,7 +8,7 @@ struct Material {
     [Texture2D] uint _NormalTex;
 };
 
-StructuredBuffer<Material> Materials;
+__extern_cpp StructuredBuffer<Material> Materials;
 
 Material GetMaterial(uint instanceId) {
     return Materials[Instances[instanceId].MaterialID];

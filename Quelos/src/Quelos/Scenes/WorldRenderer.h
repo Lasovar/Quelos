@@ -89,7 +89,11 @@ namespace Quelos {
                 return 0;
             }
 
-            const auto it = std::ranges::find(m_CpuMaterials, mat);
+            const auto it = std::ranges::find_if(
+                m_CpuMaterials,
+                [&](const AssetRef<Material>& other) { return other.GetAssetID() == mat.GetAssetID(); }
+            );
+
             if (it != m_CpuMaterials.end()) {
                 return static_cast<uint32_t>(it - m_CpuMaterials.begin());
             }

@@ -15,6 +15,10 @@ namespace Quelos {
         [[nodiscard]] bool IsValid() const {
             return Type != 0 && Index != ~0u && Generation != ~0u;
         }
+
+        bool operator==(const UntypedAssetHandle& other) const {
+            return Type == other.Type && Index == other.Index && Generation == other.Generation;
+        }
     };
 
     template <typename T>

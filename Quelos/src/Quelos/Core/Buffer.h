@@ -70,8 +70,12 @@ namespace Quelos {
             m_Deleter = nullptr;
         }
 
-        [[nodiscard]] BufferView view() const {
-            return { m_Data, m_Size };
+        [[nodiscard]] BufferView view(const uint64_t offset = 0) const {
+            if (offset > m_Size) {
+                return {};
+            }
+
+            return { m_Data + offset, m_Size - offset };
         }
 
         operator BufferView() const {
@@ -90,7 +94,7 @@ namespace Quelos {
             return m_Size;
         }
 
-        Deleter deleter() const {
+        [[nodiscard]] Deleter deleter() const {
             return m_Deleter;
         }
 
@@ -122,7 +126,7 @@ namespace Quelos {
 
 
         template <typename T>
-        std::optional<T> as_value(const uint64_t offset = 0) {
+        std::optional<T> as_value(const uint64_t offset = 0) const {
             if (offset + sizeof(T) > m_Size) {
                 return std::nullopt;
             }

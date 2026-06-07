@@ -47,7 +47,6 @@ namespace QuelosEditor {
 
         struct ShaderMetadata {
             AssetID AssetId;
-            uint64_t MaterialSize = 0;
             Vec<MaterialPropertySpec> MaterialProperties;
         };
 
@@ -73,7 +72,6 @@ namespace QuelosEditor {
             writer.Write(SectionEvent{"Shader"});
             writer.CloseSection();
             writer.WriteField("assetId", UnquotedString{shaderMetadata.AssetId.ToFormattedString()});
-            writer.WriteField("materialSize", shaderMetadata.MaterialSize);
             writer.Write(ComponentEvent { "MaterialProperties" });
             for (const auto& materialProperty : shaderMetadata.MaterialProperties) {
                 writer.Write(FieldEvent { materialProperty.Name });
@@ -155,14 +153,6 @@ namespace QuelosEditor {
                             if (currentComponent.empty()) {
                                 if (currentField == "assetId") {
                                     metadata.AssetId = AssetID(std::get<std::string_view>(event.Value));
-                                } else if (currentField == "materialSize") {
-                                    const auto materialSizeSv = std::get<std::string_view>(event.Value);
-
-                                    std::from_chars(
-                                        materialSizeSv.data(),
-                                        materialSizeSv.data() + materialSizeSv.size(),
-                                        metadata.MaterialSize
-                                    );
                                 }
                             }
                             else if (currentComponent == "MaterialProperties" && inTuple) {
@@ -327,8 +317,7 @@ namespace QuelosEditor {
             const AssetID handle,
             Buffer& vertexBuffer,
             Buffer& fragmentBuffer,
-            Vec<MaterialPropertySpec>& materialProperties,
-            uint64_t& materialSize
+            Vec<MaterialPropertySpec>& materialProperties
         ) {
             //QS_PROFILE_SCOPED_N("Shader compilation");
             auto t0 = std::chrono::high_resolution_clock::now();
@@ -340,7 +329,7 @@ namespace QuelosEditor {
             case RendererAPI::Direct3D11:
             case RendererAPI::Direct3D12: {
                 targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
+                targetDesc.profile = s_GlobalSession->findProfile("sm_5_1");
                 break;
             }
             case RendererAPI::Vulkan: {
@@ -390,6 +379,8 @@ namespace QuelosEditor {
                 QS_CORE_ERROR_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
                 diagnostics = nullptr;
             }
+
+            uint64_t materialSize = 0;
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
@@ -510,7 +501,14 @@ namespace QuelosEditor {
             );
 
             vertexBuffer = Buffer::Copy(vsBlob->getBufferPointer(), vsBlob->getBufferSize());
-            fragmentBuffer = Buffer::Copy(fsBlob->getBufferPointer(), fsBlob->getBufferSize());
+
+            fragmentBuffer = Buffer::Allocate(sizeof(uint64_t) + fsBlob->getBufferSize());
+            *fragmentBuffer.as<uint64_t>() = materialSize;
+            std::memcpy(
+                fragmentBuffer.data() + sizeof(uint64_t),
+                fsBlob->getBufferPointer(),
+                fsBlob->getBufferSize()
+            );
 
             return true;
         }
@@ -526,15 +524,16 @@ namespace QuelosEditor {
             const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
             const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
 
-            Buffer vertexBuffer = Utility::ReadFile(cookedVertexPath, false);
-            Buffer fragmentBuffer = Utility::ReadFile(cookedFragmentPath, false);
+            const Buffer vertexBuffer = Utility::ReadFile(cookedVertexPath, false);
+            const Buffer fragmentBuffer = Utility::ReadFile(cookedFragmentPath, false);
+            const uint64_t materialSize = fragmentBuffer.as_value<uint64_t>(0).value_or(0);
 
             auto* shader = new(dataSlot) GraphicsShader(
-                std::move(vertexBuffer),
-                std::move(fragmentBuffer),
+                vertexBuffer.view(),
+                fragmentBuffer.view(sizeof(uint64_t)),
                 std::string(FS::Filename(metadata.FilePath)),
                 shaderMetadata->MaterialProperties,
-                shaderMetadata->MaterialSize
+                materialSize
             );
 
             shader->SetAssetID(metadata.Handle);
@@ -575,8 +574,7 @@ namespace QuelosEditor {
                     metadata.Handle,
                     vertexBuffer,
                     fragmentBuffer,
-                    shaderMetadata.MaterialProperties,
-                    shaderMetadata.MaterialSize
+                    shaderMetadata.MaterialProperties
                 )
             ) {
                 return false;
