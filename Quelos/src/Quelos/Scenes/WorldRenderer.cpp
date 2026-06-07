@@ -2,7 +2,7 @@
 // Created by lasovar on 5/24/26.
 //
 
-#include "SceneRenderer.h"
+#include "WorldRenderer.h"
 
 #include "Quelos/Renderer/Renderer.h"
 
@@ -157,7 +157,7 @@ namespace Quelos {
         }
     }
 
-    SceneRenderer::SceneRenderer(const flecs::world& world) : m_World(world) {
+    WorldRenderer::WorldRenderer(const flecs::world& world) : m_World(world) {
         RenderPassAttachmentSpec attachments[3];
         attachments[0].Format = ImageFormat::RGBA8UNorm;
         attachments[0].SampleCount = 4;
@@ -249,7 +249,7 @@ namespace Quelos {
         m_TextureRegistry.Init(m_WhiteTexture, m_MagentaTexture);
     }
 
-    void SceneRenderer::Begin(
+    void WorldRenderer::Begin(
         const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection
     ) {
         bool isDirty = false;
@@ -468,7 +468,7 @@ namespace Quelos {
         Renderer::BeginRenderPass(beginRenderPassAttribs);
     }
 
-    void SceneRenderer::Render() {
+    void WorldRenderer::Render() {
         uint32_t i = 0;
         while (i < m_DrawCalls.size()) {
             //
@@ -577,11 +577,11 @@ namespace Quelos {
         }
     }
 
-    void SceneRenderer::End() {
+    void WorldRenderer::End() {
         Renderer::EndRenderPass();
     }
 
-    SceneRenderer::~SceneRenderer() {
+    WorldRenderer::~WorldRenderer() {
         for (auto& pipelineState : m_PipelineStates | std::views::values) {
             pipelineState.MaterialRegistry.Release();
         }

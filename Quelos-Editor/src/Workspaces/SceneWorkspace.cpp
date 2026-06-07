@@ -13,8 +13,9 @@ namespace QuelosEditor {
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
           m_EditorScene(SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_World)),
           m_ActiveScene(m_EditorScene),
-          m_GameViewportPanel("Game View", *this, m_ActiveScene->GetRenderPass(), 1, 1),
-          m_SceneViewportPanel("Scene View", *this, m_ActiveScene->GetRenderPass(), 1, 1),
+          m_WorldRenderer(m_World),
+          m_GameViewportPanel("Game View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
+          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
           m_InspectorPanel(m_ActiveScene, *this, undoSystem),
           m_EntityHierarchyPanel(m_ActiveScene, *this, undoSystem)
     {
@@ -141,12 +142,11 @@ namespace QuelosEditor {
 
         shader->AddPipelineState(m_IDPSO.GetHandle());
 
-        SceneRenderer& sceneRenderer = m_ActiveScene->GetSceneRenderer();
         Renderer::BindStaticVariableByName(
             m_IDPSO.GetHandle(),
             ShaderType::Vertex,
             "global",
-            sceneRenderer.GetGlobalBuffer()
+            m_WorldRenderer.GetGlobalBuffer()
         );
 
         m_IDSRB = Renderer::CreateShaderResourceBinding(m_IDPSO.GetHandle(), true);
@@ -154,7 +154,7 @@ namespace QuelosEditor {
             ShaderType::Vertex,
             m_IDSRB.GetHandle(),
             "Instances",
-            sceneRenderer.GetInstancesGpuBuffer()
+            m_WorldRenderer.GetInstancesGpuBuffer()
         );
     }
 
@@ -234,13 +234,11 @@ namespace QuelosEditor {
             attribs.ClearColors = clearValues;
 
             attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_ActiveScene->GetRenderPass();
+            attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
 
-            m_ActiveScene->StartRender(m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(), attribs);
-
-            m_ActiveScene->Render();
-
-            m_ActiveScene->EndRender();
+            m_WorldRenderer.Begin(attribs, m_EditorCamera.GetViewProjection());
+            m_WorldRenderer.Render();
+            m_WorldRenderer.End();
 
             if (m_SceneViewportPanel.SelectRequest().Resolve()) {
                 ClearValue idClearValues[2];
@@ -261,8 +259,8 @@ namespace QuelosEditor {
 
                 Renderer::BeginRenderPass(attribs);
 
-                const Vec<DrawCommand>& drawCalls = m_ActiveScene->GetSceneRenderer().GetDrawCalls();
-                const GpuBufferHandle& instancesGpuBuffer = m_ActiveScene->GetSceneRenderer().GetInstancesGpuBuffer();
+                const Vec<DrawCommand>& drawCalls = m_WorldRenderer.GetDrawCalls();
+                const GpuBufferHandle& instancesGpuBuffer = m_WorldRenderer.GetInstancesGpuBuffer();
 
                 Renderer::BindPipelineState(m_IDPSO.GetHandle());
                 Renderer::CommitShaderResources(m_IDSRB.GetHandle(), ResourceStateTransitionMode::None);
@@ -355,12 +353,12 @@ namespace QuelosEditor {
 
             BeginRenderPassAttribs attribs;
             attribs.FrameBufferHandle = m_GameViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_ActiveScene->GetRenderPass();
+            attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
             attribs.ClearColors = clearValues;
 
-            m_ActiveScene->StartRender(attribs);
-            m_ActiveScene->Render();
-            m_ActiveScene->EndRender();
+            m_WorldRenderer.Begin(attribs, m_ActiveScene->GetViewProjection());
+            m_WorldRenderer.Render();
+            m_WorldRenderer.End();
         }
     }
 
@@ -436,26 +434,13 @@ namespace QuelosEditor {
 
     void SceneWorkspace::Init() {
         m_SelectedEntity = {};
+
         m_PickIds.clear();
-        m_GameViewportPanel.SetRenderPass(m_ActiveScene->GetRenderPass());
-        m_SceneViewportPanel.SetRenderPass(m_ActiveScene->GetRenderPass());
+
         m_EntityHierarchyPanel.SetScene(m_ActiveScene);
         m_InspectorPanel.SetScene(m_ActiveScene);
 
-        SceneRenderer& sceneRenderer = m_ActiveScene->GetSceneRenderer();
-        Renderer::BindStaticVariableByName(
-            m_IDPSO.GetHandle(),
-            ShaderType::Vertex,
-            "global",
-            sceneRenderer.GetGlobalBuffer()
-        );
-
-        Renderer::BindVariableByName(
-            ShaderType::Vertex,
-            m_IDSRB.GetHandle(),
-            "Instances",
-            sceneRenderer.GetInstancesGpuBuffer()
-        );
+        m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
     }
 
     void SceneWorkspace::OnScenePlay() {

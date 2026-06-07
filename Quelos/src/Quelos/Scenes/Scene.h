@@ -7,8 +7,7 @@
 #include "Quelos/Renderer/FrameBuffer.h"
 
 #include "ComponentRegistery.h"
-#include "SceneRenderer.h"
-#include "Quelos/Renderer/RenderPassAttrib.h"
+#include "WorldRenderer.h"
 
 namespace Quelos {
     enum class QS_API SystemGroup : uint8_t {
@@ -64,10 +63,8 @@ namespace Quelos {
         }
 
         void Tick(float deltaTime) const;
-        void StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs);
-        void StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs);
-        void Render();
-        void EndRender();
+
+        float4x4 GetViewProjection() const;
 
         const std::string& GetName() const { return m_Name; }
         void SetName(const std::string_view& name) { m_Name = name; }
@@ -93,9 +90,6 @@ namespace Quelos {
 
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
-
-        RenderPassHandle GetRenderPass() const { return m_SceneRenderer.GetRenderPass(); }
-        SceneRenderer& GetSceneRenderer() { return m_SceneRenderer; }
 
         Entity GetEntity(const EntityID entityId) {
             if (!entityId) {
@@ -145,8 +139,6 @@ namespace Quelos {
         ComponentRegistry m_ComponentRegistry;
 
         std::string m_Name;
-
-        SceneRenderer m_SceneRenderer;
 
         flecs::entity m_SceneRoot;
 
