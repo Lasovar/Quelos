@@ -984,14 +984,6 @@ namespace Quelos {
                 name
             );
 
-            QS_CORE_TRACE("Variables found:");
-            for (uint32_t i = 0; i < (*slot)->GetVariableCount(SHADER_TYPE_PIXEL); i++) {
-                const auto* var = (*slot)->GetVariableByIndex(SHADER_TYPE_PIXEL, i);
-                ShaderResourceDesc desc;
-                var->GetResourceDesc(desc);
-                QS_CORE_TRACE("\tVariable: {}", desc.Name);
-            }
-
             return;
         }
 
@@ -1803,15 +1795,6 @@ namespace Quelos {
         IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
 
         QS_CORE_ASSERT(pso, "Pipeline state object is nullptr!");
-
-
-        QS_CORE_TRACE("Variables found:");
-        for (uint32_t i = 0; i < pso->GetStaticVariableCount(SHADER_TYPE_PIXEL); i++) {
-            const auto* var = pso->GetStaticVariableByIndex(SHADER_TYPE_PIXEL, i);
-            ShaderResourceDesc desc;
-            var->GetResourceDesc(desc);
-            QS_CORE_TRACE("\tVariable: {}", desc.Name);
-        }
 
         IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
             Utils::GetShaderType(shaderType),
