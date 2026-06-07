@@ -16,8 +16,9 @@ namespace QuelosEditor {
     public:
         EntityHierarchyPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
-        void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
+        void SetScene(const Ref<Scene>& scene);
 
+        void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
     private:
         void SetSelectedActor(const Actor& actor) const;
 

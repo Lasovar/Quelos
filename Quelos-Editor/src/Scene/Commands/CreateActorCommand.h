@@ -2,7 +2,7 @@
 
 #include "Quelos/Scenes/Entity.h"
 #include "Quelos/Scenes/Scene.h"
-#include "Scene/EntitySnapshot.h"
+#include "../../../../Quelos/src/Quelos/Scenes/EntitySnapshot.h"
 
 namespace Quelos {
     struct CreateActor {
@@ -32,7 +32,7 @@ namespace Quelos {
         }
 
         void Revert() const {
-            EntitySnapshot::Load(Scene, Snapshot);
+            Snapshot.Load(Scene);
         }
 
         DestroyActor() = default;

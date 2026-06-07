@@ -280,9 +280,7 @@ namespace QuelosEditor {
             if (ImGui::BeginChild("##main", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
                 if (ImGui::BeginPopupContextWindow("MainViewContext")) {
                     if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_FILE, "Create Scene"))) {
-                        Ref<Scene> scene = CreateRef<Scene>("NewScene");
-                        SceneSerializer serializer(scene, m_CurrentPath + "/NewScene");
-                        serializer.Deserialize();
+                        SceneSerializer::CreateSceneAsset(m_CurrentPath + "/NewScene");
                         m_QueueDirectoryTreeRebuild = true;
                     }
 

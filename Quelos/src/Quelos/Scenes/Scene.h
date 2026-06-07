@@ -40,7 +40,7 @@ namespace Quelos {
 
     class QS_API Scene : public Asset, public std::enable_shared_from_this<Scene> {
     public:
-        explicit Scene(std::string name = "Untitled Scene");
+        explicit Scene(const flecs::world& world, std::string name = "Untitled Scene");
 
         template <typename Func>
         void Each(Func&& func) const {
@@ -86,6 +86,11 @@ namespace Quelos {
 
         void OnViewportResized(float2 viewportSize) const;
 
+        void Init();
+
+        void Disable() const;
+        void Destroy();
+
         flecs::world& GetWorld() { return m_World; }
         ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
 
@@ -119,8 +124,6 @@ namespace Quelos {
         }
 
     public:
-        static Ref<Scene> Copy(const Ref<Scene>& scene);
-
         static Ref<Scene> GetScene(const flecs::world& world) {
             return world.get<SceneRoot>().GetScene();
         }

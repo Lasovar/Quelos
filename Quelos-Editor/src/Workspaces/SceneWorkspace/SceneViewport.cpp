@@ -55,7 +55,7 @@ namespace QuelosEditor {
 
             constexpr float translationSnap = 1.0f;
             constexpr float rotationSnap = 15.0f;
-            constexpr float scale = 0.5f;
+            constexpr float scaleSnap = 0.5f;
 
             const float* snapValue = nullptr;
 
@@ -84,7 +84,7 @@ namespace QuelosEditor {
                 case ImGuizmo::SCALE_ZU:
                 case ImGuizmo::SCALEU:
                 case ImGuizmo::SCALE:
-                    snapValue = &scale;
+                    snapValue = &scaleSnap;
                     break;
                 case ImGuizmo::BOUNDS:
                     break;
@@ -103,7 +103,7 @@ namespace QuelosEditor {
 
             if (const Entity parent = m_Selected.GetParent(); parent.IsValid()) {
                 if (const WorldTransform* parentWorld = parent.TryGet<WorldTransform>()) {
-                    transform.Value = math::inverse(parentWorld->Value) * transform.Value;
+                    transform.Value = math::mul(math::inverse(parentWorld->Value), transform.Value);
                 }
             }
 
@@ -160,7 +160,7 @@ namespace QuelosEditor {
                            && relativeMousePos.x < m_ViewportSize.x
                            && relativeMousePos.y < m_ViewportSize.y;
 
-        if (!ImGuizmo::IsUsing() && ImGui::IsItemClicked() && m_ViewportHovered && insideViewport) {
+        if (!ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_ViewportHovered && insideViewport) {
             m_SelectRequestPosition = {
                 static_cast<uint32_t>(relativeMousePos.x),
                 static_cast<uint32_t>(relativeMousePos.y)

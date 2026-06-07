@@ -4,27 +4,28 @@
 #include "imgui_internal.h"
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
+#include "Quelos/Scenes/SceneSnapshot.h"
 
 using namespace magic_enum::bitwise_operators;
 
 namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
-          m_Scene(SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata)),
-          m_SceneViewportPanel("Scene View", *this, m_Scene->GetRenderPass(), 1, 1),
-          m_InspectorPanel(m_Scene, *this, undoSystem),
-          m_EntityHierarchyPanel(m_Scene, *this, undoSystem)
+          m_EditorScene(SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_World)),
+          m_ActiveScene(m_EditorScene),
+          m_GameViewportPanel("Game View", *this, m_ActiveScene->GetRenderPass(), 1, 1),
+          m_SceneViewportPanel("Scene View", *this, m_ActiveScene->GetRenderPass(), 1, 1),
+          m_InspectorPanel(m_ActiveScene, *this, undoSystem),
+          m_EntityHierarchyPanel(m_ActiveScene, *this, undoSystem)
     {
-        m_WorkspaceID = ImHashStr((m_Scene->GetName() + "_Dockspace").c_str());
+        m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
         m_ShouldDock = true;
 
-        m_GameViewportPanel = ViewportPanel("Game View", m_Scene->GetRenderPass(), 1, 1);
-
         m_EditorCamera = EditorCamera(60.0f, 1.0f, 0.1f, 1000.0f);
 
-        m_SceneSerializer = SceneSerializer(m_Scene, assetMetadata.FilePath);
-        m_UndoSystem.AddSceneSerializer(m_Scene, &m_SceneSerializer);
+        m_SceneSerializer = SceneSerializer(m_EditorScene, assetMetadata.FilePath);
+        m_UndoSystem.AddSceneSerializer(m_EditorScene, &m_SceneSerializer);
 
         m_ContentBrowserPanel.Init();
 
@@ -137,7 +138,10 @@ namespace QuelosEditor {
         pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
 
         m_IDPSO = Renderer::CreatePipelineState(pipelineStateCreateInfo);
-        SceneRenderer& sceneRenderer = m_Scene->GetSceneRenderer();
+
+        shader->AddPipelineState(m_IDPSO.GetHandle());
+
+        SceneRenderer& sceneRenderer = m_ActiveScene->GetSceneRenderer();
         Renderer::BindStaticVariableByName(
             m_IDPSO.GetHandle(),
             ShaderType::Vertex,
@@ -152,8 +156,6 @@ namespace QuelosEditor {
             "Instances",
             sceneRenderer.GetInstancesGpuBuffer()
         );
-
-        shader->AddPipelineState(m_IDPSO.GetHandle());
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {
@@ -164,15 +166,51 @@ namespace QuelosEditor {
     }
 
     void SceneWorkspace::Tick(const float deltaTime) {
+        if (m_PlayRequest.Resolve()) {
+            OnScenePlay();
+        }
+
+        if (m_StopRequest.Resolve()) {
+            OnSceneStop();
+        }
+
         if (!m_SceneViewportPanel.IsViewportFocused() && !m_SceneViewportPanel.IsViewportHovered()) {
             m_EditorCamera.ClearInput();
         }
 
         m_EditorCamera.OnUpdate(deltaTime);
 
-        m_Scene->Tick(deltaTime);
+        m_ActiveScene->Tick(deltaTime);
 
         if (m_SceneViewportPanel.ShouldDraw()) {
+            if (m_PickRequest.Resolve()) {
+                MappedTextureSubresource mapped;
+                Renderer::MapTextureSubresource(
+                    m_IDStagingTexture.GetHandle(),
+                    0,
+                    0,
+                    Map::Read,
+                    MapFlags::DoNotWait,
+                    mapped
+                );
+
+                if (mapped.Data) {
+                    const uint2& position = m_SceneViewportPanel.GetSelectRequestPosition();
+                    auto pixels = static_cast<uint32_t*>(mapped.Data);
+
+                    uint32_t rowPitch = mapped.Stride / sizeof(uint32_t); // Stride is in bytes
+                    uint32_t pickedId = pixels[position.y * rowPitch + position.x];
+
+                    if (pickedId < m_PickIds.size()) {
+                        SetSelectEntity(m_PickIds[pickedId]);
+                    } else {
+                        SetSelectEntity({});
+                    }
+
+                    Renderer::UnmapTextureSubresource(m_IDStagingTexture.GetHandle(), 0, 0);
+                }
+            }
+
             m_EditorCamera.SetViewportFocused(m_SceneViewportPanel.IsViewportFocused());
             m_EditorCamera.SetViewportHovered(m_SceneViewportPanel.IsViewportHovered());
 
@@ -196,15 +234,15 @@ namespace QuelosEditor {
             attribs.ClearColors = clearValues;
 
             attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_Scene->GetRenderPass();
+            attribs.RenderPassHandle = m_ActiveScene->GetRenderPass();
 
-            m_Scene->StartRender(m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(), attribs);
+            m_ActiveScene->StartRender(m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(), attribs);
 
-            m_Scene->Render();
+            m_ActiveScene->Render();
 
-            m_Scene->EndRender();
+            m_ActiveScene->EndRender();
 
-            if (m_SceneViewportPanel.IsSelectRequest()) {
+            if (m_SceneViewportPanel.SelectRequest().Resolve()) {
                 ClearValue idClearValues[2];
                 idClearValues[0].Format = ImageFormat::R32UInt;
 
@@ -223,17 +261,17 @@ namespace QuelosEditor {
 
                 Renderer::BeginRenderPass(attribs);
 
-                const Vec<DrawCommand>& drawCalls = m_Scene->GetSceneRenderer().GetDrawCalls();
-                const GpuBufferHandle& instancesGpuBuffer = m_Scene->GetSceneRenderer().GetInstancesGpuBuffer();
+                const Vec<DrawCommand>& drawCalls = m_ActiveScene->GetSceneRenderer().GetDrawCalls();
+                const GpuBufferHandle& instancesGpuBuffer = m_ActiveScene->GetSceneRenderer().GetInstancesGpuBuffer();
 
                 Renderer::BindPipelineState(m_IDPSO.GetHandle());
                 Renderer::CommitShaderResources(m_IDSRB.GetHandle(), ResourceStateTransitionMode::None);
 
+                m_PickIds.clear();
+
                 uint32_t i = 0;
                 while (i < drawCalls.size()) {
-                    //
                     // PIPELINE RANGE
-                    //
 
                     uint32_t pipelineBegin = i;
                     const PipelineStateHandle& pipelineHandle = drawCalls[i].PipelineState;
@@ -244,15 +282,7 @@ namespace QuelosEditor {
 
                     const uint32_t pipelineEnd = i;
 
-                    //
-                    // BIND PIPELINE
-                    //
-
-
-                    //
                     // DRAW MESH RANGES
-                    //
-
 
                     uint32_t j = pipelineBegin;
                     uint32_t instanceOffset = 0;
@@ -268,9 +298,12 @@ namespace QuelosEditor {
                         while (j < pipelineEnd && instanceCount < k_MaxInstances && drawCalls[j].Mesh == mesh) {
                             instances[instanceCount++] = InstanceData{
                                 .Transform = drawCalls[j].Transform,
-                                .MaterialId = j + 1,
-                                .EntityIndex = j + 1
+                                .MaterialId = j,
+                                .EntityIndex = j
                             };
+
+                            QS_ASSERT(m_PickIds.size() == j);
+                            m_PickIds.push_back(drawCalls[j].Entity);
 
                             ++j;
                         }
@@ -302,39 +335,13 @@ namespace QuelosEditor {
                 copy.DestinationTransitionMode = ResourceStateTransitionMode::Transition;
                 Renderer::CopyTexture(copy);
 
-                MappedTextureSubresource mapped;
-                Renderer::MapTextureSubresource(
-                    m_IDStagingTexture.GetHandle(),
-                    0,
-                    0,
-                    Map::Read,
-                    MapFlags::DoNotWait,
-                    mapped
-                );
-
-                if (mapped.Data) {
-                    const uint2& position = m_SceneViewportPanel.GetSelectRequestPosition();
-                    auto pixels = static_cast<uint32_t*>(mapped.Data);
-
-                    uint32_t rowPitch = mapped.Stride / sizeof(uint32_t); // Stride is in bytes
-                    uint32_t pickedId = pixels[position.y * rowPitch + position.x];
-
-                    if (pickedId != 0 && pickedId <= drawCalls.size()) {
-                        SetSelectEntity(drawCalls[pickedId - 1].Entity);
-                    } else {
-                        SetSelectEntity({});
-                    }
-
-                    Renderer::UnmapTextureSubresource(m_IDStagingTexture.GetHandle(), 0, 0);
-                }
-
-                m_SceneViewportPanel.SetSelectRequest(false);
+                m_PickRequest = true;
             }
         }
 
         if (m_GameViewportPanel.ShouldDraw()) {
             if (m_GameViewportPanel.ResizeIfNeeded()) {
-                m_Scene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
+                m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
             ClearValue clearValues[3];
@@ -348,43 +355,21 @@ namespace QuelosEditor {
 
             BeginRenderPassAttribs attribs;
             attribs.FrameBufferHandle = m_GameViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_Scene->GetRenderPass();
+            attribs.RenderPassHandle = m_ActiveScene->GetRenderPass();
             attribs.ClearColors = clearValues;
 
-            m_Scene->StartRender(attribs);
-            m_Scene->Render();
-            m_Scene->EndRender();
+            m_ActiveScene->StartRender(attribs);
+            m_ActiveScene->Render();
+            m_ActiveScene->EndRender();
         }
     }
 
-    /*void DecomposeMatrix(const float4x4& m, float3& position, quaternion& rotation, float3& scale) {
-        // Position is just the last column
-        position = float3(m[3][0], m[3][1], m[3][2]);
-
-        // Scale is the length of each basis vector (column)
-        float3 col0 = float3(m[0][0], m[0][1], m[0][2]);
-        float3 col1 = float3(m[1][0], m[1][1], m[1][2]);
-        float3 col2 = float3(m[2][0], m[2][1], m[2][2]);
-
-        scale.x = math::length(col0);
-        scale.y = math::length(col1);
-        scale.z = math::length(col2);
-
-        // Remove scale from rotation matrix
-        float3x3 rotMat;
-        rotMat[0] = col0 / scale.x;
-        rotMat[1] = col1 / scale.y;
-        rotMat[2] = col2 / scale.z;
-
-        // Build quaternion from rotation matrix
-        rotation = quaternion(rotMat);
-    }*/
-
     void SceneWorkspace::WorkspaceContents() {
+        m_GameViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+
         m_SceneViewportPanel.SetFrame(m_SelectedEntity, m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection());
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
 
-        m_GameViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_ContentBrowserPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
@@ -439,5 +424,61 @@ namespace QuelosEditor {
 
             return false;
         });
+    }
+
+    void SceneWorkspace::ScenePlay() {
+        m_PlayRequest = true;
+    }
+
+    void SceneWorkspace::SceneStop() {
+        m_StopRequest = true;
+    }
+
+    void SceneWorkspace::Init() {
+        m_SelectedEntity = {};
+        m_PickIds.clear();
+        m_GameViewportPanel.SetRenderPass(m_ActiveScene->GetRenderPass());
+        m_SceneViewportPanel.SetRenderPass(m_ActiveScene->GetRenderPass());
+        m_EntityHierarchyPanel.SetScene(m_ActiveScene);
+        m_InspectorPanel.SetScene(m_ActiveScene);
+
+        SceneRenderer& sceneRenderer = m_ActiveScene->GetSceneRenderer();
+        Renderer::BindStaticVariableByName(
+            m_IDPSO.GetHandle(),
+            ShaderType::Vertex,
+            "global",
+            sceneRenderer.GetGlobalBuffer()
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Vertex,
+            m_IDSRB.GetHandle(),
+            "Instances",
+            sceneRenderer.GetInstancesGpuBuffer()
+        );
+    }
+
+    void SceneWorkspace::OnScenePlay() {
+        m_SceneSnapshot = SceneSnapshot::Create(m_EditorScene);
+        m_ActiveScene = CreateRef<Scene>(m_World);
+        m_SceneSnapshot.Load(m_ActiveScene);
+
+        m_EditorScene->Destroy();
+
+        Init();
+
+        m_SceneState = SceneState::Play;
+    }
+
+    void SceneWorkspace::OnSceneStop() {
+        m_EditorScene->Init();
+        m_SceneSnapshot.Load(m_EditorScene);
+
+        m_ActiveScene->Destroy();
+        m_ActiveScene = m_EditorScene;
+
+        Init();
+
+        m_SceneState = SceneState::Edit;
     }
 }

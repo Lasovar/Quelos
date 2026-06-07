@@ -148,6 +148,7 @@ namespace QuelosEditor {
 
         s_ShaderRecompilationStack.clear();
 
+        FlushOpenAssetWorkspace();
         for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->Tick(deltaTime);
         }
@@ -302,65 +303,7 @@ namespace QuelosEditor {
     void EditorLayer::OnScenePlay() {}
 
     void EditorLayer::UI_Toolbar() {
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 
-        const auto& colors = ImGui::GetStyle().Colors;
-        const ImVec4 hovered = colors[ImGuiCol_ButtonHovered];
-        const ImVec4 active = colors[ImGuiCol_ButtonActive];
-
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(hovered.x, hovered.y, hovered.z, 0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(active.x, active.y, active.z, 0.5f));
-
-        if (ImGui::Begin("##toolbar",
-                         nullptr,
-                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
-                         | ImGuiWindowFlags_NoScrollWithMouse)) {
-            float size = ImGui::GetWindowHeight() - 4.0f;
-
-            Ref<Texture2D> icon = m_SceneState == SceneState::Edit
-                                      ? m_IconPlay
-                                      : m_IconStop;
-
-            ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x * 0.5f - size * 2.0f);
-            if (ImGui::ImageButton(icon, {size, size}, {0, 1}, {1, 0})) {
-                if (m_SceneState == SceneState::Edit) {
-                    //OnScenePlay();
-                }
-                else if (m_SceneState == SceneState::Play) {
-                    //OnSceneStop();
-                }
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::ImageButton(
-                m_IconPause,
-                {size, size},
-                {0, 1},
-                {1, 0},
-                m_ScenePaused ? ImVec4{0.5f, 0.5f, 0.5f, 1.0f} : ImVec4{0, 0, 0, 0}
-            )) {
-                m_ScenePaused = !m_ScenePaused;
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::ImageButton(m_IconStep, {size, size}, {0, 1}, {1, 0})) {
-                if (!m_ScenePaused) {
-                    m_ScenePaused = true;
-                }
-
-                m_SceneStep = true;
-            }
-
-            ImGui::End();
-        }
-        else ImGui::End();
-
-        ImGui::PopStyleVar(2);
-        ImGui::PopStyleColor(3);
     }
 
     void EditorLayer::OnEvent(Event& event) {
@@ -418,34 +361,46 @@ namespace QuelosEditor {
         }
     }
 
+    void EditorLayer::FlushOpenAssetWorkspace() {
+        if (m_OpenAssetWorkspaceRequests.empty()) {
+            return;
+        }
+
+        for (const AssetMetadata& metadata : m_OpenAssetWorkspaceRequests) {
+            const auto it = m_WorkspaceFactories.find(metadata.Type);
+            if (it == m_WorkspaceFactories.end()) {
+                QS_CORE_WARN_TAG(
+                    "No suitable workspace found for asset '{}'!",
+                    metadata.FilePath
+                );
+
+                return;
+            }
+
+            if (const auto workspaceIt = m_Workspaces.find(metadata.Handle); workspaceIt != m_Workspaces.end()) {
+                workspaceIt->second->Focus();
+                return;
+            }
+
+            Scope<Workspace> workspace = it->second(m_UndoSystem, metadata);
+            if (!workspace) {
+                QS_CORE_ERROR_TAG(
+                    "EditorLayer",
+                    "Failed to create workspace for asset '{}'!",
+                    metadata.FilePath
+                );
+
+                return;
+            }
+
+            workspace->Focus();
+            m_Workspaces.emplace(metadata.Handle, std::move(workspace));
+        }
+
+        m_OpenAssetWorkspaceRequests.clear();
+    }
+
     void EditorLayer::OpenAssetWorkspace(const AssetMetadata& metadata) {
-        const auto it = m_WorkspaceFactories.find(metadata.Type);
-        if (it == m_WorkspaceFactories.end()) {
-            QS_CORE_WARN_TAG(
-                "No suitable workspace found for asset '{}'!",
-                metadata.FilePath
-            );
-
-            return;
-        }
-
-        if (const auto workspaceIt = m_Workspaces.find(metadata.Handle); workspaceIt != m_Workspaces.end()) {
-            workspaceIt->second->Focus();
-            return;
-        }
-
-        Scope<Workspace> workspace = it->second(m_UndoSystem, metadata);
-        if (!workspace) {
-            QS_CORE_ERROR_TAG(
-                "EditorLayer",
-                "Failed to create workspace for asset '{}'!",
-                metadata.FilePath
-            );
-
-            return;
-        }
-
-        workspace->Focus();
-        m_Workspaces.emplace(metadata.Handle, std::move(workspace));
+        m_OpenAssetWorkspaceRequests.push_back(metadata);
     }
 }

@@ -9,6 +9,9 @@
 #include "Panels/EntityHierarchyPanel.h"
 #include "Panels/EntityInspectorPanel.h"
 #include "Panels/ViewportPanel.h"
+#include "Quelos/Scenes/SceneSnapshot.h"
+#include "Quelos/Utility/Request.h"
+#include "SceneWorkspace/GameViewport.h"
 
 #include "Workspaces/SceneWorkspace/SceneViewport.h"
 
@@ -16,6 +19,11 @@ namespace QuelosEditor {
     using namespace Quelos;
 
     using SelectionCallback = std::function<void(const Entity&)>;
+
+    enum class SceneState {
+        Edit = 0, Play
+    };
+
     class SceneWorkspace : public Workspace {
     public:
         explicit SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata);
@@ -28,24 +36,51 @@ namespace QuelosEditor {
         void OnEvent(Event& event) override;
 
         GraphicsShader* GetIDShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_IDShaderStorage)); }
-        const GraphicsShader* GetIDShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_IDShaderStorage)); }
-        const Ref<Scene>& GetScene() { return m_Scene; }
-        Entity GetSelectedEntity() const { return m_SelectedEntity; }
+        [[nodiscard]] const GraphicsShader* GetIDShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_IDShaderStorage)); }
+        const Ref<Scene>& GetScene() { return m_ActiveScene; }
+        [[nodiscard]] Entity GetSelectedEntity() const { return m_SelectedEntity; }
+
+        void ScenePlay();
+        void SceneStop();
+
+        void Init();
+
+        [[nodiscard]] SceneState GetSceneState() const { return m_SceneState; }
+        [[nodiscard]] bool IsScenePaused() const { return m_ScenePaused; }
+        void ToggleScenePaused() { m_ScenePaused = !m_ScenePaused; }
+        void SetScenePaused(const bool value) { m_ScenePaused = value; }
+        void SetSceneStep(const bool value) { m_SceneStep = value; }
 
         void OnEntitySelectionChanged(SelectionCallback callback) {
             m_OnSelectionChangedCallbacks.push_back(std::move(callback));
         }
+    private:
+        void OnScenePlay();
+        void OnSceneStop();
 
     private:
+        flecs::world m_World;
         Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
-        Ref<Scene> m_Scene;
+        SceneState m_SceneState = SceneState::Edit;
+        bool m_ScenePaused = false;
+        bool m_SceneStep = false;
+
+        Request m_PlayRequest;
+        Request m_StopRequest;
+
+        SceneSnapshot m_SceneSnapshot;
+        Ref<Scene> m_EditorScene;
+        Ref<Scene> m_ActiveScene;
+
         SceneSerializer m_SceneSerializer;
 
-        ViewportPanel m_GameViewportPanel;
+        GameViewport m_GameViewportPanel;
         SceneViewport m_SceneViewportPanel;
 
         Entity m_SelectedEntity;
+        Request m_PickRequest = false;
+        Vec<Entity> m_PickIds;
 
         EntityInspectorPanel m_InspectorPanel;
         EntityHierarchyPanel m_EntityHierarchyPanel;

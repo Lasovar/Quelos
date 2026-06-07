@@ -4,6 +4,8 @@
 #include <ranges>
 #include <string_view>
 
+#include "Quelos/Scenes/SceneSnapshot.h"
+
 using namespace magic_enum::bitwise_operators;
 
 namespace Quelos {
@@ -343,7 +345,46 @@ namespace Quelos {
         }
 
         std::string sceneName = m_ScenePath.filename().generic_string();
-        OsPath sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / SceneBakedFile;
+
+        if (!std::filesystem::exists(sceneFilePath)) {
+            std::ofstream create(sceneFilePath, std::ios::binary);
+            SceneHeader sceneHeader;
+            create.write(reinterpret_cast<const char*>(&sceneHeader), sizeof(SceneHeader));
+        }
+
+        return true;
+    }
+
+    bool SceneSerializer::CreateSceneAsset(std::string_view assetPath) {
+        OsPath scenePath(Project::GetProjectPath() / assetPath);
+
+        if (!std::filesystem::exists(scenePath)) {
+            std::error_code errorCode;
+            std::filesystem::create_directories(scenePath, errorCode);
+            if (errorCode) {
+                QS_ERROR_TAG(
+                    "SceneSerializer",
+                    "Failed to create scene directory at {}: {}",
+                    scenePath.string(), errorCode.message()
+                );
+
+                return false;
+            }
+        } else {
+            if (!std::filesystem::is_directory(scenePath)) {
+                QS_ERROR_TAG("SceneSerializer", "Scene folder path is not a directory");
+                return false;
+            }
+        }
+
+        OsPath patchesFolder = scenePath / ScenePatchesFolder;
+        if (!std::filesystem::exists(patchesFolder)) {
+            std::filesystem::create_directories(patchesFolder);
+        }
+
+        std::string sceneName = scenePath.filename().generic_string();
+        OsPath sceneFilePath = scenePath / SceneBakedFile;
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -362,7 +403,7 @@ namespace Quelos {
         OsPath patchesFolder = m_ScenePath / ScenePatchesFolder;
 
         std::string sceneName = m_ScenePath.filename().generic_string();
-        OsPath sceneFilePath = m_ScenePath / (sceneName + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / SceneBakedFile;
 
         if (!std::filesystem::exists(sceneFilePath)) {
             std::ofstream create(sceneFilePath, std::ios::binary);
@@ -414,11 +455,8 @@ namespace Quelos {
                 continue;
             }
 
-            EntitySnapshot entitySnapshot;
-            entitySnapshot.Data.resize(entitySnapshotSize.value());
-            std::memcpy(entitySnapshot.Data.data(), entitySnapshotBlob.data(), entitySnapshotBlob.size());
-
-            EntitySnapshot::Load(m_Scene, entitySnapshot);
+            BufferView entitySnapshotView(entitySnapshotBlob.data(), *entitySnapshotSize);
+            EntitySnapshot::Load(m_Scene, entitySnapshotView);
         }
 
         world.defer_end();
@@ -793,7 +831,7 @@ namespace Quelos {
         }
 
         // Disk write
-        OsPath sceneFilePath = m_ScenePath / (m_ScenePath.filename().string() + SceneFileExtension);
+        OsPath sceneFilePath = m_ScenePath / SceneBakedFile;
         std::ofstream sceneFile(sceneFilePath, std::ios::binary);
 
         if (!sceneFile) {

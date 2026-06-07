@@ -11,15 +11,6 @@
 #include "Quelos/Core/Base.h"
 
 namespace Quelos {
-    struct SceneHeader {
-        uint32_t Magic = 0x53434E45; // 'SCNE'
-        uint32_t Version = 1;
-
-        uint64_t EntityCount = 0;
-
-        uint64_t ComponentTypeCount = 0;
-    };
-
     enum class PatchState : uint8_t {
         Changed = 0,
         Added = 1,
@@ -78,6 +69,7 @@ namespace Quelos {
     class SceneSerializer {
     public:
         static inline const std::string SceneFileExtension = ".qscene";
+        static inline const std::string SceneBakedFile = "Baked" + SceneFileExtension;
         static inline const std::filesystem::path ScenePatchesFolder = "Patches";
         static inline const std::string ScenePatchFileExtension = ".qpatch";
     public:
@@ -86,6 +78,8 @@ namespace Quelos {
         ~SceneSerializer() = default;
 
         bool EnsureSceneExists() const;
+
+        static bool CreateSceneAsset(std::string_view assetPath);
 
         void Deserialize();
 

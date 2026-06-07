@@ -6,6 +6,7 @@
 
 #include "Panels/ViewportPanel.h"
 #include "Quelos/ImGui/widgets/gizmo.h"
+#include "Quelos/Utility/Request.h"
 
 namespace QuelosEditor {
     class SceneWorkspace;
@@ -21,8 +22,7 @@ namespace QuelosEditor {
         );
 
         [[nodiscard]] const uint2& GetSelectRequestPosition() const { return m_SelectRequestPosition; }
-        [[nodiscard]] bool IsSelectRequest() const { return m_SelectRequest; }
-        void SetSelectRequest(const bool value) { m_SelectRequest = value; }
+        [[nodiscard]] Request& SelectRequest() { return m_SelectRequest; }
 
         void SetFrame(const Entity value, const float4x4& view, const float4x4& proj) {
             m_Selected = value;
@@ -39,7 +39,7 @@ namespace QuelosEditor {
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 
         uint2 m_SelectRequestPosition;
-        bool m_SelectRequest = false;
+        Request m_SelectRequest = false;
 
         Entity m_Selected;
         float4x4 m_View;

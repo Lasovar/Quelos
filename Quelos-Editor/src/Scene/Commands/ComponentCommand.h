@@ -7,7 +7,7 @@ namespace Quelos {
     struct ComponentSnapshot {
         Vec<byte> Data;
 
-        ComponentID GetComponentID() const {
+        [[nodiscard]] ComponentID GetComponentID() const {
             if (Data.size() < sizeof(ComponentID)) {
                 return {};
             }

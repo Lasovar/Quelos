@@ -17,8 +17,8 @@ namespace QuelosEditor {
                 });
         }
 
-        Ref<Scene> ImportScene(const AssetID assetHandle, const AssetMetadata& metadata) {
-            Ref<Scene> scene = CreateRef<Scene>();
+        Ref<Scene> ImportScene(const AssetID assetHandle, const AssetMetadata& metadata, const flecs::world& world) {
+            Ref<Scene> scene = CreateRef<Scene>(world);
             scene->SetAssetID(assetHandle);
 
             SceneSerializer sceneSerializer(scene, Project::GetProjectPath() / metadata.FilePath);
