@@ -166,6 +166,10 @@ namespace Quelos {
         return s_RendererContext->CreatePipelineResourceSignature(pipelineResourceSignatureSpec);
     }
 
+    void Renderer::Destroy(const PipelineResourceSignatureHandle pipelineResourceSignatureHandle) {
+        s_RendererContext->Destroy(pipelineResourceSignatureHandle);
+    }
+
     void Renderer::Shutdown() {
         s_RendererContext->Shutdown();
         s_IsInitialized = false;
@@ -181,22 +185,6 @@ namespace Quelos {
 
     bool Renderer::HomogenousDepth() {
         return s_RendererContext->HomogenousDepth();
-    }
-
-    GraphicsShaderHandle Renderer::CreateShader(Buffer vertex, Buffer fragment, const std::string& name) {
-        return s_RendererContext->CreateShader(std::move(vertex), std::move(fragment), name);
-    }
-
-    bool Renderer::RecreateShader(const GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) {
-        return s_RendererContext->RecreateShader(handle, std::move(vertex), std::move(fragment));
-    }
-
-    void Renderer::Submit(const GraphicsShaderHandle handle, const uint32_t view) {
-        s_RendererContext->Submit(handle, view);
-    }
-
-    void Renderer::Destroy(const GraphicsShaderHandle shaderHandle) {
-        s_RendererContext->Destroy(shaderHandle);
     }
 
     GpuBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {

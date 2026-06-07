@@ -10,10 +10,8 @@ namespace QuelosEditor {
     namespace ShaderImporter {
         bool IsAssetSupported(std::string_view assetPath);
 
-        bool RecompileShader(GraphicsShader* shader);
         bool Cook(const AssetMetadata& metadata);
         bool Import(void* dataSlot, const AssetMetadata& metadata);
-        bool Reimport(void* shader, const AssetMetadata& metadata);
 
         AssetID ReadAssetHandle(std::string_view assetPath);
         bool WriteAssetHandle(std::string_view assetPath, const AssetID& handle);

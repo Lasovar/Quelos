@@ -54,7 +54,6 @@ namespace QuelosEditor {
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
     HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
-    Vec<AssetRef<GraphicsShader>> EditorLayer::s_ShaderRecompilationStack;
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
@@ -142,17 +141,11 @@ namespace QuelosEditor {
     }
 
     void EditorLayer::Tick(const float deltaTime) {
-        for (auto& shader : s_ShaderRecompilationStack) {
-            ShaderImporter::RecompileShader(shader.TryGet());
-        }
-
-        s_ShaderRecompilationStack.clear();
-
-        FlushOpenAssetWorkspace();
         for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->Tick(deltaTime);
         }
 
+        FlushOpenAssetWorkspace();
         m_EditorAssetManager->FlushReimportQueue();
     }
 
@@ -298,12 +291,6 @@ namespace QuelosEditor {
                       [](const Pair<AssetID, Scope<Workspace>>& workspace) {
                           return !workspace.second->IsOpen();
                       });
-    }
-
-    void EditorLayer::OnScenePlay() {}
-
-    void EditorLayer::UI_Toolbar() {
-
     }
 
     void EditorLayer::OnEvent(Event& event) {

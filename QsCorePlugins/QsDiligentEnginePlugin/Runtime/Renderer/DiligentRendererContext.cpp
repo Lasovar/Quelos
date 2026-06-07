@@ -872,22 +872,6 @@ namespace Quelos {
         m_pImmediateContext->EndRenderPass();
     }
 
-    GraphicsShaderHandle DiligentRendererContext::CreateShader(
-        Buffer vertex, Buffer fragment, const std::string& name
-    ) {
-        // TODO:
-        return {};
-    }
-
-    bool DiligentRendererContext::RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) {
-        // TODO:
-        return {};
-    }
-
-    void DiligentRendererContext::Destroy(GraphicsShaderHandle shaderHandle) {
-        // TODO:
-    }
-
     GpuBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
         const Handle<GpuBuffer> handle = m_BufferTable.Emplace();
         QBufferData* slot = m_BufferTable.At(handle);
@@ -1878,10 +1862,6 @@ namespace Quelos {
         slot->OwnedStrings.clear();
 
         m_PipelineStateTable.Erase(pipelineStateHandle);
-    }
-
-    void DiligentRendererContext::Submit(GraphicsShaderHandle shaderHandle, uint32_t view) {
-        // TODO:
     }
 
     VertexBufferHandle

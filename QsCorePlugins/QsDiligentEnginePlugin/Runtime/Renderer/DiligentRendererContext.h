@@ -161,11 +161,6 @@ namespace Quelos {
 
         void Destroy(PipelineStateHandle pipelineStateHandle) override;
 
-        GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) override;
-        bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) override;
-        void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) override;
-        void Destroy(GraphicsShaderHandle shaderHandle) override;
-
         GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) override;
 
         ShaderResourceBindingHandle CreateShaderResourceBinding(

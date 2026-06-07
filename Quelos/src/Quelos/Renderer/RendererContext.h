@@ -14,7 +14,6 @@
 #include "VertexBufferLayout.h"
 #include "Quelos/Core/Window.h"
 #include "Quelos/Scenes/Components.h"
-#include "GraphicsShader.h"
 #include "ShaderResourceBinding.h"
 
 namespace Quelos {
@@ -218,11 +217,6 @@ namespace Quelos {
 
         virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;
         virtual void Destroy(GpuBufferHandle bufferHandle) = 0;
-
-        virtual GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name) = 0;
-        virtual bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment) = 0;
-        virtual void Submit(GraphicsShaderHandle shaderHandle, uint32_t view) = 0;
-        virtual void Destroy(GraphicsShaderHandle shaderHandle) = 0;
 
         virtual GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) = 0;
 
