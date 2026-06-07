@@ -73,6 +73,8 @@ namespace QuelosEditor {
         Ref<Scene> m_EditorScene;
         Ref<Scene> m_ActiveScene;
 
+        WorldRenderer m_WorldRenderer;
+
         SceneSerializer m_SceneSerializer;
 
         GameViewport m_GameViewportPanel;

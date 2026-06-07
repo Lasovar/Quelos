@@ -146,10 +146,10 @@ namespace Quelos {
         uint32_t EntityIndex;
     };
 
-    class SceneRenderer {
+    class WorldRenderer {
     public:
-        SceneRenderer() = delete;
-        explicit SceneRenderer(const flecs::world& world);
+        WorldRenderer() = delete;
+        explicit WorldRenderer(const flecs::world& world);
 
         void Begin(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
         void Render();
@@ -159,7 +159,7 @@ namespace Quelos {
         [[nodiscard]] GpuBufferHandle GetInstancesGpuBuffer() const { return m_InstancesGPUBuffer; }
         [[nodiscard]] GpuBufferHandle GetGlobalBuffer() const { return m_GlobalBuffer; }
 
-        ~SceneRenderer();
+        ~WorldRenderer();
         [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
 
     private:

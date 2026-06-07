@@ -20,7 +20,7 @@ namespace Quelos {
     class WindowResizeEvent;
 
     Scene::Scene(const flecs::world& world, std::string name)
-        : m_World(world), m_ComponentRegistry(m_World), m_Name(std::move(name)), m_SceneRenderer(m_World)
+        : m_World(world), m_ComponentRegistry(m_World), m_Name(std::move(name))
     {
         Init();
         m_TransformUpdate = m_World.entity("TransformUpdate")
@@ -65,37 +65,16 @@ namespace Quelos {
         }
     }
 
-    void Scene::StartRender(const BeginRenderPassAttribs& beginRenderPassAttribs) {
+    float4x4 Scene::GetViewProjection() const {
         if (m_CameraQuery.count() < 1) {
-            return;
+            return float4x4::identity();
         }
 
         const flecs::entity cameraEntity = m_CameraQuery.first();
         const auto& transform = cameraEntity.get<WorldTransform>();
         const auto& camera = cameraEntity.get<CameraComponent>().Camera;
 
-        StartRender(mathExt::view(transform.Value), camera.GetProjection(), beginRenderPassAttribs);
-    }
-
-    void Scene::StartRender(float4x4 view, float4x4 projection, const BeginRenderPassAttribs& beginRenderPassAttribs) {
-        m_SceneRenderer.Begin(beginRenderPassAttribs, math::mul(view, projection));
-        m_SceneRenderStarted = true;
-    }
-
-    void Scene::Render() {
-        if (!m_SceneRenderStarted) {
-            return;
-        }
-
-        m_SceneRenderer.Render();
-    }
-
-    void Scene::EndRender() {
-        if (m_SceneRenderStarted) {
-            m_SceneRenderer.End();
-        }
-
-        m_SceneRenderStarted = false;
+        return math::mul(mathExt::view(transform.Value), camera.GetProjection());
     }
 
     Actor Scene::CreateActor(const std::string_view entityName) {
