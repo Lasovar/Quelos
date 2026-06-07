@@ -704,6 +704,8 @@ namespace Quelos {
             auto* pFactoryD3D12 = LoadAndGetEngineFactoryD3D12();
             EngineD3D12CreateInfo engineCi;
 
+            engineCi.GPUDescriptorHeapDynamicSize[0] = 16384;
+
             pFactoryD3D12->CreateDeviceAndContextsD3D12(engineCi, &m_pDevice, &m_pImmediateContext);
             pFactoryD3D12->CreateSwapChainD3D12(
                 m_pDevice,
@@ -1518,7 +1520,6 @@ namespace Quelos {
         Diligent::ShaderCreateInfo shaderCreateInfo;
         // Tell the system that the shader source code is in HLSL.
         // For OpenGL, the engine will convert this into GLSL behind the scene
-        shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_BYTECODE;
         switch (m_RendererAPI) {
         case RendererAPI::Direct3D11:
         case RendererAPI::Direct3D12:

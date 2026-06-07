@@ -2,7 +2,7 @@ import quelos;
 
 struct EditorVSOut {
     float4 pos : SV_Position;
-    uint entityId : SV_Target0;
+    uint entityId : TEXCOORD0;
 };
 
 [shader("vertex")]

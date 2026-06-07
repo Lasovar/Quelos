@@ -96,11 +96,21 @@ namespace Quelos {
         }
 
         template <typename T>
+        T* TryGetMut() {
+            return m_ID.try_get_mut<T>();
+        }
+
+        template <typename T>
         T& GetMut() {
             return m_ID.get_mut<T>();
         }
 
-        Entity GetParent() const {
+        template <typename T>
+        [[nodiscard]] bool Has() const {
+            return m_ID.has<T>();
+        }
+
+        [[nodiscard]] Entity GetParent() const {
             return m_ID.parent();
         }
 

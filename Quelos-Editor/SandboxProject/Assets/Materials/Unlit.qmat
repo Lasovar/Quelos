@@ -1,0 +1,10 @@
+[Material]
+assetId = d96a38ab-74c7-49f3-a7c1-cac9e6d18c14
+shader = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
+
+@properties
+Color = (Color,(1,0,0,1))
+Power = (Float,0)
+_MainTex = (Texture2D,null)
+_NormalTex = (Texture2D,null)
+Pad = (Float,0)

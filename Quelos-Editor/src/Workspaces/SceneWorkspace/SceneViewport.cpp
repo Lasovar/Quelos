@@ -46,7 +46,7 @@ namespace QuelosEditor {
             shouldSnap = true;
         }
 
-        if (m_Selected.IsValid()) {
+        if (m_Selected.IsValid() && m_Selected.Has<LocalTransform>()) {
             const float4x4& view = m_View;
             const float4x4& proj = m_Projection;
 

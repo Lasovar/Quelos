@@ -8,8 +8,8 @@
 
 namespace Quelos {
     GraphicsShader::GraphicsShader(
-        Buffer vertex,
-        Buffer fragment,
+        BufferView vertex,
+        BufferView fragment,
         std::string name,
         const Vec<MaterialPropertySpec>& materialProperties,
         const uint64_t materialSize
@@ -21,7 +21,6 @@ namespace Quelos {
         vertexCreateInfo.ByteCode = vertex;
 
         m_VertexShader = Renderer::CreateShader(vertexCreateInfo);
-        vertex.release();
 
         ShaderCreateInfo fragmentCreateInfo;
         fragmentCreateInfo.Specification.Name = m_Name;
@@ -30,7 +29,6 @@ namespace Quelos {
         fragmentCreateInfo.ByteCode = fragment;
 
         m_FragmentShader = Renderer::CreateShader(fragmentCreateInfo);
-        fragment.release();
     }
 
     GraphicsShader::~GraphicsShader() {

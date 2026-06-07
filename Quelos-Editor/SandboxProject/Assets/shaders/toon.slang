@@ -6,7 +6,7 @@ struct ToonMaterial {
     [Texture2D] uint MainTex;
 };
 
-StructuredBuffer<ToonMaterial> Materials;
+__extern_cpp StructuredBuffer<ToonMaterial> Materials;
 
 ToonMaterial GetMaterial(uint instanceId) {
     return Materials[Instances[instanceId].MaterialID];

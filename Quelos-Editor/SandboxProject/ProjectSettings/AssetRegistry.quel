@@ -42,6 +42,10 @@ path = "Assets/Materials/Toon.qmat"
 handle = 8fc22766-715e-400d-bd33-51c6eb05e3a8
 path = "Assets/Materials/DefaultMat.qmat"
 
+[Quelos.Material]
+handle = d96a38ab-74c7-49f3-a7c1-cac9e6d18c14
+path = "Assets/Materials/Unlit.qmat"
+
 [Quelos.Model]
 handle = d1b9f3ab-4152-419e-919b-4a08e7d70829
 path = "Assets/Meshes/Plane.fbx"

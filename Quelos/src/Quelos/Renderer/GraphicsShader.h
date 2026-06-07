@@ -56,8 +56,8 @@ namespace Quelos {
     class QS_API GraphicsShader : public Asset {
     public:
         GraphicsShader(
-            Buffer vertex,
-            Buffer fragment,
+            BufferView vertex,
+            BufferView fragment,
             std::string name,
             const Vec<MaterialPropertySpec>& materialProperties,
             uint64_t materialSize

@@ -43,6 +43,7 @@ __extern_cpp struct InstanceData {
     float4x4 Transform;
     uint MaterialID;
     uint EntityID;
+    float2 Padding;
 };
 
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
