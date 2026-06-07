@@ -21,7 +21,7 @@ namespace Quelos {
             const size_t pos = path.find_last_of('.');
             if (pos == std::string_view::npos) {
                 // ReSharper disable once CppDFALocalValueEscapesFunction
-                return { path.end(), 0 };
+                return { path.data() + path.size(), 0 };
             }
 
             return { path.data() + pos, path.size() - pos };

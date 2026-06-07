@@ -1522,13 +1522,17 @@ namespace Quelos {
         switch (m_RendererAPI) {
         case RendererAPI::Direct3D11:
         case RendererAPI::Direct3D12:
+            shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+            shaderCreateInfo.Source = reinterpret_cast<const char*>(createInfo.ByteCode.data());
+            shaderCreateInfo.SourceLength = createInfo.ByteCode.size();
+            break;
         case RendererAPI::Vulkan:
             shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_BYTECODE;
             shaderCreateInfo.ByteCode = createInfo.ByteCode.data();
             shaderCreateInfo.ByteCodeSize = createInfo.ByteCode.size();
             break;
         case RendererAPI::OpenGL:
-            shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+            shaderCreateInfo.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
             shaderCreateInfo.Source = reinterpret_cast<const char*>(createInfo.ByteCode.data());
             shaderCreateInfo.SourceLength = createInfo.ByteCode.size();
             break;

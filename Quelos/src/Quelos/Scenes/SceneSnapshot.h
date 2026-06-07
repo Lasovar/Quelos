@@ -9,7 +9,7 @@
 #include "Scene.h"
 
 namespace Quelos {
-    struct SceneHeader {
+    struct QS_API SceneHeader {
         uint32_t Magic = 0x53434E45; // 'SCNE'
         uint32_t Version = 1;
 
@@ -18,7 +18,7 @@ namespace Quelos {
         uint64_t ComponentTypeCount = 0;
     };
 
-    struct SceneSnapshot {
+    struct QS_API SceneSnapshot {
         std::string SceneName;
         Vec<byte> Data;
 

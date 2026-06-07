@@ -339,7 +339,7 @@ namespace QuelosEditor {
             switch (Renderer::GetRendererAPI()) {
             case RendererAPI::Direct3D11:
             case RendererAPI::Direct3D12: {
-                targetDesc.format = SLANG_DXBC;
+                targetDesc.format = SLANG_HLSL;
                 targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
                 break;
             }
@@ -357,8 +357,8 @@ namespace QuelosEditor {
                 break;
             }
             case RendererAPI::OpenGL: {
-                targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
+                targetDesc.format = SLANG_GLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("glsl_450");
                 break;
             }
             default:
