@@ -25,16 +25,9 @@ namespace QuelosEditor {
 
         void Tick(float deltaTime) override;
         void ImGuiRender() override;
-        void OnScenePlay();
-        void OnSceneStop();
-        void UI_Toolbar();
         void OnEvent(Event& event) override;
 
         void OpenAssetWorkspace(const AssetMetadata& metadata);
-
-        static void RecompilerShader(const AssetRef<GraphicsShader>& shader) {
-            s_ShaderRecompilationStack.push_back(shader);
-        }
 
         static EditorLayer& Get() { return *s_Instance; }
 
@@ -77,6 +70,5 @@ namespace QuelosEditor {
 
         // SHADER
         static HashMap<const char*, QS_ShaderCompiler> s_ShaderCompilers;
-        static Vec<AssetRef<GraphicsShader>> s_ShaderRecompilationStack;
     };
 }

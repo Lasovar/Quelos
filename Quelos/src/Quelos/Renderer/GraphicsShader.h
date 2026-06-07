@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "Quelos/Core/Buffer.h"
+
 #include "GpuBuffer.h"
 #include "PipelineState.h"
 
@@ -65,8 +67,6 @@ namespace Quelos {
 
         [[nodiscard]] const std::string& GetName() const { return m_Name; }
 
-        void Recreate(Buffer vertex, Buffer fragment);
-
         [[nodiscard]] ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
         [[nodiscard]] ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
 
@@ -99,15 +99,5 @@ namespace Quelos {
             static AssetType s_AssetType = Quelos::GetAssetType<GraphicsShader>();
             return s_AssetType;
         }
-    };
-
-    struct QS_API GraphicsShaderHandle : Handle<GraphicsShader> {
-        GraphicsShaderHandle() = default;
-
-        GraphicsShaderHandle(const Handle shaderHandle) {
-            Value = shaderHandle.Value;
-        }
-
-        void Submit(uint32_t viewId) const;
     };
 }

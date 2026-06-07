@@ -3,9 +3,9 @@
 #include <filesystem>
 
 #include "GraphicsTypes.h"
+#include "PipelineResourceSignature.h"
 #include "Quelos/Math/Math.h"
 #include "Quelos/AssetManager/Asset.h"
-#include "Quelos/Core/Buffer.h"
 #include "Quelos/Core/Ref.h"
 #include "Quelos/Utility/SlotMap.h"
 
@@ -36,29 +36,6 @@ namespace Quelos {
 
         // Defaults
         Depth = Depth24Stencil8,
-    };
-
-    enum class QS_API WrapMode {
-        Unknown,
-        Repeat,
-        Clamp,
-        Mirror,
-        Border,
-
-        /// Similar to TEXTURE_ADDRESS_MIRROR and TEXTURE_ADDRESS_CLAMP. Takes the absolute
-        /// value of the texture coordinate (thus, mirroring around 0), and then clamps to
-        /// the maximum value. \n
-        /// Direct3D Counterpart: D3D11_TEXTURE_ADDRESS_MIRROR_ONCE/D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE. OpenGL counterpart: GL_MIRROR_CLAMP_TO_EDGE
-        /// \note GL_MIRROR_CLAMP_TO_EDGE is only available in OpenGL4.4+, and is not available until at least OpenGLES3.1
-        MirrorOnce,
-        Count
-    };
-
-    enum class QS_API FilterMode {
-        Unknown,
-        Point,
-        Linear,
-        Anisotropic,
     };
 
     enum class QS_API TextureType {

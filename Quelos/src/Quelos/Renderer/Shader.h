@@ -1,9 +1,6 @@
 #pragma once
 
-#include "RenderPass.h"
-#include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Utility/SlotMap.h"
-#include "Quelos/Core/Buffer.h"
 
 namespace Quelos {
     // Only shader types implemented for now are vertex and fragment

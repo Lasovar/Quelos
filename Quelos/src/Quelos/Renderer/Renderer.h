@@ -59,11 +59,6 @@ namespace Quelos {
         static PipelineResourceSignatureHandle CreatePipelineResourceSignature(const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec);
         static void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle);
 
-        static GraphicsShaderHandle CreateShader(Buffer vertex, Buffer fragment, const std::string& name);
-        static bool RecreateShader(GraphicsShaderHandle handle, Buffer vertex, Buffer fragment);
-        static void Submit(GraphicsShaderHandle handle, uint32_t view);
-        static void Destroy(GraphicsShaderHandle shaderHandle);
-
         static GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView bufferView);
         static void UpdateBuffer(GpuBufferHandle bufferHandle, uint64_t offset, BufferView data);
         static void Destroy(GpuBufferHandle bufferHandle);

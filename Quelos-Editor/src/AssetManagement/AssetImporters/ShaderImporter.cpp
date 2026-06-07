@@ -542,63 +542,9 @@ namespace QuelosEditor {
             return shader;
         }
 
-        bool Reimport(void* shader, [[maybe_unused]] const AssetMetadata& metadata) {
-            return RecompileShader(static_cast<GraphicsShader*>(shader));
-        }
-
         bool IsAssetSupported(const std::string_view assetPath) {
             std::string_view extension = FS::Extension(assetPath);
             return extension == ".slang";
-        }
-
-        bool RecompileShader(GraphicsShader* shader) {
-            if (!shader || !shader->GetAssetID()) {
-                QS_ERROR_TAG(
-                    "ShaderImporter",
-                    "Failed to recompile shader: invalid shader asset!"
-                );
-
-                return false;
-            }
-
-            const Ref<EditorAssetManager> assetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
-            if (!assetManager) {
-                QS_ERROR_TAG(
-                    "ShaderImporter",
-                    "Failed to recompile shader '{}': couldn't retrieve EditorAssetManager",
-                    shader->GetName()
-                );
-
-                return false;
-            }
-
-            const AssetMetadata* metadata = assetManager->GetAssetMetadata(shader->GetAssetID());
-            if (!metadata) {
-                QS_ERROR_TAG(
-                    "ShaderImporter",
-                    "Failed to recompile shader '{}': couldn't retrieve asset metadata for shader!",
-                    shader->GetName()
-                );
-
-                return false;
-            }
-
-            Buffer vertexBuffer, fragmentBuffer;
-            Vec<MaterialPropertySpec> materialProperties;
-            uint64_t materialSize = 0;
-            if (!CompileShader(
-                metadata->FilePath,
-                metadata->Handle,
-                vertexBuffer,
-                fragmentBuffer,
-                materialProperties,
-                materialSize)
-            ) {
-                return false;
-            }
-
-            shader->Recreate(std::move(vertexBuffer), std::move(fragmentBuffer));
-            return true;
         }
 
         bool Cook(const AssetMetadata& metadata) {
@@ -672,7 +618,7 @@ namespace QuelosEditor {
                 GraphicsShader::GetStaticType(),
                 Import,
                 IsAssetSupported,
-                Reimport,
+                nullptr,
                 ReadAssetHandle,
                 WriteAssetHandle,
                 Cook
