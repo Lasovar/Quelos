@@ -118,14 +118,14 @@ namespace Quelos {
         bool m_WasReallocated = false;
     };
 
-    struct PipelineStateComponent {
+    struct QS_API PipelineStateComponent {
         ResourceRef<PipelineStateObject> PSO;
         ResourceRef<ShaderResourceBinding> SRB;
         uint32_t MaterialIndex;
         AssetID ShaderID;
     };
 
-    struct DrawCommand {
+    struct QS_API DrawCommand {
         uint64_t SortKey;
         Entity Entity;
         Mesh* Mesh;
@@ -135,18 +135,18 @@ namespace Quelos {
         pfloat4x4 Transform;
     };
 
-    struct alignas(16) Globals {
+    struct QS_API alignas(16) Globals {
         pfloat4x4 ViewProjection;
         pfloat4 LightDirection;
     };
 
-    struct alignas(16) InstanceData {
+    struct QS_API alignas(16) InstanceData {
         pfloat4x4 Transform;
         uint32_t MaterialId;
         uint32_t EntityIndex;
     };
 
-    class WorldRenderer {
+    class QS_API WorldRenderer {
     public:
         WorldRenderer() = delete;
         explicit WorldRenderer(const flecs::world& world);
