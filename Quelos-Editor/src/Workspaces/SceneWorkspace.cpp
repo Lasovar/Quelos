@@ -1,6 +1,7 @@
 #include "qspch.h"
 #include "SceneWorkspace.h"
 
+#include "EditorLayer.h"
 #include "imgui_internal.h"
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
@@ -453,6 +454,7 @@ namespace QuelosEditor {
         Init();
 
         m_SceneState = SceneState::Play;
+        EditorLayer::Get().AddPlayingScene(this, m_ActiveScene->GetName());
     }
 
     void SceneWorkspace::OnSceneStop() {
@@ -465,5 +467,6 @@ namespace QuelosEditor {
         Init();
 
         m_SceneState = SceneState::Edit;
+        EditorLayer::Get().RemovePlayingScene(this);
     }
 }

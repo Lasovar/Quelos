@@ -29,6 +29,9 @@ namespace QuelosEditor {
 
         void OpenAssetWorkspace(const AssetMetadata& metadata);
 
+        void AddPlayingScene(const SceneWorkspace* sceneWorkspace, const std::string& sceneName);
+        void RemovePlayingScene(const SceneWorkspace* sceneWorkspace);
+
         static EditorLayer& Get() { return *s_Instance; }
 
         static void RegisterShaderCompiler(const char* rendererName, QS_ShaderCompiler compiler);
@@ -62,6 +65,8 @@ namespace QuelosEditor {
         ContentBrowserPanel m_ContentBrowserPanel;
 
         HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;
+
+        HashMap<const SceneWorkspace*, std::string> m_PlayingScenes;
 
         bool m_CtrlKey : 1 = false;
         bool m_ZKey : 1 = false;
