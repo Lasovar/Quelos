@@ -189,21 +189,8 @@ namespace QuelosEditor {
         ImGui::Begin("##EditorDockspace", nullptr, window_flags);
         ImGui::PopStyleVar(2);
 
-        const ImGuiID globalDockspaceID = ImGui::GetID("EditorLayer_Dockspace");
-        ImGui::DockSpace(globalDockspaceID, ImVec2(0, 0), dockspace_flags, &m_EditorLayerClass);
-
         static bool opt_fullscreen = true;
         static bool opt_padding = false;
-
-        if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID)) {
-            // If the only one window... no undocking
-            if (node->Windows.Size == 1) {
-                node->LocalFlags |= ImGuiDockNodeFlags_NoUndocking;
-            }
-            else {
-                node->LocalFlags &= ~ImGuiDockNodeFlags_NoUndocking;
-            }
-        }
 
         // Show demo options and help
         if (ImGui::BeginMenuBar()) {
@@ -268,7 +255,77 @@ namespace QuelosEditor {
             ImGui::EndMenuBar();
         }
 
-        ImGui::End();
+        static float statusBarHeight = ImGui::GetFrameHeight();
+
+        const ImVec2 avail = ImGui::GetContentRegionAvail();
+
+        ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+        // Dockspace area
+        ImGui::BeginChild(
+            "DockspaceRegion",
+            ImVec2(avail.x, avail.y - statusBarHeight),
+            ImGuiChildFlags_Borders,
+            ImGuiWindowFlags_NoScrollbar
+        );
+
+        const ImGuiID globalDockspaceID = ImGui::GetID("EditorLayer_Dockspace");
+        ImGui::DockSpace(globalDockspaceID, ImVec2(0, 0), dockspace_flags, &m_EditorLayerClass);
+
+        ImGui::EndChild(); // DockspaceRegion
+        ImGui::PopStyleVar(2);
+
+        if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID)) {
+            // If the only one window... no undocking
+            if (node->Windows.Size == 1) {
+                node->LocalFlags |= ImGuiDockNodeFlags_NoUndocking;
+            }
+            else {
+                node->LocalFlags &= ~ImGuiDockNodeFlags_NoUndocking;
+            }
+        }
+
+        // Status bar
+        ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 0);
+        ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+
+        if (!m_PlayingScenes.empty()) {
+            ImGui::PushStyleColor(
+                ImGuiCol_ChildBg,
+                ImVec4(0.1f, 0.3f, 0.1f, 1.0f)
+            );
+        }
+
+        ImGui::BeginChild(
+            "StatusBar",
+            ImVec2(0, statusBarHeight),
+            ImGuiChildFlags_Borders,
+            ImGuiWindowFlags_NoScrollbar
+        );
+
+        if (!m_PlayingScenes.empty()) {
+            ImGui::PopStyleColor();
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted("Playing: ");
+
+            ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, 0);
+            for (const auto& sceneName : m_PlayingScenes | std::views::values) {
+                ImGui::SameLine();
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted(sceneName.c_str());
+            }
+            ImGui::PopStyleVar();
+        }
+
+        ImGui::EndChild(); // StatusBar
+
+        ImGui::PopStyleVar(3);
+
+        ImGui::End(); // EditorDockspace
 
         if (const ImGuiDockNode* node = ImGui::DockBuilderGetNode(globalDockspaceID); node && node->CentralNode) {
             ImGui::SetNextWindowDockID(node->CentralNode->ID, ImGuiCond_FirstUseEver);
@@ -389,5 +446,13 @@ namespace QuelosEditor {
 
     void EditorLayer::OpenAssetWorkspace(const AssetMetadata& metadata) {
         m_OpenAssetWorkspaceRequests.push_back(metadata);
+    }
+
+    void EditorLayer::AddPlayingScene(const SceneWorkspace* sceneWorkspace, const std::string& sceneName) {
+        m_PlayingScenes.emplace(sceneWorkspace, sceneName);
+    }
+
+    void EditorLayer::RemovePlayingScene(const SceneWorkspace* sceneWorkspace) {
+        m_PlayingScenes.erase(sceneWorkspace);
     }
 }

@@ -13,7 +13,7 @@ namespace Quelos {
     enum class MaterialPropertyType : uint8_t {
         Unknown,
         Float, Float2, Float3, Float4,
-        Color, // Attributed float4
+        Color, // a float4 with a [Color] Attribute
         Int, Int2, Int3, Int4,
         Texture2D,
         UInt,
