@@ -11,7 +11,7 @@
 #include "Quelos/Renderer/RenderResource.h"
 
 namespace Quelos {
-    constexpr size_t k_MaxTextures = 1024;
+    constexpr size_t k_MaxTextures = 128;
     constexpr uint32_t k_MaxInstances = 512;
 
     class TextureRegistry {

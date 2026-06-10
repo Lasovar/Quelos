@@ -49,7 +49,7 @@ __extern_cpp struct InstanceData {
 __extern_cpp ConstantBuffer<GlobalUniforms> global;
 __extern_cpp StructuredBuffer<InstanceData> Instances;
 
-static const uint k_MaxTextures = 1024;
+static const uint k_MaxTextures = 128;
 static const uint k_MaxSamplers = 4;
 
 __extern_cpp Texture2D g_Textures[k_MaxTextures];

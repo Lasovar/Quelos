@@ -87,7 +87,7 @@ if(WIN32)
     set(SLANG_VERSION "")
 else()
     set(SLANG_RUNTIME_DIR "${SLANG_BUILD_DIR}/${SLANG_CONFIG_DIR}/lib")
-    set(SLANG_VERSION "-2026.8.1")
+    set(SLANG_VERSION "-2026.9")
 endif()
 
 set(SLANG_SLANG_COMPILER ${SLANG_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}slang-compiler${CMAKE_SHARED_LIBRARY_SUFFIX})
@@ -101,6 +101,10 @@ add_library(core STATIC IMPORTED GLOBAL)
 add_library(miniz STATIC IMPORTED GLOBAL)
 add_library(lz4 STATIC IMPORTED GLOBAL)
 add_library(cmark STATIC IMPORTED GLOBAL)
+
+if (MSVC)
+    set(SLANG_CMAKE_FLAGS "/Wv:18")
+endif()
 
 if(NOT EXISTS "${SLANG_SLANG_COMPILER}")
     ExternalProject_Add(
@@ -119,7 +123,7 @@ if(NOT EXISTS "${SLANG_SLANG_COMPILER}")
 
             CMAKE_ARGS
             -DCMAKE_BUILD_TYPE=Release
-            -DCMAKE_CXX_FLAGS=/Wv:18
+            -DCMAKE_CXX_FLAGS=${SLANG_CMAKE_FLAGS}
 
             -DSLANG_ENABLE_FULL_IR_VALIDATION=OFF
             -DSLANG_ENABLE_IR_BREAK_ALLOC=OFF
