@@ -29,7 +29,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty<TPropertyValue>(PropertyOffset, After);
+            MaterialAsset.Get().template SetProperty<TPropertyValue>(PropertyOffset, After);
         }
 
         void Revert() const {
@@ -37,7 +37,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty<TPropertyValue>(PropertyOffset, Before);
+            MaterialAsset.Get().template SetProperty<TPropertyValue>(PropertyOffset, Before);
         }
     };
 

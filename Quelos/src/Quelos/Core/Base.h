@@ -74,13 +74,7 @@ namespace Quelos {
 
     template <typename T>
     using Option = std::optional<T>;
-    inline constexpr std::nullopt_t None {
-#if defined(__clang__) || defined(__GNUC__)
-        std::nullopt_t::_Construct::_Token
-#elif defined(_MSC_VER)
-        std::nullopt_t::_Tag{}
-#endif
-    };
+    inline constexpr std::nullopt_t None { std::nullopt };
 
     template <typename T>
     constexpr std::string_view TypeName() {

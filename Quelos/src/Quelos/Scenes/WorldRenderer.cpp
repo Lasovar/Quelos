@@ -24,7 +24,7 @@ namespace Quelos {
         m_IsDirty = false;
         m_WasReallocated = false;
 
-        if (const size_t needed = m_CpuMaterials.size(); needed > m_GPUCapacity) {
+        if (const uint64_t needed = m_CpuMaterials.size(); needed > m_GPUCapacity) {
             // Double capacity to avoid frequent reallocations
             m_GPUCapacity = math::max(needed, m_GPUCapacity * 2);
             if (m_GPUCapacity == 0) {
