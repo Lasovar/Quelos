@@ -2,7 +2,7 @@
 name = "Cube2"
 
 #Quelos.LocalTransform
-position = (0,0,0)
+position = (7.2371902,6.729418,0)
 rotation = (0,0,0,1)
 scale = (1,1,1)
 
