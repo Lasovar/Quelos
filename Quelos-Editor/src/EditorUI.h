@@ -37,8 +37,7 @@ namespace QuelosEditor {
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
 
             // Frame style
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+            ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, 4);
 
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(label.c_str());
@@ -60,27 +59,31 @@ namespace QuelosEditor {
             }
 
             constexpr float resetButtonSize = 30.0f;
-            const ImVec2 size = {ImGui::GetContentRegionAvail().x - (resetButtonSize * 2.0f) - 4.0f * 3.0f, ImGui::GetFrameHeight()};
+            const ImVec2 size = {
+                ImGui::GetContentRegionAvail().x - (resetButtonSize * 2.0f) - 4.0f * 3.0f,
+                ImGui::GetFrameHeight()
+            };
 
             ImGui::Dummy(size);
 
-            ImDrawList* draw = ImGui::GetWindowDrawList();
             const ImVec2 min = ImGui::GetItemRectMin();
             const ImVec2 max = ImGui::GetItemRectMax();
 
-            const ImU32 bg = ImGui::GetColorU32(ImGuiCol_FrameBg);
-            const ImU32 border = ImGui::GetColorU32(ImGuiCol_Border);
-            const ImU32 textCol = ImGui::GetColorU32(ImGuiCol_Text);
+            ImGui::RenderFrame(
+                min,
+                max,
+                ImGui::GetColorU32(ImGuiCol_FrameBg),
+                true,
+                ImGui::GetStyle().FrameRounding
+            );
 
-            // Draw frame
-            draw->AddRectFilled(min, max, bg, 0.0f);
-            draw->AddRect(min, max, border, 0.0f);
-
-            // Text
-            draw->AddText(
-                ImVec2(min.x + 8.0f, min.y + 4.0f),
-                textCol,
-                value ? FormatTemp("{} ({})", assetName, typeName) : none.c_str()
+            ImGui::RenderTextClipped(
+                ImVec2(min.x + ImGui::GetStyle().FramePadding.x, min.y),
+                max,
+                value ? FormatTemp("{} ({})", assetName, typeName) : none.c_str(),
+                nullptr,
+                nullptr,
+                ImVec2(0.0f, 0.5f)
             );
 
             if (ImGui::BeginDragDropTarget()) {
@@ -203,12 +206,10 @@ namespace QuelosEditor {
 
             ImGui::EndGroup();
 
-            ImGui::PopStyleVar(2);
+            ImGui::PopStyleVar(1);
 
             ImGui::Columns(1);
             ImGui::PopID();
-
-            ImGui::Spacing();
 
             return changed;
         }

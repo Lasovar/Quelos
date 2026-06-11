@@ -67,6 +67,8 @@ namespace QuelosEditor {
         HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;
 
         HashMap<const SceneWorkspace*, std::string> m_PlayingScenes;
+        uint32_t m_CurrentTheme = 0;
+        Vec<Pair<std::string, void(*)()>> m_Themes;
 
         bool m_CtrlKey : 1 = false;
         bool m_ZKey : 1 = false;
