@@ -18,7 +18,7 @@ namespace QuelosEditor {
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<float>>(
-                m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                m_ComponentID.second().get<ComponentID>(),
                 m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
@@ -47,7 +47,7 @@ namespace QuelosEditor {
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<float3>>(
-                m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                m_ComponentID.second().get<ComponentID>(),
                 m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
@@ -76,7 +76,7 @@ namespace QuelosEditor {
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<quaternion>>(
-                m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                m_ComponentID.second().get<ComponentID>(),
                 m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,
@@ -105,7 +105,7 @@ namespace QuelosEditor {
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             m_UndoSystem.Push<SetField<Color>>(
-                m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                m_ComponentID.second().get<ComponentID>(),
                 m_Actor.GetActorID(),
                 m_Scene,
                 m_SerializeComponentFunc,

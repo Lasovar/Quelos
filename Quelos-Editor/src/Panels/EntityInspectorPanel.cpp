@@ -10,13 +10,12 @@
 #include "EditorUI.h"
 
 namespace QuelosEditor {
-    HashMap<RuntimeID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{};
+    HashMap<ComponentID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{};
 
     template <typename TComponent>
         requires (IsSerializable<TComponent>)
     void RegisterComponent(
-        flecs::world& world,
-        HashMap<RuntimeID, InspectorComponent>& componentMap
+        HashMap<ComponentID, InspectorComponent>& componentMap
     ) {
         static InspectorArchiveSerializeFn inspectorSerialize = [](InspectorArchive& archive, void* data) {
             TComponent::Serialize(archive, *static_cast<TComponent*>(data));
@@ -31,38 +30,37 @@ namespace QuelosEditor {
         TComponent pseudoComponent;
         TComponent::Serialize(beatifyFieldNames, pseudoComponent);
 
-        componentMap[world.id<TComponent>()] = {
+        componentMap[ComponentRegistry::GetComponentID<TComponent>()] = {
             inspectorSerialize, setFieldSerialize, BeautifyLabel(TypeNameShort<TComponent>()), formattedFields
         };
     }
 
     template <typename... TComponent>
     void RegisterComponents(
-        flecs::world& world,
-        HashMap<RuntimeID, InspectorComponent>& componentMap
+        HashMap<ComponentID, InspectorComponent>& componentMap
     ) {
         ([&] {
-            RegisterComponent<TComponent>(world, componentMap);
+            RegisterComponent<TComponent>(componentMap);
         }(), ...);
     }
 
     template <typename... Component>
     void RegisterComponents(
-        ComponentGroup<Component...>, flecs::world& world,
-        HashMap<RuntimeID, InspectorComponent>& componentMap
+        ComponentGroup<Component...>,
+        HashMap<ComponentID, InspectorComponent>& componentMap
     ) {
-        RegisterComponents<Component...>(world, componentMap);
+        RegisterComponents<Component...>(componentMap);
     }
 
-    EntityInspectorPanel::EntityInspectorPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem)
-        : m_Scene(scene), m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem)
+    EntityInspectorPanel::EntityInspectorPanel(SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem)
+        : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem)
     {
         m_SceneWorkspace.OnEntitySelectionChanged([this](const Entity entity) {
-            SetInspectorEntityName(entity);
-        });
+           SetInspectorEntityName(entity);
+       });
 
         if (s_InspectorArchiveSerialize.empty()) {
-            RegisterComponents(AllComponents{}, m_Scene->GetWorld(), s_InspectorArchiveSerialize);
+            RegisterComponents(AllComponents{}, s_InspectorArchiveSerialize);
 
             static auto transformInspector = [&](void* transformData, const InspectorComponent& component, const Entity entity) {
                 LocalTransform& localTransform = *static_cast<LocalTransform*>(transformData);
@@ -79,12 +77,11 @@ namespace QuelosEditor {
                     localTransform.Position = temp;
                 }
 
-                ComponentRegistry& registry = m_Scene->GetComponentRegistry();
                 const flecs::world& world = m_Scene->GetWorld();
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     m_UndoSystem.Push<SetField<float3>>(
-                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        world.component<LocalTransform>().get<ComponentID>(),
                         entity.Get<EntityID>(),
                         m_Scene,
                         component.SetFieldSerializeFn,
@@ -112,7 +109,7 @@ namespace QuelosEditor {
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     m_UndoSystem.Push<SetField<quaternion>>(
-                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        world.component<LocalTransform>().get<ComponentID>(),
                         entity.Get<EntityID>(),
                         m_Scene,
                         component.SetFieldSerializeFn,
@@ -137,7 +134,7 @@ namespace QuelosEditor {
 
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     m_UndoSystem.Push<SetField<float3>>(
-                        registry.GetSerializableComponentInfo(world.id<LocalTransform>())->Guid,
+                        world.component<LocalTransform>().get<ComponentID>(),
                         entity.Get<EntityID>(),
                         m_Scene,
                         component.SetFieldSerializeFn,
@@ -174,7 +171,7 @@ namespace QuelosEditor {
         m_SceneWorkspace.SetSelectEntity({});
     }
 
-    bool EntityInspectorPanel::ComponentHeader(const char* label, RuntimeID runtimeId) {
+    bool EntityInspectorPanel::ComponentHeader(const char* label, ComponentID componentId) {
         const ImGuiStyle& style = ImGui::GetStyle();
 
         float height = ImGui::GetFrameHeight();
@@ -189,14 +186,14 @@ namespace QuelosEditor {
         auto& state = m_CollapsedComponents[m_SceneWorkspace.GetSelectedEntity()];
 
         if (clicked) {
-            if (state.contains(runtimeId)) {
-                state.erase(runtimeId);
+            if (state.contains(componentId)) {
+                state.erase(componentId);
             } else {
-                state.emplace(runtimeId);
+                state.emplace(componentId);
             }
         }
 
-        const bool open = !state.contains(runtimeId);
+        const bool open = !state.contains(componentId);
 
         // background
         const ImU32 col = ImGui::GetColorU32(hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
@@ -231,14 +228,11 @@ namespace QuelosEditor {
 
         if (ImGui::BeginPopup("ComponentMenu")) {
             if (ImGui::MenuItem("Remove Component")) {
-                ComponentRegistry& registry = m_Scene->GetComponentRegistry();
-                if (const auto* info = registry.GetSerializableComponentInfo(runtimeId)) {
-                    m_UndoSystem.Push<RemoveComponentCommand>(
-                        m_SceneWorkspace.GetSelectedEntity().Get<EntityID>(),
-                        m_Scene,
-                        info->Guid
-                    );
-                }
+                m_UndoSystem.Push<RemoveComponentCommand>(
+                    m_SceneWorkspace.GetSelectedEntity().Get<EntityID>(),
+                    m_Scene,
+                    componentId
+                );
             }
 
             ImGui::EndPopup();
@@ -298,15 +292,20 @@ namespace QuelosEditor {
                 m_Scene->GetWorld().defer_begin();
 
                 entity.GetInternalID().each([&](const flecs::id runtimeId) {
-                    const auto it = s_InspectorArchiveSerialize.find(runtimeId);
+                    const ComponentID* componentId = runtimeId.second().try_get<ComponentID>();
+                    if (!componentId) {
+                        return;
+                    }
+
+                    const auto it = s_InspectorArchiveSerialize.find(*componentId);
                     if (it == s_InspectorArchiveSerialize.end()) {
                         return;
                     }
 
-                    auto customInspector = m_CustomInspectors.find(runtimeId);
+                    const auto customInspector = m_CustomInspectors.find(*componentId);
                     if (customInspector != m_CustomInspectors.end()) {
                         ImGui::PushID(runtimeId);
-                        if (ComponentHeader(customInspector->second.ComponentName.c_str(), runtimeId)) {
+                        if (ComponentHeader(customInspector->second.ComponentName.c_str(), *componentId)) {
                             customInspector->second.DrawFn(entity.GetMut(runtimeId), it->second, entity);
                         }
                         ImGui::PopID();
@@ -318,7 +317,7 @@ namespace QuelosEditor {
 
                     const InspectorComponent& inspectorComponent = it->second;
 
-                    if (ComponentHeader(inspectorComponent.ComponentName.c_str(), runtimeId)) {
+                    if (ComponentHeader(inspectorComponent.ComponentName.c_str(), *componentId)) {
                         InspectorArchive archive(
                             entity,
                             runtimeId,
@@ -349,8 +348,6 @@ namespace QuelosEditor {
 
                     static Vec<ComponentResult> results;
 
-                    ComponentRegistry& componentRegistry = m_Scene->GetComponentRegistry();
-
                     if (ImGui::IsWindowAppearing()) {
                         ImGui::SetKeyboardFocusHere();
                     }
@@ -379,7 +376,7 @@ namespace QuelosEditor {
                     const std::string_view query = buffer.data();
 
                     results.clear();
-                    for (auto& comp : componentRegistry.GetSerializableComponents()) {
+                    for (auto& comp : ComponentRegistry::GetSerializableComponents() | std::views::values) {
                         std::string_view name = comp.Name;
                         const double nameScore = rapidfuzz::fuzz::WRatio(query, name);
                         const double pathScore = std::max({

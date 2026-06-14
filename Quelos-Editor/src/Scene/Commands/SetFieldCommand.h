@@ -53,23 +53,25 @@ namespace Quelos {
         TField After;
 
         void Apply() {
-            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = ComponentRegistry::GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
             const Actor actor = Scene->GetActor(ActorId);
 
             SetFieldArchive archive(FieldKey, &After);
-            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+            const HashMap<ComponentID, RuntimeID>& componentsMap = Scene->GetWorld().get<ComponentIDsMap>().Value;
+            SerializeComponentFunc(archive, actor.GetMut(componentsMap.at(componentInfo->Guid)));
         }
 
         void Revert() {
-            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = ComponentRegistry::GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
             const Actor actor = Scene->GetActor(ActorId);
 
             auto archive = SetFieldArchive(FieldKey, &Before);
-            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+            const HashMap<ComponentID, RuntimeID>& componentsMap = Scene->GetWorld().get<ComponentIDsMap>().Value;
+            SerializeComponentFunc(archive, actor.GetMut(componentsMap.at(componentInfo->Guid)));
         }
     };
 
@@ -87,25 +89,27 @@ namespace Quelos {
         AssetID After;
 
         void Apply() {
-            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = ComponentRegistry::GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
             const Actor actor = Scene->GetActor(ActorId);
 
             AssetRef<T> temp(After);
             SetFieldArchive archive(FieldKey, &temp);
-            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+            const HashMap<ComponentID, RuntimeID>& componentsMap = Scene->GetWorld().get<ComponentIDsMap>().Value;
+            SerializeComponentFunc(archive, actor.GetMut(componentsMap.at(componentInfo->Guid)));
         }
 
         void Revert() {
-            const ComponentTypeInfo* componentInfo = Scene->GetComponentRegistry().GetComponentInfo(ComponentId);
+            const ComponentTypeInfo* componentInfo = ComponentRegistry::GetComponentInfo(ComponentId);
             QS_ASSERT(componentInfo->Guid);
 
             const Actor actor = Scene->GetActor(ActorId);
 
             AssetRef<T> temp(Before);
             auto archive = SetFieldArchive(FieldKey, &temp);
-            SerializeComponentFunc(archive, actor.GetMut(componentInfo->RuntimeID));
+            const HashMap<ComponentID, RuntimeID>& componentsMap = Scene->GetWorld().get<ComponentIDsMap>().Value;
+            SerializeComponentFunc(archive, actor.GetMut(componentsMap.at(componentInfo->Guid)));
         }
     };
 }

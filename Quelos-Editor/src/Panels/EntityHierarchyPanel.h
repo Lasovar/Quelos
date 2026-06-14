@@ -14,7 +14,7 @@ namespace QuelosEditor {
 
     class EntityHierarchyPanel {
     public:
-        EntityHierarchyPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
+        EntityHierarchyPanel(SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
         void SetScene(const Ref<Scene>& scene);
 

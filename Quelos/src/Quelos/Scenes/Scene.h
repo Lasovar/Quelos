@@ -89,7 +89,6 @@ namespace Quelos {
         void Destroy();
 
         flecs::world& GetWorld() { return m_World; }
-        ComponentRegistry& GetComponentRegistry() { return m_ComponentRegistry; }
 
         Entity GetEntity(const EntityID entityId) {
             if (!entityId) {
@@ -135,8 +134,6 @@ namespace Quelos {
         HashMap<EntityID, Entity> m_EntitiesMap;
 
         flecs::world m_World;
-
-        ComponentRegistry m_ComponentRegistry;
 
         std::string m_Name;
 

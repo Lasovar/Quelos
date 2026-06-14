@@ -25,9 +25,9 @@ namespace Quelos {
             Serialization::BinaryReader componentBlobReader(Data);
             const ComponentID componentId(*componentBlobReader.Read<uint64_t>());
 
-            ComponentRegistry& registry = scene->GetComponentRegistry();
-            if (const auto* componentInfo = registry.GetSerializableComponentInfo(componentId)) {
-                entity.Add(componentInfo->RuntimeID);
+            if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(componentId)) {
+                const RuntimeID runtimeId = scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid);
+                entity.Add(runtimeId);
 
                 HashMap<uint64_t, BufferView> fieldsMap;
 
@@ -43,7 +43,7 @@ namespace Quelos {
                 }
 
                 Serialization::BinaryReadArchive archive(fieldsMap);
-                componentInfo->SerializeBinaryReadFunc(archive, entity.GetMut(componentInfo->RuntimeID));
+                componentInfo->SerializeBinaryReadFunc(archive, entity.GetMut(runtimeId));
             }
         }
 
@@ -51,14 +51,14 @@ namespace Quelos {
             ComponentSnapshot snapshot;
 
             if (entity.IsValid() && componentId) {
-                ComponentRegistry& registry = scene->GetComponentRegistry();
-                if (const auto* componentInfo = registry.GetSerializableComponentInfo(componentId)) {
+                if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(componentId)) {
                     Serialization::BinaryWriter writer(snapshot.Data);
 
                     writer.Write(static_cast<uint64_t>(componentId));
 
+                    const RuntimeID runtimeId = scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid);
                     Serialization::BinaryWriteArchive archive(writer);
-                    componentInfo->SerializeBinaryWriteFunc(archive, entity.GetMut(componentInfo->RuntimeID));
+                    componentInfo->SerializeBinaryWriteFunc(archive, entity.GetMut(runtimeId));
                 }
             }
 
@@ -70,8 +70,7 @@ namespace Quelos {
             ComponentSnapshot snapshot;
 
             if (const ComponentID componentId = ComponentRegistry::GetComponentID<TComponent>()) {
-                ComponentRegistry& registry = scene->GetComponentRegistry();
-                if (const auto* componentInfo = registry.GetSerializableComponentInfo(componentId)) {
+                if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(componentId)) {
                     Serialization::BinaryWriter writer(snapshot.Data);
                     writer.Write(static_cast<uint64_t>(componentId));
 
@@ -92,20 +91,16 @@ namespace Quelos {
 
         void Apply() const {
             if (const Actor actor = Scene->GetEntity(EntityId); actor.IsValid()) {
-                ComponentRegistry& registry = Scene->GetComponentRegistry();
-
-                if (const auto* componentInfo = registry.GetSerializableComponentInfo(ComponentId)) {
-                    actor.Add(componentInfo->RuntimeID);
+                if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(ComponentId)) {
+                    actor.Add(Scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid));
                 }
             }
         }
 
         void Revert() const {
             if (const Actor actor = Scene->GetActor(EntityId); actor.IsValid()) {
-                ComponentRegistry& registry = Scene->GetComponentRegistry();
-
-                if (const auto* componentInfo = registry.GetSerializableComponentInfo(ComponentId)) {
-                    actor.Remove(componentInfo->RuntimeID);
+                if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(ComponentId)) {
+                    actor.Remove(Scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid));
                 }
             }
         }
@@ -125,10 +120,8 @@ namespace Quelos {
 
         void Apply() const {
             if (const Actor actor = Scene->GetActor(EntityId); actor.IsValid()) {
-                ComponentRegistry& registry = Scene->GetComponentRegistry();
-
-                if (const auto* componentInfo = registry.GetSerializableComponentInfo(Snapshot.GetComponentID())) {
-                    actor.Remove(componentInfo->RuntimeID);
+                if (const auto* componentInfo = ComponentRegistry::GetSerializableComponentInfo(Snapshot.GetComponentID())) {
+                    actor.Remove(Scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid));
                 }
             }
         }

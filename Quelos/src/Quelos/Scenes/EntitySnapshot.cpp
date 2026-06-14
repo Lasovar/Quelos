@@ -6,7 +6,6 @@
 namespace Quelos {
     static void SnapshotEntity(
         Serialization::BinaryWriter& writer,
-        ComponentRegistry& registry,
         flecs::world& world,
         const Entity& actor
     ) {
@@ -34,7 +33,12 @@ namespace Quelos {
 
         Vec<byte> tempComponentData;
         actor.GetInternalID().each([&](const flecs::id id) {
-            const SerializableComponentInfo* componentInfo = registry.GetSerializableComponentInfo(id);
+            const ComponentID* componentId = id.second().try_get<ComponentID>();
+            if (!componentId) {
+                return;
+            }
+
+            const SerializableComponentInfo* componentInfo = ComponentRegistry::GetSerializableComponentInfo(*componentId);
             if (!componentInfo) {
                 return;
             }
@@ -63,7 +67,7 @@ namespace Quelos {
 
         writer.Write(static_cast<uint32_t>(world.count(flecs::ChildOf, actor.GetInternalID())));
         actor.GetInternalID().children([&](const flecs::entity child) {
-            SnapshotEntity(writer, registry, world, child);
+            SnapshotEntity(writer, world, child);
         });
     }
 
@@ -73,7 +77,7 @@ namespace Quelos {
         const Actor entity = scene->GetActor(entityId);
         Serialization::BinaryWriter writer(snapshot.Data);
 
-        SnapshotEntity(writer, scene->GetComponentRegistry(), scene->GetWorld(), entity);
+        SnapshotEntity(writer, scene->GetWorld(), entity);
 
         return snapshot;
     }
@@ -81,7 +85,6 @@ namespace Quelos {
     static Entity LoadEntity(
         const Ref<Scene>& scene,
         Serialization::BinaryReader& reader,
-        ComponentRegistry& registry,
         flecs::world& world
     ) {
         const auto actorIdResult = reader.Read<EntityID>();
@@ -152,7 +155,7 @@ namespace Quelos {
 
                 ComponentID componentId(guidResult.value());
 
-                const SerializableComponentInfo* typeInfo = registry.GetSerializableComponentInfo(componentId);
+                const SerializableComponentInfo* typeInfo = ComponentRegistry::GetSerializableComponentInfo(componentId);
 
                 if (!typeInfo) {
                     QS_ERROR_TAG(
@@ -190,7 +193,7 @@ namespace Quelos {
                 void* componentPtr = ecs_ensure_id(
                     world.c_ptr(),
                     entity.GetInternalID(),
-                    typeInfo->RuntimeID,
+                    world.get<ComponentIDsMap>().Value.at(typeInfo->Guid),
                     typeInfo->Size
                 );
 
@@ -243,7 +246,7 @@ namespace Quelos {
         }
 
         for (uint32_t i = 0; i < childCountResult.value(); i++) {
-            LoadEntity(scene, reader, registry, world);
+            LoadEntity(scene, reader, world);
         }
 
         return entity;
@@ -255,6 +258,6 @@ namespace Quelos {
 
     Entity EntitySnapshot::Load(const Ref<Scene>& scene, const BufferView& entitySnapshot) {
         Serialization::BinaryReader reader(entitySnapshot);
-        return LoadEntity(scene, reader, scene->GetComponentRegistry(), scene->GetWorld());
+        return LoadEntity(scene, reader, scene->GetWorld());
     }
 }

@@ -45,15 +45,15 @@ namespace Quelos {
             return;
         }
 
-        auto& registry = m_Scene->GetComponentRegistry();
-        const SerializableComponentInfo* componentInfo = registry.GetSerializableComponentInfo(m_CurrentComponentID);
+        const SerializableComponentInfo* componentInfo = ComponentRegistry::GetSerializableComponentInfo(m_CurrentComponentID);
 
         if (!componentInfo) {
             return;
         }
 
         QuelReadArchive archive(m_FieldTable, m_ValuePool);
-        void* data = m_CurrentEntity.GetInternalID().ensure(componentInfo->RuntimeID);
+        const HashMap<ComponentID, RuntimeID>& componentsMap = m_Scene->GetWorld().get<ComponentIDsMap>().Value;
+        void* data = m_CurrentEntity.GetInternalID().ensure(componentsMap.at(componentInfo->Guid));
 
         if (!data) {
             QS_ERROR_TAG("SceneSerializer::DeserializeComponentData", "Failed to ensure component");
@@ -201,23 +201,17 @@ namespace Quelos {
             }
         }
         else {
-            if (m_IsFirstComponentField) {
-                if (m_CurrentField == "state") {
-                    const std::string_view state = std::get<std::string_view>(e.Value);
-                    if (GetPatchState(state) == PatchState::Removed) {
-                        if (m_CurrentComponentID && m_CurrentEntity.IsValid()) {
-                            ComponentRegistry& registry = m_Scene->GetComponentRegistry();
-
-                            const auto* info = registry.GetSerializableComponentInfo(m_CurrentComponentID);
-                            if (!info) {
-                                return;
-                            }
-
-                            m_CurrentEntity.Remove(info->RuntimeID);
-                            m_CurrentComponentID = {};
-                            m_SkipToNextComponent = true;
-                        }
+            if (m_IsFirstComponentField && m_CurrentField == "state") {
+                const std::string_view state = std::get<std::string_view>(e.Value);
+                if (GetPatchState(state) == PatchState::Removed && m_CurrentComponentID && m_CurrentEntity.IsValid()) {
+                    const auto* info = ComponentRegistry::GetSerializableComponentInfo(m_CurrentComponentID);
+                    if (!info) {
+                        return;
                     }
+
+                    m_CurrentEntity.Remove(m_Scene->GetWorld().get<ComponentIDsMap>().Value.at(info->Guid));
+                    m_CurrentComponentID = {};
+                    m_SkipToNextComponent = true;
                 }
 
                 m_IsFirstComponentField = false;
@@ -561,7 +555,7 @@ namespace Quelos {
         }
 
         flecs::world& world = m_Scene->GetWorld();
-        ComponentRegistry& registry = m_Scene->GetComponentRegistry();
+        const HashMap<ComponentID, RuntimeID>& componentsMap = m_Scene->GetWorld().get<ComponentIDsMap>().Value;
 
         std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
         HashSet<std::string_view> fieldsToWrite;
@@ -737,7 +731,7 @@ namespace Quelos {
                     continue;
                 }
 
-                const SerializableComponentInfo* info = registry.GetSerializableComponentInfo(componentId);
+                const SerializableComponentInfo* info = ComponentRegistry::GetSerializableComponentInfo(componentId);
                 if (!info) {
                     continue;
                 }
@@ -749,7 +743,12 @@ namespace Quelos {
                     continue;
                 }
 
-                void* ptr = ecs_get_mut_id(world.c_ptr(), entity.GetInternalID(), info->RuntimeID);
+                void* ptr = ecs_get_mut_id(
+                    world.c_ptr(),
+                    entity.GetInternalID(),
+                    componentsMap.at(info->Guid)
+                );
+
                 if (!ptr) {
                     continue;
                 }
@@ -800,8 +799,7 @@ namespace Quelos {
         }
 
         flecs::world& world = m_Scene->GetWorld();
-        ComponentRegistry& registry = m_Scene->GetComponentRegistry();
-        const auto& types = registry.GetSerializableComponents();
+        const auto& types = ComponentRegistry::GetSerializableComponents();
 
         Vec<byte> buffer;
         BinaryWriter writer(buffer);
