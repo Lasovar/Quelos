@@ -20,7 +20,7 @@ namespace Quelos {
     class WindowResizeEvent;
 
     Scene::Scene(const flecs::world& world, std::string name)
-        : m_World(world), m_ComponentRegistry(m_World), m_Name(std::move(name))
+        : m_World(world), m_Name(std::move(name))
     {
         Init();
         m_TransformUpdate = m_World.entity("TransformUpdate")

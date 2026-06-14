@@ -127,7 +127,7 @@ namespace QuelosEditor {
 
                 if (UI::EditEnum(GetFormattedFieldName(name), temp)) {
                     m_UndoSystem.Push<SetField<T>>(
-                        m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                        m_ComponentID.second().get<ComponentID>(),
                         m_Actor.GetActorID(),
                         m_Scene,
                         m_SerializeComponentFunc,
@@ -147,7 +147,7 @@ namespace QuelosEditor {
 
                 if (UI::EditAsset<T>(GetFormattedFieldName(name), temp)) {
                     m_UndoSystem.Push<SetField<AssetRef<T>>>(
-                        m_Scene->GetComponentRegistry().GetSerializableComponentInfo(m_ComponentID)->Guid,
+                        m_ComponentID.second().get<ComponentID>(),
                         m_Actor.GetActorID(),
                         m_Scene,
                         m_SerializeComponentFunc,

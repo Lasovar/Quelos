@@ -14,6 +14,7 @@ Material GetMaterial(uint instanceId) {
     return Materials[Instances[instanceId].MaterialID];
 }
 
+[Pass("GBuffer")]
 [shader("vertex")]
 VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     VertexOut output;
@@ -34,6 +35,7 @@ struct FragmentOut {
 }
 
 [shader("fragment")]
+[Pass("GBuffer")]
 FragmentOut fragmentMain(VertexOut v) {
     FragmentOut output;
 

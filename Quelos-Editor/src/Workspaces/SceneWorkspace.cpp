@@ -12,14 +12,22 @@ using namespace magic_enum::bitwise_operators;
 namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
-          m_EditorScene(SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_World)),
-          m_ActiveScene(m_EditorScene),
-          m_WorldRenderer(m_World),
           m_GameViewportPanel("Game View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
           m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
-          m_InspectorPanel(m_ActiveScene, *this, undoSystem),
-          m_EntityHierarchyPanel(m_ActiveScene, *this, undoSystem)
+          m_InspectorPanel(*this, undoSystem),
+          m_EntityHierarchyPanel(*this, undoSystem)
     {
+        ComponentRegistry::RegisterBuiltinTypes(m_EditorWorld);
+        ComponentRegistry::RegisterBuiltinTypes(m_RuntimeWorld);
+
+        m_EditorScene = SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_EditorWorld);
+        m_ActiveScene = m_EditorScene;
+
+        m_InspectorPanel.SetScene(m_ActiveScene);
+        m_EntityHierarchyPanel.SetScene(m_ActiveScene);
+
+        m_WorldRenderer.SetWorld(m_EditorWorld);
+
         m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
         m_ShouldDock = true;
@@ -157,6 +165,10 @@ namespace QuelosEditor {
             "Instances",
             m_WorldRenderer.GetInstancesGpuBuffer()
         );
+
+        m_RuntimeWorld.system<LocalTransform&>().each([](const flecs::iter& it, size_t, LocalTransform& transform) {
+            transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
+        });
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {
@@ -442,14 +454,13 @@ namespace QuelosEditor {
         m_InspectorPanel.SetScene(m_ActiveScene);
 
         m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
+        m_WorldRenderer.SetWorld(m_ActiveScene->GetWorld());
     }
 
     void SceneWorkspace::OnScenePlay() {
         m_SceneSnapshot = SceneSnapshot::Create(m_EditorScene);
-        m_ActiveScene = CreateRef<Scene>(m_World);
+        m_ActiveScene = CreateRef<Scene>(m_RuntimeWorld);
         m_SceneSnapshot.Load(m_ActiveScene);
-
-        m_EditorScene->Destroy();
 
         Init();
 
@@ -458,9 +469,6 @@ namespace QuelosEditor {
     }
 
     void SceneWorkspace::OnSceneStop() {
-        m_EditorScene->Init();
-        m_SceneSnapshot.Load(m_EditorScene);
-
         m_ActiveScene->Destroy();
         m_ActiveScene = m_EditorScene;
 

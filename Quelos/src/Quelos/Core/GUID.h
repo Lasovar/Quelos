@@ -14,11 +14,16 @@ namespace Quelos {
 
         [[nodiscard]] bool IsValid() const noexcept { return m_GUID != 0; }
 
-        operator uint64_t() const { return m_GUID; }
+        operator bool() const { return IsValid(); }
+        explicit operator uint64_t() const { return m_GUID; }
 
         [[nodiscard]] std::string ToString() const;
         [[nodiscard]] std::string ToFormattedString() const;
         [[nodiscard]] std::span<const std::byte, 8> AsBytes() const;
+
+
+        auto operator<=>(const GUID64&) const = default;
+
     public:
         static GUID64 Generate();
     private:
@@ -55,7 +60,7 @@ namespace std {
     struct hash<Quelos::GUID64>
     {
         std::size_t operator()(const Quelos::GUID64& guid) const noexcept {
-            return guid;
+            return static_cast<uint64_t>(guid);
         }
     };
 

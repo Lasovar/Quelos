@@ -152,8 +152,9 @@ namespace Quelos {
 
     class QS_API WorldRenderer {
     public:
-        WorldRenderer() = delete;
-        explicit WorldRenderer(const flecs::world& world);
+        WorldRenderer();
+
+        void SetWorld(const flecs::world& world);
 
         void Begin(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
         void Render();
@@ -168,7 +169,6 @@ namespace Quelos {
 
     private:
         RenderPassHandle m_RenderPass;
-        flecs::world m_World;
 
         TextureRegistry m_TextureRegistry;
         TextureHandle m_WhiteTexture;
@@ -183,6 +183,7 @@ namespace Quelos {
         HashMap<AssetID, PipelineInfo> m_PipelineStates;
         Vec<DrawCommand> m_DrawCalls;
 
+        const flecs::world* m_World = nullptr;
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;

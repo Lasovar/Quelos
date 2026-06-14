@@ -51,8 +51,7 @@ namespace Quelos {
         SceneSnapshot snapshot;
 
         snapshot.SceneName = scene->GetName();
-        ComponentRegistry& registry = scene->GetComponentRegistry();
-        const auto& types = registry.GetSerializableComponents();
+        const auto& types = ComponentRegistry::GetSerializableComponents();
 
         BinaryWriter writer(snapshot.Data);
 

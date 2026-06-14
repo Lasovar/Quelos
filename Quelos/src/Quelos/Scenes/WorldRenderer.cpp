@@ -157,7 +157,7 @@ namespace Quelos {
         }
     }
 
-    WorldRenderer::WorldRenderer(const flecs::world& world) : m_World(world) {
+    WorldRenderer::WorldRenderer() {
         RenderPassAttachmentSpec attachments[3];
         attachments[0].Format = ImageFormat::RGBA8UNorm;
         attachments[0].SampleCount = 4;
@@ -195,13 +195,6 @@ namespace Quelos {
         renderPassSpec.Attachments = attachments;
 
         m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
-
-        m_RenderingQuery = m_World.query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>();
-        m_PSOQuery = m_World.query_builder<const MeshRenderer&>()
-                            .without<PipelineStateComponent>()
-                            .build();
-
-        m_DirectionalLightQuery = m_World.query<const WorldTransform&, const DirectionalLight&>();
 
         GPUBufferSpec spec;
         spec.Name = "global";
@@ -249,12 +242,34 @@ namespace Quelos {
         m_TextureRegistry.Init(m_WhiteTexture, m_MagentaTexture);
     }
 
+    void WorldRenderer::SetWorld(const flecs::world& world) {
+        /* TODO: Not sure if this is needed
+        if (m_RenderingQuery) {
+            m_RenderingQuery.destruct();
+            m_PSOQuery.destruct();
+            m_DirectionalLightQuery.destruct();
+        }
+        */
+
+        m_RenderingQuery = world.query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>();
+        m_PSOQuery = world.query_builder<const MeshRenderer&>()
+                            .without<PipelineStateComponent>()
+                            .build();
+
+        m_DirectionalLightQuery = world.query<const WorldTransform&, const DirectionalLight&>();
+
+        m_DrawCalls.clear();
+
+        m_World = &world;
+    }
+
     void WorldRenderer::Begin(
         const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection
     ) {
+        QS_CORE_ASSERT(m_World, "WorldRenderer `m_World` is nullptr!");
         bool isDirty = false;
 
-        m_World.defer_begin();
+        m_World->defer_begin();
 
         m_RenderingQuery.each([&](
             const flecs::entity entity, const WorldTransform&, const MeshRenderer& meshRenderer,
@@ -274,9 +289,9 @@ namespace Quelos {
             }
         });
 
-        m_World.defer_end();
+        m_World->defer_end();
 
-        m_World.defer_begin();
+        m_World->defer_begin();
 
         m_PSOQuery.each([&](flecs::entity entity, const MeshRenderer& meshRenderer) {
             if (!meshRenderer.Mesh || !meshRenderer.Material) {
@@ -381,12 +396,12 @@ namespace Quelos {
             shader.AddPipelineState(pipelineStateHandle);
         });
 
-        m_World.defer_end();
+        m_World->defer_end();
 
         m_DrawCalls.clear();
         m_DrawCalls.reserve(m_RenderingQuery.count());
 
-        m_World.defer_begin();
+        m_World->defer_begin();
 
         m_RenderingQuery.each([&](
             flecs::entity entity,
@@ -408,7 +423,7 @@ namespace Quelos {
             }
         );
 
-        m_World.defer_end();
+        m_World->defer_end();
 
         for (auto& pipelineInfo : m_PipelineStates | std::views::values) {
             pipelineInfo.MaterialRegistry.FlushToGPU();

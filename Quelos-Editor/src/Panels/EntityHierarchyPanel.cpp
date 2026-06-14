@@ -13,10 +13,8 @@
 
 namespace QuelosEditor {
     EntityHierarchyPanel::EntityHierarchyPanel(
-        const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem
-    ) : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) {
-        SetScene(scene);
-    }
+        SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem
+    ) : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) { }
 
     void EntityHierarchyPanel::SetScene(const Ref<Scene>& scene) {
         m_Scene = scene;

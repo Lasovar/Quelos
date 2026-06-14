@@ -29,29 +29,28 @@ namespace QuelosEditor {
 
     class EntityInspectorPanel {
     public:
-        explicit EntityInspectorPanel(const Ref<Scene>& scene, SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
+        explicit EntityInspectorPanel(SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
         void SetInspectorEntityName(const Entity& entity);
 
         void SetScene(const Ref<Scene>& scene);
 
         void RegisterCustomInspector(const CustomInspector& customInspector) {
-            m_CustomInspectors[m_Scene->GetComponentRegistry().GetComponentInfo(customInspector.ComponentId)->RuntimeID]
-                = customInspector;
+            m_CustomInspectors[customInspector.ComponentId] = customInspector;
         }
 
         void ClearSelectedEntity() const;
 
-        bool ComponentHeader(const char* label, RuntimeID runtimeId);
+        bool ComponentHeader(const char* label, ComponentID componentId);
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
 
     private:
-        static HashMap<RuntimeID, InspectorComponent> s_InspectorArchiveSerialize;
+        static HashMap<ComponentID, InspectorComponent> s_InspectorArchiveSerialize;
 
     private:
         std::array<char, 64> m_EntityNameField{};
-        HashMap<Entity, HashSet<RuntimeID>> m_CollapsedComponents;
-        HashMap<RuntimeID, CustomInspector> m_CustomInspectors;
+        HashMap<Entity, HashSet<ComponentID>> m_CollapsedComponents;
+        HashMap<ComponentID, CustomInspector> m_CustomInspectors;
 
         Ref<Scene> m_Scene;
         SceneWorkspace& m_SceneWorkspace;

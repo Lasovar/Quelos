@@ -59,7 +59,8 @@ namespace QuelosEditor {
         void OnSceneStop();
 
     private:
-        flecs::world m_World;
+        flecs::world m_EditorWorld;
+        flecs::world m_RuntimeWorld;
         Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
         SceneState m_SceneState = SceneState::Edit;

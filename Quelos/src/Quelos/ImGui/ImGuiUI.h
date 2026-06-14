@@ -114,6 +114,7 @@ namespace Quelos::UI {
         ImGui::Columns(2, nullptr, false);
 
         ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
+        ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(FormatTemp("{}", label));
 
         if (ImGui::BeginPopupContextItem("FieldContextMenu")) {
