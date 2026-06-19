@@ -47,7 +47,7 @@ namespace QuelosEditor {
         idDesc.Width = 1;
         idDesc.Height = 1;
         idDesc.Format = ImageFormat::R32UInt;
-        idDesc.BindFlags = Bind::RenderTarget;
+        idDesc.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
         idDesc.Usage = Usage::Default;
 
         m_IDTexture = Renderer::CreateTexture(idDesc);
@@ -163,8 +163,11 @@ namespace QuelosEditor {
             ShaderType::Vertex,
             m_IDSRB.GetHandle(),
             "Instances",
-            m_WorldRenderer.GetInstancesGpuBuffer()
+            m_WorldRenderer.GetInstancesBufferView()
         );
+
+        CreateOutlineMaskResources();
+        CreateOutlineCompositeResources();
 
         m_RuntimeWorld.system<LocalTransform&>().each([](const flecs::iter& it, size_t, LocalTransform& transform) {
             transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
@@ -230,8 +233,18 @@ namespace QuelosEditor {
             if (m_SceneViewportPanel.ResizeIfNeeded()) {
                 const float2 size = m_SceneViewportPanel.GetViewportSize();
                 m_EditorCamera.SetViewportSize(size.x, size.y);
-                Renderer::FrameBufferResize(m_IDFrameBuffer.GetHandle(), size.x, size.y);
+
+                Renderer::TextureResize(m_IDTexture.GetHandle(), size.x, size.y);
+                Renderer::TextureResize(m_IDDepthTexture.GetHandle(), size.x, size.y);
                 Renderer::TextureResize(m_IDStagingTexture.GetHandle(), size.x, size.y);
+                Renderer::FrameBufferResize(m_IDFrameBuffer.GetHandle(), size.x, size.y);
+
+                Renderer::TextureResize(m_MaskTexture.GetHandle(), size.x, size.y);
+                Renderer::TextureResize(m_MaskResolvedTexture.GetHandle(), size.x, size.y);
+                Renderer::TextureResize(m_MaskDepthTexture.GetHandle(), size.x, size.y);
+                Renderer::FrameBufferResize(m_MaskFrameBuffer.GetHandle(), size.x, size.y);
+
+                Renderer::FrameBufferResize(m_CompositeFrameBuffer.GetHandle(), size.x, size.y);
             }
 
             ClearValue clearValues[3];
@@ -253,7 +266,7 @@ namespace QuelosEditor {
             m_WorldRenderer.Render();
             m_WorldRenderer.End();
 
-            if (m_SceneViewportPanel.SelectRequest().Resolve()) {
+            if (m_SceneViewportPanel.SelectRequest().IsRequested() || m_SelectedEntity.IsValid()) {
                 ClearValue idClearValues[2];
                 idClearValues[0].Format = ImageFormat::R32UInt;
 
@@ -345,8 +358,15 @@ namespace QuelosEditor {
                 copy.SourceTransitionMode = ResourceStateTransitionMode::Transition;
                 copy.DestinationTransitionMode = ResourceStateTransitionMode::Transition;
                 Renderer::CopyTexture(copy);
+            }
 
+            if (m_SceneViewportPanel.SelectRequest().Resolve()) {
                 m_PickRequest = true;
+            }
+
+            if (m_SelectedEntity.IsValid()) {
+                RunMaskPass();
+                CompositePass();
             }
         }
 
@@ -476,5 +496,342 @@ namespace QuelosEditor {
 
         m_SceneState = SceneState::Edit;
         EditorLayer::Get().RemovePlayingScene(this);
+    }
+
+    void SceneWorkspace::CreateOutlineMaskResources() {
+        // MSAA mask
+        TextureSpecification maskSpec;
+        maskSpec.Format = ImageFormat::R8UNorm;
+        maskSpec.SampleCount = SampleCount::x4;
+        maskSpec.BindFlags = Bind::RenderTarget;
+        m_MaskTexture = Renderer::CreateTexture(maskSpec);
+
+        // Resolved 1x mask, used by composite shader
+        TextureSpecification maskResolvedSpec;
+        maskResolvedSpec.Format = ImageFormat::R8UNorm;
+        maskResolvedSpec.SampleCount = SampleCount::x1;
+        maskResolvedSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+        m_MaskResolvedTexture = Renderer::CreateTexture(maskResolvedSpec);
+
+        TextureSpecification msaaDepthSpec;
+        msaaDepthSpec.Format = ImageFormat::DEPTH32Float;
+        msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
+
+        msaaDepthSpec.BindFlags = Bind::DepthStencil;
+        msaaDepthSpec.SampleCount = SampleCount::x4;
+
+        m_MaskDepthTexture = Renderer::CreateTexture(msaaDepthSpec);
+
+        RenderPassAttachmentSpec attachments[3];
+
+        attachments[0].Format = ImageFormat::R8UNorm;
+        attachments[0].SampleCount = 4;
+        attachments[0].LoadOp = AttachmentLoadOp::Clear;
+        attachments[0].StoreOp = AttachmentStoreOp::Store;
+        attachments[0].InitialState = ResourceState::RenderTarget;
+        attachments[0].FinalState = ResourceState::RenderTarget;
+
+        attachments[1].Format = ImageFormat::R8UNorm;
+        attachments[1].SampleCount = 1;
+        attachments[1].LoadOp = AttachmentLoadOp::Clear;
+        attachments[1].StoreOp = AttachmentStoreOp::Store;
+        attachments[1].InitialState = ResourceState::ResolveDest;
+        attachments[1].FinalState = ResourceState::ShaderResource;
+
+        // SHARED scene depth, read-only, load existing values, don't clear/write
+        attachments[2].Format = ImageFormat::DEPTH32Float;
+        attachments[2].SampleCount = 4;
+        attachments[2].LoadOp = AttachmentLoadOp::Clear;
+        attachments[2].StoreOp = AttachmentStoreOp::Discard;
+        attachments[2].InitialState = ResourceState::DepthWrite;
+        attachments[2].FinalState = ResourceState::DepthWrite;
+
+        AttachmentReference colorRef { 0, ResourceState::RenderTarget };
+        AttachmentReference resolveRef{ 1, ResourceState::ResolveDest };
+        AttachmentReference depthRef{ 2, ResourceState::DepthWrite };
+
+        SubPassSpec maskSubpass{};
+        maskSubpass.RenderTargetAttachments = Span32(&colorRef, 1);
+        maskSubpass.pDepthAttachment = &depthRef;
+        maskSubpass.pResolveAttachments = &resolveRef;
+
+        RenderPassSpec maskPassSpec{};
+        maskPassSpec.Name = "OutlineCompositePass";
+        maskPassSpec.Attachments = attachments;
+        maskPassSpec.SubPasses = Span32(&maskSubpass, 1);
+        m_MaskRenderPass = Renderer::CreateRenderPass(maskPassSpec);
+
+        const TextureViewHandle fbAttachments[] = {
+            Renderer::GetTextureView(m_MaskTexture.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_MaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::GetTextureView(m_MaskDepthTexture.GetHandle(), TextureViewType::DepthStencil)
+        };
+
+        FrameBufferSpec fbDesc;
+        fbDesc.RenderPassHandle = m_MaskRenderPass.GetHandle();
+        fbDesc.Attachments = fbAttachments;
+        fbDesc.Size = {1, 1};
+        m_MaskFrameBuffer = Renderer::CreateFrameBuffer(fbDesc);
+
+        AssetMetadata selectedMaskMetadata;
+        selectedMaskMetadata.FilePath = "Assets/shaders/SelectedOutlineMask.slang";
+        selectedMaskMetadata.Handle = AssetID("deaddead-beaf-beef-dead-deadbeafbeef");
+        selectedMaskMetadata.Type = GraphicsShader::GetStaticType();
+
+        GraphicsShader* shader = GetMaskShader();
+
+        ShaderImporter::Cook(selectedMaskMetadata);
+        ShaderImporter::Import(shader, selectedMaskMetadata);
+
+        GraphicsPipelineStateCreateInfo psoCI{};
+        psoCI.Name = "EditorOutlineMask";
+        psoCI.GraphicsPipeline.RenderPass = m_MaskRenderPass.GetHandle();
+
+        psoCI.VertexShader = shader->GetVertexShaderHandle();
+        psoCI.FragmentShader = shader->GetFragmentShaderHandle();
+
+        // No input layout, vertex shader generates positions
+        LayoutElementBuilder<4> layoutBuilder{
+            LayoutElement{0, 0, ValueType::Float3},
+            LayoutElement{1, 0, ValueType::Float3},
+            LayoutElement{2, 0, ValueType::Float3},
+            LayoutElement{3, 0, ValueType::Float2}
+        };
+
+        psoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+
+        psoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
+        psoCI.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
+
+        // No depth
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = true;
+        psoCI.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
+
+        SmallVec<ShaderResourceVariableSpec, 2> vars = {
+            {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
+            {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        m_MaskPSO = Renderer::CreatePipelineState(psoCI);
+
+        Renderer::BindStaticVariableByName(
+            m_MaskPSO.GetHandle(),
+            ShaderType::Vertex,
+            "global",
+            m_WorldRenderer.GetGlobalBuffer()
+        );
+
+        m_MaskSRB = Renderer::CreateShaderResourceBinding(m_MaskPSO.GetHandle(), true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Vertex,
+            m_MaskSRB.GetHandle(),
+            "Instances",
+            m_WorldRenderer.GetInstancesBufferView()
+        );
+    }
+
+    struct OutlineSettings {
+        pfloat4 Color;
+        float Thickness;
+        pfloat2 ViewportSize;
+        float Padding;
+    };
+
+    void SceneWorkspace::CreateOutlineCompositeResources() {
+        GpuBufferSpec uboSpec;
+        uboSpec.Name = "OutlineSettings";
+        uboSpec.Size = sizeof(OutlineSettings);
+        uboSpec.Usage = Usage::Default;
+        uboSpec.BindFlags = Bind::UniformBuffer;
+
+        m_OutlineSettingsUB = Renderer::CreateBuffer(uboSpec, {});
+
+        // Composite Pass
+        RenderPassAttachmentSpec compositeAttachment;
+        compositeAttachment.Format = ImageFormat::RGBA8UNorm;
+        compositeAttachment.SampleCount = 1;
+        compositeAttachment.LoadOp = AttachmentLoadOp::Load; // reads+writes scene color
+        compositeAttachment.StoreOp = AttachmentStoreOp::Store;
+        compositeAttachment.InitialState = ResourceState::RenderTarget;
+        compositeAttachment.FinalState = ResourceState::ShaderResource;
+
+        AttachmentReference compositeColorRef{ 0, ResourceState::RenderTarget };
+
+        SubPassSpec compositeSubpass{};
+        compositeSubpass.RenderTargetAttachments = Span32(&compositeColorRef, 1);
+
+        RenderPassSpec compositePassSpec{};
+        compositePassSpec.Name = "OutlineCompositePass";
+        compositePassSpec.Attachments = Span32(&compositeAttachment, 1);
+        compositePassSpec.SubPasses = Span32(&compositeSubpass, 1);
+        m_CompositeRenderPass = Renderer::CreateRenderPass(compositePassSpec);
+
+        TextureViewHandle compositeColorView = Renderer::GetTextureView(
+            m_SceneViewportPanel.GetSceneColorTexture(),
+            TextureViewType::RenderTarget
+        );
+
+        FrameBufferSpec fbDesc;
+        fbDesc.Name = "SelectionCompositeFB";
+        fbDesc.RenderPassHandle = m_CompositeRenderPass.GetHandle();
+        fbDesc.Attachments = Span32(&compositeColorView, 1);
+        fbDesc.Size = { 1, 1 };
+
+        m_CompositeFrameBuffer = Renderer::CreateFrameBuffer(fbDesc);
+
+        AssetMetadata selectedCompositeMetadata;
+        selectedCompositeMetadata.FilePath = "Assets/shaders/SelectedOutlineComposite.slang";
+        selectedCompositeMetadata.Handle = AssetID("deadbeef-dead-beef-dead-beefdeadbeef");
+        selectedCompositeMetadata.Type = GraphicsShader::GetStaticType();
+
+        GraphicsShader* shader = GetCompositeShader();
+
+        ShaderImporter::Cook(selectedCompositeMetadata);
+        ShaderImporter::Import(shader, selectedCompositeMetadata);
+
+        GraphicsPipelineStateCreateInfo compositePsoCI{};
+        compositePsoCI.Name = "OutlineComposite";
+        compositePsoCI.GraphicsPipeline.RenderPass = m_CompositeRenderPass.GetHandle();
+
+        compositePsoCI.VertexShader = shader->GetVertexShaderHandle();
+        compositePsoCI.FragmentShader = shader->GetFragmentShaderHandle();
+
+        // No input layout, vertex shader generates positions
+        compositePsoCI.GraphicsPipeline.InputLayout.LayoutElements = {};
+
+        compositePsoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::None; // no culling on fullscreen tri
+
+        // No depth
+        compositePsoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
+
+        SmallVec<ShaderResourceVariableSpec, 2> vars = {
+            {"Settings", ShaderType::Fragment, ShaderResourceVariableType::Static},
+            {"SelectionMask", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
+        };
+
+        compositePsoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec samplerSpec;
+        samplerSpec.WrapU = WrapMode::Clamp;
+        samplerSpec.WrapV = WrapMode::Clamp;
+        samplerSpec.MinFilter = FilterMode::Linear;
+        samplerSpec.MagFilter = FilterMode::Linear;
+        samplerSpec.MipFilter = FilterMode::Linear;
+
+        ImmutableSamplerSpec selectionMaskSampler;
+        selectionMaskSampler.SamplerOrTextureName = "SelectionMask";
+        selectionMaskSampler.Specification = samplerSpec;
+        selectionMaskSampler.ShaderStages = ShaderType::Fragment;
+
+        compositePsoCI.Spec.ResourceLayout.ImmutableSamplers = { &selectionMaskSampler, 1 };
+
+        m_CompositePSO = Renderer::CreatePipelineState(compositePsoCI);
+
+        Renderer::BindStaticVariableByName(
+            m_CompositePSO.GetHandle(),
+            ShaderType::Fragment,
+            "Settings",
+            m_OutlineSettingsUB.GetHandle()
+        );
+
+        m_CompositeSRB = Renderer::CreateShaderResourceBinding(m_CompositePSO.GetHandle(), true);
+    }
+
+    void SceneWorkspace::CompositePass() {
+        OutlineSettings settings = {
+            .Color = Color::Red(),
+            .Thickness = 3.0f,
+            .ViewportSize = m_SceneViewportPanel.GetViewportSize(),
+            .Padding = 0.0f
+        };
+
+        Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));
+
+        // Bind ID buffer into composite SRB
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            m_CompositeSRB.GetHandle(),
+            "SelectionMask",
+            Renderer::GetTextureView(m_MaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
+        );
+
+        Renderer::BindPipelineState(m_CompositePSO.GetHandle());
+        Renderer::CommitShaderResources(m_CompositeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+
+        BeginRenderPassAttribs passAttribs{};
+        passAttribs.RenderPassHandle = m_CompositeRenderPass.GetHandle();
+        passAttribs.FrameBufferHandle = m_CompositeFrameBuffer.GetHandle();
+
+        // LoadOp = Load, so no clear value needed
+        Renderer::BeginRenderPass(passAttribs);
+
+        // No vertex buffer, shader generates the triangle from SV_VertexID
+        DrawAttribs draw{};
+        draw.NumVertices = 3;
+        Renderer::Draw(draw);
+
+        Renderer::EndRenderPass();
+    }
+
+    void SceneWorkspace::RunMaskPass() {
+        static Vec<InstanceData> maskInstances;
+        maskInstances.clear();
+
+        if (m_SelectedEntity.IsValid() && m_SelectedEntity.Has<WorldTransform>() && m_SelectedEntity.Has<MeshRenderer>()) {
+            maskInstances.push_back(InstanceData {
+                .Transform = m_SelectedEntity.Get<WorldTransform>().Value,
+                .MaterialId = 0,
+                .EntityIndex = 0
+            });
+        }
+
+        if (maskInstances.empty()) {
+            return;
+        }
+
+        void* mapped;
+        Renderer::Map(m_WorldRenderer.GetInstancesGpuBuffer(), MapType::Write, MapFlags::Discard, mapped);
+        memcpy(mapped, maskInstances.data(), sizeof(InstanceData) * maskInstances.size());
+        Renderer::Unmap(m_WorldRenderer.GetInstancesGpuBuffer(), MapType::Write);
+
+        BeginRenderPassAttribs passAttribs{};
+        passAttribs.RenderPassHandle = m_MaskRenderPass.GetHandle();
+        passAttribs.FrameBufferHandle = m_MaskFrameBuffer.GetHandle();
+
+        ClearValue clearValues[3];
+        clearValues[0].Format = ImageFormat::R8UNorm;
+        clearValues[0].Color = {0};
+
+        clearValues[1] = {};
+
+        clearValues[2].Format = ImageFormat::DEPTH32Float;
+        clearValues[2].DepthStencil.Depth = 1.0;
+
+        passAttribs.ClearColors = clearValues;
+
+        Renderer::BeginRenderPass(passAttribs);
+
+        Renderer::BindPipelineState(m_MaskPSO.GetHandle());
+        Renderer::CommitShaderResources(m_MaskSRB.GetHandle(), ResourceStateTransitionMode::None);
+
+        const Mesh* mesh = m_SelectedEntity.Get<MeshRenderer>().Mesh.TryGet();
+
+        Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
+        Renderer::BindIndexBuffer(mesh->GetIndexBuffer());
+
+        DrawIndexedAttribs attribs;
+        attribs.Flags = DrawFlags::VerifyAll;
+        attribs.IndexType = ValueType::UInt16;
+        attribs.NumIndices = mesh->GetIndices().size();
+        attribs.NumInstances = 1;
+        attribs.FirstInstanceLocation = 0;
+
+        Renderer::DrawIndexed(attribs);
+
+        Renderer::EndRenderPass();
     }
 }

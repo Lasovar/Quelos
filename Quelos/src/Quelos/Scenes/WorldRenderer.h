@@ -81,7 +81,7 @@ namespace Quelos {
     public:
         MaterialRegistry(const std::string& pipelineName, TextureRegistry& textureRegistry, uint64_t materialSize);
 
-        [[nodiscard]] GpuBufferHandle GetGpuBufferHandle() const { return m_GPUBuffer; }
+        [[nodiscard]] GpuBufferViewHandle GetBufferViewHandle() const { return m_GpuBufferView; }
 
         // Returns the materialId to store in MeshUniforms
         uint32_t Add(const AssetRef<Material>& mat) {
@@ -116,6 +116,7 @@ namespace Quelos {
 
         Vec<AssetRef<Material>> m_CpuMaterials;
         GpuBufferHandle m_GPUBuffer;
+        GpuBufferViewHandle m_GpuBufferView;
         TextureRegistry* m_TextureRegistry;
         size_t m_GPUCapacity = 0;
         bool m_IsDirty = false;
@@ -161,7 +162,8 @@ namespace Quelos {
         void End();
 
         [[nodiscard]] const Vec<DrawCommand>& GetDrawCalls() const { return m_DrawCalls; }
-        [[nodiscard]] GpuBufferHandle GetInstancesGpuBuffer() const { return m_InstancesGPUBuffer; }
+        [[nodiscard]] GpuBufferViewHandle GetInstancesBufferView() const { return m_InstancesBufferView; }
+        [[nodiscard]] GpuBufferHandle GetInstancesGpuBuffer() const { return m_InstancesGpuBuffer; }
         [[nodiscard]] GpuBufferHandle GetGlobalBuffer() const { return m_GlobalBuffer; }
 
         ~WorldRenderer();
@@ -189,6 +191,7 @@ namespace Quelos {
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;
 
         GpuBufferHandle m_GlobalBuffer;
-        GpuBufferHandle m_InstancesGPUBuffer;
+        GpuBufferHandle m_InstancesGpuBuffer;
+        GpuBufferViewHandle m_InstancesBufferView;
     };
 }

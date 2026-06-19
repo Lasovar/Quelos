@@ -37,6 +37,13 @@ namespace QuelosEditor {
 
         GraphicsShader* GetIDShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_IDShaderStorage)); }
         [[nodiscard]] const GraphicsShader* GetIDShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_IDShaderStorage)); }
+
+        GraphicsShader* GetCompositeShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_CompositeShaderStorage)); }
+        [[nodiscard]] const GraphicsShader* GetCompositeShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_CompositeShaderStorage)); }
+
+        GraphicsShader* GetMaskShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_MaskShaderStorage)); }
+        [[nodiscard]] const GraphicsShader* GetMaskShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_MaskShaderStorage)); }
+
         const Ref<Scene>& GetScene() { return m_ActiveScene; }
         [[nodiscard]] Entity GetSelectedEntity() const { return m_SelectedEntity; }
 
@@ -57,6 +64,11 @@ namespace QuelosEditor {
     private:
         void OnScenePlay();
         void OnSceneStop();
+
+        void CreateOutlineMaskResources();
+        void CreateOutlineCompositeResources();
+        void CompositePass();
+        void RunMaskPass();
 
     private:
         flecs::world m_EditorWorld;
@@ -104,5 +116,23 @@ namespace QuelosEditor {
         ResourceRef<ShaderResourceBinding> m_IDSRB;
 
         alignas(GraphicsShader) byte m_IDShaderStorage[sizeof(GraphicsShader)]{};
+
+        ResourceRef<GpuBuffer> m_OutlineSettingsUB;
+        ResourceRef<RenderPass> m_CompositeRenderPass;
+        ResourceRef<FrameBuffer> m_CompositeFrameBuffer;
+        ResourceRef<PipelineStateObject> m_CompositePSO;
+        ResourceRef<ShaderResourceBinding> m_CompositeSRB;
+
+        alignas(GraphicsShader) byte m_CompositeShaderStorage[sizeof(GraphicsShader)]{};
+
+        ResourceRef<Texture> m_MaskTexture;
+        ResourceRef<Texture> m_MaskResolvedTexture;
+        ResourceRef<Texture> m_MaskDepthTexture;
+        ResourceRef<FrameBuffer> m_MaskFrameBuffer;
+        ResourceRef<RenderPass> m_MaskRenderPass;
+        ResourceRef<PipelineStateObject> m_MaskPSO;
+        ResourceRef<ShaderResourceBinding> m_MaskSRB;
+
+        alignas(GraphicsShader) byte m_MaskShaderStorage[sizeof(GraphicsShader)]{};
     };
 }

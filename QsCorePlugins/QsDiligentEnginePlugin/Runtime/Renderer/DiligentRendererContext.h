@@ -105,7 +105,13 @@ namespace Quelos {
     struct QBufferData {
         IBuffer* Buffer;
         std::string Name;
-        GPUBufferSpec Specification;
+        GpuBufferSpec Specification;
+        Vec<GpuBufferViewHandle> BufferViews;
+    };
+
+    struct QBufferViewData {
+        IBufferView* BufferView;
+        GpuBufferHandle Buffer;
     };
 
     struct PipelineResourceSignatureData {
@@ -135,6 +141,8 @@ namespace Quelos {
         void EndRenderPass() override;
 
         void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) override;
+
+        void Draw(const DrawAttribs& drawAttribs) override;
         void DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) override;
 
         // Shaders
@@ -157,11 +165,19 @@ namespace Quelos {
             GpuBufferHandle gpuBufferHandle
         ) override;
 
+        void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            GpuBufferViewHandle gpuBufferViewHandle
+        ) override;
+
         void BindPipelineState(PipelineStateHandle pipelineStateHandle) override;
 
         void Destroy(PipelineStateHandle pipelineStateHandle) override;
 
-        GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) override;
+        GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) override;
+        GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle) override;
 
         ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -171,7 +187,14 @@ namespace Quelos {
         void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
-            std::string_view name, GpuBufferHandle gpuBufferHandle
+            std::string_view name, GpuBufferViewHandle gpuBufferViewHandle
+        ) override;
+
+        void BindVariableByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle shaderResourceBindingHandle,
+            std::string_view name,
+            TextureViewHandle textureViewHandle
         ) override;
 
         void BindArrayByName(
@@ -281,6 +304,7 @@ namespace Quelos {
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
         ResourceTable<QBufferData, GpuBuffer> m_BufferTable;
+        ResourceTable<QBufferViewData, GpuBufferView> m_BufferViewTable;
         ResourceTable<PipelineStateData, PipelineStateObject> m_PipelineStateTable;
         ResourceTable<IShaderResourceBinding*, ShaderResourceBinding> m_ShaderResourceBindingTable;
         ResourceTable<PipelineResourceSignatureData, PipelineResourceSignature> m_PipelineResourceSignatureTable;

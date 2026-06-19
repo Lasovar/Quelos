@@ -31,7 +31,7 @@ namespace Quelos {
                 m_GPUCapacity = 16; // minimum
             }
 
-            GPUBufferSpec desc{};
+            GpuBufferSpec desc{};
             const std::string name = m_PipelineName + " Material buffer";
             desc.Name = name;
             desc.Size = m_MaterialSize * m_GPUCapacity;
@@ -47,6 +47,7 @@ namespace Quelos {
             }
 
             m_GPUBuffer = Renderer::CreateBuffer(desc, {});
+            m_GpuBufferView = Renderer::GetDefaultBufferView(m_GPUBuffer);
 
             void* mapped;
             Renderer::Map(m_GPUBuffer, Map::Write, MapFlags::Discard, mapped);
@@ -176,7 +177,7 @@ namespace Quelos {
         attachments[2].Format = ImageFormat::DEPTH32Float;
         attachments[2].SampleCount = 4;
         attachments[2].LoadOp = AttachmentLoadOp::Clear;
-        attachments[2].StoreOp = AttachmentStoreOp::Discard;
+        attachments[2].StoreOp = AttachmentStoreOp::Store;
         attachments[2].InitialState = ResourceState::DepthWrite;
         attachments[2].FinalState = ResourceState::DepthWrite;
 
@@ -196,7 +197,7 @@ namespace Quelos {
 
         m_RenderPass = Renderer::CreateRenderPass(renderPassSpec);
 
-        GPUBufferSpec spec;
+        GpuBufferSpec spec;
         spec.Name = "global";
         spec.Size = sizeof(Globals);
         spec.Usage = Usage::Default;
@@ -204,7 +205,7 @@ namespace Quelos {
 
         m_GlobalBuffer = Renderer::CreateBuffer(spec, {});
 
-        GPUBufferSpec instancesBufferSpec{};
+        GpuBufferSpec instancesBufferSpec{};
         instancesBufferSpec.Name = "Instances";
         instancesBufferSpec.Size = sizeof(InstanceData) * k_MaxInstances;
         instancesBufferSpec.Usage = Usage::Dynamic;
@@ -213,7 +214,8 @@ namespace Quelos {
         instancesBufferSpec.CpuAccessFlags = CpuAccess::Write;
         instancesBufferSpec.ElementByteStride = sizeof(InstanceData);
 
-        m_InstancesGPUBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
+        m_InstancesGpuBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
+        m_InstancesBufferView = Renderer::GetDefaultBufferView(m_InstancesGpuBuffer);
 
         TextureSpecification whiteSpec;
         whiteSpec.Name = "DefaultWhiteTexture";
@@ -376,8 +378,8 @@ namespace Quelos {
             Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
 
             ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
-            Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesGPUBuffer);
-            Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesGPUBuffer);
+            Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesBufferView);
+            Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesBufferView);
 
             MaterialRegistry& materialRegistry = m_PipelineStates.try_emplace(
                 shader.GetAssetID(),
@@ -433,14 +435,14 @@ namespace Quelos {
                     ShaderType::Vertex,
                     pipelineInfo.SRB,
                     "Materials",
-                    pipelineInfo.MaterialRegistry.GetGpuBufferHandle()
+                    pipelineInfo.MaterialRegistry.GetBufferViewHandle()
                 );
 
                 Renderer::BindVariableByName(
                     ShaderType::Fragment,
                     pipelineInfo.SRB,
                     "Materials",
-                    pipelineInfo.MaterialRegistry.GetGpuBufferHandle()
+                    pipelineInfo.MaterialRegistry.GetBufferViewHandle()
                 );
             }
 
@@ -559,7 +561,7 @@ namespace Quelos {
                 const Mesh* mesh = m_DrawCalls[j].Mesh;
 
                 void* mapped;
-                Renderer::Map(m_InstancesGPUBuffer, MapType::Write, MapFlags::Discard, mapped);
+                Renderer::Map(m_InstancesGpuBuffer, MapType::Write, MapFlags::Discard, mapped);
                 auto* instances = static_cast<InstanceData*>(mapped);
 
                 uint32_t instanceCount = 0;
@@ -573,7 +575,7 @@ namespace Quelos {
                     ++j;
                 }
 
-                Renderer::Unmap(m_InstancesGPUBuffer, MapType::Write);
+                Renderer::Unmap(m_InstancesGpuBuffer, MapType::Write);
 
                 Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
                 Renderer::BindIndexBuffer(mesh->GetIndexBuffer());
