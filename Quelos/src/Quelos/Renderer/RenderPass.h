@@ -69,6 +69,8 @@ namespace Quelos {
     struct SubPassSpec {
         Span32<const AttachmentReference> RenderTargetAttachments;
         const AttachmentReference* pDepthAttachment = nullptr;
+
+        // Should be the same size as RenderTargetAttachments
         const AttachmentReference* pResolveAttachments = nullptr;
     };
 

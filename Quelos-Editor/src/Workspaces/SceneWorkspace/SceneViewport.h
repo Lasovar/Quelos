@@ -31,6 +31,9 @@ namespace QuelosEditor {
         }
 
         void AfterViewport() override;
+        TextureViewHandle GetSceneColorView() const;
+        TextureHandle GetSceneColorTexture() const { return m_SceneColorAttachment.GetHandle(); }
+        TextureHandle GetDepthAttachment() const { return m_DepthAttachment.GetHandle(); }
 
     private:
         SceneWorkspace& m_SceneWorkspace;

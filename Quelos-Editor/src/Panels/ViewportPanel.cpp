@@ -80,6 +80,9 @@ namespace QuelosEditor {
 
         m_ViewportSize = m_ViewportNewSize;
 
+        Renderer::TextureResize(m_SceneColorAttachment.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
+        Renderer::TextureResize(m_DepthAttachment.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
+        Renderer::TextureResize(m_ColorAttachment.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
         m_FrameBuffer->Resize(m_ViewportSize.x, m_ViewportSize.y);
         m_NeedResize = false;
 

@@ -12,6 +12,11 @@ struct VertexOut {
     uint instanceID : SV_InstanceID;
 };
 
+[__AttributeUsage(_AttributeTargets.Function)]
+struct PassAttribute {
+    string Name;
+}
+
 // Allows you to indicate that a struct is material
 // Allows the reflection system to properly bind material data with the shader
 // And show proper UI in the editor for editing the material fields

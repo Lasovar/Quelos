@@ -127,6 +127,10 @@ namespace Quelos {
         s_RendererContext->SubmitMesh(mesh, transform);
     }
 
+    void Renderer::Draw(const DrawAttribs& attribs) {
+        s_RendererContext->Draw(attribs);
+    }
+
     void Renderer::DrawIndexed(const DrawIndexedAttribs& attribs) {
         s_RendererContext->DrawIndexed(attribs);
     }
@@ -150,6 +154,13 @@ namespace Quelos {
         const GpuBufferHandle bufferHandle
     ) {
         s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferHandle);
+    }
+
+    void Renderer::BindStaticVariableByName(
+        PipelineStateHandle pipelineStateHandle, ShaderType shaderType, std::string_view name,
+        GpuBufferViewHandle bufferViewHandle
+    ) {
+        s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferViewHandle);
     }
 
     void Renderer::BindPipelineState(const PipelineStateHandle pipelineHandle) {
@@ -187,8 +198,12 @@ namespace Quelos {
         return s_RendererContext->HomogenousDepth();
     }
 
-    GpuBufferHandle Renderer::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView bufferView) {
+    GpuBufferHandle Renderer::CreateBuffer(const GpuBufferSpec& bufferSpec, const BufferView bufferView) {
         return s_RendererContext->CreateBuffer(bufferSpec, bufferView);
+    }
+
+    GpuBufferViewHandle Renderer::GetDefaultBufferView(const GpuBufferHandle gpuBuffer) {
+        return s_RendererContext->GetDefaultBufferView(gpuBuffer);
     }
 
     void Renderer::UpdateBuffer(const GpuBufferHandle bufferHandle, const uint64_t offset, const BufferView data) {
@@ -209,9 +224,18 @@ namespace Quelos {
         const ShaderType shaderType,
         const ShaderResourceBindingHandle srb,
         const std::string_view str,
-        const GpuBufferHandle instanceBuffer
+        const GpuBufferViewHandle instanceBuffer
     ) {
         s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer);
+    }
+
+    void Renderer::BindVariableByName(
+        const ShaderType shaderType,
+        const ShaderResourceBindingHandle srb,
+        const std::string_view str,
+        const TextureViewHandle textureViewHandle
+    ) {
+        s_RendererContext->BindVariableByName(shaderType, srb, str, textureViewHandle);
     }
 
     void Renderer::BindArrayByName(

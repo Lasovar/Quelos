@@ -42,6 +42,7 @@ namespace Quelos {
         static void EndFrame();
 
         static void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform);
+        static void Draw(const DrawAttribs& attribs);
         static void DrawIndexed(const DrawIndexedAttribs& attribs);
 
         // Renderer Context API
@@ -49,25 +50,48 @@ namespace Quelos {
         static void Destroy(ShaderHandle shaderHandle);
 
         static PipelineStateHandle CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo);
+
         static void BindStaticVariableByName(
-            PipelineStateHandle pipelineStateHandle, ShaderType shaderType, std::string_view name,
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
             GpuBufferHandle bufferHandle
         );
+
+        static void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            GpuBufferViewHandle bufferViewHandle
+        );
+
         static void BindPipelineState(PipelineStateHandle pipelineHandle);
         static void Destroy(PipelineStateHandle pipelineStateHandle);
 
         static PipelineResourceSignatureHandle CreatePipelineResourceSignature(const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec);
         static void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle);
 
-        static GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView bufferView);
+        static GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView bufferView);
+        static GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle gpuBuffer);
         static void UpdateBuffer(GpuBufferHandle bufferHandle, uint64_t offset, BufferView data);
         static void Destroy(GpuBufferHandle bufferHandle);
 
         static ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle, bool initStaticResources
         );
+
         static void BindVariableByName(
-            ShaderType shaderType, ShaderResourceBindingHandle srb, std::string_view str, GpuBufferHandle instanceBuffer
+            ShaderType shaderType,
+            ShaderResourceBindingHandle srb,
+            std::string_view str,
+            GpuBufferViewHandle instanceBuffer
+        );
+
+        static void BindVariableByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle srb,
+            std::string_view str,
+            TextureViewHandle textureViewHandle
         );
 
         static void BindArrayByName(

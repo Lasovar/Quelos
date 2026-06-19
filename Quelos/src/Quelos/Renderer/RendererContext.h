@@ -101,6 +101,27 @@ namespace Quelos {
         DynamicBuffersAndInlineConstantsIntact = DynamicResourceBuffersIntact | InlineConstantsIntact
     };
 
+    struct DrawAttribs {
+        /// The number of vertices to draw.
+        uint32_t NumVertices = 0;
+
+        /// Additional flags, see Diligent::DRAW_FLAGS.
+        DrawFlags Flags = DrawFlags::None;
+
+        /// The number of instances to draw.
+
+        /// If more than one instance is specified, instanced draw call will be performed.
+        uint32_t NumInstances = 1;
+
+        /// LOCATION (or INDEX, but NOT the byte offset) of the first vertex in the
+        /// vertex buffer to start reading vertices from.
+        uint32_t StartVertexLocation = 0;
+
+        /// LOCATION (or INDEX, but NOT the byte offset) in the vertex buffer to start
+        /// reading instance data from.
+        uint32_t FirstInstanceLocation = 0;
+    };
+
     struct DrawIndexedAttribs {
         /// The number of indices to draw.
         uint32_t NumIndices = 0;
@@ -188,6 +209,7 @@ namespace Quelos {
 
         virtual void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform) = 0;
 
+        virtual void Draw(const DrawAttribs& drawAttribs) = 0;
         virtual void DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) = 0;
 
         virtual void Reset(uint32_t width, uint32_t height) = 0;
@@ -213,12 +235,20 @@ namespace Quelos {
             GpuBufferHandle gpuBufferHandle
         ) = 0;
 
+        virtual void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            GpuBufferViewHandle gpuBufferViewHandle
+        ) = 0;
+
         virtual void BindPipelineState(PipelineStateHandle pipelineStateHandle) = 0;
 
         virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;
         virtual void Destroy(GpuBufferHandle bufferHandle) = 0;
 
-        virtual GpuBufferHandle CreateBuffer(const GPUBufferSpec& bufferSpec, BufferView data) = 0;
+        virtual GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) = 0;
+        virtual GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle) = 0;
 
         virtual ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -228,7 +258,14 @@ namespace Quelos {
         virtual void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
-            std::string_view name, GpuBufferHandle gpuBufferHandle
+            std::string_view name, GpuBufferViewHandle gpuBufferHandle
+        ) = 0;
+
+        virtual void BindVariableByName(
+            ShaderType shaderType,
+            ShaderResourceBindingHandle shaderResourceBindingHandle,
+            std::string_view name,
+            TextureViewHandle textureViewHandle
         ) = 0;
 
         virtual void BindArrayByName(

@@ -42,7 +42,7 @@ namespace Quelos {
         SparseAliasing = 1u << 0,
     };
 
-    struct QS_API GPUBufferSpec {
+    struct QS_API GpuBufferSpec {
         std::string_view Name;
         uint64_t Size = 0;
         BindFlags BindFlags = Bind::None;

@@ -23,6 +23,9 @@ namespace Quelos {
             return false;
         }
 
+        // Returns if Requested without clearing the value
+        [[nodiscard]] bool IsRequested() const { return m_Requested; }
+
     private:
         bool m_Requested = false;
     };

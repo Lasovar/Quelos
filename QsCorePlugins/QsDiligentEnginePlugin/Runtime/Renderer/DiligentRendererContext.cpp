@@ -547,6 +547,20 @@ namespace Quelos {
         constexpr TEXTURE_VIEW_TYPE GetTextureViewType(TextureViewType textureView) {
             return static_cast<TEXTURE_VIEW_TYPE>(textureView);
         }
+
+        constexpr STENCIL_OP GetStencilOp(StencilOp stencilOp) {
+            return static_cast<STENCIL_OP>(stencilOp);
+        }
+
+        StencilOpDesc GetStencilOp(const StencilOpSpec backFace) {
+            StencilOpDesc desc;
+            desc.StencilFailOp = GetStencilOp(backFace.StencilFailOp);
+            desc.StencilDepthFailOp = GetStencilOp(backFace.StencilDepthFailOp);
+            desc.StencilPassOp = GetStencilOp(backFace.StencilPassOp);
+            desc.StencilFunc = GetComparisonFunc(backFace.StencilFunc);
+
+            return desc;
+        }
     }
 
     namespace TextureUtil {
@@ -874,7 +888,7 @@ namespace Quelos {
         m_pImmediateContext->EndRenderPass();
     }
 
-    GpuBufferHandle DiligentRendererContext::CreateBuffer(const GPUBufferSpec& bufferSpec, const BufferView data) {
+    GpuBufferHandle DiligentRendererContext::CreateBuffer(const GpuBufferSpec& bufferSpec, const BufferView data) {
         const Handle<GpuBuffer> handle = m_BufferTable.Emplace();
         QBufferData* slot = m_BufferTable.At(handle);
         slot->Name = bufferSpec.Name;
@@ -901,6 +915,42 @@ namespace Quelos {
         return handle;
     }
 
+    GpuBufferViewHandle DiligentRendererContext::GetDefaultBufferView(const GpuBufferHandle bufferHandle) {
+        QBufferData* slot = m_BufferTable.At(bufferHandle);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find buffer in slot ({}, {})",
+                bufferHandle.Index(), bufferHandle.Generation()
+            );
+
+            return {};
+        }
+
+        IBufferView* bufferView = slot->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE);
+
+        if (!bufferView) {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to get Default buffer view BUFFER_VIEW_SHADER_RESOURCE from buffer {}!",
+                slot->Name
+            );
+
+            return {};
+        }
+
+        const GpuBufferViewHandle handle = m_BufferViewTable.Emplace();
+
+        QBufferViewData* viewSlot = m_BufferViewTable.At(handle);
+        viewSlot->BufferView = bufferView;
+        viewSlot->Buffer = bufferHandle;
+
+        slot->BufferViews.push_back(handle);
+
+        return handle;
+    }
+
     ShaderResourceBindingHandle DiligentRendererContext::CreateShaderResourceBinding(
         PipelineStateHandle pipelineStateHandle, bool initStaticResources
     ) {
@@ -919,7 +969,7 @@ namespace Quelos {
         ShaderType shaderType,
         ShaderResourceBindingHandle shaderResourceBindingHandle,
         std::string_view name,
-        GpuBufferHandle gpuBufferHandle
+        GpuBufferViewHandle gpuBufferViewHandle
     ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
@@ -950,7 +1000,47 @@ namespace Quelos {
         }
 
         shaderResourceVariable->Set(
-            m_BufferTable.At(gpuBufferHandle)->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE),
+            m_BufferViewTable.At(gpuBufferViewHandle)->BufferView,
+            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+        );
+    }
+
+    void DiligentRendererContext::BindVariableByName(
+        const ShaderType shaderType,
+        const ShaderResourceBindingHandle shaderResourceBindingHandle,
+        std::string_view name,
+        const TextureViewHandle textureViewHandle
+    ) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find shader resource binding in slot ({},{})",
+                shaderResourceBindingHandle.Index(),
+                shaderResourceBindingHandle.Generation()
+            );
+
+            return;
+        }
+
+        IShaderResourceVariable* shaderResourceVariable = (*slot)->GetVariableByName(
+            Utils::GetShaderType(shaderType),
+            FormatTemp("{}", name)
+        );
+
+        if (!shaderResourceVariable) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRenderer",
+                "Failed to find shader variable by the name '{}'!",
+                name
+            );
+
+            return;
+        }
+
+        shaderResourceVariable->Set(
+            m_TextureViewTable.At(textureViewHandle)->TextureView,
             SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
         );
     }
@@ -1069,10 +1159,16 @@ namespace Quelos {
 
     void DiligentRendererContext::Destroy(GpuBufferHandle bufferHandle) {
         QBufferData* slot = m_BufferTable.At(bufferHandle);
+
+        for (const GpuBufferViewHandle viewHandle : slot->BufferViews) {
+            m_BufferViewTable.Erase(viewHandle);
+        }
+
         slot->Buffer->Release();
         slot->Buffer = nullptr;
         slot->Specification = {};
         slot->Name.clear();
+        slot->BufferViews.clear();
 
         m_BufferTable.Erase(bufferHandle);
     }
@@ -1183,6 +1279,17 @@ namespace Quelos {
         auto* textureData = m_TextureTable.At(texture);
         if (!textureData) [[unlikely]] {
             return {};
+        }
+
+        const auto it = std::ranges::find_if(
+            textureData->TextureViews,
+            [&](const TextureViewHandle viewHandle) {
+                return m_TextureViewTable.At(viewHandle)->Specification.ViewType == textureViewType;
+            }
+        );
+
+        if (it != textureData->TextureViews.end()) {
+            return *it;
         }
 
         const TextureViewHandle handle = m_TextureViewTable.Emplace();
@@ -1445,8 +1552,6 @@ namespace Quelos {
         SmallVec<ITextureView*, 2> textureViews;
         for (const TextureViewHandle attachment : data->Attachments) {
             const TextureViewData* textureViewData = m_TextureViewTable.At(attachment);
-            QTextureData* texture = m_TextureTable.At(textureViewData->Texture);
-            TextureUtil::Resize(m_pDevice, *texture, width, height, m_TextureViewTable);
             textureViews.push_back(textureViewData->TextureView);
         }
 
@@ -1489,6 +1594,16 @@ namespace Quelos {
         m_pImmediateContext->DrawIndexed(drawAttrs);
     }
 
+    void DiligentRendererContext::Draw(const DrawAttribs& drawAttribs) {
+        Diligent::DrawAttribs attribs;
+        attribs.NumVertices = drawAttribs.NumVertices;
+        attribs.Flags = Utils::GetDrawFlags(drawAttribs.Flags);
+        attribs.NumInstances = drawAttribs.NumInstances;
+        attribs.StartVertexLocation = drawAttribs.StartVertexLocation;
+        attribs.FirstInstanceLocation = drawAttribs.FirstInstanceLocation;
+
+        m_pImmediateContext->Draw(attribs);
+    }
     void DiligentRendererContext::DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) {
         Diligent::DrawIndexedAttribs attribs;
         attribs.Flags = Utils::GetDrawFlags(drawIndexedAttribs.Flags);
@@ -1649,6 +1764,14 @@ namespace Quelos {
             FrontCounterClockwise;
         // Disable depth testing
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthWriteEnable = gpSpec.DepthStencilSpec.DepthWriteEnable;
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthFunc = Utils::GetComparisonFunc(gpSpec.DepthStencilSpec.DepthFunc);
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilEnable = gpSpec.DepthStencilSpec.StencilEnable;
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilReadMask = gpSpec.DepthStencilSpec.StencilReadMask;
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilWriteMask = gpSpec.DepthStencilSpec.StencilWriteMask;
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.FrontFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.FrontFace);
+        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.BackFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.BackFace);
+
         PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.At(gpSpec.RenderPass)->RenderPass;
 
         Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout);
@@ -1808,6 +1931,29 @@ namespace Quelos {
 
         if (resourceVariable) {
             resourceVariable->Set(m_BufferTable.At(gpuBufferHandle)->Buffer, SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE);
+        }
+    }
+
+    void DiligentRendererContext::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle,
+        const ShaderType shaderType,
+        std::string_view name,
+        const GpuBufferViewHandle gpuBufferViewHandle
+    ) {
+        IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
+
+        QS_CORE_ASSERT(pso, "Pipeline state object is nullptr!");
+
+        IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
+            Utils::GetShaderType(shaderType),
+            FormatTemp("{}", name)
+        );
+
+        if (resourceVariable) {
+            resourceVariable->Set(
+                m_BufferViewTable.At(gpuBufferViewHandle)->BufferView,
+                SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+            );
         }
     }
 

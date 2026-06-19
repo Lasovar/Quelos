@@ -169,4 +169,8 @@ namespace QuelosEditor {
             m_SelectRequest = true;
         }
     }
+
+    TextureViewHandle SceneViewport::GetSceneColorView() const {
+        return Renderer::GetTextureView(m_SceneColorAttachment.GetHandle(), TextureViewType::ShaderResource);
+    }
 }
