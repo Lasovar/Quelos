@@ -90,8 +90,8 @@ namespace Quelos {
 		float m_Pitch = 0.0f, m_Yaw = 0.0f;
 
 		float m_ViewportWidth = 1280, m_ViewportHeight = 720;
-		bool m_IsViewportHovered = false, m_IsViewportFocused = false;
-		bool m_PlayerMode = false, m_LockRotation = false;
+		bool m_IsViewportHovered:1 = false, m_IsViewportFocused:1 = false;
+		bool m_PlayerMode:1 = false, m_LockRotation:1 = false;
 
 		// Input
 		bool m_LControl: 1 = false;

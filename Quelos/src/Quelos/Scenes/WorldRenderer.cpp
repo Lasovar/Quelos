@@ -331,6 +331,7 @@ namespace Quelos {
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
             pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+            pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
             pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 

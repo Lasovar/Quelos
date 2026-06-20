@@ -125,13 +125,19 @@ namespace QuelosEditor {
 
         alignas(GraphicsShader) byte m_CompositeShaderStorage[sizeof(GraphicsShader)]{};
 
-        ResourceRef<Texture> m_MaskTexture;
-        ResourceRef<Texture> m_MaskResolvedTexture;
-        ResourceRef<Texture> m_MaskDepthTexture;
-        ResourceRef<FrameBuffer> m_MaskFrameBuffer;
-        ResourceRef<RenderPass> m_MaskRenderPass;
-        ResourceRef<PipelineStateObject> m_MaskPSO;
-        ResourceRef<ShaderResourceBinding> m_MaskSRB;
+        ResourceRef<Texture> m_FullMaskMSAATexture;
+        ResourceRef<Texture> m_FullMaskResolvedTexture;
+        ResourceRef<FrameBuffer> m_FullMaskFrameBuffer;
+        ResourceRef<RenderPass> m_FullMaskRenderPass;
+        ResourceRef<PipelineStateObject> m_FullMaskPSO;
+        ResourceRef<ShaderResourceBinding> m_FullMaskSRB;
+
+        ResourceRef<Texture> m_VisibleMaskMSAATexture;
+        ResourceRef<Texture> m_VisibleMaskResolvedTexture;
+        ResourceRef<FrameBuffer> m_VisibleMaskFrameBuffer;
+        ResourceRef<RenderPass> m_VisibleMaskRenderPass;
+        ResourceRef<PipelineStateObject> m_VisibleMaskPSO;
+        ResourceRef<ShaderResourceBinding> m_VisibleMaskSRB;
 
         alignas(GraphicsShader) byte m_MaskShaderStorage[sizeof(GraphicsShader)]{};
     };

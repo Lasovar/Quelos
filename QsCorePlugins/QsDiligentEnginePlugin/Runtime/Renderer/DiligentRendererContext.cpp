@@ -561,6 +561,48 @@ namespace Quelos {
 
             return desc;
         }
+
+        constexpr BLEND_OPERATION GetBlendOperation(BlendOperation blendOp) {
+            return static_cast<BLEND_OPERATION>(blendOp);
+        }
+
+        constexpr BLEND_FACTOR GetBlendFactor(BlendFactor blendFactor) {
+            return static_cast<BLEND_FACTOR>(blendFactor);
+        }
+
+        constexpr LOGIC_OPERATION GetLogicOperation(LogicOperation logicOp) {
+            return static_cast<LOGIC_OPERATION>(logicOp);
+        }
+
+        constexpr COLOR_MASK GetColorMask(ColorMask colorMask) {
+            return static_cast<COLOR_MASK>(colorMask);
+        }
+
+        static BlendStateDesc GetBlendStateSpec(const BlendStateSpec& blendSpec) {
+            BlendStateDesc desc;
+            desc.AlphaToCoverageEnable = blendSpec.AlphaToCoverageEnable;
+            desc.IndependentBlendEnable = blendSpec.IndependentBlendEnable;
+
+            static_assert(k_MaxRenderTargets == DILIGENT_MAX_RENDER_TARGETS);
+
+            for (uint32_t i = 0; i < k_MaxRenderTargets; i++) {
+                const RenderTargetBlendSpec& renderTargetSpec = blendSpec.RenderTargets[i];
+                RenderTargetBlendDesc& renderTargetDesc = desc.RenderTargets[i];
+
+                renderTargetDesc.BlendEnable = renderTargetSpec.BlendEnable;
+                renderTargetDesc.LogicOperationEnable = renderTargetSpec.LogicOperationEnable;
+                renderTargetDesc.SrcBlend = GetBlendFactor(renderTargetSpec.SrcBlend);
+                renderTargetDesc.DestBlend = GetBlendFactor(renderTargetSpec.DestBlend);
+                renderTargetDesc.BlendOp = GetBlendOperation(renderTargetSpec.BlendOp);
+                renderTargetDesc.SrcBlendAlpha = GetBlendFactor(renderTargetSpec.SrcBlendAlpha);
+                renderTargetDesc.DestBlendAlpha = GetBlendFactor(renderTargetSpec.DestBlendAlpha);
+                renderTargetDesc.BlendOpAlpha = GetBlendOperation(renderTargetSpec.BlendOpAlpha);
+                renderTargetDesc.LogicOp = GetLogicOperation(renderTargetSpec.LogicOp);
+                renderTargetDesc.RenderTargetWriteMask = GetColorMask(renderTargetSpec.RenderTargetWriteMask);
+            }
+
+            return desc;
+        }
     }
 
     namespace TextureUtil {
@@ -1774,23 +1816,9 @@ namespace Quelos {
 
         PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.At(gpSpec.RenderPass)->RenderPass;
 
+        PSOCreateInfo.GraphicsPipeline.BlendDesc = Utils::GetBlendStateSpec(gpSpec.BlendSpec);
+
         Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout);
-
-        /*
-        Diligent::LayoutElement LayoutElems[] = {
-            // Attribute 0 - vertex position
-            {0, 0, 3, VT_FLOAT32, False},
-            // Attribute 1 - vertex normal
-            {1, 0, 3, VT_FLOAT32, False},
-            // Attribute 2 - vertex tangent
-            {2, 0, 3, VT_FLOAT32, False},
-            // Attribute 3 - vertex uv
-            {3, 0, 2, VT_FLOAT32, False}
-        };
-
-        PSOCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = LayoutElems;
-        PSOCreateInfo.GraphicsPipeline.InputLayout.NumElements = _countof(LayoutElems);
-        */
 
         PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
 

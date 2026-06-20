@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BlendState.h"
 #include "DepthStencilState.h"
 #include "GraphicsTypes.h"
 #include "LayoutElement.h"
@@ -86,21 +87,6 @@ namespace Quelos {
         PsoCreateFlags Flags = PsoCreateFlags::None;
     };
 
-    struct BlendState {
-        /// Specifies whether to use alpha-to-coverage as a multisampling technique
-        /// when setting a pixel to a render target. Default value: False.
-        bool AlphaToCoverageEnable = false;
-
-
-        /// Specifies whether to enable independent blending in simultaneous render targets.
-        /// If set to False, only RenderTargets[0] is used. Default value: False.
-        bool IndependentBlendEnable = false;
-
-        /// An array of RenderTargetBlendDesc structures that describe the blend
-        /// states for render targets
-        //RenderTargetBlendDesc RenderTargets[DILIGENT_MAX_RENDER_TARGETS]; // TODO:
-    };
-
     struct SampleSpec {
         /// Sample count
         SampleCount Count = SampleCount::x1;
@@ -110,7 +96,7 @@ namespace Quelos {
     };
 
     struct GraphicsPipelineSpec {
-        BlendState BlendState;
+        BlendStateSpec BlendSpec;
 
         /// Sample mask.
 
