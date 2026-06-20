@@ -46,10 +46,7 @@ FragmentOut fragmentMain(VertexOut v) {
     float shade = floor(ndotl * ToonLevels) / ToonLevels;
     shade = lerp(0.35, 1.0, shade);
 
-    float4 albedo = g_Textures[mat.MainTex]
-                                .Sample(g_Textures_sampler, v.uv) 
-                                * mat.Color;
-
+    float4 albedo = g_Textures[mat.MainTex] .Sample(g_Textures_sampler, v.uv) * mat.Color;
     output.color = albedo * shade;
 
     return output;
