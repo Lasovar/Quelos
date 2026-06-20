@@ -42,7 +42,7 @@ namespace Quelos {
         QS_API ComponentID GetComponentID(std::string_view typeName);
 
         template <typename T>
-        QS_API ComponentID GetComponentID() {
+        ComponentID GetComponentID() {
             const std::string typeName = TypeNameDisplay<T>();
             return GetComponentID(typeName);
         }

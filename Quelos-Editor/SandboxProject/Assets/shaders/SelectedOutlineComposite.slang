@@ -3,13 +3,13 @@ struct OutlineSettings {
     float4 ViewportAndThickness; // xy = viewport size, z = thickness
 };
 
-ConstantBuffer<OutlineSettings> Settings;
+__extern_cpp ConstantBuffer<OutlineSettings> Settings;
 
-Texture2D<float> FullMask;
-SamplerState FullMask_sampler;
+__extern_cpp Texture2D<float> FullMask;
+__extern_cpp SamplerState FullMask_sampler;
 
-Texture2D<float> VisibleMask;
-SamplerState VisibleMask_sampler;
+__extern_cpp Texture2D<float> VisibleMask;
+__extern_cpp SamplerState VisibleMask_sampler;
 
 [shader("vertex")]
 float4 vertexMain(uint id: SV_VertexID) : SV_Position {
