@@ -85,7 +85,7 @@ namespace Quelos {
         RenderPassSpec Specification;
     };
 
-    struct ShaderData {
+    struct QShaderData {
         IShader* Shader = nullptr;
         std::string Name;
         std::string EntryPoint;
@@ -298,7 +298,7 @@ namespace Quelos {
 
         ResourceTable<IBuffer*, VertexBuffer> m_VertexBufferTable;
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;
-        ResourceTable<ShaderData, Shader> m_ShaderTable;
+        ResourceTable<QShaderData, Shader> m_ShaderTable;
         ResourceTable<QTextureData, Texture> m_TextureTable;
         ResourceTable<TextureViewData, TextureView> m_TextureViewTable;
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;

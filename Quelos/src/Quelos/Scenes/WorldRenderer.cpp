@@ -324,8 +324,17 @@ namespace Quelos {
                 m_PipelineStates.erase(it);
             }
 
+            const GraphicsShaderPass* shaderPass = shader.GetShaderPass("GBuffer");
+            if (!shaderPass) {
+                return;
+            }
+
             GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
+
             pipelineStateCreateInfo.Name = shader.GetName();
+
+            pipelineStateCreateInfo.VertexShader = shaderPass->VertexShader;
+            pipelineStateCreateInfo.FragmentShader = shaderPass->FragmentShader;
 
             pipelineStateCreateInfo.GraphicsPipeline.RenderPass = m_RenderPass;
             pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
@@ -343,9 +352,6 @@ namespace Quelos {
             };
 
             pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
-
-            pipelineStateCreateInfo.VertexShader = shader.GetVertexShaderHandle();
-            pipelineStateCreateInfo.FragmentShader = shader.GetFragmentShaderHandle();
 
             SmallVec<ShaderResourceVariableSpec, 4> vars = {
                 {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},

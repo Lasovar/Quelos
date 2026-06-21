@@ -165,7 +165,6 @@ namespace Quelos::UI {
         ImGui::PopStyleVar();
         ImGui::Columns(1);
         ImGui::PopID();
-        ImGui::Spacing();
 
         return changed;
     }

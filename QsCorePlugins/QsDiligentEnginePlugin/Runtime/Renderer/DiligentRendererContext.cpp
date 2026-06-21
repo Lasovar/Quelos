@@ -1661,7 +1661,7 @@ namespace Quelos {
 
     ShaderHandle DiligentRendererContext::CreateShader(const ShaderCreateInfo& createInfo) {
         const Handle<Shader> handle = m_ShaderTable.Emplace();
-        ShaderData* slot = m_ShaderTable.At(handle);
+        QShaderData* slot = m_ShaderTable.At(handle);
 
         QS_CORE_ASSERT(slot);
 
@@ -1722,7 +1722,7 @@ namespace Quelos {
     }
 
     void DiligentRendererContext::Destroy(const ShaderHandle shaderHandle) {
-        ShaderData* slot = m_ShaderTable.At(shaderHandle);
+        QShaderData* slot = m_ShaderTable.At(shaderHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",

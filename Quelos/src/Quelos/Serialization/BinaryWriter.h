@@ -32,6 +32,15 @@ namespace Quelos::Serialization {
             return value;
         }
 
+        Option<std::string_view> ReadString() {
+            const Option<uint64_t> sizeResult = Read<uint64_t>();
+            if (!sizeResult) {
+                return None;
+            }
+
+            return std::string_view(reinterpret_cast<const char*>(ReadBytes(*sizeResult).data()), *sizeResult);
+        }
+
         [[nodiscard]] BufferView ReadBytes(const size_t count) {
             if (count > m_Data.size() - m_Offset) {
                 return {};
@@ -40,6 +49,15 @@ namespace Quelos::Serialization {
             const BufferView slice = m_Data.subspan(m_Offset, count);
             m_Offset += count;
             return slice;
+        }
+
+        [[nodiscard]] BufferView ReadBytesWithSize() {
+            const Option<uint64_t> sizeResult = Read<uint64_t>();
+            if (!sizeResult) {
+                return {};
+            }
+
+            return ReadBytes(*sizeResult);
         }
 
         /// @return The remaining bytes in the buffer from the current m_Offset
@@ -76,8 +94,19 @@ namespace Quelos::Serialization {
             m_Buffer.insert(m_Buffer.end(), ptr, ptr + sizeof(T));
         }
 
+        void WriteString(const std::string_view string) {
+            Write(static_cast<uint64_t>(string.size()));
+            WriteBytes(std::as_bytes(Span(string.data(), string.size())));
+        }
+
         void WriteBytes(BufferView bytes) const {
             m_Buffer.insert(m_Buffer.end(), bytes.begin(), bytes.end());
+        }
+
+        // A Variant of WriteBytes that will also write the buffer size
+        void WriteBytesWithSize(const BufferView bytes) {
+            Write<uint64_t>(bytes.size());
+            WriteBytes(bytes);
         }
 
     private:

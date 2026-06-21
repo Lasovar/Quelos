@@ -6,29 +6,45 @@
 #include "Renderer.h"
 #include "GraphicsShader.h"
 
+#include "magic_enum/magic_enum.hpp"
+
 namespace Quelos {
-    GraphicsShader::GraphicsShader(
-        BufferView vertex,
-        BufferView fragment,
-        std::string name,
-        const Vec<MaterialPropertySpec>& materialProperties,
-        const uint64_t materialSize
-    ) : m_Name(std::move(name)), m_MaterialProperties(materialProperties), m_MaterialSize(materialSize) {
-        ShaderCreateInfo vertexCreateInfo;
-        vertexCreateInfo.Specification.Name = m_Name;
-        vertexCreateInfo.Specification.Type = ShaderType::Vertex;
-        vertexCreateInfo.Specification.EntryPoint = "vertexMain";
-        vertexCreateInfo.ByteCode = vertex;
+    GraphicsShader::GraphicsShader(const GraphicsShaderCreateInfo& createInfo)
+        : m_Name(createInfo.Name),
+          m_MaterialProperties(createInfo.MaterialProperties.begin(), createInfo.MaterialProperties.end()),
+          m_MaterialSize(createInfo.MaterialSize)
+    {
+        for (const auto & [passName, shaders] : createInfo.Passes) {
+            GraphicsShaderPass pass;
+            pass.Name = passName;
 
-        m_VertexShader = Renderer::CreateShader(vertexCreateInfo);
+            for (const ShaderData& shader : shaders) {
+                if (shader.Type != ShaderType::Vertex && shader.Type != ShaderType::Fragment) {
+                    continue;
+                }
 
-        ShaderCreateInfo fragmentCreateInfo;
-        fragmentCreateInfo.Specification.Name = m_Name;
-        fragmentCreateInfo.Specification.Type = ShaderType::Fragment;
-        fragmentCreateInfo.Specification.EntryPoint = "fragmentMain";
-        fragmentCreateInfo.ByteCode = fragment;
+                const std::string shaderName = FormatTemp(
+                    "{}_{}_{}",
+                    m_Name,
+                    passName,
+                    shader.EntryPoint
+                );
 
-        m_FragmentShader = Renderer::CreateShader(fragmentCreateInfo);
+                ShaderCreateInfo shaderCreateInfo;
+                shaderCreateInfo.Specification.Name = shaderName;
+                shaderCreateInfo.Specification.Type = shader.Type;
+                shaderCreateInfo.Specification.EntryPoint = shader.EntryPoint;
+                shaderCreateInfo.ByteCode = shader.Code;
+
+                if (shader.Type == ShaderType::Vertex) {
+                    pass.VertexShader = Renderer::CreateShader(shaderCreateInfo);
+                } else {
+                    pass.FragmentShader = Renderer::CreateShader(shaderCreateInfo);
+                }
+            }
+
+            m_Passes.push_back(pass);
+        }
     }
 
     GraphicsShader::~GraphicsShader() {
@@ -40,7 +56,9 @@ namespace Quelos {
             Renderer::Destroy(pipelineState);
         }
 
-        Renderer::Destroy(m_FragmentShader);
-        Renderer::Destroy(m_VertexShader);
+        for (const GraphicsShaderPass& pass : m_Passes) {
+            Renderer::Destroy(pass.VertexShader);
+            Renderer::Destroy(pass.FragmentShader);
+        }
     }
 }
