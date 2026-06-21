@@ -138,8 +138,8 @@ namespace QuelosEditor {
         pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
 
         const GraphicsShaderPass* pass = shader->GetShaderPass("EditorEntityID");
-        pipelineStateCreateInfo.VertexShader = pass->VertexShader;
-        pipelineStateCreateInfo.FragmentShader = pass->FragmentShader;
+        pipelineStateCreateInfo.VertexShader = pass->Pipelines.front().VertexShader;
+        pipelineStateCreateInfo.FragmentShader = pass->Pipelines.front().FragmentShader;
 
         SmallVec<ShaderResourceVariableSpec, 4> vars = {
             {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
@@ -571,8 +571,8 @@ namespace QuelosEditor {
             fullMaskPsoCI.Name = "EditorOutlineFullMask";
             fullMaskPsoCI.GraphicsPipeline.RenderPass = m_FullMaskRenderPass.GetHandle();
 
-            fullMaskPsoCI.VertexShader = pass->VertexShader;
-            fullMaskPsoCI.FragmentShader = pass->FragmentShader;
+            fullMaskPsoCI.VertexShader = pass->Pipelines.front().VertexShader;
+            fullMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
             LayoutElementBuilder<4> layoutBuilder{
@@ -689,8 +689,8 @@ namespace QuelosEditor {
             visibleMaskPsoCI.Name = "EditorOutlineVisibleMask";
             visibleMaskPsoCI.GraphicsPipeline.RenderPass = m_VisibleMaskRenderPass.GetHandle();
 
-            visibleMaskPsoCI.VertexShader = pass->VertexShader;
-            visibleMaskPsoCI.FragmentShader = pass->FragmentShader;
+            visibleMaskPsoCI.VertexShader = pass->Pipelines.front().VertexShader;
+            visibleMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
             LayoutElementBuilder<4> layoutBuilder{
@@ -802,8 +802,8 @@ namespace QuelosEditor {
         compositePsoCI.Name = "OutlineComposite";
         compositePsoCI.GraphicsPipeline.RenderPass = m_CompositeRenderPass.GetHandle();
 
-        compositePsoCI.VertexShader = pass->VertexShader;
-        compositePsoCI.FragmentShader = pass->FragmentShader;
+        compositePsoCI.VertexShader = pass->Pipelines.front().VertexShader;
+        compositePsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
         // No input layout, vertex shader generates positions
         compositePsoCI.GraphicsPipeline.InputLayout.LayoutElements = {};

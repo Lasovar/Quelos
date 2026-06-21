@@ -123,9 +123,14 @@ namespace Quelos {
         bool m_WasReallocated = false;
     };
 
-    struct QS_API PipelineStateComponent {
+    struct PipelineData {
         ResourceRef<PipelineStateObject> PSO;
         ResourceRef<ShaderResourceBinding> SRB;
+        int32_t Order;
+    };
+
+    struct QS_API PipelineStateComponent {
+        Vec<PipelineData> Pipelines;
         uint32_t MaterialIndex;
         AssetID ShaderID;
     };
@@ -176,9 +181,25 @@ namespace Quelos {
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
 
-        struct PipelineInfo {
+        struct WeakPipelineData {
             PipelineStateHandle PSO;
             ShaderResourceBindingHandle SRB;
+            int32_t Order = 0;
+            bool HasTextures = false;
+
+            WeakPipelineData() = default;
+
+            WeakPipelineData(
+                const PipelineStateHandle pso,
+                const ShaderResourceBindingHandle srb,
+                const int32_t order,
+                const bool hasTextures
+            )
+                : PSO(pso), SRB(srb), Order(order), HasTextures(hasTextures) {}
+        };
+
+        struct PipelineInfo {
+            Vec<WeakPipelineData> Pipelines;
             MaterialRegistry MaterialRegistry;
         };
 

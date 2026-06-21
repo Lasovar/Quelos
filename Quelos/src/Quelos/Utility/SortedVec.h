@@ -73,6 +73,9 @@ namespace Quelos {
         void reserve(size_t n) { m_Data.reserve(n); }
         void clear() { m_Data.clear(); }
 
+        T& operator[](size_t i) { return m_Data[i]; }
+        const T& operator[](size_t i) const { return m_Data[i]; }
+
     private:
         iterator lower_bound(const T& value) {
             return std::lower_bound(m_Data.begin(), m_Data.end(), value, m_Compare);

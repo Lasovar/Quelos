@@ -14,12 +14,24 @@ namespace Quelos {
           m_MaterialProperties(createInfo.MaterialProperties.begin(), createInfo.MaterialProperties.end()),
           m_MaterialSize(createInfo.MaterialSize)
     {
-        for (const auto & [passName, shaders] : createInfo.Passes) {
+        for (const auto& [passName, shaders] : createInfo.Passes) {
             GraphicsShaderPass pass;
             pass.Name = passName;
 
-            for (const ShaderData& shader : shaders) {
+            GraphicsShaderPipelineData pipelineData;
+            for (uint32_t i = 0; i < shaders.size(); i++) {
+                const ShaderData& shader = shaders[i];
+
                 if (shader.Type != ShaderType::Vertex && shader.Type != ShaderType::Fragment) {
+                    continue;
+                }
+
+                if (shader.Type == ShaderType::Vertex
+                    && (i + 1 >= shaders.size() || shaders[i + 1].Type != ShaderType::Fragment)) {
+                    continue;
+                }
+
+                if (shader.Type == ShaderType::Fragment && !pipelineData.VertexShader.IsValid()) {
                     continue;
                 }
 
@@ -37,9 +49,15 @@ namespace Quelos {
                 shaderCreateInfo.ByteCode = shader.Code;
 
                 if (shader.Type == ShaderType::Vertex) {
-                    pass.VertexShader = Renderer::CreateShader(shaderCreateInfo);
+                    pipelineData.VertexShader = Renderer::CreateShader(shaderCreateInfo);
                 } else {
-                    pass.FragmentShader = Renderer::CreateShader(shaderCreateInfo);
+                    pipelineData.FragmentShader = Renderer::CreateShader(shaderCreateInfo);
+                }
+
+                if (pipelineData.VertexShader.IsValid() && pipelineData.FragmentShader.IsValid()) {
+                    pipelineData.Order = shader.Order;
+                    pass.Pipelines.push_back(pipelineData);
+                    pipelineData = {};
                 }
             }
 
@@ -57,8 +75,10 @@ namespace Quelos {
         }
 
         for (const GraphicsShaderPass& pass : m_Passes) {
-            Renderer::Destroy(pass.VertexShader);
-            Renderer::Destroy(pass.FragmentShader);
+            for (const auto & pipeline : pass.Pipelines) {
+                Renderer::Destroy(pipeline.VertexShader);
+                Renderer::Destroy(pipeline.FragmentShader);
+            }
         }
     }
 }

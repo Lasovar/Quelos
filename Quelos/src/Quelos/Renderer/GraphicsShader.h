@@ -57,6 +57,7 @@ namespace Quelos {
         ShaderType Type = ShaderType::Unknown;
         std::string EntryPoint;
         BufferView Code;
+        int32_t Order;
     };
 
     struct QS_API GraphicsShaderCreateInfo {
@@ -66,15 +67,20 @@ namespace Quelos {
         uint64_t MaterialSize = 0;
     };
 
-    struct QS_API GraphicsShaderPass {
-        std::string Name;
+    struct GraphicsShaderPipelineData {
+        int32_t Order = 0;
         ShaderHandle VertexShader;
         ShaderHandle FragmentShader;
     };
 
+    struct QS_API GraphicsShaderPass {
+        std::string Name;
+        Vec<GraphicsShaderPipelineData> Pipelines;
+    };
+
     class QS_API GraphicsShader : public Asset {
     public:
-        GraphicsShader(const GraphicsShaderCreateInfo& createInfo);
+        explicit GraphicsShader(const GraphicsShaderCreateInfo& createInfo);
 
         ~GraphicsShader() override;
 

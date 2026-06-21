@@ -320,6 +320,7 @@ namespace QuelosEditor {
             ShaderType Type = ShaderType::Unknown;
             std::string EntryPoint;
             Buffer Code;
+            int32_t Order = 0;
         };
 
         struct ShaderCompilationResult {
@@ -427,7 +428,6 @@ namespace QuelosEditor {
                 }
 
                 slang::TypeLayoutReflection* type = parameter->getTypeLayout()->getElementTypeLayout();
-                uint64_t offset = 0;
 
                 result.MaterialSize = type->getSize();
                 for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
@@ -435,24 +435,28 @@ namespace QuelosEditor {
                     MaterialPropertyType propertyType = GetMaterialProperty(field);
                     const uint64_t fieldSize = field->getTypeLayout()->getSize();
 
-                    if (propertyType == MaterialPropertyType::Unknown) {
-                        offset += fieldSize;
-                        continue;
-                    }
-
-                    result.MaterialProperties.emplace_back(field->getName(), propertyType, offset, fieldSize);
-                    offset += fieldSize;
+                    result.MaterialProperties.emplace_back(field->getName(), propertyType, field->getOffset(), fieldSize);
                 }
             }
 
             struct ShaderInfo {
                 const char* EntryPointName = nullptr;
                 Slang::ComPtr<slang::IEntryPoint> EntryPoint;
-                uint32_t Index = 0;
+                int32_t Order = 0;
                 SlangStage Stage = SLANG_STAGE_NONE;
+
+                struct Compare {
+                    constexpr bool operator()(const ShaderInfo& a, const ShaderInfo& b) const {
+                        if (a.Order != b.Order) {
+                            return a.Order < b.Order;
+                        }
+
+                        return a.Stage < b.Stage;
+                    }
+                };
             };
 
-            HashMap<std::string, SmallVec<ShaderInfo, 2>> passMap;
+            HashMap<std::string, SortedVec<ShaderInfo, ShaderInfo::Compare>> passMap;
 
             for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
                 ShaderInfo shaderInfo;
@@ -464,7 +468,6 @@ namespace QuelosEditor {
                 slang::FunctionReflection* function = shaderInfo.EntryPoint->getFunctionReflection();
 
                 shaderInfo.EntryPointName = function->getName();
-                shaderInfo.Index = i;
                 shaderInfo.Stage = entryPointReflection->getStage();
 
                 std::string_view passName;
@@ -484,39 +487,16 @@ namespace QuelosEditor {
                     if (passNameData) {
                         passName = std::string_view(passNameData, passNameSize);
                     }
+
+                    attribute->getArgumentValueInt(1, &shaderInfo.Order);
                 }
 
                 if (passName.empty()) {
                     passName = "GBuffer";
                 }
 
-                passMap[std::string(passName)].push_back(shaderInfo);
+                passMap[std::string(passName)].emplace(shaderInfo);
             }
-
-            Vec<slang::IComponentType*> components;
-            components.reserve(passMap.size() * 2 + 1);
-
-            components.push_back(module);
-
-            for (auto& shaders : passMap | std::views::values) {
-                std::ranges::transform(
-                    shaders,
-                    std::back_inserter(components),
-                    [](const ShaderInfo& shaderInfo) {
-                        return shaderInfo.EntryPoint;
-                    }
-                );
-            }
-
-            Slang::ComPtr<slang::IComponentType> program;
-            session->createCompositeComponentType(
-                components.data(),
-                static_cast<uint32_t>(components.size()),
-                program.writeRef()
-            );
-
-            Slang::ComPtr<slang::IComponentType> linkedProgram;
-            program->link(linkedProgram.writeRef(), diagnostics.writeRef());
 
             if (diagnostics) {
                 QS_CORE_ERROR_TAG(
@@ -528,11 +508,43 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
+            Vec<slang::IComponentType*> components;
+            components.push_back(module);
+            for (const auto& shaders : passMap | std::views::values) {
+                std::ranges::transform(
+                    shaders,
+                    std::back_inserter(components),
+                    [](const ShaderInfo& info) {
+                        return info.EntryPoint;
+                    }
+                );
+            }
+
+            Slang::ComPtr<slang::IComponentType> program;
+            session->createCompositeComponentType(
+                components.data(),
+                components.size(),
+                program.writeRef()
+            );
+
+            Slang::ComPtr<slang::IComponentType> linkedProgram;
+            program->link(linkedProgram.writeRef(), diagnostics.writeRef());
+
+            /*
+            slang::ProgramLayout* programLayout = linkedProgram->getLayout();
+            for (uint32_t paramIndex = 0; paramIndex < programLayout->getParameterCount(); paramIndex++) {
+                slang::VariableLayoutReflection* variable = programLayout->getParameterByIndex(paramIndex);
+                shaderData.Parameters.emplace_back(variable->getName());
+            }
+            */
+
             for (const auto& [passName, shaders] : passMap) {
-                for (const ShaderInfo& shader : shaders) {
+                for (uint32_t i = 0; i < shaders.size(); i++) {
+                    const ShaderInfo& shader = shaders[i];
+
                     Slang::ComPtr<slang::IBlob> blob;
                     linkedProgram->getEntryPointCode(
-                        shader.Index,
+                        i,
                         0,
                         blob.writeRef(),
                         diagnostics.writeRef()
@@ -541,7 +553,10 @@ namespace QuelosEditor {
                     if (diagnostics) {
                         QS_CORE_ERROR_TAG(
                             "Slang",
-                            "Failed to get vertex code: {}", static_cast<const char*>(diagnostics->getBufferPointer())
+                            "Failed to get entry point '{}' for shader '{}' code: {}",
+                            shader.EntryPointName,
+                            shaderPath,
+                            static_cast<const char*>(diagnostics->getBufferPointer())
                         );
 
                         diagnostics = nullptr;
@@ -555,6 +570,7 @@ namespace QuelosEditor {
                     shaderData.EntryPoint = shader.EntryPointName;
                     shaderData.Type = GetShaderTypeFromStage(shader.Stage);
                     shaderData.Code = Buffer::Copy(blob->getBufferPointer(), blob->getBufferSize());
+                    shaderData.Order = shader.Order;
 
                     result.Passes[passName].push_back(std::move(shaderData));
                 }
@@ -580,11 +596,19 @@ namespace QuelosEditor {
             const Buffer buffer = Utility::ReadFile(cookedShadersPath, false);
 
             GraphicsShaderCreateInfo createInfo;
-            createInfo.Name = FS::Filename(metadata.FilePath);
+            createInfo.Name = FS::Stem(metadata.FilePath);
 
             Serialization::BinaryReader reader(buffer);
             createInfo.MaterialSize = reader.Read<uint64_t>().value_or(0);
             createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
+
+            /*
+            uint32_t numOfParameters = reader.Read<uint32_t>().value_or(0);
+            shader.Parameters.reserve(numOfParameters);
+            for (uint32_t parameterIndex = 0; parameterIndex < numOfParameters; parameterIndex++) {
+                shader.Parameters.emplace_back(reader.ReadString().value_or(""));
+            }
+            */
 
             uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
             createInfo.Passes.reserve(numOfPasses);
@@ -596,6 +620,8 @@ namespace QuelosEditor {
                     ShaderData shader;
                     shader.EntryPoint = reader.ReadString().value_or("");
                     shader.Type = reader.Read<ShaderType>().value_or(ShaderType::Unknown);
+                    shader.Order = reader.Read<int32_t>().value_or(0);
+
                     shader.Code = reader.ReadBytesWithSize();
 
                     createInfo.Passes[std::string(passName)].push_back(shader);
@@ -651,10 +677,19 @@ namespace QuelosEditor {
             writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
             for (const auto& [passName, shaders] : compiledShaders.Passes) {
                 writer.WriteString(passName);
+                /*
+                writer.Write(static_cast<uint32_t>(shader.Parameters.size()));
+                for (const std::string& parameter : shader.Parameters) {
+                    writer.WriteString(parameter);
+                }
+                */
+
                 writer.Write(static_cast<uint32_t>(shaders.size()));
                 for (const auto& shader : shaders) {
                     writer.WriteString(shader.EntryPoint);
                     writer.Write(shader.Type);
+                    writer.Write(static_cast<int32_t>(shader.Order));
+
                     writer.WriteBytesWithSize(shader.Code);
                 }
             }

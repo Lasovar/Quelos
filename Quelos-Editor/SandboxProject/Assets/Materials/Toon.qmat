@@ -5,3 +5,5 @@ shader = a50703a3-7416-44e3-a477-97850513d27c
 @properties
 Color = (Color,(1,1,1,1))
 MainTex = (Texture2D,null)
+OutlineWidth = (Float,0.003)
+OutlineColor = (Color,(1,0,0,1))
