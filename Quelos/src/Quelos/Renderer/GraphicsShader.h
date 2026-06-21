@@ -53,23 +53,50 @@ namespace Quelos {
         uint64_t Offset = 0;
     };
 
+    struct QS_API ShaderData {
+        ShaderType Type = ShaderType::Unknown;
+        std::string EntryPoint;
+        BufferView Code;
+    };
+
+    struct QS_API GraphicsShaderCreateInfo {
+        std::string_view Name;
+        HashMap<std::string, SmallVec<ShaderData, 2>> Passes;
+        Span<const MaterialPropertySpec> MaterialProperties;
+        uint64_t MaterialSize = 0;
+    };
+
+    struct QS_API GraphicsShaderPass {
+        std::string Name;
+        ShaderHandle VertexShader;
+        ShaderHandle FragmentShader;
+    };
+
     class QS_API GraphicsShader : public Asset {
     public:
-        GraphicsShader(
-            BufferView vertex,
-            BufferView fragment,
-            std::string name,
-            const Vec<MaterialPropertySpec>& materialProperties,
-            uint64_t materialSize
-        );
+        GraphicsShader(const GraphicsShaderCreateInfo& createInfo);
 
         ~GraphicsShader() override;
 
         [[nodiscard]] const std::string& GetName() const { return m_Name; }
 
-        [[nodiscard]] ShaderHandle GetVertexShaderHandle() const { return m_VertexShader; }
-        [[nodiscard]] ShaderHandle GetFragmentShaderHandle() const { return m_FragmentShader; }
+        [[nodiscard]] const GraphicsShaderPass* GetShaderPass(std::string_view name) const {
+            const auto it = std::ranges::find_if(
+                m_Passes,
+                [&name](const GraphicsShaderPass& pass) {
+                    return pass.Name == name;
+                }
+            );
 
+            if (it == m_Passes.end()) {
+                return nullptr;
+            }
+
+            return &*it;
+        }
+
+        // Add a PiplineStateObject associated with this asset
+        // If the asset is released, all PipelineStateObjects associated with it will be released
         void AddPipelineState(const PipelineStateHandle pipelineState) {
             m_PipelineStates.push_back(pipelineState);
         }
@@ -84,8 +111,7 @@ namespace Quelos {
     private:
         std::string m_Name;
 
-        ShaderHandle m_VertexShader;
-        ShaderHandle m_FragmentShader;
+        Vec<GraphicsShaderPass> m_Passes;
 
         Vec<PipelineStateHandle> m_PipelineStates;
         Vec<MaterialPropertySpec> m_MaterialProperties;

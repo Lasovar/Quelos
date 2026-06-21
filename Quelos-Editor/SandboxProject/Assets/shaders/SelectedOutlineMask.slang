@@ -1,6 +1,7 @@
 import quelos;
 
 [shader("vertex")]
+[Pass("SelectedOutlineMask")]
 float4 vertexMain(VertexIn input, uint instanceID: SV_InstanceID) : SV_Position {
     float4 worldPos = float4(input.position, 1.0);
 
@@ -9,6 +10,7 @@ float4 vertexMain(VertexIn input, uint instanceID: SV_InstanceID) : SV_Position 
 }
 
 [shader("fragment")]
+[Pass("SelectedOutlineMask")]
 float fragmentMain(float4 pos: SV_Position) : SV_Target{
     return 1.0;
 }

@@ -27,23 +27,39 @@ float4 fragmentMain(float4 pos: SV_Position) : SV_Target {
     float thickness = Settings.ViewportAndThickness.z;
     float center = FullMask.Sample(FullMask_sampler, uv).r;
 
-    const int kSamples = 16;
+    const int k_Samples = 16;
     float maxNeighbor = 0.0;
-    float maxVisibleNeighbor = 0.0;
 
     [unroll]
-    for (int i = 0; i < kSamples; i++) {
-        float angle = (float(i) / float(kSamples)) * 6.28318530718; // 2*PI
+    for (int i = 0; i < k_Samples; i++) {
+        float angle = (float(i) / float(k_Samples)) * 6.28318530718;
         float2 dir = float2(cos(angle), sin(angle));
         float2 sampleUV = uv + dir * thickness * texelSize;
-
         maxNeighbor = max(maxNeighbor, FullMask.Sample(FullMask_sampler, sampleUV).r);
-        maxVisibleNeighbor = max(maxVisibleNeighbor, VisibleMask.Sample(VisibleMask_sampler, sampleUV).r);
     }
 
     float outline = saturate(maxNeighbor - center) * 2.0;
-    if (outline < 0.01) discard;
+    if (outline < 0.01) {
+        discard;
+    }
 
-    float alpha = lerp(0.3, 1.0, maxVisibleNeighbor);
+    const int k_VisSamples = 8;
+    float visibleSum = 0.0;
+    float visThickness = thickness * 2.0; // wider radius softens the visible/occluded boundary
+
+    [unroll]
+    for (int i = 0; i < k_VisSamples; i++) {
+        float angle = (float(i) / float(k_VisSamples)) * 6.28318530718;
+        float2 dir = float2(cos(angle), sin(angle));
+        float2 sampleUV = uv + dir * visThickness * texelSize;
+        visibleSum += VisibleMask.Sample(VisibleMask_sampler, sampleUV).r;
+    }
+    visibleSum += VisibleMask.Sample(VisibleMask_sampler, uv).r; // include center
+    float avgVisible = visibleSum / float(k_VisSamples + 1);
+
+    // Smooth transition instead of hard lerp
+    float alpha = smoothstep(0.0, 1.0, avgVisible);
+    alpha = lerp(0.3, 1.0, alpha);
+
     return float4(Settings.Color.rgb, outline * alpha);
 }

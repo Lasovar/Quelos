@@ -21,6 +21,10 @@ namespace QuelosEditor {
             );
         }
 
+        static OsPath GetCookedShadersPath() {
+            return Project::GetCookedAssetsPath() / "Shaders" / magic_enum::enum_name(Renderer::GetRendererAPI());
+        }
+
         static bool SerializeHandle(const OsPath& path, AssetID handle) {
             using namespace Serialization;
 
@@ -312,17 +316,53 @@ namespace QuelosEditor {
             }
         }
 
-        bool CompileShader(
-            const std::string& shaderPath,
-            const AssetID handle,
-            Buffer& vertexBuffer,
-            Buffer& fragmentBuffer,
-            Vec<MaterialPropertySpec>& materialProperties
-        ) {
-            //QS_PROFILE_SCOPED_N("Shader compilation");
-            auto t0 = std::chrono::high_resolution_clock::now();
+        struct QS_API CompiledShaderData {
+            ShaderType Type = ShaderType::Unknown;
+            std::string EntryPoint;
+            Buffer Code;
+        };
 
+        struct ShaderCompilationResult {
+            HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes;
+            Vec<MaterialPropertySpec> MaterialProperties;
+            uint64_t MaterialSize = 0;
+        };
+
+        constexpr ShaderType GetShaderTypeFromStage(const SlangStage stage) {
+            switch (stage) {
+            case SLANG_STAGE_VERTEX: return ShaderType::Vertex;
+            case SLANG_STAGE_HULL: return ShaderType::Hull;
+            case SLANG_STAGE_DOMAIN: return ShaderType::Domain;
+            case SLANG_STAGE_GEOMETRY: return ShaderType::Geometry;
+            case SLANG_STAGE_FRAGMENT: return ShaderType::Fragment;
+            case SLANG_STAGE_COMPUTE: return ShaderType::Compute;
+            case SLANG_STAGE_RAY_GENERATION: return ShaderType::RayGen;
+            case SLANG_STAGE_INTERSECTION: return ShaderType::RayIntersection;
+            case SLANG_STAGE_ANY_HIT: return ShaderType::RayAnyHit;
+            case SLANG_STAGE_CLOSEST_HIT: return ShaderType::RayClosestHit;
+            case SLANG_STAGE_MISS: return ShaderType::RayMiss;
+            case SLANG_STAGE_CALLABLE: return ShaderType::Callable;
+            case SLANG_STAGE_MESH: return ShaderType::Mesh;
+            case SLANG_STAGE_AMPLIFICATION: return ShaderType::Amplification;
+            case SLANG_STAGE_NONE:
+            case SLANG_STAGE_DISPATCH:
+            case SLANG_STAGE_COUNT:
+            default:
+                return ShaderType::Unknown;
+            }
+        }
+
+        Option<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
+            // TODO: Use AssetID or AssetPath/AssetName
+            QS_PROFILE_SCOPED_N("Shader compilation");
             slang::SessionDesc sessionDesc;
+
+            SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
+
+            compilerOptions.push_back({
+                slang::CompilerOptionName::GenerateWholeProgram,
+                { slang::CompilerOptionValueKind::Int, 1 }
+            });
 
             slang::TargetDesc targetDesc;
             switch (Renderer::GetRendererAPI()) {
@@ -336,13 +376,8 @@ namespace QuelosEditor {
                 targetDesc.format = SLANG_SPIRV;
                 targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
 
-                slang::CompilerOptionEntry opts[] = {
-                    {slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}},
-                    {slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}},
-                };
-
-                targetDesc.compilerOptionEntries = opts;
-                targetDesc.compilerOptionEntryCount = 2;
+                compilerOptions.push_back({slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}});
+                compilerOptions.push_back({slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}});
                 break;
             }
             case RendererAPI::OpenGL: {
@@ -354,6 +389,9 @@ namespace QuelosEditor {
                 QS_CORE_ASSERT(false, "Unsupported renderer API");
                 break;
             }
+
+            targetDesc.compilerOptionEntries = compilerOptions.data();
+            targetDesc.compilerOptionEntryCount = compilerOptions.size();
 
             sessionDesc.targets = &targetDesc;
             sessionDesc.targetCount = 1;
@@ -380,7 +418,7 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
-            uint64_t materialSize = 0;
+            ShaderCompilationResult result;
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
@@ -391,7 +429,7 @@ namespace QuelosEditor {
                 slang::TypeLayoutReflection* type = parameter->getTypeLayout()->getElementTypeLayout();
                 uint64_t offset = 0;
 
-                materialSize = type->getSize();
+                result.MaterialSize = type->getSize();
                 for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
                     slang::VariableLayoutReflection* field = type->getFieldByIndex(typeFieldIndex);
                     MaterialPropertyType propertyType = GetMaterialProperty(field);
@@ -402,42 +440,80 @@ namespace QuelosEditor {
                         continue;
                     }
 
-                    materialProperties.emplace_back(field->getName(), propertyType, offset, fieldSize);
+                    result.MaterialProperties.emplace_back(field->getName(), propertyType, offset, fieldSize);
                     offset += fieldSize;
                 }
             }
 
-            Slang::ComPtr<slang::IEntryPoint> vertexEntryPoint;
-            Slang::ComPtr<slang::IEntryPoint> fragmentEntryPoint;
-            module->findEntryPointByName("vertexMain", vertexEntryPoint.writeRef());
-            module->findEntryPointByName("fragmentMain", fragmentEntryPoint.writeRef());
+            struct ShaderInfo {
+                const char* EntryPointName = nullptr;
+                Slang::ComPtr<slang::IEntryPoint> EntryPoint;
+                uint32_t Index = 0;
+                SlangStage Stage = SLANG_STAGE_NONE;
+            };
 
-            if (!vertexEntryPoint) {
-                QS_CORE_ERROR_TAG("Slang", "vertexMain not found");
-                return false;
+            HashMap<std::string, SmallVec<ShaderInfo, 2>> passMap;
+
+            for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
+                ShaderInfo shaderInfo;
+
+                module->getDefinedEntryPoint(i, shaderInfo.EntryPoint.writeRef());
+
+                slang::ProgramLayout* entryPointLayout = shaderInfo.EntryPoint->getLayout();
+                slang::EntryPointReflection* entryPointReflection = entryPointLayout->getEntryPointByIndex(0);
+                slang::FunctionReflection* function = shaderInfo.EntryPoint->getFunctionReflection();
+
+                shaderInfo.EntryPointName = function->getName();
+                shaderInfo.Index = i;
+                shaderInfo.Stage = entryPointReflection->getStage();
+
+                std::string_view passName;
+
+                for (uint32_t attribIndex = 0; attribIndex < function->getUserAttributeCount(); attribIndex++) {
+                    slang::UserAttribute* attribute = function->getUserAttributeByIndex(attribIndex);
+
+                    if (strcmp(attribute->getName(), "Pass") != 0) {
+                        continue;
+                    }
+
+                    size_t passNameSize = 0;
+                    const char* passNameData = nullptr;
+
+                    passNameData = attribute->getArgumentValueString(0, &passNameSize);
+
+                    if (passNameData) {
+                        passName = std::string_view(passNameData, passNameSize);
+                    }
+                }
+
+                if (passName.empty()) {
+                    passName = "GBuffer";
+                }
+
+                passMap[std::string(passName)].push_back(shaderInfo);
             }
 
-            if (!fragmentEntryPoint) {
-                QS_CORE_ERROR_TAG("Slang", "fragmentMain not found");
-                return false;
-            }
+            Vec<slang::IComponentType*> components;
+            components.reserve(passMap.size() * 2 + 1);
 
-            slang::IComponentType* components[] = {module, vertexEntryPoint, fragmentEntryPoint};
-            Slang::ComPtr<slang::IComponentType> program;
-            session->createCompositeComponentType(components, 3, program.writeRef());
+            components.push_back(module);
 
-            slang::ProgramLayout* moduleLayout = module->getLayout();
-            slang::ProgramLayout* entryLayout = vertexEntryPoint->getLayout();
-
-            QS_CORE_TRACE_TAG("Slang", "Module found: {}", module->getName());
-            for (uint32_t i = 0; i < moduleLayout->getParameterCount(); i++) {
-                slang::VariableLayoutReflection* parameter = moduleLayout->getParameterByIndex(i);
-                QS_CORE_TRACE_TAG(
-                    "Slang",
-                    "{}",
-                    parameter->getName() ? parameter->getName() : ""
+            for (auto& shaders : passMap | std::views::values) {
+                std::ranges::transform(
+                    shaders,
+                    std::back_inserter(components),
+                    [](const ShaderInfo& shaderInfo) {
+                        return shaderInfo.EntryPoint;
+                    }
                 );
             }
+
+            Slang::ComPtr<slang::IComponentType> program;
+            session->createCompositeComponentType(
+                components.data(),
+                static_cast<uint32_t>(components.size()),
+                program.writeRef()
+            );
 
             Slang::ComPtr<slang::IComponentType> linkedProgram;
             program->link(linkedProgram.writeRef(), diagnostics.writeRef());
@@ -452,89 +528,81 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
-            auto t1 = std::chrono::high_resolution_clock::now();
+            for (const auto& [passName, shaders] : passMap) {
+                for (const ShaderInfo& shader : shaders) {
+                    Slang::ComPtr<slang::IBlob> blob;
+                    linkedProgram->getEntryPointCode(
+                        shader.Index,
+                        0,
+                        blob.writeRef(),
+                        diagnostics.writeRef()
+                    );
 
-            QS_CORE_TRACE_TAG(
-                "Slang",
-                "Module compilation: {}",
-                std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0)
-            );
+                    if (diagnostics) {
+                        QS_CORE_ERROR_TAG(
+                            "Slang",
+                            "Failed to get vertex code: {}", static_cast<const char*>(diagnostics->getBufferPointer())
+                        );
 
-            const int targetIndex = 0;
+                        diagnostics = nullptr;
+                    }
 
-            Slang::ComPtr<slang::IBlob> vsBlob;
-            linkedProgram->getEntryPointCode(0, targetIndex, vsBlob.writeRef(), diagnostics.writeRef());
-            if (diagnostics) {
-                QS_CORE_ERROR_TAG(
-                    "Slang",
-                    "Failed to get vertex code: {}", static_cast<const char*>(diagnostics->getBufferPointer())
-                );
+                    if (!blob) {
+                        continue;
+                    }
 
-                diagnostics = nullptr;
+                    CompiledShaderData shaderData;
+                    shaderData.EntryPoint = shader.EntryPointName;
+                    shaderData.Type = GetShaderTypeFromStage(shader.Stage);
+                    shaderData.Code = Buffer::Copy(blob->getBufferPointer(), blob->getBufferSize());
+
+                    result.Passes[passName].push_back(std::move(shaderData));
+                }
             }
 
-            auto t2 = std::chrono::high_resolution_clock::now();
-            QS_CORE_TRACE_TAG(
-                "Slang",
-                "Vertex code compilation: {}",
-                std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1)
-            );
-
-            Slang::ComPtr<slang::IBlob> fsBlob;
-            linkedProgram->getEntryPointCode(1, targetIndex, fsBlob.writeRef(), diagnostics.writeRef());
-            if (diagnostics) {
-                QS_CORE_ERROR_TAG(
-                    "Slang",
-                    "Failed to get fragment code: {}", static_cast<const char*>(diagnostics->getBufferPointer()));
+            if (result.Passes.empty()) {
+                return None;
             }
 
-            if (!vsBlob || !fsBlob) {
-                return false;
-            }
-
-            auto t3 = std::chrono::high_resolution_clock::now();
-
-            QS_CORE_TRACE_TAG(
-                "Slang",
-                "Fragment code compilation: {}",
-                std::chrono::duration_cast<std::chrono::milliseconds>(t3-t2)
-            );
-
-            vertexBuffer = Buffer::Copy(vsBlob->getBufferPointer(), vsBlob->getBufferSize());
-
-            fragmentBuffer = Buffer::Allocate(sizeof(uint64_t) + fsBlob->getBufferSize());
-            *fragmentBuffer.as<uint64_t>() = materialSize;
-            std::memcpy(
-                fragmentBuffer.data() + sizeof(uint64_t),
-                fsBlob->getBufferPointer(),
-                fsBlob->getBufferSize()
-            );
-
-            return true;
+            return result;
         }
 
         bool Import(void* dataSlot, const AssetMetadata& metadata) {
-            std::optional<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
+            Option<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
             if (!shaderMetadata) {
                 return false;
             }
 
-            const OsPath cookedPath = Project::GetCookedAssetsPath() / "Shaders";
-            std::string handleStr = metadata.Handle.ToString();
-            const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
-            const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
+            const OsPath cookedPath = GetCookedShadersPath();
+            const std::string handleStr = metadata.Handle.ToString();
+            const OsPath cookedShadersPath = cookedPath / handleStr;
 
-            const Buffer vertexBuffer = Utility::ReadFile(cookedVertexPath, false);
-            const Buffer fragmentBuffer = Utility::ReadFile(cookedFragmentPath, false);
-            const uint64_t materialSize = fragmentBuffer.as_value<uint64_t>(0).value_or(0);
+            const Buffer buffer = Utility::ReadFile(cookedShadersPath, false);
 
-            auto* shader = new(dataSlot) GraphicsShader(
-                vertexBuffer.view(),
-                fragmentBuffer.view(sizeof(uint64_t)),
-                std::string(FS::Filename(metadata.FilePath)),
-                shaderMetadata->MaterialProperties,
-                materialSize
-            );
+            GraphicsShaderCreateInfo createInfo;
+            createInfo.Name = FS::Filename(metadata.FilePath);
+
+            Serialization::BinaryReader reader(buffer);
+            createInfo.MaterialSize = reader.Read<uint64_t>().value_or(0);
+            createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
+
+            uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
+            createInfo.Passes.reserve(numOfPasses);
+            for (uint32_t passIndex = 0; passIndex < numOfPasses; passIndex++) {
+                std::string_view passName = reader.ReadString().value_or("");
+                uint32_t numOfShaders = reader.Read<uint32_t>().value_or(0);
+
+                for (uint32_t shaderIndex = 0; shaderIndex < numOfShaders; shaderIndex++) {
+                    ShaderData shader;
+                    shader.EntryPoint = reader.ReadString().value_or("");
+                    shader.Type = reader.Read<ShaderType>().value_or(ShaderType::Unknown);
+                    shader.Code = reader.ReadBytesWithSize();
+
+                    createInfo.Passes[std::string(passName)].push_back(shader);
+                }
+            }
+
+            auto* shader = new(dataSlot) GraphicsShader(createInfo);
 
             shader->SetAssetID(metadata.Handle);
 
@@ -547,45 +615,51 @@ namespace QuelosEditor {
         }
 
         bool Cook(const AssetMetadata& metadata) {
-            const OsPath cookedPath = Project::GetCookedAssetsPath() / "Shaders";
+            const OsPath cookedPath = GetCookedShadersPath();
             std::string handleStr = metadata.Handle.ToString();
-            const OsPath cookedVertexPath = cookedPath / fmt::format("{}_vs", handleStr);
-            const OsPath cookedFragmentPath = cookedPath / fmt::format("{}_fs", handleStr);
-
-            Buffer vertexBuffer, fragmentBuffer;
+            const OsPath cookedShaderPath = cookedPath / handleStr;
 
             namespace fs = std::filesystem;
 
             // Check if cache is valid (exists and newer than source)
             const auto srcTime = fs::last_write_time(Project::GetProjectPath() / metadata.FilePath);
-            const bool cacheValid = fs::exists(cookedVertexPath) && fs::exists(cookedFragmentPath)
-                           && fs::last_write_time(cookedVertexPath) >= srcTime
-                           && fs::last_write_time(cookedFragmentPath) >= srcTime;
-
-            if (cacheValid) {
+            if (fs::exists(cookedShaderPath) && fs::last_write_time(cookedShaderPath) >= srcTime) {
                 return true;
             }
 
             ShaderMetadata shaderMetadata;
             shaderMetadata.AssetId = metadata.Handle;
 
-            if (!CompileShader(
-                    metadata.FilePath,
-                    metadata.Handle,
-                    vertexBuffer,
-                    fragmentBuffer,
-                    shaderMetadata.MaterialProperties
-                )
-            ) {
+            Option<ShaderCompilationResult> compilationResult = CompileShader(metadata.FilePath);
+
+            if (!compilationResult) {
                 return false;
             }
 
-            if (!std::filesystem::exists(cookedVertexPath.parent_path())) {
-                std::filesystem::create_directories(cookedVertexPath.parent_path());
+            ShaderCompilationResult& compiledShaders = compilationResult.value();
+
+            if (!std::filesystem::exists(cookedShaderPath.parent_path())) {
+                std::filesystem::create_directories(cookedShaderPath.parent_path());
             }
 
-            Utility::WriteFile(cookedVertexPath, vertexBuffer);
-            Utility::WriteFile(cookedFragmentPath, fragmentBuffer);
+            shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
+
+            Vec<byte> buffer;
+            Serialization::BinaryWriter writer(buffer);
+
+            writer.Write(compiledShaders.MaterialSize);
+            writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
+            for (const auto& [passName, shaders] : compiledShaders.Passes) {
+                writer.WriteString(passName);
+                writer.Write(static_cast<uint32_t>(shaders.size()));
+                for (const auto& shader : shaders) {
+                    writer.WriteString(shader.EntryPoint);
+                    writer.Write(shader.Type);
+                    writer.WriteBytesWithSize(shader.Code);
+                }
+            }
+
+            Utility::WriteFile(cookedShaderPath, buffer);
 
             SerializeShaderMetadata(GetMetadataPath(metadata.FilePath), shaderMetadata);
 

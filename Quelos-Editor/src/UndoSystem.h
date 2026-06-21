@@ -57,12 +57,12 @@ namespace QuelosEditor {
 
     class UndoSystem {
     public:
-        UndoSystem(const size_t capacity = 1024 * 1024) {
+        UndoSystem(const uint64_t capacity = 1024 * 1024) {
             if (!s_Instance) {
                 s_Instance = this;
             }
 
-            m_Buffer = CreateScope<byte[]>(capacity);
+            m_Buffer = Buffer::Allocate(capacity);
             m_Capacity = capacity;
             m_Head = 0;
         }
@@ -76,7 +76,7 @@ namespace QuelosEditor {
 
         template <typename T, typename... Args>
         void Push(Args&&... args) {
-            const size_t size = Align(sizeof(CommandHeader) + sizeof(T), alignof(std::max_align_t));
+            const uint64_t size = Align(sizeof(CommandHeader) + sizeof(T), alignof(std::max_align_t));
 
             if (size > m_Capacity) {
                 QS_ERROR("Trying to push a command larger than the buffer: {} > {}", size, m_Capacity);
@@ -86,12 +86,12 @@ namespace QuelosEditor {
             if (m_Head + size > m_Capacity) {
                 m_Head = 0;
 
-                while (!m_Stack.empty() && m_Tail < size) {
+                while (!m_UndoStack.empty() && m_Tail < size) {
                     FreeOldest();
                 }
             }
 
-            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + m_Head));
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.data() + m_Head));
             auto* data = reinterpret_cast<T*>(header + 1);
 
             new(data) T(std::forward<Args>(args)...);
@@ -100,7 +100,7 @@ namespace QuelosEditor {
             header->Size = sizeof(T);
 
 
-            m_Stack.push_back(m_Head);
+            m_UndoStack.push_back(m_Head);
 
             m_Head += size;
 
@@ -136,14 +136,14 @@ namespace QuelosEditor {
         }
 
         void Undo() {
-            if (m_Stack.empty()) {
+            if (m_UndoStack.empty()) {
                 return;
             }
 
-            const size_t offset = m_Stack.back();
-            m_Stack.pop_back();
+            const uint64_t offset = m_UndoStack.back();
+            m_UndoStack.pop_back();
 
-            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.data() + offset));
             void* data = header + 1;
 
             header->VTable->Revert(data);
@@ -160,10 +160,10 @@ namespace QuelosEditor {
                 return;
             }
 
-            const size_t offset = m_RedoStack.back();
+            const uint64_t offset = m_RedoStack.back();
             m_RedoStack.pop_back();
 
-            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.data() + offset));
             void* data = header + 1;
 
             header->VTable->Apply(data);
@@ -172,12 +172,12 @@ namespace QuelosEditor {
                 header->VTable->ApplyPatch(*this, data);
             }
 
-            m_Stack.push_back(offset);
+            m_UndoStack.push_back(offset);
         }
 
         void DestroyRedo() {
-            for (const size_t offset : m_RedoStack) {
-                auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
+            for (const uint64_t offset : m_RedoStack) {
+                auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.data() + offset));
                 void* data = header + 1;
 
                 header->VTable->Destroy(data);
@@ -195,24 +195,24 @@ namespace QuelosEditor {
         }
 
     private:
-        static size_t Align(const size_t size, const size_t alignment) {
+        static uint64_t Align(const uint64_t size, const uint64_t alignment) {
             return (size + alignment - 1) & ~(alignment - 1);
         }
 
         void FreeOldest() {
-            if (m_Stack.empty()) {
+            if (m_UndoStack.empty()) {
                 return;
             }
 
-            const size_t offset = m_Stack.front();
-            m_Stack.pop_front();
+            const uint64_t offset = m_UndoStack.front();
+            m_UndoStack.pop_front();
 
-            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.get() + offset));
+            auto* header = std::launder(reinterpret_cast<CommandHeader*>(m_Buffer.data() + offset));
             void* data = header + 1;
 
             header->VTable->Destroy(data);
 
-            const size_t size = Align(sizeof(CommandHeader) + header->Size, alignof(std::max_align_t));
+            const uint64_t size = Align(sizeof(CommandHeader) + header->Size, alignof(std::max_align_t));
 
             m_Tail = (offset + size) % m_Capacity;
 
@@ -222,13 +222,13 @@ namespace QuelosEditor {
     private:
         static UndoSystem* s_Instance;
     private:
-        Scope<byte[]> m_Buffer;
-        size_t m_Capacity = 0;
-        size_t m_Head = 0;
-        size_t m_Tail = 0;
+        Buffer m_Buffer;
+        uint64_t m_Capacity = 0;
+        uint64_t m_Head = 0;
+        uint64_t m_Tail = 0;
 
-        Deque<size_t> m_Stack;
-        Vec<size_t> m_RedoStack;
+        Deque<uint64_t> m_UndoStack;
+        Vec<uint64_t> m_RedoStack;
 
         HashMap<AssetID, SceneSerializer*> m_SceneSerializers;
     };

@@ -130,7 +130,7 @@ namespace Quelos {
         Last = NonFilteringSampler_WebGPU
     };
 
-    struct ShaderResourceVariableSpec {
+    struct QS_API ShaderResourceVariableSpec {
         std::string_view Name;
         ShaderType ShaderStages = ShaderType::Unknown;
         ShaderResourceVariableType Type = ShaderResourceVariableType::Static;

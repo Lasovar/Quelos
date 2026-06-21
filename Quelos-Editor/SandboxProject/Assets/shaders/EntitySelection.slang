@@ -6,6 +6,7 @@ struct EditorVSOut {
 };
 
 [shader("vertex")]
+[Pass("EditorEntityID")]
 EditorVSOut vertexMain(VertexIn input, uint instanceID: SV_InstanceID) {
     InstanceData inst = Instances[instanceID];
 
@@ -17,6 +18,7 @@ EditorVSOut vertexMain(VertexIn input, uint instanceID: SV_InstanceID) {
 }
 
 [shader("fragment")]
+[Pass("EditorEntityID")]
 uint fragmentMain(EditorVSOut input) : SV_Target {
     return input.entityId;
 }
