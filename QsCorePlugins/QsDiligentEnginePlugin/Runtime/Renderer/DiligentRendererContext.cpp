@@ -1111,12 +1111,15 @@ namespace Quelos {
             FormatTemp("{}", name)
         );
 
-        if (!shaderResourceVariable) [[unlikely]] {
+        if (!shaderResourceVariable) {
+            /*
+            TODO: No way to really know
             QS_CORE_ERROR_TAG(
                 "DiligentRenderer",
                 "Failed to find shader variable by the name '{}'!",
                 name
             );
+            */
 
             return;
         }

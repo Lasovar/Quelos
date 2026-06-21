@@ -15,6 +15,9 @@ struct VertexOut {
 [__AttributeUsage(_AttributeTargets.Function)]
 struct PassAttribute {
     string Name;
+    // Order inside of the same pass, lower numbers rendered first.
+    // If you want the order of passes that should be handled in the engine's API
+    int Order = 0;
 }
 
 // Allows you to indicate that a struct is material

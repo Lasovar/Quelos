@@ -285,9 +285,12 @@ namespace Quelos {
                 isDirty = true;
             }
 
-            if (!Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())) {
-                m_PipelineStates.erase(pipelineStateComponent.ShaderID);
-                entity.remove<PipelineStateComponent>();
+            for (const PipelineData& pipeline : pipelineStateComponent.Pipelines) {
+                if (!Renderer::IsAlive(pipeline.PSO.GetHandle())) {
+                    m_PipelineStates.erase(pipelineStateComponent.ShaderID);
+                    entity.remove<PipelineStateComponent>();
+                    return;
+                }
             }
         });
 
@@ -310,10 +313,23 @@ namespace Quelos {
             GraphicsShader& shader = material.GetShader().Get();
             const auto it = m_PipelineStates.find(shader.GetAssetID());
             if (it != m_PipelineStates.end()) {
-                if (Renderer::IsAlive(it->second.PSO)) {
+                if (Renderer::IsAlive(it->second.Pipelines.front().PSO)) {
+                    Vec<PipelineData> pipelines;
+                    pipelines.reserve(it->second.Pipelines.size());
+                    std::ranges::transform(
+                        it->second.Pipelines,
+                        std::back_inserter(pipelines),
+                        [](const WeakPipelineData& pipelineData) {
+                            return PipelineData{
+                                .PSO = pipelineData.PSO,
+                                .SRB = pipelineData.SRB,
+                                .Order = pipelineData.Order
+                            };
+                        }
+                    );
+
                     entity.emplace<PipelineStateComponent>(
-                        ResourceRef(it->second.PSO),
-                        ResourceRef(it->second.SRB),
+                        std::move(pipelines),
                         it->second.MaterialRegistry.Add(meshRenderer.Material),
                         shader.GetAssetID()
                     );
@@ -329,80 +345,99 @@ namespace Quelos {
                 return;
             }
 
-            GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
+            Vec<WeakPipelineData> worldPipelines;
 
-            pipelineStateCreateInfo.Name = shader.GetName();
+            for (const GraphicsShaderPipelineData& pipelineData : shaderPass->Pipelines) {
+                GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
 
-            pipelineStateCreateInfo.VertexShader = shaderPass->VertexShader;
-            pipelineStateCreateInfo.FragmentShader = shaderPass->FragmentShader;
+                pipelineStateCreateInfo.Name = shader.GetName();
 
-            pipelineStateCreateInfo.GraphicsPipeline.RenderPass = m_RenderPass;
-            pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
-            pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
-            pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
-            pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
+                pipelineStateCreateInfo.VertexShader = pipelineData.VertexShader;
+                pipelineStateCreateInfo.FragmentShader = pipelineData.FragmentShader;
 
-            pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
+                pipelineStateCreateInfo.GraphicsPipeline.RenderPass = m_RenderPass;
+                pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
+                pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
+                pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+                pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
-            LayoutElementBuilder<4> layoutBuilder{
-                LayoutElement{0, 0, ValueType::Float3},
-                LayoutElement{1, 0, ValueType::Float3},
-                LayoutElement{2, 0, ValueType::Float3},
-                LayoutElement{3, 0, ValueType::Float2}
-            };
+                if (pipelineData.Order == -2) {
+                    pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Front;
+                    pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
+                }
 
-            pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+                pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-            SmallVec<ShaderResourceVariableSpec, 4> vars = {
-                {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
-                {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
-                {"g_Textures", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
-            };
+                LayoutElementBuilder<4> layoutBuilder{
+                    LayoutElement{0, 0, ValueType::Float3},
+                    LayoutElement{1, 0, ValueType::Float3},
+                    LayoutElement{2, 0, ValueType::Float3},
+                    LayoutElement{3, 0, ValueType::Float2}
+                };
 
-            const uint64_t materialSize = shader.GetMaterialSize();
+                pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
 
-            if (materialSize > 0) {
-                vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable);
+                SmallVec<ShaderResourceVariableSpec, 4> vars = {
+                    {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
+                    {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
+                };
+
+                const uint64_t materialSize = shader.GetMaterialSize();
+
+                if (materialSize > 0) {
+                    vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable);
+                }
+
+                vars.emplace_back("g_Textures", ShaderType::Fragment, ShaderResourceVariableType::Dynamic);
+
+                SamplerSpec samplerSpec;
+                samplerSpec.WrapU = WrapMode::Repeat;
+                samplerSpec.WrapV = WrapMode::Repeat;
+                samplerSpec.MinFilter = FilterMode::Linear;
+                samplerSpec.MagFilter = FilterMode::Linear;
+                samplerSpec.MipFilter = FilterMode::Linear;
+
+                ImmutableSamplerSpec immutableSampler;
+                immutableSampler.SamplerOrTextureName = "g_Textures";
+                immutableSampler.Specification = samplerSpec;
+                immutableSampler.ShaderStages = ShaderType::Fragment;
+
+                pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
+                pipelineStateCreateInfo.Spec.ResourceLayout.ImmutableSamplers = {&immutableSampler, 1};
+
+                PipelineStateHandle pipelineStateHandle = Renderer::CreatePipelineState(pipelineStateCreateInfo);
+
+                Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
+
+                ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
+                Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesBufferView);
+                Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesBufferView);
+
+                worldPipelines.emplace_back(pipelineStateHandle, srb, pipelineData.Order, true);
+                shader.AddPipelineState(pipelineStateHandle);
             }
 
-            SamplerSpec samplerSpec;
-            samplerSpec.WrapU = WrapMode::Repeat;
-            samplerSpec.WrapV = WrapMode::Repeat;
-            samplerSpec.MinFilter = FilterMode::Linear;
-            samplerSpec.MagFilter = FilterMode::Linear;
-            samplerSpec.MipFilter = FilterMode::Linear;
-
-            ImmutableSamplerSpec immutableSampler;
-            immutableSampler.SamplerOrTextureName = "g_Textures";
-            immutableSampler.Specification = samplerSpec;
-            immutableSampler.ShaderStages = ShaderType::Fragment;
-
-            pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
-            pipelineStateCreateInfo.Spec.ResourceLayout.ImmutableSamplers = { &immutableSampler, 1 };
-
-            PipelineStateHandle pipelineStateHandle = Renderer::CreatePipelineState(pipelineStateCreateInfo);
-
-            Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
-
-            ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
-            Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesBufferView);
-            Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesBufferView);
+            Vec<PipelineData> entityPipelines;
+            entityPipelines.reserve(worldPipelines.size());
+            std::ranges::transform(
+                worldPipelines,
+                std::back_inserter(entityPipelines),
+                [](const WeakPipelineData& pipeline) {
+                    return PipelineData{pipeline.PSO, pipeline.SRB, pipeline.Order};
+                }
+            );
 
             MaterialRegistry& materialRegistry = m_PipelineStates.try_emplace(
                 shader.GetAssetID(),
-                pipelineStateHandle,
-                srb,
+                std::move(worldPipelines),
                 MaterialRegistry(shader.GetName(), m_TextureRegistry, shader.GetMaterialSize())
             ).first->second.MaterialRegistry;
 
             entity.emplace<PipelineStateComponent>(
-                ResourceRef(pipelineStateHandle),
-                ResourceRef(srb),
+                std::move(entityPipelines),
                 materialRegistry.Add(meshRenderer.Material),
                 shader.GetAssetID()
             );
-
-            shader.AddPipelineState(pipelineStateHandle);
         });
 
         m_World->defer_end();
@@ -417,20 +452,23 @@ namespace Quelos {
             const WorldTransform& transform, const MeshRenderer& meshRenderer,
             const PipelineStateComponent& pipelineStateComponent
         ) {
-                uint64_t sortKey = static_cast<uint64_t>(pipelineStateComponent.PSO.GetHandle().Index()) << 32
-                    | static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
+            for (const auto& pipeline : pipelineStateComponent.Pipelines) {
+                uint64_t sortKey =
+                    (static_cast<uint64_t>(static_cast<uint32_t>(pipeline.Order - INT32_MIN)) << 48) |
+                    (static_cast<uint64_t>(pipeline.PSO.GetHandle().Index()) << 24) |
+                    static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
 
                 m_DrawCalls.emplace_back(
                     sortKey,
                     entity,
                     &meshRenderer.Mesh.Get(),
-                    pipelineStateComponent.PSO.GetHandle(),
-                    pipelineStateComponent.SRB.GetHandle(),
+                    pipeline.PSO.GetHandle(),
+                    pipeline.SRB.GetHandle(),
                     pipelineStateComponent.MaterialIndex,
                     transform.Value
                 );
             }
-        );
+        });
 
         m_World->defer_end();
 
@@ -438,31 +476,37 @@ namespace Quelos {
             pipelineInfo.MaterialRegistry.FlushToGPU();
 
             if (pipelineInfo.MaterialRegistry.WasReallocated()) {
-                Renderer::BindVariableByName(
-                    ShaderType::Vertex,
-                    pipelineInfo.SRB,
-                    "Materials",
-                    pipelineInfo.MaterialRegistry.GetBufferViewHandle()
-                );
+                for (const auto& pipeline : pipelineInfo.Pipelines) {
+                    Renderer::BindVariableByName(
+                        ShaderType::Vertex,
+                        pipeline.SRB,
+                        "Materials",
+                        pipelineInfo.MaterialRegistry.GetBufferViewHandle()
+                    );
 
-                Renderer::BindVariableByName(
-                    ShaderType::Fragment,
-                    pipelineInfo.SRB,
-                    "Materials",
-                    pipelineInfo.MaterialRegistry.GetBufferViewHandle()
-                );
+                    Renderer::BindVariableByName(
+                        ShaderType::Fragment,
+                        pipeline.SRB,
+                        "Materials",
+                        pipelineInfo.MaterialRegistry.GetBufferViewHandle()
+                    );
+                }
             }
 
             m_TextureRegistry.UpdateTexturesArray();
 
-            Renderer::BindArrayByName(
-                ShaderType::Fragment,
-                pipelineInfo.SRB,
-                "g_Textures",
-                m_TextureRegistry.GetTextureViews()
-            );
+            for (const auto& pipeline : pipelineInfo.Pipelines) {
+                if (pipeline.HasTextures) {
+                    Renderer::BindArrayByName(
+                       ShaderType::Fragment,
+                       pipeline.SRB,
+                       "g_Textures",
+                       m_TextureRegistry.GetTextureViews()
+                   );
 
-            Renderer::CommitShaderResources(pipelineInfo.SRB, ResourceStateTransitionMode::Transition);
+                    Renderer::CommitShaderResources(pipeline.SRB, ResourceStateTransitionMode::Transition);
+                }
+            }
         }
 
         m_TextureRegistry.SetDirty(false);
@@ -516,44 +560,6 @@ namespace Quelos {
             //
 
             Renderer::BindPipelineState(pipelineHandle);
-
-            //
-            // BUILD MATERIAL TABLE
-            //
-
-            /*
-            materialUploadBuffer.clear();
-            materialRemap.clear();
-            */
-
-            /*
-            for (uint32_t j = pipelineBegin; j < pipelineEnd; ++j) {
-                uint32_t materialId = m_DrawCalls[j].MaterialId;
-
-                if (materialRemap.contains(materialId))
-                    continue;
-
-                uint32_t gpuIndex =
-                    static_cast<uint32_t>(
-                        materialUploadBuffer.size());
-
-                materialRemap[materialId] =
-                    gpuIndex;
-
-                Material& material =
-                    materialManager.Get(materialId);
-
-                materialUploadBuffer.push_back(
-                    BuildGpuMaterial(material));
-            }
-
-            UploadMaterialBuffer(materialUploadBuffer);
-            */
-
-            //
-            // BUILD INSTANCE BUFFER ONCE
-            //
-
 
             //
             // DRAW MESH RANGES
