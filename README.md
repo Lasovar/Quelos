@@ -3,6 +3,8 @@ A cross platform game engine focused on Editor functionality and developer workf
 The main idea is to have a convenient/intuitive editor that doesn't compromise the runtime's performance, nor the developer's time.
 the Engine is being developed to be as portable as possible and to ship on all platforms. The Editor is developed for Windows, Mac and Linux and tested almost weekly on them
 
+# REPOSITY WAS MOVED TO https://codeberg.org/Lasovar/Quelos
+
 <img width="2560" height="1439" alt="image" src="https://github.com/user-attachments/assets/ccdaa1ce-41a4-4cdd-a3c8-e1c0d6304b40" />
 
 
