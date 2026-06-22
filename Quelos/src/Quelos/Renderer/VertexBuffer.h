@@ -21,6 +21,7 @@ namespace Quelos {
 		pfloat3 Position;
 		pfloat3 Normal;
 		pfloat3 Tangent;
+		pfloat3 SmoothNormal;
 		pfloat2 UV;
 	};
 

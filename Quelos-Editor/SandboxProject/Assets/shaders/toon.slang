@@ -57,28 +57,26 @@ FragmentOut fragmentMain(VertexOut v) {
 }
 
 [shader("vertex")]
-[Pass("GBuffer", -2)]
+[Pass("GBuffer", -1)]
 VertexOut OutlineVS(VertexIn input, uint instanceID: SV_InstanceID) {
     InstanceData instance = Instances[instanceID];
+
     float3 worldPos = mul(float4(input.position, 1.0), instance.Transform).xyz;
+    float3 worldSmoothNormal = normalize(mul(input.SmoothNormal, (float3x3)instance.Transform));
 
-    float3 worldNormal = normalize(mul(input.normal, (float3x3)instance.Transform));
-
-    float4 clipPos = mul(float4(worldPos, 1), global.viewProj);
+    float4 clipPos = mul(float4(worldPos, 1.0), global.viewProj);
     float width = Materials[instance.MaterialID].OutlineWidth;
-    worldPos += worldNormal * width * clipPos.w;
+
+    worldPos += worldSmoothNormal * width * clipPos.w;
 
     VertexOut output;
-    output.position = mul(float4(worldPos, 1), global.viewProj);
+    output.position = mul(float4(worldPos, 1.0), global.viewProj);
     output.instanceID = instanceID;
-    output.normal = worldNormal;
-    output.uv = input.texcoord0;
-
     return output;
 }
 
 [shader("fragment")]
-[Pass("GBuffer", -2)]
+[Pass("GBuffer", -1)]
 float4 fragmentOutlineMask(VertexOut v) : SV_Target {
     return Materials[Instances[v.instanceID].MaterialID].OutlineColor;
 }

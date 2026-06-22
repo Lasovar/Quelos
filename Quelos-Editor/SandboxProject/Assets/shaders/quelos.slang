@@ -2,7 +2,8 @@ struct VertexIn {
     float3 position : ATTRIB0;
     float3 normal : ATTRIB1;
     float3 tangent : ATTRIB2;
-    float2 texcoord0 : ATTRIB3;
+    float3 SmoothNormal : ATTRIB3;
+    float2 texcoord0 : ATTRIB4;
 };
 
 struct VertexOut {

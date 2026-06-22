@@ -221,6 +221,28 @@ namespace QuelosEditor {
                     }
                 }
 
+                HashMap<uint64_t, float3> smoothMap;
+
+                auto hashPos = [](const pfloat3 p) -> uint64_t { return Hash::Fnv1a64(&p, sizeof(pfloat3)); };
+
+                for (uint32_t index = 0; index < indices.size(); index += 3) {
+                    float3 i0(modelMesh.Vertices[indices[index]].Position);
+                    float3 i1(modelMesh.Vertices[indices[index+1]].Position);
+                    float3 i2(modelMesh.Vertices[indices[index+2]].Position);
+
+                    float3 e0 = i1 - i0;
+                    float3 e1 = i2 - i0;
+                    float3 fn = math::normalize(math::cross(e1, e0));
+
+                    smoothMap[hashPos(i0)] += fn;
+                    smoothMap[hashPos(i1)] += fn;
+                    smoothMap[hashPos(i2)] += fn;
+                }
+
+                for (auto& v : modelMesh.Vertices) {
+                    v.SmoothNormal = normalize(smoothMap[hashPos(v.Position)]);
+                }
+
                 auto it = std::ranges::find_if(
                     modelMetadata.MeshesMetadata,
                     [&](const MeshMetadata& meta) {

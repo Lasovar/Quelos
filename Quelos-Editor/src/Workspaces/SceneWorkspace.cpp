@@ -128,11 +128,12 @@ namespace QuelosEditor {
 
         pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x1;
 
-        LayoutElementBuilder<4> layoutBuilder{
+        LayoutElementBuilder<5> layoutBuilder{
             LayoutElement{0, 0, ValueType::Float3},
             LayoutElement{1, 0, ValueType::Float3},
             LayoutElement{2, 0, ValueType::Float3},
-            LayoutElement{3, 0, ValueType::Float2}
+            LayoutElement{3, 0, ValueType::Float3},
+            LayoutElement{4, 0, ValueType::Float2}
         };
 
         pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
@@ -575,11 +576,12 @@ namespace QuelosEditor {
             fullMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
-            LayoutElementBuilder<4> layoutBuilder{
+            LayoutElementBuilder<5> layoutBuilder{
                 LayoutElement{0, 0, ValueType::Float3},
                 LayoutElement{1, 0, ValueType::Float3},
                 LayoutElement{2, 0, ValueType::Float3},
-                LayoutElement{3, 0, ValueType::Float2}
+                LayoutElement{3, 0, ValueType::Float3},
+                LayoutElement{4, 0, ValueType::Float2}
             };
 
             fullMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
@@ -693,10 +695,11 @@ namespace QuelosEditor {
             visibleMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
-            LayoutElementBuilder<4> layoutBuilder{
+            LayoutElementBuilder<5> layoutBuilder{
                 LayoutElement{0, 0, ValueType::Float3},
                 LayoutElement{1, 0, ValueType::Float3},
                 LayoutElement{2, 0, ValueType::Float3},
+                LayoutElement{4, 0, ValueType::Float3},
                 LayoutElement{3, 0, ValueType::Float2}
             };
 
