@@ -4,6 +4,8 @@
 #include "Quelos/Core/Base.h"
 #include <cmath>
 
+#include "Portable.h"
+
 namespace Quelos {
     using int1 = hlslpp::int1;
     using int2 = hlslpp::int2;
@@ -44,7 +46,7 @@ namespace Quelos {
 
     using pfloat1 = hlslpp::interop::float1;
     using pfloat2 = hlslpp::interop::float2;
-    using pfloat3 = hlslpp::interop::float3;
+    using pfloat3 = math::interop::float3;
     using pfloat4 = hlslpp::interop::float4;
 
     using pfloat3x4 = hlslpp::interop::float3x4;
@@ -113,6 +115,8 @@ namespace Quelos {
 
         using hlslpp::length;
         using hlslpp::normalize;
+        using hlslpp::cross;
+        using hlslpp::dot;
 
         using hlslpp::any;
         using hlslpp::all;

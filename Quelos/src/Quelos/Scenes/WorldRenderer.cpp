@@ -361,18 +361,19 @@ namespace Quelos {
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
-                if (pipelineData.Order == -2) {
+                if (pipelineData.Order == -1) {
                     pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Front;
                     pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
                 }
 
                 pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-                LayoutElementBuilder<4> layoutBuilder{
+                LayoutElementBuilder<5> layoutBuilder{
                     LayoutElement{0, 0, ValueType::Float3},
                     LayoutElement{1, 0, ValueType::Float3},
                     LayoutElement{2, 0, ValueType::Float3},
-                    LayoutElement{3, 0, ValueType::Float2}
+                    LayoutElement{3, 0, ValueType::Float3},
+                    LayoutElement{4, 0, ValueType::Float2}
                 };
 
                 pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
