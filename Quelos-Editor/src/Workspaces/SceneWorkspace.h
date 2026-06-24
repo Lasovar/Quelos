@@ -67,8 +67,7 @@ namespace QuelosEditor {
 
         void CreateOutlineMaskResources();
         void CreateOutlineCompositeResources();
-        void CompositePass();
-        void RunMaskPass();
+        void SelectedEntityOutline() const;
 
     private:
         flecs::world m_EditorWorld;

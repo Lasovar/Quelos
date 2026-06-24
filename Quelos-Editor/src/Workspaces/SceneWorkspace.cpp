@@ -368,8 +368,7 @@ namespace QuelosEditor {
             }
 
             if (m_SelectedEntity.IsValid()) {
-                RunMaskPass();
-                CompositePass();
+                SelectedEntityOutline();
             }
         }
 
@@ -742,8 +741,10 @@ namespace QuelosEditor {
         }
     }
 
-    struct OutlineSettings {
+    struct alignas(16) OutlineSettings {
+        // ReSharper disable once CppDeclaratorNeverUsed
         pfloat4 Color;
+        // ReSharper disable once CppDeclaratorNeverUsed
         pfloat4 ViewportSizeAndThickness;
     };
 
@@ -859,58 +860,19 @@ namespace QuelosEditor {
         m_CompositeSRB = Renderer::CreateShaderResourceBinding(m_CompositePSO.GetHandle(), true);
     }
 
-    void SceneWorkspace::CompositePass() {
-        OutlineSettings settings = {
-            .Color = Color{ 1.0, 0.62, 0.0, 1.0 },
-            .ViewportSizeAndThickness = float4(m_SceneViewportPanel.GetViewportSize(), 3.0f, 0.0f),
-        };
+    void SceneWorkspace::SelectedEntityOutline() const {
+        if (!m_SelectedEntity.Has<WorldTransform>() || !m_SelectedEntity.Has<MeshRenderer>()) {
+            return;
+        }
 
-        Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));
-
-        // Bind ID buffer into composite SRB
-        Renderer::BindVariableByName(
-            ShaderType::Fragment,
-            m_CompositeSRB.GetHandle(),
-            "FullMask",
-            Renderer::GetTextureView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
-        );
-
-        Renderer::BindVariableByName(
-            ShaderType::Fragment,
-            m_CompositeSRB.GetHandle(),
-            "VisibleMask",
-            Renderer::GetTextureView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
-        );
-
-        Renderer::BindPipelineState(m_CompositePSO.GetHandle());
-        Renderer::CommitShaderResources(m_CompositeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
-
-        BeginRenderPassAttribs passAttribs{};
-        passAttribs.RenderPassHandle = m_CompositeRenderPass.GetHandle();
-        passAttribs.FrameBufferHandle = m_CompositeFrameBuffer.GetHandle();
-
-        // LoadOp = Load, so no clear value needed
-        Renderer::BeginRenderPass(passAttribs);
-
-        // No vertex buffer, shader generates the triangle from SV_VertexID
-        DrawAttribs draw{};
-        draw.NumVertices = 3;
-        Renderer::Draw(draw);
-
-        Renderer::EndRenderPass();
-    }
-
-    void SceneWorkspace::RunMaskPass() {
         static Vec<InstanceData> maskInstances;
         maskInstances.clear();
 
-        if (m_SelectedEntity.IsValid() && m_SelectedEntity.Has<WorldTransform>() && m_SelectedEntity.Has<MeshRenderer>()) {
-            maskInstances.push_back(InstanceData {
-                .Transform = m_SelectedEntity.Get<WorldTransform>().Value,
-                .MaterialId = 0,
-                .EntityIndex = 0
-            });
-        }
+        maskInstances.push_back(InstanceData {
+            .Transform = m_SelectedEntity.Get<WorldTransform>().Value,
+            .MaterialId = 0,
+            .EntityIndex = 0
+        });
 
         if (maskInstances.empty()) {
             return;
@@ -958,10 +920,6 @@ namespace QuelosEditor {
             Renderer::EndRenderPass();
         }
 
-        Renderer::Map(m_WorldRenderer.GetInstancesGpuBuffer(), MapType::Write, MapFlags::Discard, mapped);
-        memcpy(mapped, maskInstances.data(), sizeof(InstanceData) * maskInstances.size());
-        Renderer::Unmap(m_WorldRenderer.GetInstancesGpuBuffer(), MapType::Write);
-
         // FULL MASK PASS
         {
             passAttribs.RenderPassHandle = m_FullMaskRenderPass.GetHandle();
@@ -970,13 +928,54 @@ namespace QuelosEditor {
             Renderer::BindPipelineState(m_FullMaskPSO.GetHandle());
             Renderer::CommitShaderResources(m_FullMaskSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 
-
             Renderer::BeginRenderPass(passAttribs);
 
             Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
             Renderer::BindIndexBuffer(mesh->GetIndexBuffer());
 
             Renderer::DrawIndexed(attribs);
+
+            Renderer::EndRenderPass();
+        }
+
+        // Composite Pass
+        {
+            OutlineSettings settings = {
+                .Color = Color{ 1.0, 0.62, 0.0, 1.0 },
+                .ViewportSizeAndThickness = float4(m_SceneViewportPanel.GetViewportSize(), 3.0f, 0.0f),
+            };
+
+            Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));
+
+            // Bind ID buffer into composite SRB
+            Renderer::BindVariableByName(
+                ShaderType::Fragment,
+                m_CompositeSRB.GetHandle(),
+                "FullMask",
+                Renderer::GetTextureView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
+            );
+
+            Renderer::BindVariableByName(
+                ShaderType::Fragment,
+                m_CompositeSRB.GetHandle(),
+                "VisibleMask",
+                Renderer::GetTextureView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
+            );
+
+            Renderer::BindPipelineState(m_CompositePSO.GetHandle());
+            Renderer::CommitShaderResources(m_CompositeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+
+            BeginRenderPassAttribs compositePassAttribs{};
+            compositePassAttribs.RenderPassHandle = m_CompositeRenderPass.GetHandle();
+            compositePassAttribs.FrameBufferHandle = m_CompositeFrameBuffer.GetHandle();
+
+            // LoadOp = Load, so no clear value needed
+            Renderer::BeginRenderPass(compositePassAttribs);
+
+            // No vertex buffer, shader generates the triangle from SV_VertexID
+            DrawAttribs draw{};
+            draw.NumVertices = 3;
+            Renderer::Draw(draw);
 
             Renderer::EndRenderPass();
         }

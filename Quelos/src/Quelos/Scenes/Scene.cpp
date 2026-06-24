@@ -38,6 +38,7 @@ namespace Quelos {
                });
 
         m_World.system<const LocalTransform&, WorldTransform&>()
+               .multi_threaded()
                .without(flecs::ChildOf, flecs::Wildcard)
                .kind(m_TransformUpdate)
                .each([](const LocalTransform& local, WorldTransform& world) {
@@ -45,6 +46,7 @@ namespace Quelos {
                });
 
         m_World.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
+               .multi_threaded()
                .with(flecs::ChildOf, flecs::Wildcard)
                .term_at(2).cascade()
                .kind(m_TransformChildUpdate)
