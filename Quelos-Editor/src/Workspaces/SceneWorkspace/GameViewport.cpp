@@ -25,7 +25,7 @@ namespace QuelosEditor {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(hovered.x, hovered.y, hovered.z, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(active.x, active.y, active.z, 0.5f));
 
-        ImVec2 toolbarSize = { ImGui::GetContentRegionMax().x, 32.0f };
+        ImVec2 toolbarSize = { ImGui::GetContentRegionMax().x, ImGui::GetFrameHeight() };
         if (ImGui::BeginChild("##toolbar", toolbarSize, ImGuiChildFlags_Borders,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
                          | ImGuiWindowFlags_NoScrollWithMouse)) {

@@ -316,7 +316,7 @@ namespace QuelosEditor {
             }
         }
 
-        struct QS_API CompiledShaderData {
+        struct CompiledShaderData {
             ShaderType Type = ShaderType::Unknown;
             std::string EntryPoint;
             Buffer Code;

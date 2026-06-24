@@ -31,7 +31,6 @@ namespace Quelos::UI {
         ImGui::NextColumn();
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         ImGui::BeginGroup();
 
         const bool used = ImGui::DragFloat("##f", &value, speed, min, max);
@@ -39,13 +38,9 @@ namespace Quelos::UI {
         ImGui::EndGroup();
         ImGui::PopItemWidth();
 
-        ImGui::PopStyleVar();
-
         ImGui::Columns(1);
 
         ImGui::PopID();
-
-        ImGui::Spacing();
 
         return used;
     }
@@ -292,7 +287,6 @@ namespace Quelos::UI {
 
         ImGui::Columns(1);
         ImGui::PopID();
-        ImGui::Spacing();
 
         return changed;
     }
@@ -311,7 +305,6 @@ namespace Quelos::UI {
         ImGui::NextColumn();
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
         if (ImGui::BeginCombo("##editEnum", magic_enum::enum_name(value).data())) {
             for (TEnum v : magic_enum::enum_values<TEnum>()) {
@@ -331,13 +324,9 @@ namespace Quelos::UI {
 
         ImGui::PopItemWidth();
 
-        ImGui::PopStyleVar();
-
         ImGui::Columns(1);
 
         ImGui::PopID();
-
-        ImGui::Spacing();
 
         return changed;
     }
