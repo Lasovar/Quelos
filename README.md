@@ -3,8 +3,7 @@ A cross platform game engine focused on Editor functionality and developer workf
 The main idea is to have a convenient/intuitive editor that doesn't compromise the runtime's performance, nor the developer's time.
 the Engine is being developed to be as portable as possible and to ship on all platforms. The Editor is developed for Windows, Mac and Linux and tested almost weekly on them
 
-<img width="2560" height="1439" alt="image" src="https://github.com/user-attachments/assets/ccdaa1ce-41a4-4cdd-a3c8-e1c0d6304b40" />
-
+<img width="2560" height="1439" alt="image" src="https://github.com/user-attachments/assets/b4ed0d43-4045-4bb8-b788-f6e8e5cba0e1" />
 
 ## Building
 As of right now the developer environment is centered around CLion which would be my suggestion to try it out... but it's a CMake project so you just build with cmake to your target IDE
