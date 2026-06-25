@@ -512,12 +512,7 @@ namespace Quelos {
 
         m_TextureRegistry.SetDirty(false);
 
-        std::ranges::sort(
-            m_DrawCalls,
-            [](auto& a, auto& b) {
-                return a.SortKey < b.SortKey;
-            }
-        );
+        std::ranges::sort(m_DrawCalls, {}, &DrawCommand::SortKey);
 
         Globals globals{};
         globals.ViewProjection = viewProjection;

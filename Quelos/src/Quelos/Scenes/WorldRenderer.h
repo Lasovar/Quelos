@@ -141,8 +141,8 @@ namespace Quelos {
         Mesh* Mesh;
         PipelineStateHandle PipelineState;
         ShaderResourceBindingHandle SRB;
-        uint32_t MaterialIndex;
         pfloat4x4 Transform;
+        uint32_t MaterialIndex;
     };
 
     struct QS_API alignas(16) Globals {
