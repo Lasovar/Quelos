@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Quelos/Core/Buffer.h"
+#include "variant"
 
 #include "GpuBuffer.h"
 #include "PipelineState.h"
@@ -53,11 +54,21 @@ namespace Quelos {
         uint64_t Offset = 0;
     };
 
+    enum class PipelineOption : uint32_t {
+        None,
+        DepthEnable,
+        DepthWriteEnable,
+        CullMode
+    };
+
+    using PipelineOptionValue = std::variant<int32_t, std::string>;
+
     struct QS_API ShaderData {
         ShaderType Type = ShaderType::Unknown;
         std::string EntryPoint;
         BufferView Code;
         int32_t Order;
+        Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
     };
 
     struct QS_API GraphicsShaderCreateInfo {
@@ -67,10 +78,11 @@ namespace Quelos {
         uint64_t MaterialSize = 0;
     };
 
-    struct GraphicsShaderPipelineData {
+    struct QS_API GraphicsShaderPipelineData {
         int32_t Order = 0;
         ShaderHandle VertexShader;
         ShaderHandle FragmentShader;
+        HashMap<PipelineOption, PipelineOptionValue> PipelineOptions;
     };
 
     struct QS_API GraphicsShaderPass {

@@ -48,6 +48,10 @@ namespace Quelos {
                 shaderCreateInfo.Specification.EntryPoint = shader.EntryPoint;
                 shaderCreateInfo.ByteCode = shader.Code;
 
+                for (const auto& pipelineOption : shader.PipelineOptions) {
+                    pipelineData.PipelineOptions[pipelineOption.first] = pipelineOption.second;
+                }
+
                 if (shader.Type == ShaderType::Vertex) {
                     pipelineData.VertexShader = Renderer::CreateShader(shaderCreateInfo);
                 } else {
