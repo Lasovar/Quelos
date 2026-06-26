@@ -321,6 +321,7 @@ namespace QuelosEditor {
             std::string EntryPoint;
             Buffer Code;
             int32_t Order = 0;
+            Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
         };
 
         struct ShaderCompilationResult {
@@ -444,6 +445,7 @@ namespace QuelosEditor {
                 Slang::ComPtr<slang::IEntryPoint> EntryPoint;
                 int32_t Order = 0;
                 SlangStage Stage = SLANG_STAGE_NONE;
+                Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
 
                 struct Compare {
                     constexpr bool operator()(const ShaderInfo& a, const ShaderInfo& b) const {
@@ -475,20 +477,30 @@ namespace QuelosEditor {
                 for (uint32_t attribIndex = 0; attribIndex < function->getUserAttributeCount(); attribIndex++) {
                     slang::UserAttribute* attribute = function->getUserAttributeByIndex(attribIndex);
 
-                    if (strcmp(attribute->getName(), "Pass") != 0) {
-                        continue;
+                    if (strcmp(attribute->getName(), "Pass") == 0) {
+                        size_t passNameSize = 0;
+                        const char* passNameData = nullptr;
+
+                        passNameData = attribute->getArgumentValueString(0, &passNameSize);
+
+                        if (passNameData) {
+                            passName = std::string_view(passNameData, passNameSize);
+                        }
+
+                        attribute->getArgumentValueInt(1, &shaderInfo.Order);
+                    } else if (strcmp(attribute->getName(), "DepthEnable") == 0) {
+                        int32_t value = 0;
+                        attribute->getArgumentValueInt(0, &value);
+                        shaderInfo.PipelineOptions.emplace_back( PipelineOption::DepthEnable, value );
+                    } else if (strcmp(attribute->getName(), "DepthWriteEnable") == 0) {
+                        int32_t value = 0;
+                        attribute->getArgumentValueInt(0, &value);
+                        shaderInfo.PipelineOptions.emplace_back( PipelineOption::DepthWriteEnable, value );
+                    } else if (strcmp(attribute->getName(), "CullMode") == 0) {
+                        int32_t value = 0;
+                        attribute->getArgumentValueInt(0, &value);
+                        shaderInfo.PipelineOptions.emplace_back( PipelineOption::CullMode, value );
                     }
-
-                    size_t passNameSize = 0;
-                    const char* passNameData = nullptr;
-
-                    passNameData = attribute->getArgumentValueString(0, &passNameSize);
-
-                    if (passNameData) {
-                        passName = std::string_view(passNameData, passNameSize);
-                    }
-
-                    attribute->getArgumentValueInt(1, &shaderInfo.Order);
                 }
 
                 if (passName.empty()) {
@@ -538,9 +550,9 @@ namespace QuelosEditor {
             }
             */
 
-            for (const auto& [passName, shaders] : passMap) {
+            for (auto& [passName, shaders] : passMap) {
                 for (uint32_t i = 0; i < shaders.size(); i++) {
-                    const ShaderInfo& shader = shaders[i];
+                    ShaderInfo& shader = shaders[i];
 
                     Slang::ComPtr<slang::IBlob> blob;
                     linkedProgram->getEntryPointCode(
@@ -571,6 +583,7 @@ namespace QuelosEditor {
                     shaderData.Type = GetShaderTypeFromStage(shader.Stage);
                     shaderData.Code = Buffer::Copy(blob->getBufferPointer(), blob->getBufferSize());
                     shaderData.Order = shader.Order;
+                    shaderData.PipelineOptions = std::move(shader.PipelineOptions);
 
                     result.Passes[passName].push_back(std::move(shaderData));
                 }
@@ -621,6 +634,16 @@ namespace QuelosEditor {
                     shader.EntryPoint = reader.ReadString().value_or("");
                     shader.Type = reader.Read<ShaderType>().value_or(ShaderType::Unknown);
                     shader.Order = reader.Read<int32_t>().value_or(0);
+
+                    shader.PipelineOptions.resize(reader.Read<uint32_t>().value_or(0));
+                    for (auto& option : shader.PipelineOptions) {
+                        option.first = reader.Read<PipelineOption>().value_or(PipelineOption::None);
+                        if (uint8_t valueIndex = reader.Read<uint8_t>().value_or(0); valueIndex == 0) {
+                            option.second = reader.Read<int32_t>().value_or(0);
+                        } else {
+                            option.second = std::string(reader.ReadString().value_or(""));
+                        }
+                    }
 
                     shader.Code = reader.ReadBytesWithSize();
 
@@ -689,6 +712,16 @@ namespace QuelosEditor {
                     writer.WriteString(shader.EntryPoint);
                     writer.Write(shader.Type);
                     writer.Write(static_cast<int32_t>(shader.Order));
+                    writer.Write(static_cast<uint32_t>(shader.PipelineOptions.size()));
+                    for (const auto& option : shader.PipelineOptions) {
+                        writer.Write(option.first);
+                        writer.Write(static_cast<uint8_t>(option.second.index()));
+                        if (option.second.index() == 0) {
+                            writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
+                        } else {
+                            writer.WriteString(std::get<std::string>(option.second));
+                        }
+                    }
 
                     writer.WriteBytesWithSize(shader.Code);
                 }

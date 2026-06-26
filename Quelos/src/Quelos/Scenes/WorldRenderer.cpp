@@ -361,9 +361,23 @@ namespace Quelos {
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
-                if (pipelineData.Order == -1) {
-                    pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Front;
-                    pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
+                for (const auto & pipelineOption : pipelineData.PipelineOptions) {
+                    switch (pipelineOption.first) {
+                    case PipelineOption::None:
+                        break;
+                    case PipelineOption::DepthEnable:
+                        pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable =
+                            static_cast<bool>(std::get<int32_t>(pipelineOption.second));
+                        break;
+                    case PipelineOption::DepthWriteEnable:
+                        pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable =
+                            static_cast<bool>(std::get<int32_t>(pipelineOption.second));
+                    break;
+                    case PipelineOption::CullMode:
+                        pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode =
+                            static_cast<CullMode>(std::get<int32_t>(pipelineOption.second));
+                    break;
+                    }
                 }
 
                 pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
@@ -465,8 +479,8 @@ namespace Quelos {
                     &meshRenderer.Mesh.Get(),
                     pipeline.PSO.GetHandle(),
                     pipeline.SRB.GetHandle(),
-                    pipelineStateComponent.MaterialIndex,
-                    transform.Value
+                    transform.Value,
+                    pipelineStateComponent.MaterialIndex
                 );
             }
         });

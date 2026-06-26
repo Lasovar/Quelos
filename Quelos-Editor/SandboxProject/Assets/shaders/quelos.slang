@@ -21,6 +21,28 @@ struct PassAttribute {
     int Order = 0;
 }
 
+[__AttributeUsage(_AttributeTargets.Function)]
+struct DepthEnableAttribute {
+    bool Value = true;
+}
+
+[__AttributeUsage(_AttributeTargets.Function)]
+struct DepthWriteEnableAttribute {
+    bool Value = true;
+}
+
+enum CullMode {
+    Undefined = 0,
+    None = 1,
+    Front = 2,
+    Back = 3,
+}
+
+[__AttributeUsage(_AttributeTargets.Function)]
+struct CullModeAttribute {
+    CullMode Value;
+}
+
 // Allows you to indicate that a struct is material
 // Allows the reflection system to properly bind material data with the shader
 // And show proper UI in the editor for editing the material fields

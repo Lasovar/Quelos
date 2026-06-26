@@ -62,6 +62,9 @@ struct OutlineVSOut {
 }
 
 [shader("vertex")]
+[DepthEnable(true)]
+[DepthWriteEnable(false)]
+[CullMode(CullMode.Front)]
 [Pass("GBuffer", -1)]
 OutlineVSOut OutlineVS(VertexIn input, uint instanceID: SV_InstanceID) {
     InstanceData instance = Instances[instanceID];
