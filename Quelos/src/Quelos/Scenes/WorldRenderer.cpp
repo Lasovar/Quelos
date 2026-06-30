@@ -461,15 +461,15 @@ namespace Quelos {
         SamplerSpec samplerSpec;
         samplerSpec.WrapU = WrapMode::Clamp;
         samplerSpec.WrapV = WrapMode::Clamp;
-        samplerSpec.MinFilter = FilterMode::Point;
-        samplerSpec.MagFilter = FilterMode::Point;
-        samplerSpec.MipFilter = FilterMode::Point;
+        samplerSpec.MinFilter = FilterMode::Linear;
+        samplerSpec.MagFilter = FilterMode::Linear;
+        samplerSpec.MipFilter = FilterMode::Linear;
 
         ImmutableSamplerSpec samplers[1];
         samplers[0].SamplerOrTextureName = "ShadowMaps";
         samplers[0].Specification = samplerSpec;
         samplers[0].ShaderStages = ShaderType::Fragment;
-        samplers[0].Specification.ComparisonFunc = ComparisonFunc::LessEqual;
+        samplers[0].Specification.ComparisonFunc = ComparisonFunc::GreaterEqual;
 
         psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
 
@@ -905,7 +905,7 @@ namespace Quelos {
                 lsMax.y = lsMin.y + unitsPerTexelY * SHADOW_MAP_SIZE;
 
                 // Pull near plane back to catch shadow casters behind camera
-                lsMin.z -= 50.0f; // needs to be tuned to scene scale, might add a UI slider
+                lsMin.z -= 00.0f; // needs to be tuned to scene scale, might add a UI slider
 
                 float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMin.z, lsMax.z);
                 shadowData.LightViewProj[c] = math::mul(lightView, lightProj);
