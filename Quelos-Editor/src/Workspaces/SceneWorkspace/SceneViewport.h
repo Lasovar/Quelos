@@ -17,6 +17,7 @@ namespace QuelosEditor {
             std::string name,
             SceneWorkspace& sceneWorkspace,
             RenderPassHandle renderPassHandle,
+            RenderPassHandle shadowMaskHandle,
             uint32_t width,
             uint32_t height
         );
@@ -33,7 +34,6 @@ namespace QuelosEditor {
         void AfterViewport() override;
         TextureViewHandle GetSceneColorView() const;
         TextureHandle GetSceneColorTexture() const { return m_SceneColorAttachment.GetHandle(); }
-        TextureHandle GetDepthAttachment() const { return m_DepthAttachment.GetHandle(); }
 
     private:
         SceneWorkspace& m_SceneWorkspace;

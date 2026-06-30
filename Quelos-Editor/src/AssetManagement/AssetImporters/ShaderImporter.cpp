@@ -8,6 +8,7 @@
 #include "slang-com-helper.h"
 #include "slang-com-ptr.h"
 #include "Quelos/Core/Profiling.h"
+#include "Quelos/Renderer/ComputeShader.h"
 
 namespace QuelosEditor {
     namespace ShaderImporter {
@@ -322,6 +323,7 @@ namespace QuelosEditor {
             Buffer Code;
             int32_t Order = 0;
             Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
+            Array<uint64_t, 3> ThreadGroupSize = {0, 0, 0};
         };
 
         struct ShaderCompilationResult {
@@ -446,6 +448,7 @@ namespace QuelosEditor {
                 int32_t Order = 0;
                 SlangStage Stage = SLANG_STAGE_NONE;
                 Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
+                Array<uint64_t, 3> ThreadGroupSize = {0, 0, 0};
 
                 struct Compare {
                     constexpr bool operator()(const ShaderInfo& a, const ShaderInfo& b) const {
@@ -471,6 +474,10 @@ namespace QuelosEditor {
 
                 shaderInfo.EntryPointName = function->getName();
                 shaderInfo.Stage = entryPointReflection->getStage();
+
+                if (shaderInfo.Stage == SLANG_STAGE_COMPUTE) {
+                    entryPointReflection->getComputeThreadGroupSize(3, shaderInfo.ThreadGroupSize.data());
+                }
 
                 std::string_view passName;
 
@@ -584,6 +591,7 @@ namespace QuelosEditor {
                     shaderData.Code = Buffer::Copy(blob->getBufferPointer(), blob->getBufferSize());
                     shaderData.Order = shader.Order;
                     shaderData.PipelineOptions = std::move(shader.PipelineOptions);
+                    shaderData.ThreadGroupSize = shader.ThreadGroupSize;
 
                     result.Passes[passName].push_back(std::move(shaderData));
                 }
@@ -645,17 +653,48 @@ namespace QuelosEditor {
                         }
                     }
 
+                    if (shader.Type == ShaderType::Compute) {
+                        BufferView threadGroups = reader.ReadBytes(sizeof(uint64_t) * 3);
+                        std::memcpy(shader.ThreadGroupSize.data(), threadGroups.data(), sizeof(uint64_t) * 3);
+                    }
+
                     shader.Code = reader.ReadBytesWithSize();
 
                     createInfo.Passes[std::string(passName)].push_back(shader);
                 }
             }
 
-            auto* shader = new(dataSlot) GraphicsShader(createInfo);
+            if (metadata.Type == GraphicsShader::GetStaticType()) {
+                auto* shader = new(dataSlot) GraphicsShader(createInfo);
+                shader->SetAssetID(metadata.Handle);
+            } else if (metadata.Type == ComputeShader::GetStaticType()) {
+                ComputeShaderCreateInfo computeShaderCreateInfo;
+                computeShaderCreateInfo.Name = FS::Stem(metadata.FilePath);
 
-            shader->SetAssetID(metadata.Handle);
+                for (const auto& shaders : createInfo.Passes | std::views::values) {
+                    if (shaders.empty()) {
+                        continue;
+                    }
 
-            return shader;
+                    if (shaders[0].Type != ShaderType::Compute) {
+                        continue;
+                    }
+
+                    computeShaderCreateInfo.EntryPoint = shaders[0].EntryPoint;
+                    computeShaderCreateInfo.Code = shaders[0].Code;
+                    for (uint32_t i = 0; i < shaders[0].ThreadGroupSize.size(); i++) {
+                        computeShaderCreateInfo.ThreadGroupSize[i] = static_cast<uint32_t>(shaders[0].ThreadGroupSize[i]);
+                    }
+
+                    computeShaderCreateInfo.Order = shaders[0].Order;
+                    break;
+                }
+
+                auto* shader = new(dataSlot) ComputeShader(computeShaderCreateInfo);
+                shader->SetAssetID(metadata.Handle);
+            }
+
+            return true;
         }
 
         bool IsAssetSupported(const std::string_view assetPath) {
@@ -721,6 +760,10 @@ namespace QuelosEditor {
                         } else {
                             writer.WriteString(std::get<std::string>(option.second));
                         }
+                    }
+
+                    if (shader.Type == ShaderType::Compute) {
+                        writer.WriteBytes(std::as_bytes(Span(shader.ThreadGroupSize)));
                     }
 
                     writer.WriteBytesWithSize(shader.Code);

@@ -10,6 +10,7 @@ namespace Quelos {
         std::string_view Name;
         Span32<const TextureViewHandle> Attachments;
         RenderPassHandle RenderPassHandle;
+        uint32_t NumArraySlices = 0;
         Extent2D Size;
     };
 

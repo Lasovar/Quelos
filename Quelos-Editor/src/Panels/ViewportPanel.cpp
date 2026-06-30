@@ -13,14 +13,14 @@ using namespace magic_enum::bitwise_operators;
 
 namespace QuelosEditor {
     ViewportPanel::ViewportPanel(
-        std::string name, const RenderPassHandle renderPassHandle, const uint32_t width, const uint32_t height
+        std::string name, const RenderPassHandle renderPassHandle, const RenderPassHandle shadowMaskPass, const uint32_t width, const uint32_t height
     )
         : m_Name(std::move(name)) {
         m_ViewportSize = { width, height };
-        SetRenderPass(renderPassHandle);
+        SetRenderPass(renderPassHandle, shadowMaskPass);
     }
 
-    void ViewportPanel::SetRenderPass(const RenderPassHandle renderPassHandle) {
+    void ViewportPanel::SetRenderPass(const RenderPassHandle gBufferPass, const RenderPassHandle shadowMaskPass) {
         TextureSpecification msaaColorSpec;
         msaaColorSpec.Width = m_ViewportSize.x;
         msaaColorSpec.Height = m_ViewportSize.y;
@@ -49,28 +49,50 @@ namespace QuelosEditor {
         msaaDepthSpec.Width = m_ViewportSize.x;
         msaaDepthSpec.Height = m_ViewportSize.y;
 
-        msaaDepthSpec.Format = ImageFormat::DEPTH32Float;
+        msaaDepthSpec.Format = ImageFormat::Depth32Float;
         msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
 
-        msaaDepthSpec.BindFlags = Bind::DepthStencil;
+        msaaDepthSpec.BindFlags = Bind::DepthStencil | Bind::ShaderResource;
         msaaDepthSpec.SampleCount = SampleCount::x4;
 
         m_DepthAttachment = Renderer::CreateTexture(msaaDepthSpec);
 
         const TextureViewHandle attachments[] = {
-            Renderer::GetTextureView(m_ColorAttachment.GetHandle(), TextureViewType::RenderTarget),
-            Renderer::GetTextureView(m_SceneColorAttachment.GetHandle(), TextureViewType::RenderTarget),
-            Renderer::GetTextureView(m_DepthAttachment.GetHandle(), TextureViewType::DepthStencil)
+            Renderer::TextureGetDefaultView(m_ColorAttachment.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::TextureGetDefaultView(m_SceneColorAttachment.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::TextureGetDefaultView(m_DepthAttachment.GetHandle(), TextureViewType::DepthStencil)
         };
 
         FrameBufferSpec spec;
         spec.Attachments = attachments;
         spec.Name = m_Name;
-        spec.RenderPassHandle = renderPassHandle;
+        spec.RenderPassHandle = gBufferPass;
         spec.Size = {static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y)};
 
         m_FrameBuffer = FrameBuffer::Create(spec);
         m_NeedResize = true;
+
+        TextureSpecification maskTextureSpec;
+        maskTextureSpec.Type = TextureType::Texture2D;
+        maskTextureSpec.Format = ImageFormat::R8UNorm;
+        maskTextureSpec.Width = 1;
+        maskTextureSpec.Height = 1;
+        maskTextureSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+
+        m_ShadowMaskTexture = Renderer::CreateTexture(maskTextureSpec);
+
+        TextureViewHandle maskRTV = Renderer::TextureGetDefaultView(
+            m_ShadowMaskTexture.GetHandle(),
+            TextureViewType::RenderTarget
+        );
+
+        FrameBufferSpec fbDesc;
+        fbDesc.Name = "ShadowMaskFB";
+        fbDesc.RenderPassHandle = shadowMaskPass;
+        fbDesc.Attachments = Span32(&maskRTV, 1);
+        fbDesc.Size = { 1, 1 };
+
+        m_ShadowMaskFB = Renderer::CreateFrameBuffer(fbDesc);
     }
 
     bool ViewportPanel::ResizeIfNeeded() {
@@ -84,6 +106,10 @@ namespace QuelosEditor {
         Renderer::TextureResize(m_DepthAttachment.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
         Renderer::TextureResize(m_ColorAttachment.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
         m_FrameBuffer->Resize(m_ViewportSize.x, m_ViewportSize.y);
+
+        Renderer::TextureResize(m_ShadowMaskTexture.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
+        Renderer::FrameBufferResize(m_ShadowMaskFB.GetHandle(), m_ViewportSize.x, m_ViewportSize.y);
+
         m_NeedResize = false;
 
         return true;

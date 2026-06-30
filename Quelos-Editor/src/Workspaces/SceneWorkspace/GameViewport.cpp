@@ -9,13 +9,20 @@
 
 namespace QuelosEditor {
     GameViewport::GameViewport(
-        std::string name, SceneWorkspace& sceneWorkspace, const RenderPassHandle renderPassHandle, const uint32_t width,
+        std::string name, SceneWorkspace& sceneWorkspace,
+        const RenderPassHandle renderPassHandle,
+        const RenderPassHandle shadowMaskHandle,
+        const uint32_t width,
         const uint32_t height
-    ) : ViewportPanel(std::move(name), renderPassHandle, width, height), m_SceneWorkspace(sceneWorkspace) {
+    ) : ViewportPanel(std::move(name), renderPassHandle, shadowMaskHandle, width, height), m_SceneWorkspace(sceneWorkspace) {
     }
 
     void GameViewport::BeforeViewport() {
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+        constexpr float framePadding = 2.0f;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, framePadding));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0.0f, 0.0f });
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0);
 
         const auto& colors = ImGui::GetStyle().Colors;
         const ImVec4 hovered = colors[ImGuiCol_ButtonHovered];
@@ -25,11 +32,11 @@ namespace QuelosEditor {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(hovered.x, hovered.y, hovered.z, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(active.x, active.y, active.z, 0.5f));
 
-        ImVec2 toolbarSize = { ImGui::GetContentRegionMax().x, ImGui::GetFrameHeight() };
+        ImVec2 toolbarSize = { ImGui::GetContentRegionMax().x, ImGui::GetFrameHeight() + framePadding * 2.0f };
         if (ImGui::BeginChild("##toolbar", toolbarSize, ImGuiChildFlags_Borders,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar
                          | ImGuiWindowFlags_NoScrollWithMouse)) {
-            float size = 28.0f;
+            float size = ImGui::GetFrameHeight();
 
             const SceneState sceneState = m_SceneWorkspace.GetSceneState();
             const char* icon = sceneState == SceneState::Edit
@@ -66,7 +73,10 @@ namespace QuelosEditor {
             ImGui::EndChild();
         }
 
-        ImGui::PopStyleVar(1); // ImGuiStyleVar_WindowPadding
         ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
+
+        ImGui::PopStyleVar(); // ImGuiStyleVar_ChildRounding
+        ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
+        ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
     }
 }

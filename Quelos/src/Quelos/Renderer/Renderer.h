@@ -45,11 +45,14 @@ namespace Quelos {
         static void Draw(const DrawAttribs& attribs);
         static void DrawIndexed(const DrawIndexedAttribs& attribs);
 
+        static void DispatchCompute(const DispatchComputeAttribs& attribs);
+
         // Renderer Context API
         static ShaderHandle CreateShader(const ShaderCreateInfo& createInfo);
         static void Destroy(ShaderHandle shaderHandle);
 
         static PipelineStateHandle CreatePipelineState(const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo);
+        static PipelineStateHandle CreatePipelineState(const ComputePipelineStateCreateInfo& pipelineStateCreateInfo);
 
         static void BindStaticVariableByName(
             PipelineStateHandle pipelineStateHandle,
@@ -72,8 +75,16 @@ namespace Quelos {
         static void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle);
 
         static GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView bufferView);
-        static GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle gpuBuffer);
+        static GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle gpuBuffer, BufferViewType bufferViewType);
+
+        static void CopyBuffer(
+            GpuBufferHandle srcBuffer, uint64_t srcOffset, ResourceStateTransitionMode srcBufferTransitionMode,
+            GpuBufferHandle dstBuffer, uint64_t dstOffset, uint64_t size,
+            ResourceStateTransitionMode dstBufferTransitionMode
+        );
+
         static void UpdateBuffer(GpuBufferHandle bufferHandle, uint64_t offset, BufferView data);
+
         static void Destroy(GpuBufferHandle bufferHandle);
 
         static ShaderResourceBindingHandle CreateShaderResourceBinding(
@@ -108,6 +119,8 @@ namespace Quelos {
 
         static void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle);
 
+        static void TransitionResource(TextureHandle textureHandle, ResourceState resourceState);
+
         static VertexBufferHandle CreateVertexBuffer(BufferView vertices, const VertexLayout& bufferLayout);
         static void BindVertexBuffer(VertexBufferHandle handle, uint32_t stream);
         static void Destroy(VertexBufferHandle vertexBufferHandle);
@@ -129,10 +142,15 @@ namespace Quelos {
 
         static bool TextureIsVFlipped();
 
-        static TextureViewHandle GetTextureView(TextureHandle textureHandle, TextureViewType textureView);
-        static const TextureSpecification* GetSpecification(TextureHandle handle);
         static uint64_t TextureGetNativeHandle(TextureHandle handle);
+        static const TextureSpecification* GetSpecification(TextureHandle handle);
+
+        static TextureHandle GetTexture(TextureViewHandle textureView);
+
         static void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height);
+
+        static TextureViewHandle TextureGetDefaultView(TextureHandle textureHandle, TextureViewType textureView);
+        static TextureViewHandle TextureCreateView(TextureHandle textureHandle, const TextureViewSpec& textureViewSpec);
 
         static void CopyTexture(const CopyTextureAttribs& copy);
 

@@ -31,7 +31,7 @@ namespace Quelos {
         SRGBA,
 
         Depth32FloatStencil8UInt,
-        DEPTH32Float,
+        Depth32Float,
         Depth24Stencil8,
 
         // Defaults
@@ -40,6 +40,7 @@ namespace Quelos {
 
     enum class QS_API TextureType {
         Texture2D,
+        Texture2DArray,
         TextureCube
     };
 
@@ -66,6 +67,17 @@ namespace Quelos {
         BindFlags BindFlags = Bind::None;
         SampleCount SampleCount = SampleCount::x1;
         CpuAccessFlags CpuAccessFlags = CpuAccess::None;
+
+        /// For a 1D array or 2D array, number of array slices.
+        ///
+        /// For cube maps and cube map arrays, this value must be a multiple of 6.
+        /// The number of cube maps in the texture is ArraySize / 6.
+        uint32_t ArraySize = 1;
+
+        /// Number of Mip levels in the texture. Multisampled textures can only have 1 Mip level.
+
+        /// Specify 0 to create full mipmap chain.
+        uint32_t MipLevels = 1;
     };
 
     class Texture;
@@ -166,10 +178,72 @@ namespace Quelos {
         Count
     };
 
+    enum class UAVAccessFlags : uint8_t {
+        /// Access mode is unspecified
+        Unspecified = 0x00,
+
+        /// Allow read operations on the UAV
+        Read   = 0x01,
+
+        /// Allow write operations on the UAV
+        Write  = 0x02,
+
+        /// Allow read and write operations on the UAV
+        ReadWrite = Read | Write,
+
+        Last = ReadWrite
+    };
+
+    enum class TextureViewFlags : uint8_t {
+        /// No flags
+        None = 0,
+
+        /// Allow automatic mipmap generation for this view.
+        /// This flag is only allowed for TEXTURE_VIEW_SHADER_RESOURCE view type.
+        /// The texture must be created with MISC_TEXTURE_FLAG_GENERATE_MIPS flag.
+        AllowMipMapGeneration = 1u << 0,
+
+        TEXTURE_VIEW_FLAG_LAST = AllowMipMapGeneration
+    };
+
     struct TextureViewSpec {
         TextureViewType ViewType = TextureViewType::Undefined;
         TextureType TextureType = TextureType::Texture2D;
+
+        /// View format.
+
+        /// If default value ImageFormat::None is provided,
+        /// the view format will match the referenced texture format.
         ImageFormat Format = ImageFormat::None;
+
+        union {
+            /// For a texture array, first array slice to address in the view
+            uint32_t FirstArraySlice = 0;
+
+            /// For a 3D texture, first depth slice to address the view
+            uint32_t FirstDepthSlice;
+        };
+
+        union {
+            /// For a texture array, number of array slices to address in the view.
+
+            /// Set to 0 to address all array slices.
+            uint32_t NumArraySlices = 0;
+
+
+            /// For a 3D texture, number of depth slices to address in the view
+
+            /// Set to 0 to address all depth slices.
+            uint32_t NumDepthSlices;
+        };
+
+        uint32_t MostDetailedMip = 0;
+        uint32_t MipLevels = 1;
+        uint32_t NumMipLevels = 0;
+
+        UAVAccessFlags AccessFlags = UAVAccessFlags::Unspecified;
+
+        TextureViewFlags Flags = TextureViewFlags::None;
     };
 
     class TextureView;

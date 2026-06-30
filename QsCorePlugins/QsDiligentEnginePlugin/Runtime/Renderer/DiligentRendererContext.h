@@ -59,7 +59,7 @@ namespace Quelos {
     struct QTextureData {
         ITexture* Texture = nullptr;
         TextureSpecification Specification;
-        Vec<TextureViewHandle> TextureViews;
+        Vec<Pair<TextureViewHandle, bool>> TextureViews; // Handle + IsDefaultView
     };
 
     struct TextureViewData {
@@ -145,6 +145,8 @@ namespace Quelos {
         void Draw(const DrawAttribs& drawAttribs) override;
         void DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) override;
 
+        void DispatchCompute(const DispatchComputeAttribs& dispatchComputeAttribs) override;
+
         // Shaders
         ShaderHandle CreateShader(const ShaderCreateInfo& createInfo) override;
         void Destroy(ShaderHandle shaderHandle) override;
@@ -152,6 +154,8 @@ namespace Quelos {
         PipelineStateHandle CreatePipelineState(
             const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
         ) override;
+
+        PipelineStateHandle CreatePipelineState(const ComputePipelineStateCreateInfo& pipelineStateCreateInfo) override;
 
         PipelineResourceSignatureHandle CreatePipelineResourceSignature(
             const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec
@@ -177,7 +181,13 @@ namespace Quelos {
         void Destroy(PipelineStateHandle pipelineStateHandle) override;
 
         GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) override;
-        GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle) override;
+        GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle, BufferViewType bufferViewType) override;
+
+        void CopyBuffer(
+            GpuBufferHandle srcBuffer, uint64_t srcOffset, ResourceStateTransitionMode srcBufferTransitionMode,
+            GpuBufferHandle dstBuffer, uint64_t dstOffset, uint64_t size,
+            ResourceStateTransitionMode dstBufferTransitionMode
+        ) override;
 
         ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -214,6 +224,8 @@ namespace Quelos {
         void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) override;
         void Destroy(GpuBufferHandle bufferHandle) override;
 
+        void TransitionResource(TextureHandle textureHandle, ResourceState resourceState) override;
+
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;
         void Destroy(VertexBufferHandle vertexBufferHandle) override;
@@ -234,7 +246,11 @@ namespace Quelos {
         const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
         uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
 
-        TextureViewHandle GetTextureView(TextureHandle texture, TextureViewType textureViewType) override;
+        TextureHandle GetTexture(TextureViewHandle textureView) override;
+
+        TextureViewHandle TextureGetView(TextureHandle texture, TextureViewType textureViewType) override;
+        TextureViewHandle TextureCreateView(TextureHandle texture, TextureViewSpec textureViewSpec) override;
+
         void CopyTexture(const CopyTextureAttribs& copyAttribs) override;
 
         void MapTextureSubresource(

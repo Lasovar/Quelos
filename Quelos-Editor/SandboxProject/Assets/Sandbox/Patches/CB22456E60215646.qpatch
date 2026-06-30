@@ -1,0 +1,5 @@
+[actor guid=CB22456E60215646 state=changed]
+name = "Camera"
+
+#Quelos.LocalTransform
+position = (-5.2,3.9,-8.9)

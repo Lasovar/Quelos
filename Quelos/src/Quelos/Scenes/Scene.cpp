@@ -67,16 +67,16 @@ namespace Quelos {
         }
     }
 
-    float4x4 Scene::GetViewProjection() const {
+    Pair<float4x4, float4x4> Scene::GetViewAndProjection() const {
         if (m_CameraQuery.count() < 1) {
-            return float4x4::identity();
+            return { float4x4::identity(), float4x4::identity() };
         }
 
         const flecs::entity cameraEntity = m_CameraQuery.first();
         const auto& transform = cameraEntity.get<WorldTransform>();
         const auto& camera = cameraEntity.get<CameraComponent>().Camera;
 
-        return math::mul(mathExt::view(transform.Value), camera.GetProjection());
+        return { mathExt::view(transform.Value), camera.GetProjection() };
     }
 
     Actor Scene::CreateActor(const std::string_view entityName) {

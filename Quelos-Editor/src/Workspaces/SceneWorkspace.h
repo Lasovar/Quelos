@@ -139,5 +139,20 @@ namespace QuelosEditor {
         ResourceRef<ShaderResourceBinding> m_VisibleMaskSRB;
 
         alignas(GraphicsShader) byte m_MaskShaderStorage[sizeof(GraphicsShader)]{};
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] const ComputeShader* GetDepthReductionCompute() const { return reinterpret_cast<const ComputeShader*>(m_DepthReductionComputeStorage); }
+        [[nodiscard]] ComputeShader* GetDepthReductionCompute() { return reinterpret_cast<ComputeShader*>(m_DepthReductionComputeStorage); }
+        alignas(ComputeShader) byte m_DepthReductionComputeStorage[sizeof(ComputeShader)]{};
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] const GraphicsShader* GetShadowDepthShader() const { return reinterpret_cast<const GraphicsShader*>(m_ShadowDepthShaderStorage); }
+        [[nodiscard]] GraphicsShader* GetShadowDepthShader() { return reinterpret_cast<GraphicsShader*>(m_ShadowDepthShaderStorage); }
+        alignas(GraphicsShader) byte m_ShadowDepthShaderStorage[sizeof(GraphicsShader)]{};
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] const GraphicsShader* GetShadowMaskShader() const { return reinterpret_cast<const GraphicsShader*>(m_ShadowMaskShader); }
+        [[nodiscard]] GraphicsShader* GetShadowMaskShader() { return reinterpret_cast<GraphicsShader*>(m_ShadowMaskShader); }
+        alignas(GraphicsShader) byte m_ShadowMaskShader[sizeof(GraphicsShader)]{};
     };
 }

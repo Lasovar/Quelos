@@ -18,21 +18,19 @@ namespace Quelos {
             GraphicsShaderPass pass;
             pass.Name = passName;
 
-            GraphicsShaderPipelineData pipelineData;
-            for (uint32_t i = 0; i < shaders.size(); i++) {
-                const ShaderData& shader = shaders[i];
-
+            for (const auto & shader : shaders) {
                 if (shader.Type != ShaderType::Vertex && shader.Type != ShaderType::Fragment) {
                     continue;
                 }
 
-                if (shader.Type == ShaderType::Vertex
-                    && (i + 1 >= shaders.size() || shaders[i + 1].Type != ShaderType::Fragment)) {
-                    continue;
-                }
+                GraphicsShaderPipelineData* pipelineData = nullptr;
 
-                if (shader.Type == ShaderType::Fragment && !pipelineData.VertexShader.IsValid()) {
-                    continue;
+                auto it = std::ranges::find(pass.Pipelines, shader.Order, &GraphicsShaderPipelineData::Order);
+                if (it == pass.Pipelines.end()) {
+                    pipelineData = &pass.Pipelines.emplace_back();
+                    pipelineData->Order = shader.Order;
+                } else {
+                    pipelineData = &*it;
                 }
 
                 const std::string shaderName = FormatTemp(
@@ -49,19 +47,13 @@ namespace Quelos {
                 shaderCreateInfo.ByteCode = shader.Code;
 
                 for (const auto& pipelineOption : shader.PipelineOptions) {
-                    pipelineData.PipelineOptions[pipelineOption.first] = pipelineOption.second;
+                    pipelineData->PipelineOptions[pipelineOption.first] = pipelineOption.second;
                 }
 
                 if (shader.Type == ShaderType::Vertex) {
-                    pipelineData.VertexShader = Renderer::CreateShader(shaderCreateInfo);
+                    pipelineData->VertexShader = Renderer::CreateShader(shaderCreateInfo);
                 } else {
-                    pipelineData.FragmentShader = Renderer::CreateShader(shaderCreateInfo);
-                }
-
-                if (pipelineData.VertexShader.IsValid() && pipelineData.FragmentShader.IsValid()) {
-                    pipelineData.Order = shader.Order;
-                    pass.Pipelines.push_back(pipelineData);
-                    pipelineData = {};
+                    pipelineData->FragmentShader = Renderer::CreateShader(shaderCreateInfo);
                 }
             }
 

@@ -6,6 +6,7 @@
 
 #include "Entity.h"
 #include "flecs.h"
+#include "Quelos/Renderer/ComputeShader.h"
 
 #include "Quelos/Renderer/RenderPass.h"
 #include "Quelos/Renderer/RenderResource.h"
@@ -145,9 +146,30 @@ namespace Quelos {
         uint32_t MaterialIndex;
     };
 
+    // Designed for render passes that render the whole scene using a single PSO
+    struct QS_API InstanceDrawCommand {
+        pfloat4x4 Transform;
+        Mesh* Mesh;
+        uint32_t SortKey;
+    };
+
     struct QS_API alignas(16) Globals {
         pfloat4x4 ViewProjection;
         pfloat4 LightDirection;
+    };
+
+    constexpr uint32_t k_NumCascades = 4;
+
+    struct DirectionalLightShadowMap {
+        ResourceRef<Texture> ShadowMaps;
+        Array<ResourceRef<FrameBuffer>, k_NumCascades> ShadowFrameBuffers;
+    };
+
+    struct QS_API alignas(16) CascadeShadowData {
+        pfloat4x4 LightViewProj[k_NumCascades];
+        pfloat4 SplitDepths; // view-space Z end per cascade
+        pfloat4x4 InvViewProjection;
+        pfloat4x4 View;
     };
 
     struct QS_API alignas(16) InstanceData {
@@ -161,9 +183,15 @@ namespace Quelos {
         WorldRenderer();
 
         void SetWorld(const flecs::world& world);
+        void SetDepthReductionCompute(ComputeShader* computeShader);
+        void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
+        void SetShadowMaskShader(const GraphicsShader* graphicsShader);
 
-        void Begin(const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& viewProjection);
-        void Render();
+        void Begin();
+        void Render(
+            const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& view, const float4x4& projection, TextureViewHandle
+            sceneDepthSRV, FrameBufferHandle shadowMaskFB
+        );
         void End();
 
         [[nodiscard]] const Vec<DrawCommand>& GetDrawCalls() const { return m_DrawCalls; }
@@ -172,6 +200,7 @@ namespace Quelos {
         [[nodiscard]] GpuBufferHandle GetGlobalBuffer() const { return m_GlobalBuffer; }
 
         ~WorldRenderer();
+        [[nodiscard]] RenderPassHandle GetShadowMaskPass() const { return m_ShadowMaskRenderPass.GetHandle(); }
         [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
 
     private:
@@ -180,6 +209,9 @@ namespace Quelos {
         TextureRegistry m_TextureRegistry;
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
+
+        RenderPassHandle m_ShadowRenderPass;
+        ComputeShader* m_DepthReductionCompute;
 
         struct WeakPipelineData {
             PipelineStateHandle PSO;
@@ -205,8 +237,11 @@ namespace Quelos {
 
         HashMap<AssetID, PipelineInfo> m_PipelineStates;
         Vec<DrawCommand> m_DrawCalls;
+        Vec<InstanceDrawCommand> m_InstancingDrawCalls;
 
         const flecs::world* m_World = nullptr;
+        flecs::query<const DirectionalLight&> m_DirectionalLightCreateSMQuery;
+        flecs::query<const WorldTransform&, const DirectionalLightShadowMap&> m_DirectionalLightSMQuery;
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;
@@ -214,5 +249,25 @@ namespace Quelos {
         GpuBufferHandle m_GlobalBuffer;
         GpuBufferHandle m_InstancesGpuBuffer;
         GpuBufferViewHandle m_InstancesBufferView;
+
+        ResourceRef<PipelineStateObject> m_ShadowComputePSO;
+        ResourceRef<ShaderResourceBinding> m_ShadowComputeSRB;
+
+        ResourceRef<GpuBuffer> m_ReductionOutBuffer;
+        ResourceRef<GpuBuffer> m_ReductionStagingBuffer;
+
+        float m_LastMinNDC;
+        float m_LastMaxNDC;
+
+        bool m_ReductionReadbackReady = false;
+
+        ResourceRef<GpuBuffer> m_LightViewProjectionBuffer;
+        ResourceRef<PipelineStateObject> m_ShadowDepthPSO;
+        ResourceRef<ShaderResourceBinding> m_ShadowDepthSRB;
+
+        ResourceRef<GpuBuffer> m_CascadeShadowDataBuffer;
+        ResourceRef<RenderPass> m_ShadowMaskRenderPass;
+        ResourceRef<PipelineStateObject> m_ShadowMaskPSO;
+        ResourceRef<ShaderResourceBinding> m_ShadowMaskSRB;
     };
 }
