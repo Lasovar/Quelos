@@ -197,4 +197,21 @@ namespace Quelos {
         /// D3D11 counterpart:  D3D11_MAP_WRITE_NO_OVERWRITE. OpenGL counterpart: GL_MAP_UNSYNCHRONIZED_BIT
         NoOverwrite = 0x004
     };
+
+
+    enum class BufferViewType : uint8_t {
+        /// Undefined view type
+        Undefined = 0,
+
+        /// A buffer view will define a shader resource view that will be used
+        /// as the source for the shader read operations
+        ShaderResource,
+
+        /// A buffer view will define an unordered access view that will be used
+        /// for unordered read/write operations from the shaders
+        UnorderedAccess,
+
+        /// Helper value that stores that total number of buffer views
+        Count
+    };
 }

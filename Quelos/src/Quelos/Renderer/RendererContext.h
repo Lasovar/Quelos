@@ -187,6 +187,35 @@ namespace Quelos {
         ResourceStateTransitionMode DestinationTransitionMode = ResourceStateTransitionMode::Transition;
     };
 
+    struct QS_API DispatchComputeAttribs {
+        /// The number of groups dispatched in X direction.
+        uint32_t ThreadGroupCountX = 1;
+
+        /// The number of groups dispatched in Y direction.
+        uint32_t ThreadGroupCountY = 1;
+
+        /// The number of groups dispatched in Z direction.
+        uint32_t ThreadGroupCountZ = 1;
+
+        /// Compute group X size.
+
+        /// \remarks
+        ///     This member is only used by Metal backend and is ignored by others.
+        uint32_t MtlThreadGroupSizeX = 0;
+
+        /// Compute group Y size.
+
+        /// \remarks
+        ///     This member is only used by Metal backend and is ignored by others.
+        uint32_t MtlThreadGroupSizeY = 0;
+
+        /// Compute group Z size.
+
+        /// \remarks
+        ///     This member is only used by Metal backend and is ignored by others.
+        uint32_t MtlThreadGroupSizeZ = 0;
+    };
+
     class QS_API RendererContext {
     public:
         virtual void Init(const Ref<Window>& ref, RendererAPI api) = 0;
@@ -212,6 +241,8 @@ namespace Quelos {
         virtual void Draw(const DrawAttribs& drawAttribs) = 0;
         virtual void DrawIndexed(const DrawIndexedAttribs& drawIndexedAttribs) = 0;
 
+        virtual void DispatchCompute(const DispatchComputeAttribs& dispatchComputeAttribs) = 0;
+
         virtual void Reset(uint32_t width, uint32_t height) = 0;
 
         // Shaders
@@ -220,6 +251,10 @@ namespace Quelos {
 
         virtual PipelineStateHandle CreatePipelineState(
             const GraphicsPipelineStateCreateInfo& pipelineStateCreateInfo
+        ) = 0;
+
+        virtual PipelineStateHandle CreatePipelineState(
+            const ComputePipelineStateCreateInfo& pipelineStateCreateInfo
         ) = 0;
 
         virtual PipelineResourceSignatureHandle CreatePipelineResourceSignature(
@@ -248,7 +283,13 @@ namespace Quelos {
         virtual void Destroy(GpuBufferHandle bufferHandle) = 0;
 
         virtual GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) = 0;
-        virtual GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle) = 0;
+        virtual GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle, BufferViewType bufferViewType) = 0;
+
+        virtual void CopyBuffer(
+            GpuBufferHandle srcBuffer, uint64_t srcOffset, ResourceStateTransitionMode srcBufferTransitionMode,
+            GpuBufferHandle dstBuffer, uint64_t dstOffset, uint64_t size,
+            ResourceStateTransitionMode dstBufferTransitionMode
+        ) = 0;
 
         virtual ShaderResourceBindingHandle CreateShaderResourceBinding(
             PipelineStateHandle pipelineStateHandle,
@@ -284,6 +325,8 @@ namespace Quelos {
 
         virtual void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) = 0;
 
+        virtual void TransitionResource(TextureHandle textureHandle, ResourceState resourceState) = 0;
+
         virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
         virtual void Destroy(VertexBufferHandle vertexBufferHandle) = 0;
@@ -309,7 +352,11 @@ namespace Quelos {
         virtual const TextureSpecification* GetSpecification(TextureHandle textureHandle) = 0;
         virtual uint64_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
 
-        virtual TextureViewHandle GetTextureView(TextureHandle texture, TextureViewType textureViewType) = 0;
+        virtual TextureHandle GetTexture(TextureViewHandle textureView) = 0;
+
+        virtual TextureViewHandle TextureGetView(TextureHandle texture, TextureViewType textureViewType) = 0;
+        virtual TextureViewHandle TextureCreateView(TextureHandle texture, TextureViewSpec textureViewSpec) = 0;
+
         virtual void CopyTexture(const CopyTextureAttribs& copyAttribs) = 0;
 
         virtual void MapTextureSubresource(

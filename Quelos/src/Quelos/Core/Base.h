@@ -40,6 +40,9 @@ namespace Quelos {
         std::free(pointer);
     }
 
+    template <typename TKey, size_t N>
+    using Array = std::array<TKey, N>;
+
     template <typename TKey, typename TValue>
     using HashMap = ankerl::unordered_dense::map<TKey, TValue>;
 

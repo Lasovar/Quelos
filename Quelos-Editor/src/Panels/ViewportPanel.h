@@ -11,14 +11,19 @@ namespace QuelosEditor {
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(std::string name, RenderPassHandle renderPassHandle, uint32_t width, uint32_t height);
+        ViewportPanel(std::string name, RenderPassHandle renderPassHandle, RenderPassHandle shadowMaskPass, uint32_t width, uint32_t height);
 
         virtual ~ViewportPanel() = default;
 
-        void SetRenderPass(RenderPassHandle renderPassHandle);
+        void SetRenderPass(RenderPassHandle gBufferPass, RenderPassHandle shadowMaskPass);
 
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
         [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
+
+        [[nodiscard]] TextureHandle GetDepthAttachment() const { return m_DepthAttachment.GetHandle(); }
+        [[nodiscard]] FrameBufferHandle GetShadowMaskFrameBuffer() const { return m_ShadowMaskFB.GetHandle(); }
+
+        [[nodiscard]] TextureHandle GetShadowMask() const { return m_ShadowMaskTexture.GetHandle(); }
 
         bool ResizeIfNeeded();
 
@@ -56,5 +61,8 @@ namespace QuelosEditor {
         ResourceRef<Texture> m_SceneColorAttachment;
 
         Ref<FrameBuffer> m_FrameBuffer;
+
+        ResourceRef<Texture> m_ShadowMaskTexture;
+        ResourceRef<FrameBuffer> m_ShadowMaskFB;
     };
 }

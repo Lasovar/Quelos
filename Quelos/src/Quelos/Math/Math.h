@@ -61,10 +61,16 @@ namespace Quelos {
     using pquaternion = hlslpp::interop::float4;
 
     namespace math {
+        constexpr float f_max = std::numeric_limits<float>::max();
+        constexpr float f_min = std::numeric_limits<float>::min();
+
         constexpr float f_pi = 3.14159265358979323846f;
         constexpr float f_2pi = 2.0f * f_pi;
         constexpr float f_pi2 = f_pi / 2.0f;
         constexpr float f_pi4 = f_pi / 4.0f;
+
+        constexpr double d_max = std::numeric_limits<double>::max();
+        constexpr double d_min = std::numeric_limits<double>::min();
 
         constexpr double d_pi = 3.14159265358979323846264338327950288;
         constexpr double d_2pi = 2.0 * d_pi;
@@ -105,6 +111,8 @@ namespace Quelos {
         using hlslpp::min;
         using hlslpp::max;
 
+        using hlslpp::floor;
+
         using hlslpp::clamp;
         inline float clamp(const float f, const float minf, const float maxf) { return min(max(f, minf), maxf); }
         inline double clamp(const double f, const double minf, const double maxf) { return min(max(f, minf), maxf); }
@@ -117,6 +125,7 @@ namespace Quelos {
         using hlslpp::normalize;
         using hlslpp::cross;
         using hlslpp::dot;
+        using hlslpp::lerp;
 
         using hlslpp::any;
         using hlslpp::all;

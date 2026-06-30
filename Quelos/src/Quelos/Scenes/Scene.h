@@ -64,7 +64,7 @@ namespace Quelos {
 
         void Tick(float deltaTime) const;
 
-        float4x4 GetViewProjection() const;
+        Pair<float4x4, float4x4> GetViewAndProjection() const;
 
         const std::string& GetName() const { return m_Name; }
         void SetName(const std::string_view& name) { m_Name = name; }

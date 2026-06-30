@@ -17,7 +17,7 @@ namespace Quelos {
     namespace Utils {
         static void CreateFrameBuffer(
             IFramebuffer*& frameBuffer, IRenderDevice* device,
-            const Span32<ITextureView*> attachments, IRenderPass* renderPass
+            const Span32<ITextureView*> attachments, const uint32_t numArraySlices, IRenderPass* renderPass
         ) {
             FramebufferDesc desc;
             desc.Name = "FrameBuffer";
@@ -28,7 +28,7 @@ namespace Quelos {
             }
             desc.Width = attachments[0]->GetTexture()->GetDesc().GetWidth();
             desc.Height = attachments[0]->GetTexture()->GetDesc().GetHeight();
-            desc.NumArraySlices = 1;
+            desc.NumArraySlices = numArraySlices;
 
             device->CreateFramebuffer(desc, &frameBuffer);
         }
@@ -69,7 +69,7 @@ namespace Quelos {
                 return TEX_FORMAT_RGBA8_UNORM_SRGB;
             case ImageFormat::Depth32FloatStencil8UInt:
                 return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
-            case ImageFormat::DEPTH32Float:
+            case ImageFormat::Depth32Float:
                 return TEX_FORMAT_D32_FLOAT;
             case ImageFormat::Depth24Stencil8:
                 return TEX_FORMAT_D24_UNORM_S8_UINT;
@@ -603,16 +603,27 @@ namespace Quelos {
 
             return desc;
         }
+
+        constexpr UAV_ACCESS_FLAG GetUAVAccessFlags(UAVAccessFlags accessFlags) {
+            return static_cast<UAV_ACCESS_FLAG>(accessFlags);
+        }
+
+        constexpr TEXTURE_VIEW_FLAGS GetTextureViewFlags(TextureViewFlags flags) {
+            return static_cast<TEXTURE_VIEW_FLAGS>(flags);
+        }
+
+        constexpr BUFFER_VIEW_TYPE GetBufferViewType(BufferViewType bufferViewType) {
+            return static_cast<BUFFER_VIEW_TYPE>(bufferViewType);
+        }
     }
 
     namespace TextureUtil {
 
         static RESOURCE_DIMENSION GetTextureType(const TextureType textureType) {
             switch (textureType) {
-            case TextureType::Texture2D:
-                return RESOURCE_DIM_TEX_2D;
-            case TextureType::TextureCube:
-                return RESOURCE_DIM_TEX_CUBE;
+            case TextureType::Texture2D: return RESOURCE_DIM_TEX_2D;
+            case TextureType::Texture2DArray: return RESOURCE_DIM_TEX_2D_ARRAY;
+            case TextureType::TextureCube: return RESOURCE_DIM_TEX_CUBE;
             }
 
             return RESOURCE_DIM_UNDEFINED;
@@ -631,8 +642,28 @@ namespace Quelos {
             textureDesc.SampleCount = Utils::GetSampleCount(spec.SampleCount);
             textureDesc.Usage = Utils::GetUsage(spec.Usage);
             textureDesc.CPUAccessFlags = Utils::GetCPUAccessFlags(spec.CpuAccessFlags);
+            textureDesc.ArraySize = spec.ArraySize;
+            textureDesc.MipLevels = spec.MipLevels;
 
             device->CreateTexture(textureDesc, data, &textureData.Texture);
+        }
+
+        static ITextureView* CreateTextureView(ITexture* texture, const TextureViewSpec& textureViewSpec) {
+            TextureViewDesc desc;
+            desc.ViewType = Utils::GetTextureViewType(textureViewSpec.ViewType);
+            desc.TextureDim = GetTextureType(textureViewSpec.TextureType);
+            desc.Format = Utils::GetFormat(textureViewSpec.Format);
+            desc.MostDetailedMip = textureViewSpec.MostDetailedMip;
+            desc.NumMipLevels = textureViewSpec.NumMipLevels;
+            desc.FirstArraySlice = textureViewSpec.FirstArraySlice;
+            desc.NumArraySlices = textureViewSpec.NumArraySlices;
+            desc.AccessFlags = Utils::GetUAVAccessFlags(textureViewSpec.AccessFlags);
+            desc.Flags = Utils::GetTextureViewFlags(textureViewSpec.Flags);
+
+            ITextureView* textureView = nullptr;
+            texture->CreateView(desc, &textureView);
+
+            return textureView;
         }
 
         void Resize(
@@ -650,15 +681,19 @@ namespace Quelos {
 
             CreateTexture(device, data, nullptr);
 
-            for (const TextureViewHandle& textureView : data.TextureViews) {
+            for (const auto& [textureView, isDefaultView] : data.TextureViews) {
                 auto* textureViewData = textureViewTable.At(textureView);
                 if (!textureViewData) {
                     continue;
                 }
 
-                textureViewData->TextureView = data.Texture->GetDefaultView(
-                    Utils::GetTextureViewType(textureViewData->Specification.ViewType)
-                );
+                if (isDefaultView) {
+                    textureViewData->TextureView = data.Texture->GetDefaultView(
+                        Utils::GetTextureViewType(textureViewData->Specification.ViewType)
+                    );
+                } else {
+                    textureViewData->TextureView = CreateTextureView(data.Texture, textureViewData->Specification);
+                }
             }
         }
     }
@@ -779,6 +814,8 @@ namespace Quelos {
             auto* pFactoryVk = GetEngineFactoryVk();
             EngineVkCreateInfo engineCi;
             engineCi.GraphicsAPIVersion = Version{1, 3};
+
+            engineCi.DynamicHeapSize = 32 << 20;
 
 #ifndef QS_PLATFORM_MACOS
             VkPhysicalDeviceVulkan12Features vk12Features{};
@@ -957,7 +994,10 @@ namespace Quelos {
         return handle;
     }
 
-    GpuBufferViewHandle DiligentRendererContext::GetDefaultBufferView(const GpuBufferHandle bufferHandle) {
+    GpuBufferViewHandle DiligentRendererContext::GetDefaultBufferView(
+        const GpuBufferHandle bufferHandle,
+        const BufferViewType bufferViewType
+    ) {
         QBufferData* slot = m_BufferTable.At(bufferHandle);
 
         if (!slot) [[unlikely]] {
@@ -970,7 +1010,7 @@ namespace Quelos {
             return {};
         }
 
-        IBufferView* bufferView = slot->Buffer->GetDefaultView(BUFFER_VIEW_SHADER_RESOURCE);
+        IBufferView* bufferView = slot->Buffer->GetDefaultView(Utils::GetBufferViewType(bufferViewType));
 
         if (!bufferView) {
             QS_CORE_ERROR_TAG(
@@ -991,6 +1031,39 @@ namespace Quelos {
         slot->BufferViews.push_back(handle);
 
         return handle;
+    }
+
+    void DiligentRendererContext::CopyBuffer(
+        const GpuBufferHandle srcBuffer,
+        const uint64_t srcOffset,
+        const ResourceStateTransitionMode srcBufferTransitionMode,
+        const GpuBufferHandle dstBuffer,
+        const uint64_t dstOffset,
+        const uint64_t size,
+        const ResourceStateTransitionMode dstBufferTransitionMode
+    ) {
+        const QBufferData* srcSlot = m_BufferTable.At(srcBuffer);
+        const QBufferData* dstSlot = m_BufferTable.At(dstBuffer);
+
+        if (!srcSlot && !dstSlot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Invalids buffers passed in! Src: ({},{}), Dst: ({},{})",
+                srcBuffer.Index(), srcBuffer.Generation(), dstBuffer.Index(), dstBuffer.Generation()
+            );
+
+            return;
+        }
+
+        m_pImmediateContext->CopyBuffer(
+            srcSlot->Buffer,
+            srcOffset,
+            Utils::GetResourceStateTransition(srcBufferTransitionMode),
+            dstSlot->Buffer,
+            dstOffset,
+            size,
+            Utils::GetResourceStateTransition(dstBufferTransitionMode)
+        );
     }
 
     ShaderResourceBindingHandle DiligentRendererContext::CreateShaderResourceBinding(
@@ -1218,6 +1291,14 @@ namespace Quelos {
         m_BufferTable.Erase(bufferHandle);
     }
 
+    void DiligentRendererContext::TransitionResource(const TextureHandle textureHandle, ResourceState resourceState) {
+        StateTransitionDesc desc;
+        desc.pResource = m_TextureTable.At(textureHandle)->Texture;
+        desc.NewState = Utils::GetResourceState(resourceState);
+
+        m_pImmediateContext->TransitionResourceState(desc);
+    }
+
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
         IBuffer** slot = m_VertexBufferTable.At(vertexBufferHandle);
         if (!slot) [[unlikely]] {
@@ -1318,7 +1399,16 @@ namespace Quelos {
         return reinterpret_cast<uint64_t>(data->Texture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
     }
 
-    TextureViewHandle DiligentRendererContext::GetTextureView(
+    TextureHandle DiligentRendererContext::GetTexture(const TextureViewHandle textureView) {
+        const auto* textureViewData = m_TextureViewTable.At(textureView);
+        if (!textureViewData) [[unlikely]] {
+            return {};
+        }
+
+        return textureViewData->Texture;
+    }
+
+    TextureViewHandle DiligentRendererContext::TextureGetView(
         const TextureHandle texture, const TextureViewType textureViewType
     ) {
         auto* textureData = m_TextureTable.At(texture);
@@ -1328,13 +1418,17 @@ namespace Quelos {
 
         const auto it = std::ranges::find_if(
             textureData->TextureViews,
-            [&](const TextureViewHandle viewHandle) {
-                return m_TextureViewTable.At(viewHandle)->Specification.ViewType == textureViewType;
+            [&](const Pair<TextureViewHandle, bool>& view) {
+                if (!view.second) {
+                    return false;
+                }
+
+                return m_TextureViewTable.At(view.first)->Specification.ViewType == textureViewType;
             }
         );
 
         if (it != textureData->TextureViews.end()) {
-            return *it;
+            return it->first;
         }
 
         const TextureViewHandle handle = m_TextureViewTable.Emplace();
@@ -1345,7 +1439,37 @@ namespace Quelos {
         slot->Specification.Format = textureData->Specification.Format;
 
         slot->TextureView = textureData->Texture->GetDefaultView(Utils::GetTextureViewType(textureViewType));
-        textureData->TextureViews.push_back(handle);
+        textureData->TextureViews.emplace_back(handle, true);
+
+        return handle;
+    }
+
+    TextureViewHandle DiligentRendererContext::TextureCreateView(
+        TextureHandle texture, TextureViewSpec textureViewSpec
+    ) {
+        QTextureData* slot = m_TextureTable.At(texture);
+
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Failed to find texture with handle ({},{})",
+                texture.Index(), texture.Generation()
+            );
+
+            return {};
+        }
+
+        const TextureViewHandle handle = m_TextureViewTable.Emplace();
+        TextureViewData* viewSlot = m_TextureViewTable.At(handle);
+
+        QS_CORE_ASSERT(viewSlot);
+
+        viewSlot->Texture = texture;
+        viewSlot->Specification = textureViewSpec;
+
+        viewSlot->TextureView = TextureUtil::CreateTextureView(slot->Texture, textureViewSpec);
+
+        slot->TextureViews.emplace_back(handle, false);
 
         return handle;
     }
@@ -1403,7 +1527,7 @@ namespace Quelos {
             return;
         }
 
-        for (const TextureViewHandle& textureView : slot->TextureViews) {
+        for (const TextureViewHandle& textureView : slot->TextureViews | std::views::keys) {
             m_TextureViewTable.Erase(textureView);
         }
 
@@ -1547,7 +1671,7 @@ namespace Quelos {
         slot->Attachments = SmallVec<TextureViewHandle, 2>(frameBufferSpec.Attachments);
 
         FrameBufferSpec& spec = slot->Specification;
-        spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.Size};
+        spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.NumArraySlices, frameBufferSpec.Size};
 
         SmallVec<ITextureView*, 2> textureAttachments;
         textureAttachments.reserve(spec.Attachments.size());
@@ -1565,6 +1689,7 @@ namespace Quelos {
             slot->FrameBuffer,
             m_pDevice,
             Span32(textureAttachments),
+            spec.NumArraySlices,
             m_RenderPassTable.At(spec.RenderPassHandle)->RenderPass
         );
 
@@ -1608,7 +1733,13 @@ namespace Quelos {
             renderPass = m_RenderPassTable.At(data->Specification.RenderPassHandle)->RenderPass;
         }
 
-        Utils::CreateFrameBuffer(data->FrameBuffer, m_pDevice, Span32(textureViews), renderPass);
+        Utils::CreateFrameBuffer(
+            data->FrameBuffer,
+            m_pDevice,
+            Span32(textureViews),
+            data->Specification.NumArraySlices,
+            renderPass
+        );
     }
 
     void DiligentRendererContext::Destroy(const FrameBufferHandle frameBufferHandle) {
@@ -1660,6 +1791,19 @@ namespace Quelos {
         attribs.NumInstances = drawIndexedAttribs.NumInstances;
 
         m_pImmediateContext->DrawIndexed(attribs);
+    }
+
+    void DiligentRendererContext::DispatchCompute(const DispatchComputeAttribs& dispatchComputeAttribs) {
+        Diligent::DispatchComputeAttribs attribs;
+        attribs.ThreadGroupCountX = dispatchComputeAttribs.ThreadGroupCountX;
+        attribs.ThreadGroupCountY = dispatchComputeAttribs.ThreadGroupCountY;
+        attribs.ThreadGroupCountZ = dispatchComputeAttribs.ThreadGroupCountZ;
+
+        attribs.MtlThreadGroupSizeX = dispatchComputeAttribs.MtlThreadGroupSizeX;
+        attribs.MtlThreadGroupSizeY = dispatchComputeAttribs.MtlThreadGroupSizeY;
+        attribs.MtlThreadGroupSizeZ = dispatchComputeAttribs.MtlThreadGroupSizeZ;
+
+        m_pImmediateContext->DispatchCompute(attribs);
     }
 
     ShaderHandle DiligentRendererContext::CreateShader(const ShaderCreateInfo& createInfo) {
@@ -1816,6 +1960,7 @@ namespace Quelos {
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilWriteMask = gpSpec.DepthStencilSpec.StencilWriteMask;
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.FrontFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.FrontFace);
         PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.BackFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.BackFace);
+        PSOCreateInfo.GraphicsPipeline.NumRenderTargets = gpSpec.NumRenderTargets;
 
         PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.At(gpSpec.RenderPass)->RenderPass;
 
@@ -1826,8 +1971,12 @@ namespace Quelos {
         PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
 
         // Finally, create the pipeline state
-        PSOCreateInfo.pVS = m_ShaderTable.At(pipelineStateCreateInfo.VertexShader)->Shader;
-        PSOCreateInfo.pPS = m_ShaderTable.At(pipelineStateCreateInfo.FragmentShader)->Shader;
+        if (pipelineStateCreateInfo.VertexShader.IsValid()) {
+            PSOCreateInfo.pVS = m_ShaderTable.At(pipelineStateCreateInfo.VertexShader)->Shader;
+        }
+        if (pipelineStateCreateInfo.FragmentShader.IsValid()) {
+            PSOCreateInfo.pPS = m_ShaderTable.At(pipelineStateCreateInfo.FragmentShader)->Shader;
+        }
 
         // Define variable type that will be used by default
         Vec<ShaderResourceVariableDesc> variables;
@@ -1864,9 +2013,94 @@ namespace Quelos {
         if (!slot->PSO) {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
-                "CreatePipelineState(PipelineStateSpec): Failed to create pipeline state object"
+                "CreatePipelineState(GraphicsPipelineStateCreateInfo): Failed to create graphics pipeline state object"
             );
 
+            m_PipelineStateTable.Erase(handle);
+            return {};
+        }
+
+        return handle;
+    }
+
+    PipelineStateHandle DiligentRendererContext::CreatePipelineState(
+        const ComputePipelineStateCreateInfo& pipelineStateCreateInfo
+    ) {
+        Handle<PipelineStateObject> handle = m_PipelineStateTable.Emplace();
+        PipelineStateData* slot = m_PipelineStateTable.At(handle);
+
+        // Own data
+        for (const ShaderResourceVariableSpec& variable : pipelineStateCreateInfo.Spec.ResourceLayout.Variables) {
+            ShaderResourceVariableSpec spec = variable;
+
+            slot->OwnedStrings.emplace_back(spec.Name);
+            spec.Name = slot->OwnedStrings.back();
+
+            slot->Variables.push_back(spec);
+        }
+
+        for (const ImmutableSamplerSpec& immutableSampler : pipelineStateCreateInfo.Spec.ResourceLayout.
+             ImmutableSamplers) {
+            ImmutableSamplerSpec spec = immutableSampler;
+
+            slot->OwnedStrings.emplace_back(immutableSampler.SamplerOrTextureName);
+            spec.SamplerOrTextureName = slot->OwnedStrings.back();
+
+            slot->ImmutableSamplers.push_back(spec);
+        }
+
+        slot->PipelineSpec.ResourceLayout.Variables = slot->Variables;
+        slot->PipelineSpec.ResourceLayout.ImmutableSamplers = slot->ImmutableSamplers;
+        slot->PipelineSpec.Type = pipelineStateCreateInfo.Spec.Type;
+
+        // Pipeline state object encompasses configuration of all GPU stages
+        Diligent::ComputePipelineStateCreateInfo PSOCreateInfo;
+        PipelineStateDesc& PSODesc = PSOCreateInfo.PSODesc;
+
+        // This is a graphics pipeline
+        PSODesc.PipelineType = PIPELINE_TYPE_COMPUTE;
+
+        PSOCreateInfo.pCS = m_ShaderTable.At(pipelineStateCreateInfo.ComputeShader)->Shader;
+
+        // Define variable type that will be used by default
+        Vec<ShaderResourceVariableDesc> variables;
+        variables.resize(slot->Variables.size());
+        for (uint32_t i = 0; i < variables.size(); i++) {
+            const ShaderResourceVariableSpec& variable = slot->Variables[i];
+            ShaderResourceVariableDesc& desc = variables[i];
+
+            desc.Name = variable.Name.data();
+            desc.Type = Utils::GetShaderResourceVariableType(variable.Type);
+            desc.ShaderStages = Utils::GetShaderType(variable.ShaderStages);
+            desc.Flags = Utils::GetShaderVariableFlags(variable.Flags);
+        }
+
+        PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
+        PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
+
+        Vec<ImmutableSamplerDesc> immutableSamplers;
+        immutableSamplers.resize(slot->ImmutableSamplers.size());
+        for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
+            const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];
+            ImmutableSamplerDesc& desc = immutableSamplers[i];
+
+            desc.ShaderStages = Utils::GetShaderType(immutableSampler.ShaderStages);
+            desc.Desc = Utils::GetSamplerDesc(immutableSampler.Specification);
+            desc.SamplerOrTextureName = immutableSampler.SamplerOrTextureName.data();
+        }
+
+        PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers = immutableSamplers.data();
+        PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = immutableSamplers.size();
+
+        m_pDevice->CreateComputePipelineState(PSOCreateInfo, &slot->PSO);
+
+        if (!slot->PSO) {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "CreatePipelineState(ComputePipelineStateCreateInfo): Failed to create compute pipeline state object!"
+            );
+
+            m_PipelineStateTable.Erase(handle);
             return {};
         }
 

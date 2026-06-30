@@ -69,6 +69,8 @@ namespace Quelos {
         BufferView Code;
         int32_t Order;
         Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
+        // For compute shaders
+        Array<uint64_t, 3> ThreadGroupSize;
     };
 
     struct QS_API GraphicsShaderCreateInfo {

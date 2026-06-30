@@ -108,6 +108,12 @@ namespace Quelos {
         RasterizerStateSpec RasterizerSpec;
         DepthStencilStateSpec DepthStencilSpec;
         InputLayoutSpec InputLayout;
+
+        /// The number of render targets in the RTVFormats array.
+
+        /// Must be 0 when `RenderPass` is not `Invalid`.
+        uint32_t NumRenderTargets = 0;
+
         RenderPassHandle RenderPass;
 
         SampleSpec SampleSpec;
@@ -119,6 +125,10 @@ namespace Quelos {
         ShaderHandle VertexShader;
         ShaderHandle FragmentShader;
         // TODO: Add other shader stages
+    };
+
+    struct ComputePipelineStateCreateInfo : PipelineStateCreateInfo {
+        ShaderHandle ComputeShader;
     };
 
     class PipelineStateObject;

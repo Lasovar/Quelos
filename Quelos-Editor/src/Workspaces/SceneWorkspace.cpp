@@ -12,8 +12,8 @@ using namespace magic_enum::bitwise_operators;
 namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
-          m_GameViewportPanel("Game View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
-          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.GetRenderPass(), 1, 1),
+          m_GameViewportPanel("Game View", *this, m_WorldRenderer.GetRenderPass(), m_WorldRenderer.GetShadowMaskPass(), 1, 1),
+          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.GetRenderPass(), m_WorldRenderer.GetShadowMaskPass(), 1, 1),
           m_InspectorPanel(*this, undoSystem),
           m_EntityHierarchyPanel(*this, undoSystem)
     {
@@ -26,7 +26,39 @@ namespace QuelosEditor {
         m_InspectorPanel.SetScene(m_ActiveScene);
         m_EntityHierarchyPanel.SetScene(m_ActiveScene);
 
+        // World renderer setup (a few of these need to be a render pass after the system for custom render pass is setup)
         m_WorldRenderer.SetWorld(m_EditorWorld);
+
+        AssetMetadata computeMetadata;
+        computeMetadata.FilePath = "Assets/shaders/DepthReduction.slang";
+        computeMetadata.Type = ComputeShader::GetStaticType();
+        computeMetadata.Handle = AssetID("8d4f6b7e-2d3c-4a9e-b6d5-7c9f18e2a4b1");
+
+        ShaderImporter::Cook(computeMetadata);
+        ShaderImporter::Import(GetDepthReductionCompute(), computeMetadata);
+
+        m_WorldRenderer.SetDepthReductionCompute(GetDepthReductionCompute());
+
+        AssetMetadata shadowDepthMetadata;
+        shadowDepthMetadata.FilePath = "Assets/shaders/ShadowDepth.slang";
+        shadowDepthMetadata.Type = GraphicsShader::GetStaticType();
+        shadowDepthMetadata.Handle = AssetID("f72b81c5-3d6e-4f98-a1c7-2be95d4a806f");
+
+        ShaderImporter::Cook(shadowDepthMetadata);
+        ShaderImporter::Import(GetShadowDepthShader(), shadowDepthMetadata);
+
+        m_WorldRenderer.SetShadowDepthShader(GetShadowDepthShader());
+
+        AssetMetadata shadowMaskMetadata;
+        shadowMaskMetadata.FilePath = "Assets/shaders/ShadowMask.slang";
+        shadowMaskMetadata.Type = GraphicsShader::GetStaticType();
+        shadowMaskMetadata.Handle = AssetID("2f18c7b9-94d1-4e3a-a560-7dbcf8126e45");
+
+        ShaderImporter::Cook(shadowMaskMetadata);
+        ShaderImporter::Import(GetShadowMaskShader(), shadowMaskMetadata);
+
+        m_WorldRenderer.SetShadowMaskShader(GetShadowMaskShader());
+
 
         m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
@@ -63,7 +95,7 @@ namespace QuelosEditor {
         idDepthSpec.Type = TextureType::Texture2D;
         idDepthSpec.Width = 1;
         idDepthSpec.Height = 1;
-        idDepthSpec.Format = ImageFormat::DEPTH32Float;
+        idDepthSpec.Format = ImageFormat::Depth32Float;
         idDepthSpec.BindFlags = Bind::DepthStencil;
         idDepthSpec.Usage = Usage::Default;
         m_IDDepthTexture = Renderer::CreateTexture(idDepthSpec);
@@ -76,7 +108,7 @@ namespace QuelosEditor {
         idAttachments[0].InitialState = ResourceState::RenderTarget;
         idAttachments[0].FinalState = ResourceState::CopySource;
 
-        idAttachments[1].Format = ImageFormat::DEPTH32Float;
+        idAttachments[1].Format = ImageFormat::Depth32Float;
         idAttachments[1].SampleCount = 1;
         idAttachments[1].LoadOp = AttachmentLoadOp::Clear;
         idAttachments[1].StoreOp = AttachmentStoreOp::Discard;
@@ -97,8 +129,8 @@ namespace QuelosEditor {
         m_ActorIDRenderPass = Renderer::CreateRenderPass(desc);
 
         const TextureViewHandle idFbAttachments[] = {
-            Renderer::GetTextureView(m_IDTexture.GetHandle(), TextureViewType::RenderTarget),
-            Renderer::GetTextureView(m_IDDepthTexture.GetHandle(), TextureViewType::DepthStencil),
+            Renderer::TextureGetDefaultView(m_IDTexture.GetHandle(), TextureViewType::RenderTarget),
+            Renderer::TextureGetDefaultView(m_IDDepthTexture.GetHandle(), TextureViewType::DepthStencil),
         };
 
         FrameBufferSpec fbDesc;
@@ -200,6 +232,10 @@ namespace QuelosEditor {
 
         m_ActiveScene->Tick(deltaTime);
 
+        if (m_SceneViewportPanel.ShouldDraw() || m_GameViewportPanel.ShouldDraw()) {
+            m_WorldRenderer.Begin();
+        }
+
         if (m_SceneViewportPanel.ShouldDraw()) {
             if (m_PickRequest.Resolve()) {
                 MappedTextureSubresource mapped;
@@ -258,7 +294,7 @@ namespace QuelosEditor {
 
             clearValues[1] = {};
 
-            clearValues[2].Format = ImageFormat::DEPTH32Float;
+            clearValues[2].Format = ImageFormat::Depth32Float;
             clearValues[2].DepthStencil.Depth = 1.0f;
 
             BeginRenderPassAttribs attribs;
@@ -267,9 +303,15 @@ namespace QuelosEditor {
             attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
             attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
 
-            m_WorldRenderer.Begin(attribs, m_EditorCamera.GetViewProjection());
-            m_WorldRenderer.Render();
-            m_WorldRenderer.End();
+            m_WorldRenderer.Render(
+                attribs,
+                m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(),
+                Renderer::TextureGetDefaultView(
+                    m_SceneViewportPanel.GetDepthAttachment(),
+                    TextureViewType::ShaderResource
+                ),
+                m_SceneViewportPanel.GetShadowMaskFrameBuffer()
+            );
 
             if (m_SceneViewportPanel.SelectRequest().Resolve()) {
                 ClearValue idClearValues[2];
@@ -281,7 +323,7 @@ namespace QuelosEditor {
 
                 idClearValues[0].Color = {clearAsFloat};
 
-                idClearValues[1].Format = ImageFormat::DEPTH32Float;
+                idClearValues[1].Format = ImageFormat::Depth32Float;
                 idClearValues[1].DepthStencil.Depth = 1.0f;
 
                 attribs.FrameBufferHandle = m_IDFrameBuffer.GetHandle();
@@ -383,7 +425,7 @@ namespace QuelosEditor {
 
             clearValues[1] = {};
 
-            clearValues[2].Format = ImageFormat::DEPTH32Float;
+            clearValues[2].Format = ImageFormat::Depth32Float;
             clearValues[2].DepthStencil.Depth = 1.0f;
 
             BeginRenderPassAttribs attribs;
@@ -391,8 +433,20 @@ namespace QuelosEditor {
             attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
             attribs.ClearColors = clearValues;
 
-            m_WorldRenderer.Begin(attribs, m_ActiveScene->GetViewProjection());
-            m_WorldRenderer.Render();
+            auto viewAndProjection = m_ActiveScene->GetViewAndProjection();
+            m_WorldRenderer.Render(
+                attribs,
+                viewAndProjection.first,
+                viewAndProjection.second,
+                Renderer::TextureGetDefaultView(
+                    m_GameViewportPanel.GetDepthAttachment(),
+                    TextureViewType::ShaderResource
+                ),
+                m_GameViewportPanel.GetShadowMaskFrameBuffer()
+            );
+        }
+
+        if (m_SceneViewportPanel.ShouldDraw() || m_GameViewportPanel.ShouldDraw()) {
             m_WorldRenderer.End();
         }
     }
@@ -402,6 +456,22 @@ namespace QuelosEditor {
 
         m_SceneViewportPanel.SetFrame(m_SelectedEntity, m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection());
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+
+        if (ImGui::Begin("ShadowMask")) {
+            if (m_SceneViewportPanel.ShouldDraw()) {
+                float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
+
+                auto size = m_SceneViewportPanel.GetViewportSize();
+
+                ImGui::Image(
+                    m_SceneViewportPanel.GetShadowMask().GetNativeHandle(),
+                    {size.x, size.y},
+                    {uv.x, uv.y},
+                    {uv.z, uv.w}
+                );
+            }
+        }
+        ImGui::End();
 
         m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
@@ -557,8 +627,8 @@ namespace QuelosEditor {
             m_FullMaskRenderPass = Renderer::CreateRenderPass(fullMaskPassSpec);
 
             const TextureViewHandle fullMaskFbAttachments[] = {
-                Renderer::GetTextureView(m_FullMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
-                Renderer::GetTextureView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget)
+                Renderer::TextureGetDefaultView(m_FullMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
+                Renderer::TextureGetDefaultView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget)
             };
 
             FrameBufferSpec fullMaskFbSpec;
@@ -652,7 +722,7 @@ namespace QuelosEditor {
             visibleMaskAttachments[1].FinalState = ResourceState::ShaderResource;
 
             // SHARED scene depth, read-only, load existing values, don't clear/write
-            visibleMaskAttachments[2].Format = ImageFormat::DEPTH32Float;
+            visibleMaskAttachments[2].Format = ImageFormat::Depth32Float;
             visibleMaskAttachments[2].SampleCount = 4;
             visibleMaskAttachments[2].LoadOp = AttachmentLoadOp::Load;
             visibleMaskAttachments[2].StoreOp = AttachmentStoreOp::Discard;
@@ -675,9 +745,9 @@ namespace QuelosEditor {
             m_VisibleMaskRenderPass = Renderer::CreateRenderPass(visibleMaskPassSpec);
 
             const TextureViewHandle visibleMaskFbAttachments[] = {
-                Renderer::GetTextureView(m_VisibleMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
-                Renderer::GetTextureView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget),
-                Renderer::GetTextureView(m_SceneViewportPanel.GetDepthAttachment(), TextureViewType::DepthStencil)
+                Renderer::TextureGetDefaultView(m_VisibleMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
+                Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget),
+                Renderer::TextureGetDefaultView(m_SceneViewportPanel.GetDepthAttachment(), TextureViewType::DepthStencil)
             };
 
             FrameBufferSpec visibleMaskFbSpec;
@@ -777,7 +847,7 @@ namespace QuelosEditor {
         compositePassSpec.SubPasses = Span32(&compositeSubpass, 1);
         m_CompositeRenderPass = Renderer::CreateRenderPass(compositePassSpec);
 
-        TextureViewHandle compositeColorView = Renderer::GetTextureView(
+        TextureViewHandle compositeColorView = Renderer::TextureGetDefaultView(
             m_SceneViewportPanel.GetSceneColorTexture(),
             TextureViewType::RenderTarget
         );
@@ -952,14 +1022,14 @@ namespace QuelosEditor {
                 ShaderType::Fragment,
                 m_CompositeSRB.GetHandle(),
                 "FullMask",
-                Renderer::GetTextureView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
+                Renderer::TextureGetDefaultView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
             );
 
             Renderer::BindVariableByName(
                 ShaderType::Fragment,
                 m_CompositeSRB.GetHandle(),
                 "VisibleMask",
-                Renderer::GetTextureView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
+                Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
             );
 
             Renderer::BindPipelineState(m_CompositePSO.GetHandle());
