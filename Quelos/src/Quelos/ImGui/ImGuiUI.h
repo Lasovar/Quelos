@@ -15,6 +15,36 @@
 #include "Quelos/Renderer/Color.h"
 
 namespace Quelos::UI {
+    inline bool EditUInt(
+        const std::string& label,
+        uint32_t& value,
+        const float speed = 0.1f,
+        const uint32_t min = 0,
+        const uint32_t max = 0
+    ) {
+        ImGui::PushID(label.c_str());
+
+        ImGui::Columns(2, nullptr, false);
+
+        ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
+        ImGui::TextUnformatted(label.c_str());
+        ImGui::NextColumn();
+
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::BeginGroup();
+
+        const bool used = ImGui::DragScalar("##f", ImGuiDataType_U32, &value, speed, &min, &max);
+
+        ImGui::EndGroup();
+        ImGui::PopItemWidth();
+
+        ImGui::Columns(1);
+
+        ImGui::PopID();
+
+        return used;
+    }
+
     inline bool EditFloat(
         const std::string& label,
         float& value,

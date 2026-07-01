@@ -13,7 +13,7 @@ void CSMain(uint3 DTid: SV_DispatchThreadID, uint GI: SV_GroupIndex) {
     uint sampleCount;
     DepthTex.GetDimensions(dims.x, dims.y, sampleCount);
     if (all(DTid.xy < dims)) {
-        float d = DepthTex[DTid.xy];
+        float d = DepthTex.Load(DTid.xy, 0);
         if (d < 1.0) {                        // skip skybox/far plane
             uint du = asuint(d); // safe for d in [0,1]: IEEE bit order == float order for positive
             InterlockedMin(gsMin, du);
