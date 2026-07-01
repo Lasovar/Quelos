@@ -51,6 +51,9 @@ namespace Quelos {
 
 		[[nodiscard]] float GetPitch() const { return m_Pitch; }
 		[[nodiscard]] float GetYaw() const { return m_Yaw; }
+		[[nodiscard]] float GetNearClip() const { return m_NearClip; }
+		[[nodiscard]] float GetFarClip() const { return m_FarClip; }
+
 	private:
 		void UpdateProjection();
 		void UpdateView();

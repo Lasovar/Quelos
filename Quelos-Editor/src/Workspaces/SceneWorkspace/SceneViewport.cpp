@@ -12,11 +12,10 @@
 namespace QuelosEditor {
     SceneViewport::SceneViewport(
         std::string name, SceneWorkspace& sceneWorkspace,
-        const RenderPassHandle renderPassHandle,
-        const RenderPassHandle shadowMaskHandle,
+        WorldRendererView&& worldRendererView,
         const uint32_t width,
         const uint32_t height
-    ) : ViewportPanel(std::move(name), renderPassHandle, shadowMaskHandle, width, height), m_SceneWorkspace(sceneWorkspace) {
+    ) : ViewportPanel(std::move(name), std::move(worldRendererView), width, height), m_SceneWorkspace(sceneWorkspace) {
     }
 
     void SceneViewport::AfterViewport() {
@@ -171,9 +170,5 @@ namespace QuelosEditor {
 
             m_SelectRequest = true;
         }
-    }
-
-    TextureViewHandle SceneViewport::GetSceneColorView() const {
-        return Renderer::TextureGetDefaultView(m_SceneColorAttachment.GetHandle(), TextureViewType::ShaderResource);
     }
 }

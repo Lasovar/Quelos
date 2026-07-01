@@ -32,6 +32,9 @@ namespace Quelos {
         Point,
         Linear,
         Anisotropic,
+        ComparisonPoint,       ///< Comparison-point filtering
+        ComparisonLinear,      ///< Comparison-linear filtering
+        ComparisonAnisotropic, ///< Comparison-anisotropic filtering
     };
 
     enum class SamplerFlags : uint8_t {

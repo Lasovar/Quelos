@@ -4,9 +4,10 @@
 
 #pragma once
 
-#include "Panels/ViewportPanel.h"
-#include "Quelos/ImGui/widgets/gizmo.h"
 #include "Quelos/Utility/Request.h"
+#include "Panels/ViewportPanel.h"
+
+#include "Quelos/ImGui/widgets/gizmo.h"
 
 namespace QuelosEditor {
     class SceneWorkspace;
@@ -16,8 +17,7 @@ namespace QuelosEditor {
         SceneViewport(
             std::string name,
             SceneWorkspace& sceneWorkspace,
-            RenderPassHandle renderPassHandle,
-            RenderPassHandle shadowMaskHandle,
+            WorldRendererView&& worldRendererView,
             uint32_t width,
             uint32_t height
         );
@@ -32,8 +32,6 @@ namespace QuelosEditor {
         }
 
         void AfterViewport() override;
-        TextureViewHandle GetSceneColorView() const;
-        TextureHandle GetSceneColorTexture() const { return m_SceneColorAttachment.GetHandle(); }
 
     private:
         SceneWorkspace& m_SceneWorkspace;

@@ -178,20 +178,60 @@ namespace Quelos {
         uint32_t EntityIndex;
     };
 
+    struct QS_API WorldRendererView {
+        ResourceRef<Texture> SceneColorMSAA;
+        ResourceRef<Texture> SceneColor;
+        ResourceRef<Texture> SceneDepthMSAA;
+
+        TextureViewHandle SceneColorRTV;
+        TextureViewHandle SceneColorSRV;
+
+        TextureViewHandle SceneDepthSRV;
+        TextureViewHandle SceneDepthDSV;
+
+        ResourceRef<FrameBuffer> SceneFB;
+        ResourceRef<FrameBuffer> DepthPrepassFB;
+
+        // Shadow mask
+        ResourceRef<Texture> ShadowMask;
+        ResourceRef<FrameBuffer> ShadowMaskFB;
+
+        bool ReductionReadbackReady = false;
+        ResourceRef<GpuBuffer> ReductionStagingBuffer;
+
+        float LastMinNDC = 0.0f;
+        float LastMaxNDC = 1.0f;
+
+        float4 SmoothedSplits = {5.f, 10.f, 20.f, 40.f};
+    };
+
+    struct QS_API RenderViewParams {
+        float4x4 Projection;
+        float4x4 View;
+        float3 CameraPosition;
+        Color SceneColorClear;
+        float NearClip;
+        float FarClip;
+    };
+
     class QS_API WorldRenderer {
     public:
         WorldRenderer();
 
         void SetWorld(const flecs::world& world);
+
         void SetDepthReductionCompute(ComputeShader* computeShader);
         void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
 
+        WorldRendererView CreateView(std::string_view name) const;
+        static void ResizeView(const WorldRendererView& view, Extent2D size);
+
+        /// View-independent, called once per frame
         void Begin();
-        void Render(
-            const BeginRenderPassAttribs& beginRenderPassAttribs, const float4x4& view, const float4x4& projection, TextureViewHandle
-            sceneDepthSRV, FrameBufferHandle shadowMaskFB
-        );
+        /// Render to a specific view (e.g GameView or SceneView)
+        void Render(WorldRendererView& view, const RenderViewParams& renderViewParams) const;
+        /// View-independent, called once per frame
         void End();
 
         [[nodiscard]] const Vec<DrawCommand>& GetDrawCalls() const { return m_DrawCalls; }
@@ -254,12 +294,6 @@ namespace Quelos {
         ResourceRef<ShaderResourceBinding> m_ShadowComputeSRB;
 
         ResourceRef<GpuBuffer> m_ReductionOutBuffer;
-        ResourceRef<GpuBuffer> m_ReductionStagingBuffer;
-
-        float m_LastMinNDC;
-        float m_LastMaxNDC;
-
-        bool m_ReductionReadbackReady = false;
 
         ResourceRef<GpuBuffer> m_LightViewProjectionBuffer;
         ResourceRef<PipelineStateObject> m_ShadowDepthPSO;
