@@ -12,8 +12,8 @@ using namespace magic_enum::bitwise_operators;
 namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
-          m_GameViewportPanel("Game View", *this, m_WorldRenderer.GetRenderPass(), m_WorldRenderer.GetShadowMaskPass(), 1, 1),
-          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.GetRenderPass(), m_WorldRenderer.GetShadowMaskPass(), 1, 1),
+          m_GameViewportPanel("Game View", *this, m_WorldRenderer.CreateView("GameView"), 1, 1),
+          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.CreateView("SceneView"), 1, 1),
           m_InspectorPanel(*this, undoSystem),
           m_EntityHierarchyPanel(*this, undoSystem)
     {
@@ -288,29 +288,17 @@ namespace QuelosEditor {
                 Renderer::FrameBufferResize(m_CompositeFrameBuffer.GetHandle(), size.x, size.y);
             }
 
-            ClearValue clearValues[3];
-            clearValues[0].Format = ImageFormat::RGBA8UNorm;
-            clearValues[0].Color = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
-
-            clearValues[1] = {};
-
-            clearValues[2].Format = ImageFormat::Depth32Float;
-            clearValues[2].DepthStencil.Depth = 1.0f;
-
-            BeginRenderPassAttribs attribs;
-            attribs.ClearColors = clearValues;
-
-            attribs.FrameBufferHandle = m_SceneViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
+            RenderViewParams sceneViewParams;
+            sceneViewParams.View = m_EditorCamera.GetViewMatrix();
+            sceneViewParams.Projection = m_EditorCamera.GetProjection();
+            sceneViewParams.SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
+            sceneViewParams.CameraPosition = m_EditorCamera.GetPosition();
+            sceneViewParams.NearClip = m_EditorCamera.GetNearClip();
+            sceneViewParams.FarClip = m_EditorCamera.GetFarClip();
 
             m_WorldRenderer.Render(
-                attribs,
-                m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection(),
-                Renderer::TextureGetDefaultView(
-                    m_SceneViewportPanel.GetDepthAttachment(),
-                    TextureViewType::ShaderResource
-                ),
-                m_SceneViewportPanel.GetShadowMaskFrameBuffer()
+                m_SceneViewportPanel.GetWorldRendererView(),
+                sceneViewParams
             );
 
             if (m_SceneViewportPanel.SelectRequest().Resolve()) {
@@ -326,6 +314,7 @@ namespace QuelosEditor {
                 idClearValues[1].Format = ImageFormat::Depth32Float;
                 idClearValues[1].DepthStencil.Depth = 1.0f;
 
+                BeginRenderPassAttribs attribs;
                 attribs.FrameBufferHandle = m_IDFrameBuffer.GetHandle();
                 attribs.RenderPassHandle = m_ActorIDRenderPass.GetHandle();
                 attribs.ClearColors = idClearValues;
@@ -428,21 +417,19 @@ namespace QuelosEditor {
             clearValues[2].Format = ImageFormat::Depth32Float;
             clearValues[2].DepthStencil.Depth = 1.0f;
 
-            BeginRenderPassAttribs attribs;
-            attribs.FrameBufferHandle = m_GameViewportPanel.GetFrameBuffer()->GetHandle();
-            attribs.RenderPassHandle = m_WorldRenderer.GetRenderPass();
-            attribs.ClearColors = clearValues;
-
             auto viewAndProjection = m_ActiveScene->GetViewAndProjection();
+
+            RenderViewParams gameViewParams;
+            gameViewParams.View = viewAndProjection.first;
+            gameViewParams.Projection = viewAndProjection.second;
+            gameViewParams.SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
+            gameViewParams.CameraPosition = float3();
+            gameViewParams.NearClip = 0.1f;
+            gameViewParams.FarClip = 1000.0f;
+
             m_WorldRenderer.Render(
-                attribs,
-                viewAndProjection.first,
-                viewAndProjection.second,
-                Renderer::TextureGetDefaultView(
-                    m_GameViewportPanel.GetDepthAttachment(),
-                    TextureViewType::ShaderResource
-                ),
-                m_GameViewportPanel.GetShadowMaskFrameBuffer()
+                m_GameViewportPanel.GetWorldRendererView(),
+                gameViewParams
             );
         }
 
@@ -468,7 +455,7 @@ namespace QuelosEditor {
                 size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
-                    m_SceneViewportPanel.GetShadowMask().GetNativeHandle(),
+                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView().ShadowMask.GetHandle()).GetNativeHandle(),
                     {size.x, size.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
@@ -751,7 +738,7 @@ namespace QuelosEditor {
             const TextureViewHandle visibleMaskFbAttachments[] = {
                 Renderer::TextureGetDefaultView(m_VisibleMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
                 Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget),
-                Renderer::TextureGetDefaultView(m_SceneViewportPanel.GetDepthAttachment(), TextureViewType::DepthStencil)
+                m_SceneViewportPanel.GetWorldRendererView().SceneDepthDSV
             };
 
             FrameBufferSpec visibleMaskFbSpec;
@@ -851,10 +838,7 @@ namespace QuelosEditor {
         compositePassSpec.SubPasses = Span32(&compositeSubpass, 1);
         m_CompositeRenderPass = Renderer::CreateRenderPass(compositePassSpec);
 
-        TextureViewHandle compositeColorView = Renderer::TextureGetDefaultView(
-            m_SceneViewportPanel.GetSceneColorTexture(),
-            TextureViewType::RenderTarget
-        );
+        TextureViewHandle compositeColorView = m_SceneViewportPanel.GetWorldRendererView().SceneColorRTV;
 
         FrameBufferSpec fbDesc;
         fbDesc.Name = "SelectionCompositeFB";

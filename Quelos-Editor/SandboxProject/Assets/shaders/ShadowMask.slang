@@ -55,8 +55,7 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     lsPos.xyz /= lsPos.w;
     float2 shadowUV = float2(lsPos.x * 0.5 + 0.5, 0.5 - lsPos.y * 0.5);
 
-    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
-    return float4(step(0.5, shadow), 0, 0, 0);
+    float shadow = ShadowMaps.SampleCmp(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
 
     //return float4(worldPos.y * 0.1 + 0.5, 0, 0, 0);
     //return float4(lsPos.x * 0.5 + 0.5, 0, 0, 0);
@@ -64,6 +63,7 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     //return float4(ndc * 0.5 + 0.5, 0, 0);
     //return float4(lsPos.z, 0, 0, 0);
     //return float4(shadowUV, 0, 0);
+
     // Binarize for NPR
-    //return float4(step(0.5, shadow), 0, 0, 0);
+    return float4(step(0.5, shadow), 0, 0, 0);
 }

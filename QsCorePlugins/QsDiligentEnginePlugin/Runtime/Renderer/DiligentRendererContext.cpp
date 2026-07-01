@@ -350,6 +350,10 @@ namespace Quelos {
 
             case FilterMode::Anisotropic:
                 return FILTER_TYPE_ANISOTROPIC;
+
+            case FilterMode::ComparisonPoint: return FILTER_TYPE_COMPARISON_POINT;
+            case FilterMode::ComparisonLinear: return FILTER_TYPE_COMPARISON_LINEAR;
+            case FilterMode::ComparisonAnisotropic: return FILTER_TYPE_COMPARISON_ANISOTROPIC;
             default: ;
             }
 
@@ -614,6 +618,10 @@ namespace Quelos {
 
         constexpr BUFFER_VIEW_TYPE GetBufferViewType(BufferViewType bufferViewType) {
             return static_cast<BUFFER_VIEW_TYPE>(bufferViewType);
+        }
+
+        constexpr FILL_MODE GetFillMode(FillMode fillMode) {
+            return static_cast<FILL_MODE>(fillMode);
         }
     }
 
@@ -1942,24 +1950,31 @@ namespace Quelos {
         // Primitive topology defines what kind of primitives will be rendered by this pipeline state
         PSOCreateInfo.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         // No back face culling for this tutorial
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.CullMode = Utils::GetCullMode(
-            gpSpec.RasterizerSpec.CullMode
-        );
 
         PSOCreateInfo.GraphicsPipeline.SmplDesc.Count = Utils::GetSampleCount(gpSpec.SampleSpec.Count);
         PSOCreateInfo.GraphicsPipeline.SmplDesc.Quality = gpSpec.SampleSpec.Quality;
 
-        PSOCreateInfo.GraphicsPipeline.RasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.
-            FrontCounterClockwise;
-        // Disable depth testing
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthWriteEnable = gpSpec.DepthStencilSpec.DepthWriteEnable;
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.DepthFunc = Utils::GetComparisonFunc(gpSpec.DepthStencilSpec.DepthFunc);
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilEnable = gpSpec.DepthStencilSpec.StencilEnable;
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilReadMask = gpSpec.DepthStencilSpec.StencilReadMask;
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.StencilWriteMask = gpSpec.DepthStencilSpec.StencilWriteMask;
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.FrontFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.FrontFace);
-        PSOCreateInfo.GraphicsPipeline.DepthStencilDesc.BackFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.BackFace);
+        RasterizerStateDesc& rasterizerDesc = PSOCreateInfo.GraphicsPipeline.RasterizerDesc;
+        rasterizerDesc.FillMode = Utils::GetFillMode(gpSpec.RasterizerSpec.FillMode);
+        rasterizerDesc.CullMode = Utils::GetCullMode(gpSpec.RasterizerSpec.CullMode);
+        rasterizerDesc.FrontCounterClockwise = gpSpec.RasterizerSpec.FrontCounterClockwise;
+        rasterizerDesc.DepthClipEnable = gpSpec.RasterizerSpec.DepthClipEnable;
+        rasterizerDesc.ScissorEnable = gpSpec.RasterizerSpec.ScissorEnabled;
+        rasterizerDesc.AntialiasedLineEnable = gpSpec.RasterizerSpec.AntialiasedLineEnabled;
+        rasterizerDesc.DepthBias = gpSpec.RasterizerSpec.DepthBias;
+        rasterizerDesc.DepthBiasClamp = gpSpec.RasterizerSpec.DepthBiasClamp;
+        rasterizerDesc.SlopeScaledDepthBias = gpSpec.RasterizerSpec.SlopeScaledDepthBias;
+
+        DepthStencilStateDesc& depthStencilDesc = PSOCreateInfo.GraphicsPipeline.DepthStencilDesc;
+        depthStencilDesc.DepthEnable = gpSpec.DepthStencilSpec.DepthEnable;
+        depthStencilDesc.DepthWriteEnable = gpSpec.DepthStencilSpec.DepthWriteEnable;
+        depthStencilDesc.DepthFunc = Utils::GetComparisonFunc(gpSpec.DepthStencilSpec.DepthFunc);
+        depthStencilDesc.StencilEnable = gpSpec.DepthStencilSpec.StencilEnable;
+        depthStencilDesc.StencilReadMask = gpSpec.DepthStencilSpec.StencilReadMask;
+        depthStencilDesc.StencilWriteMask = gpSpec.DepthStencilSpec.StencilWriteMask;
+        depthStencilDesc.FrontFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.FrontFace);
+        depthStencilDesc.BackFace = Utils::GetStencilOp(gpSpec.DepthStencilSpec.BackFace);
+
         PSOCreateInfo.GraphicsPipeline.NumRenderTargets = gpSpec.NumRenderTargets;
 
         PSOCreateInfo.GraphicsPipeline.pRenderPass = m_RenderPassTable.At(gpSpec.RenderPass)->RenderPass;

@@ -1,30 +1,23 @@
 #pragma once
 
-#include "Quelos/Renderer/FrameBuffer.h"
+#include "Quelos/Core/API.h"
+
+#include "Quelos/Renderer/RenderResource.h"
+#include "Quelos/Scenes/WorldRenderer.h"
 
 #include "imgui.h"
-#include "Quelos/Renderer/RenderResource.h"
-#include "Quelos/Scenes/Entity.h"
 
 namespace QuelosEditor {
     using namespace Quelos;
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(std::string name, RenderPassHandle renderPassHandle, RenderPassHandle shadowMaskPass, uint32_t width, uint32_t height);
+        ViewportPanel(std::string name, WorldRendererView&& worldRendererView, uint32_t width, uint32_t height);
 
         virtual ~ViewportPanel() = default;
 
-        void SetRenderPass(RenderPassHandle gBufferPass, RenderPassHandle shadowMaskPass);
-
-        [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() { return m_FrameBuffer; }
-        [[nodiscard]] Ref<FrameBuffer> GetFrameBuffer() const { return m_FrameBuffer; }
-
-        [[nodiscard]] TextureHandle GetDepthAttachment() const { return m_DepthAttachment.GetHandle(); }
-        [[nodiscard]] FrameBufferHandle GetShadowMaskFrameBuffer() const { return m_ShadowMaskFB.GetHandle(); }
-
-        [[nodiscard]] TextureHandle GetShadowMask() const { return m_ShadowMaskTexture.GetHandle(); }
-
+        WorldRendererView& GetWorldRendererView() { return m_WorldRendererView; }
+        void SetWorldRendererView(WorldRendererView&& worldRendererView);
         bool ResizeIfNeeded();
 
         [[nodiscard]] float2 GetViewportSize() const { return m_ViewportSize; }
@@ -42,6 +35,8 @@ namespace QuelosEditor {
         void QueueResize(float width, float height);
     protected:
         std::string m_Name;
+        WorldRendererView m_WorldRendererView;
+
         bool m_IsEnabled = true;
 
         bool m_ViewportFocused = false;
@@ -55,14 +50,5 @@ namespace QuelosEditor {
         float2 m_ViewportSize{};
 
         bool m_ViewportVisible = false;
-
-        ResourceRef<Texture> m_ColorAttachment;
-        ResourceRef<Texture> m_DepthAttachment;
-        ResourceRef<Texture> m_SceneColorAttachment;
-
-        Ref<FrameBuffer> m_FrameBuffer;
-
-        ResourceRef<Texture> m_ShadowMaskTexture;
-        ResourceRef<FrameBuffer> m_ShadowMaskFB;
     };
 }

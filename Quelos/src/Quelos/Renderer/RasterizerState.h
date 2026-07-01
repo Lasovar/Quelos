@@ -83,7 +83,7 @@ namespace Quelos {
         ///
         /// To check if the device supports depth clamping, use the DepthClamp device feature.
         /// If it is not supported, the value of this member must be True.
-        bool DepthClipEnabled = true;
+        bool DepthClipEnable = true;
 
         /// Enable scissor-rectangle culling. All pixels outside an active scissor rectangle are culled.
 

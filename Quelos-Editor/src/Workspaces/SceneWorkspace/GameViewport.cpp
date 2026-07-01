@@ -10,11 +10,10 @@
 namespace QuelosEditor {
     GameViewport::GameViewport(
         std::string name, SceneWorkspace& sceneWorkspace,
-        const RenderPassHandle renderPassHandle,
-        const RenderPassHandle shadowMaskHandle,
+        WorldRendererView&& worldRendererView,
         const uint32_t width,
         const uint32_t height
-    ) : ViewportPanel(std::move(name), renderPassHandle, shadowMaskHandle, width, height), m_SceneWorkspace(sceneWorkspace) {
+    ) : ViewportPanel(std::move(name), std::move(worldRendererView), width, height), m_SceneWorkspace(sceneWorkspace) {
     }
 
     void GameViewport::BeforeViewport() {
