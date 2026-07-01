@@ -396,9 +396,9 @@ namespace Quelos {
 
         GraphicsPipelineSpec& gfx = psoCI.GraphicsPipeline;
         gfx.RenderPass = m_ShadowRenderPass;
-        gfx.RasterizerSpec.CullMode = CullMode::Back;
-        gfx.RasterizerSpec.DepthBias = 4;
-        gfx.RasterizerSpec.SlopeScaledDepthBias = 2.0f;
+        gfx.RasterizerSpec.CullMode = CullMode::Front;
+        gfx.RasterizerSpec.DepthBias = 0;
+        gfx.RasterizerSpec.SlopeScaledDepthBias = 0;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
         gfx.DepthStencilSpec.DepthEnable = true;
 
@@ -507,7 +507,7 @@ namespace Quelos {
             for (uint32_t i = 0; i < k_NumCascades; i++) {
                 TextureViewSpec dsvSpec;
                 dsvSpec.ViewType = TextureViewType::DepthStencil;
-                dsvSpec.TextureType = TextureType::Texture2D;
+                dsvSpec.TextureType = TextureType::Texture2DArray;
                 dsvSpec.Format = ImageFormat::Depth32Float;
                 dsvSpec.FirstArraySlice = i;
                 dsvSpec.NumArraySlices = 1;
@@ -746,7 +746,9 @@ namespace Quelos {
                 );
             }
 
-            m_InstancingDrawCalls.emplace_back(transform.Value, &meshRenderer.Mesh.Get(), meshRenderer.Mesh.GetAssetHandle().Index);
+            if (meshRenderer.CastShadows) {
+                m_InstancingDrawCalls.emplace_back(transform.Value, &meshRenderer.Mesh.Get(), meshRenderer.Mesh.GetAssetHandle().Index);
+            }
         });
 
         m_World->defer_end();
@@ -855,7 +857,7 @@ namespace Quelos {
             }
 
             // Temporal smoothing, prevents split jumping
-            smoothedSplits = math::lerp(smoothedSplits, targetSplits, 0.15f);
+            smoothedSplits = targetSplits;//math::lerp(smoothedSplits, targetSplits, 0.15f);
 
             Array<float3, 8> frustumCorners = {
                 // near plane (z=0)
@@ -905,7 +907,7 @@ namespace Quelos {
                 lsMax.y = lsMin.y + unitsPerTexelY * SHADOW_MAP_SIZE;
 
                 // Pull near plane back to catch shadow casters behind camera
-                lsMin.z -= 00.0f; // needs to be tuned to scene scale, might add a UI slider
+                lsMin.z -= 1.0f; // needs to be tuned to scene scale, might add a UI slider
 
                 float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMin.z, lsMax.z);
                 shadowData.LightViewProj[c] = math::mul(lightView, lightProj);

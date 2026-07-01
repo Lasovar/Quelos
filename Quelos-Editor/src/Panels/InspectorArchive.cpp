@@ -2,6 +2,35 @@
 #include "InspectorArchive.h"
 
 namespace QuelosEditor {
+    void InspectorArchive::DrawField(std::string_view name, uint32_t& value) {
+        static uint32_t startValue = 0.0f;
+        static bool startedEditing = false;
+        uint32_t temp = value;
+
+        if (UI::EditUInt(GetFormattedFieldName(name), temp)) {
+            if (!startedEditing) {
+                startedEditing = true;
+                startValue = value;
+            }
+
+            value = temp;
+        }
+
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            m_UndoSystem.Push<SetField<uint32_t>>(
+                m_ComponentID.second().get<ComponentID>(),
+                m_Actor.GetActorID(),
+                m_Scene,
+                m_SerializeComponentFunc,
+                name,
+                startValue,
+                value
+            );
+
+            startedEditing = false;
+        }
+    }
+
     void InspectorArchive::DrawField(std::string_view name, float& value) {
         static float startValue = 0.0f;
         static bool startedEditing = false;

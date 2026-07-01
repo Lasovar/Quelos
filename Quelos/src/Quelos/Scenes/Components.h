@@ -105,11 +105,13 @@ namespace Quelos {
     struct QS_API MeshRenderer {
         AssetRef<Mesh> Mesh;
         AssetRef<Material> Material;
+        uint32_t CastShadows = true;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MeshRenderer& data) {
             archive.Field("mesh", data.Mesh);
             archive.Field("material", data.Material);
+            archive.Field("castShadows", data.CastShadows);
         }
     };
 

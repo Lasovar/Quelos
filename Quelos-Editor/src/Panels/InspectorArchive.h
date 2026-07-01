@@ -159,6 +159,7 @@ namespace QuelosEditor {
             }
         }
 
+        void DrawField(std::string_view name, uint32_t& value);
         void DrawField(std::string_view name, float& value);
         void DrawField(std::string_view name, float3& value);
         void DrawField(std::string_view name, quaternion& value);

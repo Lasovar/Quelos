@@ -5,13 +5,13 @@ __extern_cpp Texture2DArray<float> ShadowMaps;
 __extern_cpp SamplerComparisonState ShadowMaps_sampler;
 
 struct CascadeShadowData {
-    float4x4 LightViewProj[4];
+    row_major float4x4 LightViewProj[4];
     float4 SplitDepths;
-    float4x4 InvViewProj;
-    float4x4 View;
+    row_major float4x4 InvViewProj;
+    row_major float4x4 View;
 }
 
-ConstantBuffer<CascadeShadowData> CascadeData;
+__extern_cpp ConstantBuffer<CascadeShadowData> CascadeData;
 
 [shader("vertex")]
 [Pass("ShadowMask")]
@@ -29,9 +29,10 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     uint sampleCount;
     SceneDepth.GetDimensions(dims.x, dims.y, sampleCount);
 
-    float2 uv = svPos.xy / float2(dims);
+    float2 uv = (svPos.xy) / float2(dims);
     float2 ndc = uv * float2(2, -2) + float2(-1, 1);
-    float depth = SceneDepth[uint2(svPos.xy)];
+    //float2 ndc = uv * 2.0 - 1.0;
+    float depth = SceneDepth.Load(uint2(svPos.xy), 0);
 
     // Reconstruct world pos
     float4 clipPos = float4(ndc, depth, 1.0);
@@ -45,16 +46,24 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     // Select cascade
     int c = 3;
     for (int i = 0; i < 4; i++) {
-        if (viewZ < CascadeData.SplitDepths[i]) { c = i; break; }
+        if (viewZ < CascadeData.SplitDepths[i]) {
+            c = i; break;
+        }
     }
 
-    // Project into light space
     float4 lsPos = mul(float4(worldPos, 1.0), CascadeData.LightViewProj[c]);
     lsPos.xyz /= lsPos.w;
     float2 shadowUV = float2(lsPos.x * 0.5 + 0.5, 0.5 - lsPos.y * 0.5);
 
-    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, c), lsPos.z);
-
-    // Binarize for NPR
+    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
     return float4(step(0.5, shadow), 0, 0, 0);
+
+    //return float4(worldPos.y * 0.1 + 0.5, 0, 0, 0);
+    //return float4(lsPos.x * 0.5 + 0.5, 0, 0, 0);
+    //return float4(frac(worldPos * 0.1), 0);
+    //return float4(ndc * 0.5 + 0.5, 0, 0);
+    //return float4(lsPos.z, 0, 0, 0);
+    //return float4(shadowUV, 0, 0);
+    // Binarize for NPR
+    //return float4(step(0.5, shadow), 0, 0, 0);
 }

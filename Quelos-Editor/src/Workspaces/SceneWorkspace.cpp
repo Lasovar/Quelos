@@ -462,6 +462,10 @@ namespace QuelosEditor {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
 
                 auto size = m_SceneViewportPanel.GetViewportSize();
+                float aspectRatio = size.x / size.y;
+                ImVec2 availableSize = ImGui::GetContentRegionAvail();
+                size.x = availableSize.x;
+                size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
                     m_SceneViewportPanel.GetShadowMask().GetNativeHandle(),
