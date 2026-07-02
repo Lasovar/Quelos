@@ -1043,7 +1043,7 @@ namespace Quelos {
                 lsMax.y = lsMin.y + unitsPerTexelY * SHADOW_MAP_SIZE;
 
                 // Pull near plane back to catch shadow casters behind camera
-                lsMin.z -= 1.0f; // needs to be tuned to scene scale, might add a UI slider
+                lsMin.z -= 50.0f; // needs to be tuned to scene scale, might add a UI slider
 
                 float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMin.z, lsMax.z);
                 shadowData.LightViewProj[c] = math::mul(lightView, lightProj);
