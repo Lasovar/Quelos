@@ -936,7 +936,7 @@ namespace Quelos {
 
     void DiligentRendererContext::EndFrame() {
         m_pImmediateContext->Flush();
-        m_pSwapChain->Present(0);
+        m_pSwapChain->Present(1);
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {

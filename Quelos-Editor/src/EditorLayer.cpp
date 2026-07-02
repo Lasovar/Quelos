@@ -169,6 +169,7 @@ namespace QuelosEditor {
 
         static bool showStyleEditor = false;
         static bool showThemeSelector = false;
+    	static bool showStats = false;
 
         // Show demo options and help
         if (ImGui::BeginMenuBar()) {
@@ -205,6 +206,9 @@ namespace QuelosEditor {
                 }
             	if (ImGui::MenuItem("Theme Selector")) {
             		showThemeSelector = true;
+            	}
+            	if (ImGui::MenuItem("Editor Stats")) {
+            		showStats = true;
             	}
 
                 ImGui::EndMenu();
@@ -319,6 +323,28 @@ namespace QuelosEditor {
                 ImGui::ShowStyleEditor();
                 ImGui::End();
             }
+        }
+
+        if (showStats) {
+	        if (ImGui::Begin("Editor Stats", &showStats)) {
+	        	static float timer = 0.0f;
+	        	static int frameCount = 0;
+	        	static float displayedFPS = 0.0f;
+
+	        	const float deltaTime = Application::Get().GetTime()->DeltaTime();
+	        	timer += deltaTime;
+	        	frameCount++;
+
+	        	if (timer >= 0.25f) {
+	        		displayedFPS = static_cast<float>(frameCount) / timer;
+	        		frameCount = 0;
+	        		timer = 0.0f;
+	        	}
+
+	        	ImGui::Text("Frame time: %.3f ms", deltaTime * 1000.f);
+	        	ImGui::Text("Frame rate: %.3f fps", displayedFPS);
+	        }
+        	ImGui::End();
         }
 
         if (showThemeSelector) {
