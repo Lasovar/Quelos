@@ -224,6 +224,7 @@ namespace Quelos {
         void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) override;
         void Destroy(GpuBufferHandle bufferHandle) override;
 
+        void TransitionShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) override;
         void TransitionResource(TextureHandle textureHandle, ResourceState resourceState) override;
 
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;

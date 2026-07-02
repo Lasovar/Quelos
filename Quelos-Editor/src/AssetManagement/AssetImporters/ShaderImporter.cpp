@@ -329,6 +329,7 @@ namespace QuelosEditor {
         struct ShaderCompilationResult {
             HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes;
             Vec<MaterialPropertySpec> MaterialProperties;
+            HashSet<std::string> Variables;
             uint64_t MaterialSize = 0;
         };
 
@@ -549,13 +550,11 @@ namespace QuelosEditor {
             Slang::ComPtr<slang::IComponentType> linkedProgram;
             program->link(linkedProgram.writeRef(), diagnostics.writeRef());
 
-            /*
             slang::ProgramLayout* programLayout = linkedProgram->getLayout();
             for (uint32_t paramIndex = 0; paramIndex < programLayout->getParameterCount(); paramIndex++) {
                 slang::VariableLayoutReflection* variable = programLayout->getParameterByIndex(paramIndex);
-                shaderData.Parameters.emplace_back(variable->getName());
+                result.Variables.emplace(variable->getName());
             }
-            */
 
             for (auto& [passName, shaders] : passMap) {
                 for (uint32_t i = 0; i < shaders.size(); i++) {
@@ -623,13 +622,11 @@ namespace QuelosEditor {
             createInfo.MaterialSize = reader.Read<uint64_t>().value_or(0);
             createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
 
-            /*
             uint32_t numOfParameters = reader.Read<uint32_t>().value_or(0);
-            shader.Parameters.reserve(numOfParameters);
+            createInfo.Variables.reserve(numOfParameters);
             for (uint32_t parameterIndex = 0; parameterIndex < numOfParameters; parameterIndex++) {
-                shader.Parameters.emplace_back(reader.ReadString().value_or(""));
+                createInfo.Variables.emplace_back(reader.ReadString().value_or(""));
             }
-            */
 
             uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
             createInfo.Passes.reserve(numOfPasses);
@@ -736,15 +733,14 @@ namespace QuelosEditor {
             Serialization::BinaryWriter writer(buffer);
 
             writer.Write(compiledShaders.MaterialSize);
+            writer.Write(static_cast<uint32_t>(compiledShaders.Variables.size()));
+            for (const std::string& variable : compiledShaders.Variables) {
+                writer.WriteString(variable);
+            }
+
             writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
             for (const auto& [passName, shaders] : compiledShaders.Passes) {
                 writer.WriteString(passName);
-                /*
-                writer.Write(static_cast<uint32_t>(shader.Parameters.size()));
-                for (const std::string& parameter : shader.Parameters) {
-                    writer.WriteString(parameter);
-                }
-                */
 
                 writer.Write(static_cast<uint32_t>(shaders.size()));
                 for (const auto& shader : shaders) {

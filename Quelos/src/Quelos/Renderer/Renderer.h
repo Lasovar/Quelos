@@ -119,6 +119,7 @@ namespace Quelos {
 
         static void Destroy(ShaderResourceBindingHandle shaderResourceBindingHandle);
 
+        static void TransitionShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle);
         static void TransitionResource(TextureHandle textureHandle, ResourceState resourceState);
 
         static VertexBufferHandle CreateVertexBuffer(BufferView vertices, const VertexLayout& bufferLayout);

@@ -48,6 +48,7 @@ namespace QuelosEditor {
         ShaderImporter::Import(GetShadowDepthShader(), shadowDepthMetadata);
 
         m_WorldRenderer.SetShadowDepthShader(GetShadowDepthShader());
+        m_WorldRenderer.SetDepthPrepassShader(GetShadowDepthShader());
 
         AssetMetadata shadowMaskMetadata;
         shadowMaskMetadata.FilePath = "Assets/shaders/ShadowMask.slang";
@@ -474,7 +475,7 @@ namespace QuelosEditor {
                 size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
-                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView().ShadowMask.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView()->ShadowMask.GetHandle()).GetNativeHandle(),
                     {size.x, size.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
@@ -758,7 +759,7 @@ namespace QuelosEditor {
             const TextureViewHandle visibleMaskFbAttachments[] = {
                 Renderer::TextureGetDefaultView(m_VisibleMaskMSAATexture.GetHandle(), TextureViewType::RenderTarget),
                 Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::RenderTarget),
-                m_SceneViewportPanel.GetWorldRendererView().SceneDepthDSV
+                m_SceneViewportPanel.GetWorldRendererView()->SceneDepthDSV
             };
 
             FrameBufferSpec visibleMaskFbSpec;
@@ -859,7 +860,7 @@ namespace QuelosEditor {
         compositePassSpec.SubPasses = Span32(&compositeSubpass, 1);
         m_CompositeRenderPass = Renderer::CreateRenderPass(compositePassSpec);
 
-        TextureViewHandle compositeColorView = m_SceneViewportPanel.GetWorldRendererView().SceneColorRTV;
+        TextureViewHandle compositeColorView = m_SceneViewportPanel.GetWorldRendererView()->SceneColorRTV;
 
         FrameBufferSpec fbDesc;
         fbDesc.Name = "SelectionCompositeFB";

@@ -325,6 +325,7 @@ namespace Quelos {
 
         virtual void UpdateBuffer(GpuBufferHandle gpuBufferHandle, uint64_t offset, BufferView data) = 0;
 
+        virtual void TransitionShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) = 0;
         virtual void TransitionResource(TextureHandle textureHandle, ResourceState resourceState) = 0;
 
         virtual VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) = 0;

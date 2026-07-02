@@ -17,6 +17,7 @@ namespace Quelos {
         for (const auto& [passName, shaders] : createInfo.Passes) {
             GraphicsShaderPass pass;
             pass.Name = passName;
+            pass.Variables = createInfo.Variables;
 
             for (const auto & shader : shaders) {
                 if (shader.Type != ShaderType::Vertex && shader.Type != ShaderType::Fragment) {

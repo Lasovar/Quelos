@@ -138,3 +138,10 @@ namespace Quelos {
         PipelineStateHandle(Handle handle) : Handle(handle) {}
     };
 }
+
+template<>
+struct std::hash<Quelos::PipelineStateHandle> {
+    size_t operator()(const Quelos::PipelineStateHandle& handle) const noexcept {
+        return handle.Value;
+    }
+};

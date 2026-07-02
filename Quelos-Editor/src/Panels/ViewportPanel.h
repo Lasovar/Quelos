@@ -16,8 +16,8 @@ namespace QuelosEditor {
 
         virtual ~ViewportPanel() = default;
 
-        WorldRendererView& GetWorldRendererView() { return m_WorldRendererView; }
-        void SetWorldRendererView(WorldRendererView&& worldRendererView);
+        const WorldRendererView* GetWorldRendererView() const { return m_WorldRendererView; }
+        void SetWorldRendererView(const WorldRendererView* worldRendererView);
         bool ResizeIfNeeded();
 
         [[nodiscard]] float2 GetViewportSize() const { return m_ViewportSize; }
@@ -35,7 +35,7 @@ namespace QuelosEditor {
         void QueueResize(float width, float height);
     protected:
         std::string m_Name;
-        WorldRendererView m_WorldRendererView;
+        const WorldRendererView* m_WorldRendererView;
 
         bool m_IsEnabled = true;
 
