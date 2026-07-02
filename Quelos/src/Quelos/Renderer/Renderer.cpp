@@ -248,27 +248,30 @@ namespace Quelos {
         const ShaderType shaderType,
         const ShaderResourceBindingHandle srb,
         const std::string_view str,
-        const GpuBufferViewHandle instanceBuffer
+        const GpuBufferViewHandle instanceBuffer,
+        const SetShaderResourceFlag flag
     ) {
-        s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer);
+        s_RendererContext->BindVariableByName(shaderType, srb, str, instanceBuffer, flag);
     }
 
     void Renderer::BindVariableByName(
         const ShaderType shaderType,
         const ShaderResourceBindingHandle srb,
         const std::string_view str,
-        const TextureViewHandle textureViewHandle
+        const TextureViewHandle textureViewHandle,
+        const SetShaderResourceFlag flag
     ) {
-        s_RendererContext->BindVariableByName(shaderType, srb, str, textureViewHandle);
+        s_RendererContext->BindVariableByName(shaderType, srb, str, textureViewHandle, flag);
     }
 
     void Renderer::BindArrayByName(
         const ShaderType shaderType,
         const ShaderResourceBindingHandle srb,
         const std::string_view name,
-        const Span32<const uint64_t> nativeTextureHandles
+        const Span32<const uint64_t> nativeTextureHandles,
+        const SetShaderResourceFlag flags
     ) {
-        s_RendererContext->BindArrayByName(shaderType, srb, name, nativeTextureHandles);
+        s_RendererContext->BindArrayByName(shaderType, srb, name, nativeTextureHandles, flags);
     }
 
     void Renderer::CommitShaderResources(

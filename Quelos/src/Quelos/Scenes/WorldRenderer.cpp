@@ -12,10 +12,9 @@ using namespace magic_enum::bitwise_operators;
 namespace Quelos {
     MaterialRegistry::MaterialRegistry(
         const std::string& pipelineName,
-        TextureRegistry& textureRegistry,
         const uint64_t materialSize
     )
-        : m_PipelineName(pipelineName), m_MaterialSize(materialSize), m_TextureRegistry(&textureRegistry)
+        : m_PipelineName(pipelineName), m_MaterialSize(materialSize)
     {
     }
 
@@ -73,7 +72,7 @@ namespace Quelos {
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
                     if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry->GetID(*texture);
+                        uint32_t textureId = m_TextureRegistry.GetID(*texture);
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,
@@ -125,7 +124,7 @@ namespace Quelos {
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
                     if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry->GetID(*texture);
+                        uint32_t textureId = m_TextureRegistry.GetID(*texture);
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,
@@ -159,6 +158,10 @@ namespace Quelos {
         if (m_GPUBuffer.IsValid()) {
             Renderer::Destroy(m_GPUBuffer);
         }
+    }
+
+    void WorldRendererView::Resize(const Extent2D size) {
+        m_WorldRenderer->ResizeView(*this, size);
     }
 
     WorldRenderer::WorldRenderer() {
@@ -243,8 +246,6 @@ namespace Quelos {
 
         uint32_t magentaColor = 0xFF00FFFF;
         m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::as_bytes(Span(&magentaColor, 1)));
-
-        m_TextureRegistry.Init(m_WhiteTexture, m_MagentaTexture);
 
         // Shadow Render Pass
         RenderPassAttachmentSpec shadowPassAttachment[1];
@@ -345,7 +346,7 @@ namespace Quelos {
         computePipelineState.Spec.Type = PipelineType::Compute;
 
         constexpr ShaderResourceVariableSpec vars[2] = {
-            {"DepthTex", ShaderType::Compute, ShaderResourceVariableType::Dynamic},
+            {"DepthTex", ShaderType::Compute, ShaderResourceVariableType::Mutable},
             {"ReductionOut", ShaderType::Compute, ShaderResourceVariableType::Static},
         };
 
@@ -359,8 +360,6 @@ namespace Quelos {
             "ReductionOut",
             Renderer::GetDefaultBufferView(m_ReductionOutBuffer.GetHandle(), BufferViewType::UnorderedAccess)
         );
-
-        m_ShadowComputeSRB = Renderer::CreateShaderResourceBinding(m_ShadowComputePSO.GetHandle(), true);
     }
 
     void WorldRenderer::SetShadowDepthShader(const GraphicsShader* shaderDepthShader) {
@@ -391,7 +390,7 @@ namespace Quelos {
         gfx.RasterizerSpec.DepthBias = 4;
         gfx.RasterizerSpec.SlopeScaledDepthBias = 3.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
-        gfx.RasterizerSpec.DepthClipEnable = false;
+        //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
 
         LayoutElementBuilder<5> layoutBuilder{
@@ -420,7 +419,8 @@ namespace Quelos {
             ShaderType::Vertex,
             m_ShadowDepthSRB.GetHandle(),
             "Instances",
-            m_InstancesBufferView
+            m_InstancesBufferView,
+            SetShaderResourceFlag::None
         );
     }
 
@@ -444,8 +444,8 @@ namespace Quelos {
 
         constexpr ShaderResourceVariableSpec vars[3] = {
             {"CascadeData", ShaderType::Fragment, ShaderResourceVariableType::Static},
-            {"SceneDepth", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
-            {"ShadowMaps", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
+            {"SceneDepth", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
+            {"ShadowMaps", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
         };
 
         psoCI.Spec.ResourceLayout.Variables = vars;
@@ -473,12 +473,10 @@ namespace Quelos {
             "CascadeData",
             m_CascadeShadowDataBuffer.GetHandle()
         );
-
-        m_ShadowMaskSRB = Renderer::CreateShaderResourceBinding(m_ShadowMaskPSO.GetHandle(), true);
     }
 
     WorldRendererView WorldRenderer::CreateView(std::string_view name) const {
-        WorldRendererView view;
+        WorldRendererView view(this);
 
         TextureSpecification msaaColorSpec;
         msaaColorSpec.Width = 1;
@@ -521,6 +519,16 @@ namespace Quelos {
         view.SceneDepthSRV = Renderer::TextureGetDefaultView(view.SceneDepthMSAA.GetHandle(), TextureViewType::ShaderResource);
         view.SceneDepthDSV = Renderer::TextureGetDefaultView(view.SceneDepthMSAA.GetHandle(), TextureViewType::DepthStencil);
 
+        view.ShadowComputeSRB = Renderer::CreateShaderResourceBinding(m_ShadowComputePSO.GetHandle(), true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            view.ShadowComputeSRB.GetHandle(),
+            "DepthTex",
+            view.SceneDepthSRV,
+            SetShaderResourceFlag::None
+        );
+
         const TextureViewHandle attachments[] = {
             Renderer::TextureGetDefaultView(view.SceneColorMSAA.GetHandle(), TextureViewType::RenderTarget),
             view.SceneColorRTV,
@@ -557,6 +565,16 @@ namespace Quelos {
 
         view.ShadowMaskFB = Renderer::CreateFrameBuffer(shadowMaskFBSpec);
 
+        view.ShadowMaskSRB = Renderer::CreateShaderResourceBinding(m_ShadowMaskPSO.GetHandle(), true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            view.ShadowMaskSRB.GetHandle(),
+            "SceneDepth",
+            view.SceneDepthSRV,
+            SetShaderResourceFlag::None
+        );
+
         GpuBufferSpec stagingSpec;
         stagingSpec.Name = "ReductionStaging";
         stagingSpec.Size = sizeof(uint64_t);
@@ -570,7 +588,7 @@ namespace Quelos {
         return view;
     }
 
-    void WorldRenderer::ResizeView(const WorldRendererView& view, const Extent2D size) {
+    void WorldRenderer::ResizeView(WorldRendererView& view, const Extent2D size) const {
         Renderer::TextureResize(view.SceneColorMSAA.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view.SceneColor.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view.SceneDepthMSAA.GetHandle(), size.Width, size.Height);
@@ -578,6 +596,27 @@ namespace Quelos {
 
         Renderer::TextureResize(view.ShadowMask.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view.ShadowMaskFB.GetHandle(), size.Width, size.Height);
+
+        view.ShadowComputeSRB = Renderer::CreateShaderResourceBinding(m_ShadowComputePSO.GetHandle(), true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            view.ShadowComputeSRB.GetHandle(),
+            "DepthTex",
+            view.SceneDepthSRV,
+            SetShaderResourceFlag::None
+        );
+
+        view.ShadowMaskSRB = Renderer::CreateShaderResourceBinding(m_ShadowMaskPSO.GetHandle(), true);
+        view.ShadowMapsBound = false;
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            view.ShadowMaskSRB.GetHandle(),
+            "SceneDepth",
+            view.SceneDepthSRV,
+            SetShaderResourceFlag::None
+        );
     }
 
     void WorldRenderer::Begin() {
@@ -760,7 +799,7 @@ namespace Quelos {
                     vars.emplace_back("Materials", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable);
                 }
 
-                vars.emplace_back("g_Textures", ShaderType::Fragment, ShaderResourceVariableType::Dynamic);
+                vars.emplace_back("g_Textures", ShaderType::Fragment, ShaderResourceVariableType::Mutable);
 
                 SamplerSpec samplerSpec;
                 samplerSpec.WrapU = WrapMode::Repeat;
@@ -782,8 +821,8 @@ namespace Quelos {
                 Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
 
                 ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pipelineStateHandle, true);
-                Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesBufferView);
-                Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesBufferView);
+                Renderer::BindVariableByName(ShaderType::Vertex, srb, "Instances", m_InstancesBufferView, SetShaderResourceFlag::None);
+                Renderer::BindVariableByName(ShaderType::Fragment, srb, "Instances", m_InstancesBufferView, SetShaderResourceFlag::None);
 
                 worldPipelines.emplace_back(pipelineStateHandle, srb, pipelineData.Order, true);
                 shader.AddPipelineState(pipelineStateHandle);
@@ -802,8 +841,10 @@ namespace Quelos {
             MaterialRegistry& materialRegistry = m_PipelineStates.try_emplace(
                 shader.GetAssetID(),
                 std::move(worldPipelines),
-                MaterialRegistry(shader.GetName(), m_TextureRegistry, shader.GetMaterialSize())
+                MaterialRegistry(shader.GetName(), shader.GetMaterialSize())
             ).first->second.MaterialRegistry;
+
+            materialRegistry.GetTextureRegistry().Init(m_WhiteTexture, m_MagentaTexture);
 
             entity.emplace<PipelineStateComponent>(
                 std::move(entityPipelines),
@@ -815,7 +856,9 @@ namespace Quelos {
         m_World->defer_end();
 
         m_DrawCalls.clear();
+        m_InstancingDrawCalls.clear();
         m_DrawCalls.reserve(m_RenderingQuery.count());
+        m_InstancingDrawCalls.reserve(m_RenderingQuery.count());
 
         m_World->defer_begin();
 
@@ -857,35 +900,41 @@ namespace Quelos {
                         ShaderType::Vertex,
                         pipeline.SRB,
                         "Materials",
-                        pipelineInfo.MaterialRegistry.GetBufferViewHandle()
+                        pipelineInfo.MaterialRegistry.GetBufferViewHandle(),
+                        SetShaderResourceFlag::AllowOverwrite
                     );
 
                     Renderer::BindVariableByName(
                         ShaderType::Fragment,
                         pipeline.SRB,
                         "Materials",
-                        pipelineInfo.MaterialRegistry.GetBufferViewHandle()
+                        pipelineInfo.MaterialRegistry.GetBufferViewHandle(),
+                        SetShaderResourceFlag::AllowOverwrite
                     );
                 }
             }
 
-            m_TextureRegistry.UpdateTexturesArray();
+            TextureRegistry& textureRegistry = pipelineInfo.MaterialRegistry.GetTextureRegistry();
+            if (textureRegistry.IsDirty()) {
+                textureRegistry.UpdateTexturesArray();
 
-            for (const auto& pipeline : pipelineInfo.Pipelines) {
-                if (pipeline.HasTextures) {
-                    Renderer::BindArrayByName(
-                       ShaderType::Fragment,
-                       pipeline.SRB,
-                       "g_Textures",
-                       m_TextureRegistry.GetTextureViews()
-                   );
+                for (const auto& pipeline : pipelineInfo.Pipelines) {
+                    if (pipeline.HasTextures) {
+                        Renderer::BindArrayByName(
+                           ShaderType::Fragment,
+                           pipeline.SRB,
+                           "g_Textures",
+                           textureRegistry.GetTextureViews(),
+                           SetShaderResourceFlag::AllowOverwrite
+                       );
 
-                    Renderer::CommitShaderResources(pipeline.SRB, ResourceStateTransitionMode::Transition);
+                        Renderer::CommitShaderResources(pipeline.SRB, ResourceStateTransitionMode::Transition);
+                    }
                 }
+
+                textureRegistry.SetDirty(false);
             }
         }
-
-        m_TextureRegistry.SetDirty(false);
 
         std::ranges::sort(m_DrawCalls, {}, &DrawCommand::SortKey);
         std::ranges::sort(m_InstancingDrawCalls, {}, &InstanceDrawCommand::SortKey);
@@ -1074,22 +1123,21 @@ namespace Quelos {
                     std::as_bytes(Span(&shadowData, 1))
                 );
 
-                Renderer::BindVariableByName(
-                    ShaderType::Fragment,
-                    m_ShadowMaskSRB.GetHandle(),
-                    "SceneDepth",
-                    view.SceneDepthSRV
-                );
-
-                Renderer::BindVariableByName(
-                    ShaderType::Fragment,
-                    m_ShadowMaskSRB.GetHandle(),
-                    "ShadowMaps",
-                    Renderer::TextureGetDefaultView(shadowMap.ShadowMaps.GetHandle(), TextureViewType::ShaderResource)
-                );
-
                 Renderer::BindPipelineState(m_ShadowMaskPSO.GetHandle());
-                Renderer::CommitShaderResources(m_ShadowMaskSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+
+                if (!view.ShadowMapsBound) {
+                    Renderer::BindVariableByName(
+                        ShaderType::Fragment,
+                        view.ShadowMaskSRB.GetHandle(),
+                        "ShadowMaps",
+                        Renderer::TextureGetDefaultView(shadowMap.ShadowMaps.GetHandle(), TextureViewType::ShaderResource),
+                        SetShaderResourceFlag::AllowOverwrite
+                    );
+
+                    view.ShadowMapsBound = true;
+                }
+
+                Renderer::CommitShaderResources(view.ShadowMaskSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 
                 BeginRenderPassAttribs shadowMaskPassAttribs{};
                 shadowMaskPassAttribs.RenderPassHandle = m_ShadowMaskRenderPass.GetHandle();
@@ -1215,15 +1263,8 @@ namespace Quelos {
             std::as_bytes(Span(k_ReductionClear))
         );
 
-        Renderer::BindVariableByName(
-            ShaderType::Compute,
-            m_ShadowComputeSRB.GetHandle(),
-            "DepthTex",
-            view.SceneDepthSRV
-        );
-
         Renderer::BindPipelineState(m_ShadowComputePSO.GetHandle());
-        Renderer::CommitShaderResources(m_ShadowComputeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+        Renderer::CommitShaderResources(view.ShadowComputeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 
         const TextureSpecification* sceneDepthSpec = Renderer::GetSpecification(Renderer::GetTexture(view.SceneDepthSRV));
         const uint32_t width = sceneDepthSpec->Width;

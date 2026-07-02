@@ -342,14 +342,15 @@ namespace QuelosEditor {
             ImGui::End();
         }
 
+
+    	std::erase_if(m_Workspaces,
+					  [](const Pair<AssetID, Scope<Workspace>>& workspace) {
+						  return !workspace.second->IsOpen();
+					  });
+
         for (const auto& workspace : m_Workspaces | std::views::values) {
             workspace->OnImGuiRender(m_EditorLayerClass, globalDockspaceID);
         }
-
-        std::erase_if(m_Workspaces,
-                      [](const Pair<AssetID, Scope<Workspace>>& workspace) {
-                          return !workspace.second->IsOpen();
-                      });
     }
 
     void EditorLayer::OnEvent(Event& event) {

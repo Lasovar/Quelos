@@ -623,6 +623,10 @@ namespace Quelos {
         constexpr FILL_MODE GetFillMode(FillMode fillMode) {
             return static_cast<FILL_MODE>(fillMode);
         }
+
+        constexpr SET_SHADER_RESOURCE_FLAGS GetSetShaderResourceFlag(SetShaderResourceFlag flags) {
+            return static_cast<SET_SHADER_RESOURCE_FLAGS>(flags);
+        }
     }
 
     namespace TextureUtil {
@@ -824,6 +828,7 @@ namespace Quelos {
             engineCi.GraphicsAPIVersion = Version{1, 3};
 
             engineCi.DynamicHeapSize = 32 << 20;
+            engineCi.EnableValidation = false;
 
 #ifndef QS_PLATFORM_MACOS
             VkPhysicalDeviceVulkan12Features vk12Features{};
@@ -931,7 +936,7 @@ namespace Quelos {
 
     void DiligentRendererContext::EndFrame() {
         m_pImmediateContext->Flush();
-        m_pSwapChain->Present(1);
+        m_pSwapChain->Present(0);
     }
 
     void DiligentRendererContext::Reset(const uint32_t width, const uint32_t height) {
@@ -1092,7 +1097,8 @@ namespace Quelos {
         ShaderType shaderType,
         ShaderResourceBindingHandle shaderResourceBindingHandle,
         std::string_view name,
-        GpuBufferViewHandle gpuBufferViewHandle
+        GpuBufferViewHandle gpuBufferViewHandle,
+        SetShaderResourceFlag flags
     ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
@@ -1124,7 +1130,7 @@ namespace Quelos {
 
         shaderResourceVariable->Set(
             m_BufferViewTable.At(gpuBufferViewHandle)->BufferView,
-            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+            Utils::GetSetShaderResourceFlag(flags)
         );
     }
 
@@ -1132,7 +1138,8 @@ namespace Quelos {
         const ShaderType shaderType,
         const ShaderResourceBindingHandle shaderResourceBindingHandle,
         std::string_view name,
-        const TextureViewHandle textureViewHandle
+        const TextureViewHandle textureViewHandle,
+        const SetShaderResourceFlag flags
     ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
@@ -1164,7 +1171,7 @@ namespace Quelos {
 
         shaderResourceVariable->Set(
             m_TextureViewTable.At(textureViewHandle)->TextureView,
-            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+            Utils::GetSetShaderResourceFlag(flags)
         );
     }
 
@@ -1172,7 +1179,8 @@ namespace Quelos {
         const ShaderType shaderType,
         const ShaderResourceBindingHandle shaderResourceBindingHandle,
         std::string_view name,
-        const Span32<const uint64_t> nativeTextureHandles
+        const Span32<const uint64_t> nativeTextureHandles,
+        const SetShaderResourceFlag flags
     ) {
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
 
@@ -1209,7 +1217,7 @@ namespace Quelos {
             reinterpret_cast<IDeviceObject* const*>(nativeTextureHandles.data()),
             0,
             nativeTextureHandles.size(),
-            SET_SHADER_RESOURCE_FLAG_ALLOW_OVERWRITE
+            Utils::GetSetShaderResourceFlag(flags)
         );
     }
 

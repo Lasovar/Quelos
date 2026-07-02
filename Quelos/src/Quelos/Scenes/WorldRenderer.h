@@ -12,7 +12,8 @@
 #include "Quelos/Renderer/RenderResource.h"
 
 namespace Quelos {
-    constexpr size_t k_MaxTextures = 128;
+    class WorldRenderer;
+    constexpr size_t k_MaxTextures = 16;
     constexpr uint32_t k_MaxInstances = 512;
 
     class TextureRegistry {
@@ -22,6 +23,7 @@ namespace Quelos {
             m_MagentaTexture = magentaTexture;
             std::ranges::fill(m_TextureArray, m_MagentaTexture.GetNativeHandle());
             m_TextureArray[k_MaxTextures - 1] = m_WhiteTexture.GetNativeHandle();
+            m_IsDirty = true;
         }
 
         uint32_t GetID(const AssetRef<Texture2D>& textureHandle) {
@@ -80,7 +82,7 @@ namespace Quelos {
 
     class MaterialRegistry {
     public:
-        MaterialRegistry(const std::string& pipelineName, TextureRegistry& textureRegistry, uint64_t materialSize);
+        MaterialRegistry(const std::string& pipelineName, uint64_t materialSize);
 
         [[nodiscard]] GpuBufferViewHandle GetBufferViewHandle() const { return m_GpuBufferView; }
 
@@ -111,6 +113,8 @@ namespace Quelos {
         [[nodiscard]] bool WasReallocated() const { return m_WasReallocated; } // signal to rebind
         void Release() const;
 
+        TextureRegistry& GetTextureRegistry() { return m_TextureRegistry; }
+
     private:
         std::string m_PipelineName;
         uint64_t m_MaterialSize = 0;
@@ -118,7 +122,7 @@ namespace Quelos {
         Vec<AssetRef<Material>> m_CpuMaterials;
         GpuBufferHandle m_GPUBuffer;
         GpuBufferViewHandle m_GpuBufferView;
-        TextureRegistry* m_TextureRegistry;
+        TextureRegistry m_TextureRegistry;
         size_t m_GPUCapacity = 0;
         bool m_IsDirty = false;
         bool m_WasReallocated = false;
@@ -179,6 +183,9 @@ namespace Quelos {
     };
 
     struct QS_API WorldRendererView {
+        WorldRendererView() = default;
+        explicit WorldRendererView(const WorldRenderer* worldRenderer) : m_WorldRenderer(worldRenderer) {}
+
         ResourceRef<Texture> SceneColorMSAA;
         ResourceRef<Texture> SceneColor;
         ResourceRef<Texture> SceneDepthMSAA;
@@ -195,14 +202,21 @@ namespace Quelos {
         // Shadow mask
         ResourceRef<Texture> ShadowMask;
         ResourceRef<FrameBuffer> ShadowMaskFB;
+        ResourceRef<ShaderResourceBinding> ShadowMaskSRB;
+        bool ShadowMapsBound = false;
 
         bool ReductionReadbackReady = false;
         ResourceRef<GpuBuffer> ReductionStagingBuffer;
+        ResourceRef<ShaderResourceBinding> ShadowComputeSRB;
 
         float LastMinNDC = 0.0f;
         float LastMaxNDC = 1.0f;
 
         float4 SmoothedSplits = {5.f, 10.f, 20.f, 40.f};
+
+        void Resize(Extent2D size);
+    private:
+        const WorldRenderer* m_WorldRenderer;
     };
 
     struct QS_API RenderViewParams {
@@ -225,7 +239,7 @@ namespace Quelos {
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
 
         WorldRendererView CreateView(std::string_view name) const;
-        static void ResizeView(const WorldRendererView& view, Extent2D size);
+        void ResizeView(WorldRendererView& view, Extent2D size) const;
 
         /// View-independent, called once per frame
         void Begin();
@@ -246,7 +260,6 @@ namespace Quelos {
     private:
         RenderPassHandle m_RenderPass;
 
-        TextureRegistry m_TextureRegistry;
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
 
@@ -291,7 +304,6 @@ namespace Quelos {
         GpuBufferViewHandle m_InstancesBufferView;
 
         ResourceRef<PipelineStateObject> m_ShadowComputePSO;
-        ResourceRef<ShaderResourceBinding> m_ShadowComputeSRB;
 
         ResourceRef<GpuBuffer> m_ReductionOutBuffer;
 
@@ -302,6 +314,5 @@ namespace Quelos {
         ResourceRef<GpuBuffer> m_CascadeShadowDataBuffer;
         ResourceRef<RenderPass> m_ShadowMaskRenderPass;
         ResourceRef<PipelineStateObject> m_ShadowMaskPSO;
-        ResourceRef<ShaderResourceBinding> m_ShadowMaskSRB;
     };
 }

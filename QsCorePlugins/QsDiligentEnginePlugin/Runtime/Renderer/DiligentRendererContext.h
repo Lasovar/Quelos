@@ -197,21 +197,21 @@ namespace Quelos {
         void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
-            std::string_view name, GpuBufferViewHandle gpuBufferViewHandle
+            std::string_view name, GpuBufferViewHandle gpuBufferViewHandle, SetShaderResourceFlag flags
         ) override;
 
         void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
             std::string_view name,
-            TextureViewHandle textureViewHandle
+            TextureViewHandle textureViewHandle, SetShaderResourceFlag flags
         ) override;
 
         void BindArrayByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle shaderResourceBindingHandle,
             std::string_view name,
-            Span32<const uint64_t> nativeTextureHandles
+            Span32<const uint64_t> nativeTextureHandles, SetShaderResourceFlag flags
         ) override;
 
         void Map(GpuBufferHandle bufferHandle, MapType mapType, MapFlags mapFlags, void*& mappedData) override;

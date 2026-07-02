@@ -12,8 +12,8 @@ using namespace magic_enum::bitwise_operators;
 namespace QuelosEditor {
     SceneWorkspace::SceneWorkspace(UndoSystem& undoSystem, const AssetMetadata& assetMetadata)
         : Workspace(std::string(FS::Stem(assetMetadata.FilePath)), undoSystem),
-          m_GameViewportPanel("Game View", *this, m_WorldRenderer.CreateView("GameView"), 1, 1),
-          m_SceneViewportPanel("Scene View", *this, m_WorldRenderer.CreateView("SceneView"), 1, 1),
+          m_GameViewportPanel("Game View", *this, 1, 1),
+          m_SceneViewportPanel("Scene View", *this, 1, 1),
           m_InspectorPanel(*this, undoSystem),
           m_EntityHierarchyPanel(*this, undoSystem)
     {
@@ -59,6 +59,8 @@ namespace QuelosEditor {
 
         m_WorldRenderer.SetShadowMaskShader(GetShadowMaskShader());
 
+        m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView"));
+        m_SceneViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("SceneView"));
 
         m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
@@ -197,7 +199,8 @@ namespace QuelosEditor {
             ShaderType::Vertex,
             m_IDSRB.GetHandle(),
             "Instances",
-            m_WorldRenderer.GetInstancesBufferView()
+            m_WorldRenderer.GetInstancesBufferView(),
+            SetShaderResourceFlag::None
         );
 
         CreateOutlineMaskResources();
@@ -281,9 +284,25 @@ namespace QuelosEditor {
                 Renderer::TextureResize(    m_VisibleMaskResolvedTexture.GetHandle(), size.x, size.y);
                 Renderer::FrameBufferResize(m_VisibleMaskFrameBuffer.GetHandle(), size.x, size.y);
 
+                Renderer::BindVariableByName(
+                    ShaderType::Fragment,
+                    m_CompositeSRB.GetHandle(),
+                    "VisibleMask",
+                    Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+                    SetShaderResourceFlag::AllowOverwrite
+                );
+
                 Renderer::TextureResize(    m_FullMaskMSAATexture.GetHandle(), size.x, size.y);
                 Renderer::TextureResize(    m_FullMaskResolvedTexture.GetHandle(), size.x, size.y);
                 Renderer::FrameBufferResize(m_FullMaskFrameBuffer.GetHandle(), size.x, size.y);
+
+                Renderer::BindVariableByName(
+                    ShaderType::Fragment,
+                    m_CompositeSRB.GetHandle(),
+                    "FullMask",
+                    Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+                    SetShaderResourceFlag::AllowOverwrite
+                );
 
                 Renderer::FrameBufferResize(m_CompositeFrameBuffer.GetHandle(), size.x, size.y);
             }
@@ -676,7 +695,8 @@ namespace QuelosEditor {
                 ShaderType::Vertex,
                 m_FullMaskSRB.GetHandle(),
                 "Instances",
-                m_WorldRenderer.GetInstancesBufferView()
+                m_WorldRenderer.GetInstancesBufferView(),
+                SetShaderResourceFlag::None
             );
         }
 
@@ -797,7 +817,8 @@ namespace QuelosEditor {
                 ShaderType::Vertex,
                 m_VisibleMaskSRB.GetHandle(),
                 "Instances",
-                m_WorldRenderer.GetInstancesBufferView()
+                m_WorldRenderer.GetInstancesBufferView(),
+                SetShaderResourceFlag::None
             );
         }
     }
@@ -882,8 +903,8 @@ namespace QuelosEditor {
 
         SmallVec<ShaderResourceVariableSpec, 2> vars = {
             {"Settings", ShaderType::Fragment, ShaderResourceVariableType::Static},
-            {"FullMask", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
-            {"VisibleMask", ShaderType::Fragment, ShaderResourceVariableType::Dynamic},
+            {"FullMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
+            {"VisibleMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
         };
 
         compositePsoCI.Spec.ResourceLayout.Variables = vars;
@@ -916,6 +937,22 @@ namespace QuelosEditor {
         );
 
         m_CompositeSRB = Renderer::CreateShaderResourceBinding(m_CompositePSO.GetHandle(), true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            m_CompositeSRB.GetHandle(),
+            "VisibleMask",
+            Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            m_CompositeSRB.GetHandle(),
+            "FullMask",
+            Renderer::TextureGetDefaultView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+            SetShaderResourceFlag::None
+        );
     }
 
     void SceneWorkspace::SelectedEntityOutline() const {
@@ -1006,19 +1043,6 @@ namespace QuelosEditor {
             Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));
 
             // Bind ID buffer into composite SRB
-            Renderer::BindVariableByName(
-                ShaderType::Fragment,
-                m_CompositeSRB.GetHandle(),
-                "FullMask",
-                Renderer::TextureGetDefaultView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
-            );
-
-            Renderer::BindVariableByName(
-                ShaderType::Fragment,
-                m_CompositeSRB.GetHandle(),
-                "VisibleMask",
-                Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource)
-            );
 
             Renderer::BindPipelineState(m_CompositePSO.GetHandle());
             Renderer::CommitShaderResources(m_CompositeSRB.GetHandle(), ResourceStateTransitionMode::Transition);

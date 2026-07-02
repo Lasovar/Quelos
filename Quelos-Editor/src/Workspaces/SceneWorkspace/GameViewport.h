@@ -14,7 +14,6 @@ namespace QuelosEditor {
         GameViewport(
             std::string name,
             SceneWorkspace& sceneWorkspace,
-            WorldRendererView&& worldRendererView,
             uint32_t width,
             uint32_t height
         );

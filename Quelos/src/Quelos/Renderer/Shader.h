@@ -130,6 +130,27 @@ namespace Quelos {
         Last = NonFilteringSampler_WebGPU
     };
 
+    enum class SetShaderResourceFlag : uint32_t {
+        None = 0,
+
+        /// Allow overwriting static and mutable variable bindings.
+        ///
+        /// By default, static and mutable variables can't be changed once
+        /// initialized to a non-null resource. This flag is required
+        /// to explicitly allow overwriting the binding.
+        ///
+        /// Overwriting static variables does not require synchronization
+        /// with GPU and does not have effect on shader resource binding
+        /// objects already created from the pipeline state or resource signature.
+        ///
+        /// When overwriting a mutable variable binding in Direct3D12 and Vulkan,
+        /// an application must ensure that the GPU is not accessing the SRB.
+        /// This can be achieved using synchronization tools such as fences.
+        /// Synchronization with GPU is not required in OpenGL, Direct3D11,
+        /// and Metal backends.
+        AllowOverwrite = 1u << 0
+    };
+
     struct QS_API ShaderResourceVariableSpec {
         std::string_view Name;
         ShaderType ShaderStages = ShaderType::Unknown;

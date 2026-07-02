@@ -12,7 +12,7 @@ namespace QuelosEditor {
     class ViewportPanel {
     public:
         ViewportPanel() = default;
-        ViewportPanel(std::string name, WorldRendererView&& worldRendererView, uint32_t width, uint32_t height);
+        ViewportPanel(std::string name, uint32_t width, uint32_t height);
 
         virtual ~ViewportPanel() = default;
 
