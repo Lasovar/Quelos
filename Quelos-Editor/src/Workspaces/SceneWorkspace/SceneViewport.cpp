@@ -12,10 +12,9 @@
 namespace QuelosEditor {
     SceneViewport::SceneViewport(
         std::string name, SceneWorkspace& sceneWorkspace,
-        WorldRendererView&& worldRendererView,
         const uint32_t width,
         const uint32_t height
-    ) : ViewportPanel(std::move(name), std::move(worldRendererView), width, height), m_SceneWorkspace(sceneWorkspace) {
+    ) : ViewportPanel(std::move(name), width, height), m_SceneWorkspace(sceneWorkspace) {
     }
 
     void SceneViewport::AfterViewport() {

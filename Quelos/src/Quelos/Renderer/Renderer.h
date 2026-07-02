@@ -95,21 +95,21 @@ namespace Quelos {
             ShaderType shaderType,
             ShaderResourceBindingHandle srb,
             std::string_view str,
-            GpuBufferViewHandle instanceBuffer
+            GpuBufferViewHandle instanceBuffer, SetShaderResourceFlag flag
         );
 
         static void BindVariableByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle srb,
             std::string_view str,
-            TextureViewHandle textureViewHandle
+            TextureViewHandle textureViewHandle, SetShaderResourceFlag flag
         );
 
         static void BindArrayByName(
             ShaderType shaderType,
             ShaderResourceBindingHandle srb,
             std::string_view name,
-            Span32<const uint64_t> nativeTextureHandles
+            Span32<const uint64_t> nativeTextureHandles, SetShaderResourceFlag flags
         );
 
         static void CommitShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle, ResourceStateTransitionMode resourceStateTransitionMode);

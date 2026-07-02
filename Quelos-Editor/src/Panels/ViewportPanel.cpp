@@ -13,11 +13,10 @@ using namespace magic_enum::bitwise_operators;
 
 namespace QuelosEditor {
     ViewportPanel::ViewportPanel(
-        std::string name, WorldRendererView&& worldRendererView, const uint32_t width, const uint32_t height
+        std::string name, const uint32_t width, const uint32_t height
     )
         : m_Name(std::move(name)) {
         m_ViewportSize = { width, height };
-        SetWorldRendererView(std::move(worldRendererView));
     }
 
     void ViewportPanel::SetWorldRendererView(WorldRendererView&& worldRendererView) {
@@ -31,8 +30,7 @@ namespace QuelosEditor {
 
         m_ViewportSize = m_ViewportNewSize;
 
-        WorldRenderer::ResizeView(
-            m_WorldRendererView,
+        m_WorldRendererView.Resize(
             { static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y) }
         );
 

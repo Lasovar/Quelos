@@ -71,6 +71,27 @@ namespace Quelos {
 				layer->ImGuiRender();
 			}
 
+			static bool showStats = true;
+
+			static float timer = 0.0f;
+			static int frameCount = 0;
+			static float displayedFPS = 0.0f;
+
+			timer += m_Time->DeltaTime();
+			frameCount++;
+
+			if (timer >= 0.25f) {
+				displayedFPS = frameCount / timer;
+				frameCount = 0;
+				timer = 0.0f;
+			}
+
+			if (ImGui::Begin("Stats", &showStats)) {
+				ImGui::Text("Frame time: %.3f ms", m_Time->DeltaTime() * 1000.f);
+				ImGui::Text("Frame rate: %.3f fps", displayedFPS);
+			}
+			ImGui::End();
+
 			m_ImGuiLayer->End();
 		}
 
