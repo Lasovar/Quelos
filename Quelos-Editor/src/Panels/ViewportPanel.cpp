@@ -19,8 +19,8 @@ namespace QuelosEditor {
         m_ViewportSize = { width, height };
     }
 
-    void ViewportPanel::SetWorldRendererView(WorldRendererView&& worldRendererView) {
-        m_WorldRendererView = std::move(worldRendererView);
+    void ViewportPanel::SetWorldRendererView(const WorldRendererView* worldRendererView) {
+        m_WorldRendererView = worldRendererView;
     }
 
     bool ViewportPanel::ResizeIfNeeded() {
@@ -30,7 +30,7 @@ namespace QuelosEditor {
 
         m_ViewportSize = m_ViewportNewSize;
 
-        m_WorldRendererView.Resize(
+        m_WorldRendererView->Resize(
             { static_cast<uint32_t>(m_ViewportSize.x), static_cast<uint32_t>(m_ViewportSize.y) }
         );
 
@@ -64,7 +64,7 @@ namespace QuelosEditor {
                                    : */float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    TextureHandle(m_WorldRendererView.SceneColor.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_WorldRendererView->SceneColor.GetHandle()).GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}

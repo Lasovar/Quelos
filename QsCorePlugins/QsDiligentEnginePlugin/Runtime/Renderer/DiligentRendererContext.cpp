@@ -16,11 +16,11 @@ using namespace magic_enum::bitwise_operators;
 namespace Quelos {
     namespace Utils {
         static void CreateFrameBuffer(
-            IFramebuffer*& frameBuffer, IRenderDevice* device,
+            IFramebuffer*& frameBuffer, IRenderDevice* device, const char* name,
             const Span32<ITextureView*> attachments, const uint32_t numArraySlices, IRenderPass* renderPass
         ) {
             FramebufferDesc desc;
-            desc.Name = "FrameBuffer";
+            desc.Name = name;
             desc.ppAttachments = attachments.data();
             desc.AttachmentCount = attachments.size();
             if (renderPass) {
@@ -828,7 +828,7 @@ namespace Quelos {
             engineCi.GraphicsAPIVersion = Version{1, 3};
 
             engineCi.DynamicHeapSize = 32 << 20;
-            engineCi.EnableValidation = false;
+            engineCi.EnableValidation = true;
 
 #ifndef QS_PLATFORM_MACOS
             VkPhysicalDeviceVulkan12Features vk12Features{};
@@ -1307,12 +1307,23 @@ namespace Quelos {
         m_BufferTable.Erase(bufferHandle);
     }
 
-    void DiligentRendererContext::TransitionResource(const TextureHandle textureHandle, ResourceState resourceState) {
-        StateTransitionDesc desc;
-        desc.pResource = m_TextureTable.At(textureHandle)->Texture;
-        desc.NewState = Utils::GetResourceState(resourceState);
+    void DiligentRendererContext::TransitionShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(shaderResourceBindingHandle);
+        QS_CORE_ASSERT(slot);
 
-        m_pImmediateContext->TransitionResourceState(desc);
+        m_pImmediateContext->TransitionShaderResources(*slot);
+    }
+
+    void DiligentRendererContext::TransitionResource(const TextureHandle textureHandle, ResourceState resourceState) {
+        StateTransitionDesc barrier;
+        barrier.pResource = m_TextureTable.At(textureHandle)->Texture;
+        barrier.OldState = RESOURCE_STATE_UNKNOWN;
+        barrier.NewState = Utils::GetResourceState(resourceState);
+        barrier.FirstArraySlice = 0;
+        barrier.ArraySliceCount = REMAINING_ARRAY_SLICES;
+        barrier.Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+
+        m_pImmediateContext->TransitionResourceState(barrier);
     }
 
     void DiligentRendererContext::Destroy(VertexBufferHandle vertexBufferHandle) {
@@ -1704,6 +1715,7 @@ namespace Quelos {
         Utils::CreateFrameBuffer(
             slot->FrameBuffer,
             m_pDevice,
+            slot->Name.c_str(),
             Span32(textureAttachments),
             spec.NumArraySlices,
             m_RenderPassTable.At(spec.RenderPassHandle)->RenderPass
@@ -1752,6 +1764,7 @@ namespace Quelos {
         Utils::CreateFrameBuffer(
             data->FrameBuffer,
             m_pDevice,
+            data->Name.c_str(),
             Span32(textureViews),
             data->Specification.NumArraySlices,
             renderPass

@@ -461,6 +461,10 @@ namespace Quelos {
         s_RendererContext->Destroy(shaderResourceBindingHandle);
     }
 
+    void Renderer::TransitionShaderResources(ShaderResourceBindingHandle shaderResourceBindingHandle) {
+        s_RendererContext->TransitionShaderResources(shaderResourceBindingHandle);
+    }
+
     void Renderer::TransitionResource(TextureHandle textureHandle, ResourceState resourceState) {
         s_RendererContext->TransitionResource(textureHandle, resourceState);
     }

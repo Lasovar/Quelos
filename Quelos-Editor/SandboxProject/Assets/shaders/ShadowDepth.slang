@@ -1,6 +1,6 @@
 import quelos;
 
-__extern_cpp ConstantBuffer<float4x4> LightViewProjection;
+__extern_cpp ConstantBuffer<float4x4> ViewProjection;
 
 [shader("vertex")]
 [Pass("ShadowDepth")]
@@ -9,5 +9,5 @@ __extern_cpp ConstantBuffer<float4x4> LightViewProjection;
 [CullMode(CullMode.Back)]
 float4 VSMain(VertexIn v, uint instanceID : SV_InstanceID) : SV_Position {
     InstanceData instance = Instances[instanceID];
-    return mul(mul(float4(v.position, 1.0), instance.Transform), LightViewProjection);
+    return mul(mul(float4(v.position, 1.0), instance.Transform), ViewProjection);
 }

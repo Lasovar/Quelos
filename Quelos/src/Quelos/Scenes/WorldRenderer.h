@@ -64,6 +64,7 @@ namespace Quelos {
         bool IsDirty() const { return m_IsDirty; }
         void SetDirty(const bool value) { m_IsDirty = value; }
         Span32<const uint64_t> GetTextureViews() { return m_TextureArray; }
+        Span32<const uint64_t> GetTextureViews() const { return m_TextureArray; }
 
         void UpdateTexturesArray() {
             for (uint32_t i = 0; i < m_Textures.size() && i < k_MaxTextures - 1; i++) {
@@ -114,6 +115,7 @@ namespace Quelos {
         void Release() const;
 
         TextureRegistry& GetTextureRegistry() { return m_TextureRegistry; }
+        const TextureRegistry& GetTextureRegistry() const { return m_TextureRegistry; }
 
     private:
         std::string m_PipelineName;
@@ -130,7 +132,6 @@ namespace Quelos {
 
     struct PipelineData {
         ResourceRef<PipelineStateObject> PSO;
-        ResourceRef<ShaderResourceBinding> SRB;
         int32_t Order;
     };
 
@@ -145,7 +146,6 @@ namespace Quelos {
         Entity Entity;
         Mesh* Mesh;
         PipelineStateHandle PipelineState;
-        ShaderResourceBindingHandle SRB;
         pfloat4x4 Transform;
         uint32_t MaterialIndex;
     };
@@ -182,9 +182,14 @@ namespace Quelos {
         uint32_t EntityIndex;
     };
 
+    /// a WorldRenderer's per-view resources
     struct QS_API WorldRendererView {
         WorldRendererView() = default;
-        explicit WorldRendererView(const WorldRenderer* worldRenderer) : m_WorldRenderer(worldRenderer) {}
+        WorldRendererView(const WorldRendererView& other) = delete;
+        WorldRendererView& operator=(const WorldRendererView& other) = delete;
+
+        explicit WorldRendererView(const WorldRenderer* worldRenderer, const uint32_t id)
+            : ViewID(id), m_WorldRenderer(worldRenderer) {}
 
         ResourceRef<Texture> SceneColorMSAA;
         ResourceRef<Texture> SceneColor;
@@ -198,6 +203,9 @@ namespace Quelos {
 
         ResourceRef<FrameBuffer> SceneFB;
         ResourceRef<FrameBuffer> DepthPrepassFB;
+
+        /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMaps)
+        HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs;
 
         // Shadow mask
         ResourceRef<Texture> ShadowMask;
@@ -214,9 +222,11 @@ namespace Quelos {
 
         float4 SmoothedSplits = {5.f, 10.f, 20.f, 40.f};
 
-        void Resize(Extent2D size);
+        void Resize(Extent2D size) const;
+
+        const uint32_t ViewID = ~0u;
     private:
-        const WorldRenderer* m_WorldRenderer;
+        const WorldRenderer* m_WorldRenderer = nullptr;
     };
 
     struct QS_API RenderViewParams {
@@ -234,17 +244,18 @@ namespace Quelos {
 
         void SetWorld(const flecs::world& world);
 
+        void SetDepthPrepassShader(const GraphicsShader* shader);
         void SetDepthReductionCompute(ComputeShader* computeShader);
         void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
 
-        WorldRendererView CreateView(std::string_view name) const;
-        void ResizeView(WorldRendererView& view, Extent2D size) const;
+        [[nodiscard]] const WorldRendererView* CreateView(std::string_view name);
+        void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
 
         /// View-independent, called once per frame
         void Begin();
         /// Render to a specific view (e.g GameView or SceneView)
-        void Render(WorldRendererView& view, const RenderViewParams& renderViewParams) const;
+        void Render(const WorldRendererView* worldRendererView, const RenderViewParams& renderViewParams) const;
         /// View-independent, called once per frame
         void End();
 
@@ -256,37 +267,35 @@ namespace Quelos {
         ~WorldRenderer();
         [[nodiscard]] RenderPassHandle GetShadowMaskPass() const { return m_ShadowMaskRenderPass.GetHandle(); }
         [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
-
     private:
-        RenderPassHandle m_RenderPass;
-
-        TextureHandle m_WhiteTexture;
-        TextureHandle m_MagentaTexture;
-
-        RenderPassHandle m_ShadowRenderPass;
-        ComputeShader* m_DepthReductionCompute;
 
         struct WeakPipelineData {
             PipelineStateHandle PSO;
-            ShaderResourceBindingHandle SRB;
             int32_t Order = 0;
             bool HasTextures = false;
-
-            WeakPipelineData() = default;
-
-            WeakPipelineData(
-                const PipelineStateHandle pso,
-                const ShaderResourceBindingHandle srb,
-                const int32_t order,
-                const bool hasTextures
-            )
-                : PSO(pso), SRB(srb), Order(order), HasTextures(hasTextures) {}
+            bool HasShadowMask = false;
+            bool IsShadowMaskBound = false;
         };
 
         struct PipelineInfo {
             Vec<WeakPipelineData> Pipelines;
             MaterialRegistry MaterialRegistry;
         };
+
+        void CreatePerViewResources(const Scope<WorldRendererView>& view, const MaterialRegistry& materialRegistry, const WeakPipelineData& pipeline) const;
+
+    private:
+        Vec<Scope<WorldRendererView>> m_ActiveViews;
+
+        RenderPassHandle m_RenderPass;
+
+        TextureHandle m_WhiteTexture;
+        TextureHandle m_MagentaTexture;
+
+        ResourceRef<RenderPass> m_DepthPrepass;
+
+        RenderPassHandle m_ShadowRenderPass;
+        ComputeShader* m_DepthReductionCompute;
 
         HashMap<AssetID, PipelineInfo> m_PipelineStates;
         Vec<DrawCommand> m_DrawCalls;
@@ -303,11 +312,14 @@ namespace Quelos {
         GpuBufferHandle m_InstancesGpuBuffer;
         GpuBufferViewHandle m_InstancesBufferView;
 
+        ResourceRef<PipelineStateObject> m_DepthPrepassPSO;
+        ResourceRef<ShaderResourceBinding> m_DepthPrepassSRB;
+
         ResourceRef<PipelineStateObject> m_ShadowComputePSO;
 
         ResourceRef<GpuBuffer> m_ReductionOutBuffer;
 
-        ResourceRef<GpuBuffer> m_LightViewProjectionBuffer;
+        ResourceRef<GpuBuffer> m_ViewProjectionBuffer;
         ResourceRef<PipelineStateObject> m_ShadowDepthPSO;
         ResourceRef<ShaderResourceBinding> m_ShadowDepthSRB;
 
