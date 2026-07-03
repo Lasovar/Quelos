@@ -67,6 +67,7 @@ namespace QuelosEditor {
 
         void CreateOutlineMaskResources();
         void CreateOutlineCompositeResources();
+        void RecreateOutlineCompositeSRB();
         void SelectedEntityOutline() const;
 
     private:
@@ -126,15 +127,21 @@ namespace QuelosEditor {
 
         ResourceRef<Texture> m_FullMaskMSAATexture;
         ResourceRef<Texture> m_FullMaskResolvedTexture;
+        TextureViewHandle m_FullMaskSRV;
+
         ResourceRef<FrameBuffer> m_FullMaskFrameBuffer;
         ResourceRef<RenderPass> m_FullMaskRenderPass;
+
         ResourceRef<PipelineStateObject> m_FullMaskPSO;
         ResourceRef<ShaderResourceBinding> m_FullMaskSRB;
 
         ResourceRef<Texture> m_VisibleMaskMSAATexture;
         ResourceRef<Texture> m_VisibleMaskResolvedTexture;
+        TextureViewHandle m_VisibleMaskSRV;
+
         ResourceRef<FrameBuffer> m_VisibleMaskFrameBuffer;
         ResourceRef<RenderPass> m_VisibleMaskRenderPass;
+
         ResourceRef<PipelineStateObject> m_VisibleMaskPSO;
         ResourceRef<ShaderResourceBinding> m_VisibleMaskSRB;
 
