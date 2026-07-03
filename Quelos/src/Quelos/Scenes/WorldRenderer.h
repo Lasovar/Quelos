@@ -164,6 +164,8 @@ namespace Quelos {
 
     constexpr uint32_t k_NumCascades = 4;
 
+    struct DirectionalLightShadowMapTag { };
+
     struct DirectionalLightShadowMap {
         ResourceRef<Texture> ShadowMaps;
         Array<ResourceRef<FrameBuffer>, k_NumCascades> ShadowFrameBuffers;
@@ -298,12 +300,14 @@ namespace Quelos {
         ComputeShader* m_DepthReductionCompute;
 
         HashMap<AssetID, PipelineInfo> m_PipelineStates;
+        HashMap<EntityID, DirectionalLightShadowMap> m_ShadowMaps;
+
         Vec<DrawCommand> m_DrawCalls;
         Vec<InstanceDrawCommand> m_InstancingDrawCalls;
 
         const flecs::world* m_World = nullptr;
-        flecs::query<const DirectionalLight&> m_DirectionalLightCreateSMQuery;
-        flecs::query<const WorldTransform&, const DirectionalLightShadowMap&> m_DirectionalLightSMQuery;
+        flecs::query<const DirectionalLight&, const EntityID&> m_DirectionalLightCreateSMQuery;
+        flecs::query<const WorldTransform&, const EntityID&> m_DirectionalLightSMQuery;
         flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;

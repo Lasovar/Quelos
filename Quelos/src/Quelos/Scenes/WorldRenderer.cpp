@@ -340,14 +340,17 @@ namespace Quelos {
                             .build();
 
         m_DirectionalLightQuery = world.query<const WorldTransform&, const DirectionalLight&>();
-        m_DirectionalLightCreateSMQuery = world.query_builder<const DirectionalLight&>()
+        m_DirectionalLightCreateSMQuery = world.query_builder<const DirectionalLight&, const EntityID&>()
                                          .with<WorldTransform>()
-                                         .without<DirectionalLightShadowMap>()
+                                         .without<DirectionalLightShadowMapTag>()
                                          .build();
 
-        m_DirectionalLightSMQuery = world.query<const WorldTransform&, const DirectionalLightShadowMap&>();
+        m_DirectionalLightSMQuery = world.query_builder<const WorldTransform&, const EntityID&>()
+                                         .with<DirectionalLightShadowMapTag>()
+                                         .build();
 
         m_DrawCalls.clear();
+        m_InstancingDrawCalls.clear();
 
         m_World = &world;
     }
@@ -812,7 +815,13 @@ namespace Quelos {
         bool isDirty = false;
 
         m_World->defer_begin();
-        m_DirectionalLightCreateSMQuery.each([&](const flecs::entity entity, const DirectionalLight&) {
+        m_DirectionalLightCreateSMQuery.each([&](const flecs::entity entity, const DirectionalLight&, const EntityID& entityID) {
+            auto it = m_ShadowMaps.find(entityID);
+            if (it != m_ShadowMaps.end()) {
+                entity.add<DirectionalLightShadowMapTag>();
+                return;
+            }
+
             TextureSpecification spec;
             spec.Type = TextureType::Texture2DArray;
             spec.Format = ImageFormat::Depth32Float;
@@ -850,7 +859,7 @@ namespace Quelos {
                 shadowFrameBuffers[i] = Renderer::CreateFrameBuffer(fbSpec);
             }
 
-            entity.emplace<DirectionalLightShadowMap>(shadowMap, std::move(shadowFrameBuffers));
+            m_ShadowMaps.try_emplace(entityID, shadowMap, std::move(shadowFrameBuffers));
         });
 
         m_World->defer_end();
@@ -1233,7 +1242,8 @@ namespace Quelos {
             Renderer::EndRenderPass();
         }
 
-        m_DirectionalLightSMQuery.each([&](const WorldTransform& transform, const DirectionalLightShadowMap& shadowMap) {
+        m_DirectionalLightSMQuery.each([&](const WorldTransform& transform, const EntityID& entityId) {
+            const DirectionalLightShadowMap& shadowMap = m_ShadowMaps.at(entityId);
             lightDirection = transform.Value[2].xyz;
 
             float3 up = fabsf(math::dot(lightDirection, float3(0, 1, 0))) > 0.99f

@@ -285,25 +285,11 @@ namespace QuelosEditor {
                 Renderer::TextureResize(    m_VisibleMaskResolvedTexture.GetHandle(), size.x, size.y);
                 Renderer::FrameBufferResize(m_VisibleMaskFrameBuffer.GetHandle(), size.x, size.y);
 
-                Renderer::BindVariableByName(
-                    ShaderType::Fragment,
-                    m_CompositeSRB.GetHandle(),
-                    "VisibleMask",
-                    Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
-                    SetShaderResourceFlag::AllowOverwrite
-                );
-
                 Renderer::TextureResize(    m_FullMaskMSAATexture.GetHandle(), size.x, size.y);
                 Renderer::TextureResize(    m_FullMaskResolvedTexture.GetHandle(), size.x, size.y);
                 Renderer::FrameBufferResize(m_FullMaskFrameBuffer.GetHandle(), size.x, size.y);
 
-                Renderer::BindVariableByName(
-                    ShaderType::Fragment,
-                    m_CompositeSRB.GetHandle(),
-                    "FullMask",
-                    Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
-                    SetShaderResourceFlag::AllowOverwrite
-                );
+                RecreateOutlineCompositeSRB();
 
                 Renderer::FrameBufferResize(m_CompositeFrameBuffer.GetHandle(), size.x, size.y);
             }
@@ -428,15 +414,6 @@ namespace QuelosEditor {
                 m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
-            ClearValue clearValues[3];
-            clearValues[0].Format = ImageFormat::RGBA8UNorm;
-            clearValues[0].Color = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
-
-            clearValues[1] = {};
-
-            clearValues[2].Format = ImageFormat::Depth32Float;
-            clearValues[2].DepthStencil.Depth = 1.0f;
-
             auto viewAndProjection = m_ActiveScene->GetViewAndProjection();
 
             RenderViewParams gameViewParams;
@@ -464,6 +441,7 @@ namespace QuelosEditor {
         m_SceneViewportPanel.SetFrame(m_SelectedEntity, m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection());
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
 
+        /*
         if (ImGui::Begin("ShadowMask")) {
             if (m_SceneViewportPanel.ShouldDraw()) {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
@@ -475,14 +453,14 @@ namespace QuelosEditor {
                 size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
-                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView()->ShadowMask.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_FullMaskResolvedTexture.GetHandle()).GetNativeHandle(),
                     {size.x, size.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
                 );
             }
         }
-        ImGui::End();
+        ImGui::End();*/
 
         m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
@@ -606,7 +584,12 @@ namespace QuelosEditor {
             fullMaskResolvedSpec.Format = ImageFormat::R8UNorm;
             fullMaskResolvedSpec.SampleCount = SampleCount::x1;
             fullMaskResolvedSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+
             m_FullMaskResolvedTexture = Renderer::CreateTexture(fullMaskResolvedSpec);
+            m_FullMaskSRV = Renderer::TextureGetDefaultView(
+                m_FullMaskResolvedTexture.GetHandle(),
+                TextureViewType::ShaderResource
+            );
 
             RenderPassAttachmentSpec fullMaskAttachments[2];
 
@@ -715,7 +698,12 @@ namespace QuelosEditor {
             visibleMaskResolvedSpec.Format = ImageFormat::R8UNorm;
             visibleMaskResolvedSpec.SampleCount = SampleCount::x1;
             visibleMaskResolvedSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+
             m_VisibleMaskResolvedTexture = Renderer::CreateTexture(visibleMaskResolvedSpec);
+            m_VisibleMaskSRV = Renderer::TextureGetDefaultView(
+                m_VisibleMaskResolvedTexture.GetHandle(),
+                TextureViewType::ShaderResource
+            );
 
             RenderPassAttachmentSpec visibleMaskAttachments[3];
 
@@ -737,7 +725,7 @@ namespace QuelosEditor {
             visibleMaskAttachments[2].Format = ImageFormat::Depth32Float;
             visibleMaskAttachments[2].SampleCount = 4;
             visibleMaskAttachments[2].LoadOp = AttachmentLoadOp::Load;
-            visibleMaskAttachments[2].StoreOp = AttachmentStoreOp::Discard;
+            visibleMaskAttachments[2].StoreOp = AttachmentStoreOp::Store;
             visibleMaskAttachments[2].InitialState = ResourceState::DepthRead;
             visibleMaskAttachments[2].FinalState = ResourceState::DepthRead;
 
@@ -937,13 +925,17 @@ namespace QuelosEditor {
             m_OutlineSettingsUB.GetHandle()
         );
 
+        RecreateOutlineCompositeSRB();
+    }
+
+    void SceneWorkspace::RecreateOutlineCompositeSRB() {
         m_CompositeSRB = Renderer::CreateShaderResourceBinding(m_CompositePSO.GetHandle(), true);
 
         Renderer::BindVariableByName(
             ShaderType::Fragment,
             m_CompositeSRB.GetHandle(),
             "VisibleMask",
-            Renderer::TextureGetDefaultView(m_VisibleMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+            m_VisibleMaskSRV,
             SetShaderResourceFlag::None
         );
 
@@ -951,7 +943,7 @@ namespace QuelosEditor {
             ShaderType::Fragment,
             m_CompositeSRB.GetHandle(),
             "FullMask",
-            Renderer::TextureGetDefaultView(m_FullMaskResolvedTexture.GetHandle(), TextureViewType::ShaderResource),
+            m_FullMaskSRV,
             SetShaderResourceFlag::None
         );
     }
