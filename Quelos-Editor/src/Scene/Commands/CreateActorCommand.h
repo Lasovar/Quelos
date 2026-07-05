@@ -8,7 +8,11 @@ namespace Quelos {
     struct CreateActor {
     public:
         void Apply() const {
-            Scene->CreateActor(ActorId, "NewActor");
+            if (ParentId) {
+                Scene->CreateActor(ActorId, "NewActor", ParentId);
+            } else {
+                Scene->CreateActor(ActorId, "NewActor");
+            }
         }
 
         void Revert() const {
@@ -16,12 +20,15 @@ namespace Quelos {
         }
 
         CreateActor() = default;
-        CreateActor(const EntityID guid64, const Ref<Scene>& scene) {
-            ActorId = guid64;
+        CreateActor(const EntityID entityId, const Ref<Scene>& scene) : CreateActor(entityId, {}, scene) { }
+        CreateActor(const EntityID entityId, const EntityID parentId, const Ref<Scene>& scene) {
+            ActorId = entityId;
+            ParentId = parentId;
             Scene = scene;
         }
 
         EntityID ActorId{};
+        EntityID ParentId;
         Ref<Scene> Scene;
     };
 

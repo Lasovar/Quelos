@@ -1,5 +1,0 @@
-[actor guid=1498DB1C302D0359 state=changed]
-name = "Plane"
-
-#Quelos.MeshRenderer
-castShadows = 0

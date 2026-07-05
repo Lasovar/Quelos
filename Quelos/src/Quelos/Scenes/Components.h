@@ -31,6 +31,9 @@ namespace Quelos {
         Scene* m_Scene = nullptr;
     };
 
+    /// The Entity's scene pair, second is SceneRoot
+    struct QS_API Owner { };
+
     struct QS_API ActorTag { };
 
     struct QS_API ChildOrder {

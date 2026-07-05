@@ -709,7 +709,7 @@ namespace Quelos {
 
             quelWriter.WriteField("name", std::string_view(entity.GetName()));
 
-            if (patch.ParentPatchCount > 0) {
+            if (patch.ParentPatchCount > 0 || patchState == PatchState::Added) {
                 if (const Actor parent = entity.GetParent(); !parent.GetActorID()) {
                     quelWriter.WriteField("parent", UnquotedString{"root"});
                 }
