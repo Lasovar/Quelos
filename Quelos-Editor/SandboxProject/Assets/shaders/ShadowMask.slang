@@ -9,6 +9,7 @@ struct CascadeShadowData {
     float4 SplitDepths;
     row_major float4x4 InvViewProj;
     row_major float4x4 View;
+    float4 LightDirectionAndShadowMapSize; // xyz = light direction, w = shadow map size
 }
 
 __extern_cpp ConstantBuffer<CascadeShadowData> CascadeData;
@@ -34,10 +35,26 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     //float2 ndc = uv * 2.0 - 1.0;
     float depth = SceneDepth.Load(uint2(svPos.xy), 0);
 
+    if (depth >= 1.0) {
+        return float4(1.0, 0, 0, 0);
+    }
+
     // Reconstruct world pos
     float4 clipPos = float4(ndc, depth, 1.0);
     float4 worldH = mul(clipPos, CascadeData.InvViewProj);
     float3 worldPos = worldH.xyz / worldH.w;
+
+    float3 dpdx = ddx(worldPos);
+    float3 dpdy = ddy(worldPos);
+    float3 faceNormal = normalize(cross(dpdx, dpdy));
+
+    float3 L = normalize(-CascadeData.LightDirectionAndShadowMapSize.xyz);
+    float NdotL = dot(faceNormal, L);
+
+    // Backfacing to light = always shadowed, skip shadow map entirely
+    if (NdotL <= 0.0) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
 
     // View-space Z for cascade selection
     float4 viewPos = mul(float4(worldPos, 1.0), CascadeData.View);
@@ -55,15 +72,25 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     lsPos.xyz /= lsPos.w;
     float2 shadowUV = float2(lsPos.x * 0.5 + 0.5, 0.5 - lsPos.y * 0.5);
 
-    float shadow = ShadowMaps.SampleCmp(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
+    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
 
-    //return float4(worldPos.y * 0.1 + 0.5, 0, 0, 0);
-    //return float4(lsPos.x * 0.5 + 0.5, 0, 0, 0);
-    //return float4(frac(worldPos * 0.1), 0);
-    //return float4(ndc * 0.5 + 0.5, 0, 0);
-    //return float4(lsPos.z, 0, 0, 0);
-    //return float4(shadowUV, 0, 0);
+    /*
+    float shadow = 0.0;
+    float2 texelSize = 1.0 / float2(CascadeData.LightDirectionAndShadowMapSize.w);
 
-    // Binarize for NPR
-    return float4(step(0.5, shadow), 0, 0, 0);
+    [unroll]
+    for (int x = -1; x <= 1; x++) {
+        [unroll]
+        for (int y = -1; y <= 1; y++) {
+            shadow += ShadowMaps.SampleCmpLevelZero(
+                ShadowMaps_sampler,
+                float3(shadowUV + float2(x, y) * texelSize, float(c)),
+                lsPos.z
+            );
+        }
+    }
+    shadow /= 9.0;
+    */
+
+    return float4(shadow, 0, 0, 0);
 }

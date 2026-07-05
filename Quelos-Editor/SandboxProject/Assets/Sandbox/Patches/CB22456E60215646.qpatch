@@ -1,5 +1,8 @@
 [actor guid=CB22456E60215646 state=changed]
 name = "Camera"
 
+#Quelos.CameraComponent
+clearColor = (0.54396915,0.73303163,0.58161056,1)
+
 #Quelos.LocalTransform
 position = (-5.2,3.9,-8.9)

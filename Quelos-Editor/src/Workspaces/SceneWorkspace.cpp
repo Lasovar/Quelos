@@ -20,6 +20,12 @@ namespace QuelosEditor {
         ComponentRegistry::RegisterBuiltinTypes(m_EditorWorld);
         ComponentRegistry::RegisterBuiltinTypes(m_RuntimeWorld);
 
+        m_EditorWorld.set_threads(6);
+        m_RuntimeWorld.set_threads(6);
+
+        m_EditorWorld.import<LocalToWorldTransformSystem>();
+        m_RuntimeWorld.import<LocalToWorldTransformSystem>();
+
         m_EditorScene = SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_EditorWorld);
         m_ActiveScene = m_EditorScene;
 
@@ -414,19 +420,9 @@ namespace QuelosEditor {
                 m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
-            auto viewAndProjection = m_ActiveScene->GetViewAndProjection();
-
-            RenderViewParams gameViewParams;
-            gameViewParams.View = viewAndProjection.first;
-            gameViewParams.Projection = viewAndProjection.second;
-            gameViewParams.SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
-            gameViewParams.CameraPosition = float3();
-            gameViewParams.NearClip = 0.1f;
-            gameViewParams.FarClip = 1000.0f;
-
             m_WorldRenderer.Render(
                 m_GameViewportPanel.GetWorldRendererView(),
-                gameViewParams
+                m_ActiveScene->GetRenderViewParams()
             );
         }
 

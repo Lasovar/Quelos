@@ -68,6 +68,7 @@ namespace Quelos {
 
     struct QS_API CameraComponent {
         SceneCamera Camera;
+        Color ClearColor = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, CameraComponent& data) {
@@ -87,6 +88,8 @@ namespace Quelos {
             archive.Field("ortho.size", orthoSize);
             archive.Field("ortho.near", orthoNear);
             archive.Field("ortho.far", orthoFar);
+
+            archive.Field("clearColor", data.ClearColor);
 
             if constexpr (TArchive::IsLoading) {
                 data.Camera.SetProjectionType(projectionType);

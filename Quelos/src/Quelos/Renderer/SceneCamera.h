@@ -19,6 +19,14 @@ namespace Quelos {
         [[nodiscard]] float GetPerspectiveNearClip() const { return m_PerspectiveNear; }
         [[nodiscard]] float GetPerspectiveFarClip() const { return m_PerspectiveFar; }
 
+        [[nodiscard]] float GetNearClip() const {
+            return m_ProjectionType == ProjectionType::Perspective ? m_PerspectiveNear : m_OrthographicNear;
+        }
+
+        [[nodiscard]] float GetFarClip() const {
+            return m_ProjectionType == ProjectionType::Perspective ? m_PerspectiveFar : m_OrthographicFar;
+        }
+
         void SetPerspectiveVerticalFOV(const float size) {
             m_PerspectiveFOV = size;
         }

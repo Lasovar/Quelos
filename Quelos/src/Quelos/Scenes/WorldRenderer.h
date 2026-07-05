@@ -176,6 +176,7 @@ namespace Quelos {
         pfloat4 SplitDepths; // view-space Z end per cascade
         pfloat4x4 InvViewProjection;
         pfloat4x4 View;
+        pfloat4 LightDirection;
     };
 
     struct QS_API alignas(16) InstanceData {

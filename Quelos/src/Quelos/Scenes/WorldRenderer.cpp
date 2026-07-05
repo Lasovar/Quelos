@@ -468,8 +468,8 @@ namespace Quelos {
         GraphicsPipelineSpec& gfx = psoCI.GraphicsPipeline;
         gfx.RenderPass = m_ShadowRenderPass;
         gfx.RasterizerSpec.CullMode = CullMode::Front;
-        gfx.RasterizerSpec.DepthBias = 4;
-        gfx.RasterizerSpec.SlopeScaledDepthBias = 3.0f;
+        gfx.RasterizerSpec.DepthBias = 3;
+        gfx.RasterizerSpec.SlopeScaledDepthBias = 6.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
@@ -1017,6 +1017,10 @@ namespace Quelos {
                 if (std::ranges::contains(shaderPass->Variables, "ShadowMask")) {
                     vars.emplace_back("ShadowMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable);
 
+                    samplerSpec.MinFilter = FilterMode::Linear;
+                    samplerSpec.MagFilter = FilterMode::Linear;
+                    samplerSpec.MipFilter = FilterMode::Linear;
+
                     immutableSamplers.emplace_back();
                     immutableSamplers[1].SamplerOrTextureName = "ShadowMask";
                     immutableSamplers[1].Specification = samplerSpec;
@@ -1403,6 +1407,7 @@ namespace Quelos {
                 shadowData.InvViewProjection = invViewProj;
                 shadowData.View = renderViewParams.View;
                 shadowData.SplitDepths = view.SmoothedSplits;
+                shadowData.LightDirection = float4(lightDirection, 2048.0f);
 
                 Renderer::UpdateBuffer(
                     m_CascadeShadowDataBuffer.GetHandle(),

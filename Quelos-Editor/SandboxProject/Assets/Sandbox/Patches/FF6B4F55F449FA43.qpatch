@@ -1,0 +1,7 @@
+[actor guid=FF6B4F55F449FA43 state=changed]
+name = "Monkey"
+
+#Quelos.LocalTransform
+position = (0,3.818741,0)
+rotation = (0.94774365,-0.19040835,0.024075348,0.25484702)
+scale = (2.9999964,3.0000064,3.0000288)
