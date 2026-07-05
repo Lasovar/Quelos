@@ -23,6 +23,10 @@ namespace QuelosEditor {
         m_EditorWorld.set_threads(6);
         m_RuntimeWorld.set_threads(6);
 
+        m_RuntimeWorld.entity<SimulationPhase>()
+                                   .add(flecs::Phase)
+                                   .depends_on(flecs::OnUpdate);
+
         m_EditorWorld.import<LocalToWorldTransformSystem>();
         m_RuntimeWorld.import<LocalToWorldTransformSystem>();
 
@@ -66,8 +70,8 @@ namespace QuelosEditor {
 
         m_WorldRenderer.SetShadowMaskShader(GetShadowMaskShader());
 
-        m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView"));
-        m_SceneViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("SceneView"));
+        m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView", { 1, 1 }));
+        m_SceneViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("SceneView", { 1, 1 }));
 
         m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
@@ -213,9 +217,11 @@ namespace QuelosEditor {
         CreateOutlineMaskResources();
         CreateOutlineCompositeResources();
 
-        m_RuntimeWorld.system<LocalTransform&>().each([](const flecs::iter& it, size_t, LocalTransform& transform) {
-            transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
-        });
+        m_RuntimeWorld.system<LocalTransform&>()
+                      .kind<SimulationPhase>()
+                      .each([](const flecs::iter& it, size_t, LocalTransform& transform) {
+                          transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
+                      });
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {
@@ -240,7 +246,29 @@ namespace QuelosEditor {
 
         m_EditorCamera.OnUpdate(deltaTime);
 
-        m_ActiveScene->Tick(deltaTime);
+        float dt = deltaTime;
+        if (m_SceneState == SceneState::Play) {
+            if (Option<bool> pauseRequest = m_PauseRequest.Resolve()) {
+                if (*pauseRequest) {
+                    m_RuntimeWorld.entity<SimulationPhase>().disable();
+                } else {
+                    m_RuntimeWorld.entity<SimulationPhase>().enable();
+                }
+
+                m_IsScenePaused = *pauseRequest;
+            }
+
+            if (m_StepRequest.IsRequested()) {
+                m_RuntimeWorld.entity<SimulationPhase>().enable();
+                dt = 1 / 30.0f;
+            }
+        }
+
+        m_ActiveScene->Tick(dt);
+
+        if (m_StepRequest.Resolve()) {
+            m_RuntimeWorld.entity<SimulationPhase>().disable();
+        }
 
         if (m_SceneViewportPanel.ShouldDraw() || m_GameViewportPanel.ShouldDraw()) {
             m_WorldRenderer.Begin();
@@ -520,6 +548,7 @@ namespace QuelosEditor {
 
     void SceneWorkspace::SceneStop() {
         m_StopRequest = true;
+        SetScenePaused(false);
     }
 
     void SceneWorkspace::Init() {

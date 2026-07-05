@@ -63,7 +63,7 @@ namespace QuelosEditor {
 
             if (ImGui::Button(ICON_FA_STEP_FORWARD, {size, size})) {
                 m_SceneWorkspace.SetScenePaused(true);
-                m_SceneWorkspace.SetSceneStep(true);
+                m_SceneWorkspace.StepScene();
             }
 
             ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing

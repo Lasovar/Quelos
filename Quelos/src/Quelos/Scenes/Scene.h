@@ -37,6 +37,8 @@ namespace Quelos {
         }
     }
 
+    struct QS_API SimulationPhase { };
+
     struct QS_API LocalToWorldTransformSystem {
         explicit LocalToWorldTransformSystem(const flecs::world& world) {
             world.component<LocalTransform>();
