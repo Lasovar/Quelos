@@ -37,9 +37,58 @@ namespace Quelos {
         }
     }
 
+    struct QS_API LocalToWorldTransformSystem {
+        explicit LocalToWorldTransformSystem(const flecs::world& world) {
+            world.component<LocalTransform>();
+            world.component<WorldTransform>();
+
+            world.observer<LocalTransform>()
+                 .event(flecs::OnAdd)
+                 .each([](const flecs::entity e, const LocalTransform&) {
+                     e.ensure<WorldTransform>();
+                 });
+
+            TransformUpdate = world.entity("TransformUpdate")
+                                       .add(flecs::Phase)
+                                       .depends_on(flecs::OnUpdate);
+
+            TransformChildUpdate = world.entity("TransformChildUpdate")
+                                            .add(flecs::Phase)
+                                            .depends_on(TransformUpdate);
+
+            world.system<const LocalTransform&, WorldTransform&>()
+                             .multi_threaded()
+                             .without(flecs::ChildOf, flecs::Wildcard)
+                             .kind(flecs::OnUpdate)
+                             .each([](const LocalTransform& local, WorldTransform& transform) {
+                                 transform.Value = mathExt::srt(local.Scale, local.Rotation, local.Position);
+                             });
+
+            world.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
+                                  .multi_threaded()
+                                  .with(flecs::ChildOf, flecs::Wildcard)
+                                  .term_at(2).cascade()
+                                  .kind(TransformChildUpdate)
+                                  .each([](
+                                      const LocalTransform& local,
+                                      WorldTransform& transform,
+                                      const WorldTransform& parentWorld
+                                  ) {
+                                          transform.Value = math::mul(
+                                              parentWorld.Value,
+                                              mathExt::srt(local.Scale, local.Rotation, local.Position)
+                                          );
+                                  });
+
+        }
+
+        flecs::entity TransformUpdate;
+        flecs::entity TransformChildUpdate;
+    };
+
     class QS_API Scene : public Asset, public std::enable_shared_from_this<Scene> {
     public:
-        explicit Scene(const flecs::world& world, std::string name = "Untitled Scene");
+        explicit Scene(flecs::world& world, std::string name = "Untitled Scene");
 
         template <typename Func>
         void Each(Func&& func) const {
@@ -65,6 +114,7 @@ namespace Quelos {
         void Tick(float deltaTime) const;
 
         Pair<float4x4, float4x4> GetViewAndProjection() const;
+        RenderViewParams GetRenderViewParams() const;
 
         const std::string& GetName() const { return m_Name; }
         void SetName(const std::string_view& name) { m_Name = name; }
@@ -133,7 +183,7 @@ namespace Quelos {
         HashMap<EntityID, Actor> m_ActorsMap;
         HashMap<EntityID, Entity> m_EntitiesMap;
 
-        flecs::world m_World;
+        flecs::world& m_World;
 
         std::string m_Name;
 
@@ -142,8 +192,5 @@ namespace Quelos {
         flecs::query<const WorldTransform&, const CameraComponent&> m_CameraQuery;
 
         bool m_SceneRenderStarted = false;
-
-        flecs::entity m_TransformUpdate;
-        flecs::entity m_TransformChildUpdate;
     };
 }

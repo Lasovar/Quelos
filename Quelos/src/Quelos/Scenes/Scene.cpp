@@ -19,44 +19,10 @@
 namespace Quelos {
     class WindowResizeEvent;
 
-    Scene::Scene(const flecs::world& world, std::string name)
+    Scene::Scene(flecs::world& world, std::string name)
         : m_World(world), m_Name(std::move(name))
     {
         Init();
-        m_TransformUpdate = m_World.entity("TransformUpdate")
-                                   .add(flecs::Phase)
-                                   .depends_on(flecs::OnUpdate);
-
-        m_TransformChildUpdate = m_World.entity("TransformChildUpdate")
-                                        .add(flecs::Phase)
-                                        .depends_on(m_TransformUpdate);
-
-        m_World.observer<LocalTransform>()
-               .event(flecs::OnAdd)
-               .each([](const flecs::entity e, const LocalTransform&) {
-                   e.ensure<WorldTransform>();
-               });
-
-        m_World.system<const LocalTransform&, WorldTransform&>()
-               .multi_threaded()
-               .without(flecs::ChildOf, flecs::Wildcard)
-               .kind(m_TransformUpdate)
-               .each([](const LocalTransform& local, WorldTransform& world) {
-                   world.Value = mathExt::srt(local.Scale, local.Rotation, local.Position);
-               });
-
-        m_World.system<const LocalTransform&, WorldTransform&, const WorldTransform&>()
-               .multi_threaded()
-               .with(flecs::ChildOf, flecs::Wildcard)
-               .term_at(2).cascade()
-               .kind(m_TransformChildUpdate)
-               .each([](
-                   const LocalTransform& local,
-                   WorldTransform& world,
-                   const WorldTransform& parentWorld) {
-                       world.Value = math::mul(parentWorld.Value, mathExt::srt(local.Scale, local.Rotation, local.Position));
-                   });
-
         m_CameraQuery = m_World.query<const WorldTransform&, const CameraComponent&>();
     }
 
@@ -77,6 +43,26 @@ namespace Quelos {
         const auto& camera = cameraEntity.get<CameraComponent>().Camera;
 
         return { mathExt::view(transform.Value), camera.GetProjection() };
+    }
+
+    RenderViewParams Scene::GetRenderViewParams() const {
+        if (m_CameraQuery.count() < 1) {
+            return {};
+        }
+
+        const flecs::entity cameraEntity = m_CameraQuery.first();
+        const auto& transform = cameraEntity.get<WorldTransform>();
+        const auto& camera = cameraEntity.get<CameraComponent>();
+        const auto& sceneCamera = camera.Camera;
+
+        return {
+            sceneCamera.GetProjection(),
+            mathExt::view(transform.Value),
+            transform.Value[3].xyz,
+            camera.ClearColor,
+            sceneCamera.GetNearClip(),
+            sceneCamera.GetFarClip()
+        };
     }
 
     Actor Scene::CreateActor(const std::string_view entityName) {

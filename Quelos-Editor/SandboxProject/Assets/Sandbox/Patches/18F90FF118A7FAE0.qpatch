@@ -1,0 +1,7 @@
+[actor guid=18F90FF118A7FAE0 state=changed]
+name = "Sphere"
+
+#Quelos.LocalTransform
+position = (4.3,3.6539679,-5.7)
+rotation = (0,0,0,1)
+scale = (1,1,1)

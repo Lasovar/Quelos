@@ -1,0 +1,7 @@
+[actor guid=FF73641CEA599C88 state=changed]
+name = "DirectionalLight"
+
+#Quelos.LocalTransform
+position = (0,10.738983,0)
+rotation = (0.5132809,-0.1254532,-0.023771036,0.84866905)
+scale = (0.99999905,0.999968,0.9999657)
