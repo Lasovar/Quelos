@@ -28,14 +28,11 @@ namespace Quelos::UI {
 
         ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
         ImGui::TextUnformatted(label.c_str());
+
         ImGui::NextColumn();
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-        ImGui::BeginGroup();
-
         const bool used = ImGui::DragScalar("##f", ImGuiDataType_U32, &value, speed, &min, &max);
-
-        ImGui::EndGroup();
         ImGui::PopItemWidth();
 
         ImGui::Columns(1);

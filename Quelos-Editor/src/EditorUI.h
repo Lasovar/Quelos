@@ -37,8 +37,6 @@ namespace QuelosEditor {
             ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() / 3.0f);
 
             // Frame style
-            ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, 4);
-
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(label.c_str());
             ImGui::NextColumn();
@@ -58,9 +56,10 @@ namespace QuelosEditor {
                 }
             }
 
-            constexpr float resetButtonSize = 30.0f;
+            const float buttonSize = ImGui::GetFrameHeight();
+            const float itemInnerSpacing = ImGui::GetStyle().ItemInnerSpacing.x;
             const ImVec2 size = {
-                ImGui::GetContentRegionAvail().x - (resetButtonSize * 2.0f) - 4.0f * 3.0f,
+                ImGui::GetContentRegionAvail().x - itemInnerSpacing * 2.0f - buttonSize * 2.0f,
                 ImGui::GetFrameHeight()
             };
 
@@ -97,19 +96,19 @@ namespace QuelosEditor {
                 ImGui::EndDragDropTarget();
             }
 
-            ImGui::SameLine();
+            ImGui::SameLine(0, itemInnerSpacing);
 
             // Reset button
-            if (ImGui::Button(ICON_FA_TRASH, ImVec2(resetButtonSize, 0.0f))) {
+            if (ImGui::Button(ICON_FA_TRASH, ImVec2(buttonSize, buttonSize))) {
                 value = {};
                 changed = true;
             }
 
-            ImGui::SameLine();
+            ImGui::SameLine(0, itemInnerSpacing);
 
             static Vec<const AssetMetadata*> searchAssetMetadata;
             // Search button
-            if (ImGui::Button("...", ImVec2(resetButtonSize, 0.0f))) {
+            if (ImGui::Button("...", ImVec2(buttonSize, buttonSize))) {
                 searchAssetMetadata = AssetManager::FindAssetsOfType<T>();
                 ImGui::OpenPopup("AssetSearchPopup");
             }
@@ -205,8 +204,6 @@ namespace QuelosEditor {
             }
 
             ImGui::EndGroup();
-
-            ImGui::PopStyleVar(1);
 
             ImGui::Columns(1);
             ImGui::PopID();

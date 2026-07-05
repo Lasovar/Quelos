@@ -116,8 +116,8 @@ namespace QuelosEditor {
     	m_Themes.emplace_back("Supremacy", SupremacyTheme);
     	m_Themes.emplace_back("Iaivy", IaivyTheme);
 
-    	CatppuccinTheme();
-    	m_CurrentTheme = 0;
+    	ImGuiDraculaStyle();
+    	m_CurrentTheme = 1;
 
         ImGuizmo::Create();
     }
