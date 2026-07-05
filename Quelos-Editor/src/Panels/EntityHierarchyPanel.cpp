@@ -27,7 +27,9 @@ namespace QuelosEditor {
                 if (ImGui::MenuItem("Create Empty Actor")) {
                     EntityID actorId = EntityID::Generate();
                     m_UndoSystem.Push<CreateActor>(actorId, m_Scene);
-                    SetSelectedActor(m_Scene->GetActor(actorId));
+                    const Actor actor = m_Scene->GetActor(actorId);
+                    actor.OrderBack();
+                    SetSelectedActor(actor);
                 }
 
                 if (ImGui::MenuItem("Paste")) {
@@ -222,7 +224,13 @@ namespace QuelosEditor {
         if (ImGui::BeginPopupContextItem("EntityContext")) {
             SetSelectedActor(actor);
 
-            if (ImGui::MenuItem("Create Child")) { }
+            if (ImGui::MenuItem("Create Child")) {
+                EntityID childId = EntityID::Generate();
+                m_UndoSystem.Push<CreateActor>(childId, actor.Get<EntityID>(), m_Scene);
+                const Actor child = m_Scene->GetActor(childId);
+                child.OrderBack();
+                SetSelectedActor(child);
+            }
 
             if (ImGui::MenuItem("Delete")) {
                 auto id = actor.Get<EntityID>();

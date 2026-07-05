@@ -10,6 +10,8 @@ namespace Quelos {
     using EntityID = GUID64;
     using RuntimeID = flecs::id_t;
 
+    constexpr uint64_t k_OrderStep = 1ull << 32;
+
     class QS_API Entity {
     public:
         Entity() = default;
@@ -138,9 +140,10 @@ namespace Quelos {
             m_ID.destruct();
         }
 
-        void RemoveParent() const {
-            m_ID.remove(flecs::ChildOf, flecs::Wildcard);
-        }
+        void RemoveParent() const;
+
+    public:
+        static void OrderBack(Entity entity, const Entity& parent);
 
     protected:
         flecs::entity m_ID;

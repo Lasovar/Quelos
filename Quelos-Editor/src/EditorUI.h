@@ -59,7 +59,7 @@ namespace QuelosEditor {
             const float buttonSize = ImGui::GetFrameHeight();
             const float itemInnerSpacing = ImGui::GetStyle().ItemInnerSpacing.x;
             const ImVec2 size = {
-                ImGui::GetContentRegionAvail().x - itemInnerSpacing * 2.0f - buttonSize * 2.0f,
+                ImGui::GetContentRegionAvail().x - (itemInnerSpacing + buttonSize) * 2.0f,
                 ImGui::GetFrameHeight()
             };
 

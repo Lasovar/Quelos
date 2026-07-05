@@ -103,6 +103,7 @@ namespace Quelos {
     Entity Scene::CreateEntity(const EntityID& guid, const std::string_view entityName) {
         const flecs::entity entityId = m_World.entity()
                                               .set(guid)
+                                              .add<Owner>(m_SceneRoot)
                                               .add<ChildOrder>()
                                               .add(flecs::OrderedChildren);
 

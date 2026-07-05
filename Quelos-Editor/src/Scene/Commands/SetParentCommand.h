@@ -9,7 +9,7 @@ namespace Quelos {
             const Actor actor = Scene->GetActor(ActorId);
 
             if (!NewParentId) {
-                actor.RemoveParent();
+                Scene->SetActorParentToRoot(actor);
                 return;
             }
 
@@ -24,7 +24,7 @@ namespace Quelos {
                 const Actor parent = Scene->GetActor(PreviousParentId);
                 actor.SetParent(parent);
             } else {
-                actor.RemoveParent();
+                Scene->SetActorParentToRoot(actor);
             }
         }
 

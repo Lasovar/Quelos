@@ -6,8 +6,6 @@
 #include "Quelos/Core/Log.h"
 
 namespace Quelos {
-    constexpr uint64_t k_OrderStep = 1ull << 32;
-
     class QS_API Actor : public Entity {
     public:
         Actor() = default;
@@ -47,10 +45,6 @@ namespace Quelos {
 
         [[nodiscard]] Actor GetParent() const {
             return m_ID.parent();
-        }
-
-        void RemoveParent() const {
-            SetParent(Actor(m_ID.world().singleton<SceneRoot>(), EntityID()));
         }
 
         void OrderBefore(const Actor target) const {
@@ -166,7 +160,8 @@ namespace Quelos {
                 children,
                 [](const Pair<flecs::entity, ChildOrder>& first, const Pair<flecs::entity, ChildOrder>& second) {
                     return first.second.Value < second.second.Value;
-                });
+                }
+            );
 
             Vec<flecs::entity_t> ids;
             ids.reserve(children.size());
@@ -176,7 +171,6 @@ namespace Quelos {
                 [](const Pair<flecs::entity, ChildOrder>& e) { return e.first; }
             );
 
-            std::string name = GetName();
             m_ID.set_child_order(ids.data(), ids.size());
         }
 
