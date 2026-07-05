@@ -55,8 +55,20 @@ namespace QuelosEditor {
 
             ImGui::SameLine();
 
-            if (ImGui::Button(ICON_FA_PAUSE, {size, size})) {
-                m_SceneWorkspace.ToggleScenePaused();
+            {
+                bool pushed = false;
+                if (m_SceneWorkspace.IsScenePaused()) {
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                    pushed = true;
+                }
+
+                if (ImGui::Button(ICON_FA_PAUSE, {size, size})) {
+                    m_SceneWorkspace.ToggleScenePaused();
+                }
+
+                if (pushed) {
+                    ImGui::PopStyleColor();
+                }
             }
 
             ImGui::SameLine();
