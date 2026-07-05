@@ -53,10 +53,17 @@ namespace QuelosEditor {
         void Init();
 
         [[nodiscard]] SceneState GetSceneState() const { return m_SceneState; }
-        [[nodiscard]] bool IsScenePaused() const { return m_ScenePaused; }
-        void ToggleScenePaused() { m_ScenePaused = !m_ScenePaused; }
-        void SetScenePaused(const bool value) { m_ScenePaused = value; }
-        void SetSceneStep(const bool value) { m_SceneStep = value; }
+        [[nodiscard]] bool IsScenePaused() const { return m_IsScenePaused || m_PauseRequest.IsRequested(); }
+        void ToggleScenePaused() { m_PauseRequest = PRequest(!m_IsScenePaused); }
+        void SetScenePaused(const bool isPaused) {
+            if (m_IsScenePaused == isPaused) {
+                return;
+            }
+
+            m_PauseRequest = PRequest(isPaused);
+        }
+
+        void StepScene() { m_StepRequest = true; }
 
         void OnEntitySelectionChanged(SelectionCallback callback) {
             m_OnSelectionChangedCallbacks.push_back(std::move(callback));
@@ -76,8 +83,9 @@ namespace QuelosEditor {
         Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
 
         SceneState m_SceneState = SceneState::Edit;
-        bool m_ScenePaused = false;
-        bool m_SceneStep = false;
+        bool m_IsScenePaused = false;
+        PRequest<bool> m_PauseRequest;
+        Request m_StepRequest;
 
         Request m_PlayRequest;
         Request m_StopRequest;

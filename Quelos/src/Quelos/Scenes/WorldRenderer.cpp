@@ -618,13 +618,14 @@ namespace Quelos {
         *handle = srb;
     }
 
-    const WorldRendererView* WorldRenderer::CreateView(std::string_view name) {
+    const WorldRendererView* WorldRenderer::CreateView(std::string_view name, Extent2D size) {
         Scope<WorldRendererView> view = CreateScope<WorldRendererView>(this, m_ActiveViews.size());
 
         {
+            view->Size = size;
             TextureSpecification msaaColorSpec;
-            msaaColorSpec.Width = 1;
-            msaaColorSpec.Height = 1;
+            msaaColorSpec.Width = size.Width;
+            msaaColorSpec.Height = size.Height;
 
             msaaColorSpec.Format = ImageFormat::RGBA8UNorm;
             msaaColorSpec.SamplerWrap = WrapMode::Clamp;
@@ -635,8 +636,8 @@ namespace Quelos {
             view->SceneColorMSAA = Renderer::CreateTexture(msaaColorSpec);
 
             TextureSpecification sceneColor;
-            sceneColor.Width = 1;
-            sceneColor.Height = 1;
+            sceneColor.Width = size.Width;
+            sceneColor.Height = size.Height;
 
             sceneColor.Format = ImageFormat::RGBA8UNorm;
             sceneColor.SamplerWrap = WrapMode::Repeat;
@@ -650,8 +651,8 @@ namespace Quelos {
             view->SceneColorSRV = Renderer::TextureGetDefaultView(view->SceneColor.GetHandle(), TextureViewType::ShaderResource);
 
             TextureSpecification msaaDepthSpec;
-            msaaDepthSpec.Width = 1;
-            msaaDepthSpec.Height = 1;
+            msaaDepthSpec.Width  = size.Width;
+            msaaDepthSpec.Height = size.Height;
 
             msaaDepthSpec.Format = ImageFormat::Depth32Float;
             msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
@@ -682,7 +683,7 @@ namespace Quelos {
             spec.Attachments = attachments;
             spec.Name = name;
             spec.RenderPassHandle = m_RenderPass;
-            spec.Size = {1, 1};
+            spec.Size = size;
 
             view->SceneFB = Renderer::CreateFrameBuffer(spec);
         }
@@ -695,7 +696,7 @@ namespace Quelos {
             depthFBSpec.Name = depthPrepassName;
             depthFBSpec.RenderPassHandle = m_DepthPrepass.GetHandle();
             depthFBSpec.Attachments = Span32(&view->SceneDepthDSV, 1);
-            depthFBSpec.Size = { 1, 1};
+            depthFBSpec.Size = size;
 
             view->DepthPrepassFB = Renderer::CreateFrameBuffer(depthFBSpec);
         }
@@ -704,8 +705,8 @@ namespace Quelos {
             TextureSpecification shadowMaskSpec;
             shadowMaskSpec.Type = TextureType::Texture2D;
             shadowMaskSpec.Format = ImageFormat::R8UNorm;
-            shadowMaskSpec.Width = 1;
-            shadowMaskSpec.Height = 1;
+            shadowMaskSpec.Width = size.Width;
+            shadowMaskSpec.Height = size.Height;
             shadowMaskSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
 
             view->ShadowMask = Renderer::CreateTexture(shadowMaskSpec);
@@ -721,7 +722,7 @@ namespace Quelos {
             shadowMaskFBSpec.Name = "ShadowMaskFB";
             shadowMaskFBSpec.RenderPassHandle = m_ShadowMaskRenderPass.GetHandle();
             shadowMaskFBSpec.Attachments = Span32(&maskRTV, 1);
-            shadowMaskFBSpec.Size = { 1, 1 };
+            shadowMaskFBSpec.Size = size;
 
             view->ShadowMaskFB = Renderer::CreateFrameBuffer(shadowMaskFBSpec);
 
@@ -772,6 +773,8 @@ namespace Quelos {
         QS_CORE_ASSERT(worldRendererView, "[WorldRenderer] WorldRenderer::ResizeView requires a valid WorldRendererView!");
 
         auto& view = m_ActiveViews[worldRendererView->ViewID];
+
+        view->Size = size;
 
         Renderer::TextureResize(view->SceneColorMSAA.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneColor.GetHandle(), size.Width, size.Height);
@@ -1551,13 +1554,9 @@ namespace Quelos {
         Renderer::BindPipelineState(m_ShadowComputePSO.GetHandle());
         Renderer::CommitShaderResources(view.ShadowComputeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 
-        const TextureSpecification* sceneDepthSpec = Renderer::GetSpecification(Renderer::GetTexture(view.SceneDepthSRV));
-        const uint32_t width = sceneDepthSpec->Width;
-        const uint32_t height = sceneDepthSpec->Height;
-
         const auto& groupSize = m_DepthReductionCompute->GetThreadGroupSize();
-        const uint32_t groupsX = (width  + groupSize[0] - 1) / groupSize[0];
-        const uint32_t groupsY = (height + groupSize[1] - 1) / groupSize[1];
+        const uint32_t groupsX = (view.Size.Width  + groupSize[0] - 1) / groupSize[0];
+        const uint32_t groupsY = (view.Size.Height + groupSize[1] - 1) / groupSize[1];
 
         DispatchComputeAttribs dispatchComputeAttribs;
         dispatchComputeAttribs.ThreadGroupCountX = groupsX;

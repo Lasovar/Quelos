@@ -194,6 +194,8 @@ namespace Quelos {
         explicit WorldRendererView(const WorldRenderer* worldRenderer, const uint32_t id)
             : ViewID(id), m_WorldRenderer(worldRenderer) {}
 
+        Extent2D Size;
+
         ResourceRef<Texture> SceneColorMSAA;
         ResourceRef<Texture> SceneColor;
         ResourceRef<Texture> SceneDepthMSAA;
@@ -252,7 +254,7 @@ namespace Quelos {
         void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
 
-        [[nodiscard]] const WorldRendererView* CreateView(std::string_view name);
+        [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
 
         /// View-independent, called once per frame
