@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Fence.hpp"
 #include "GpuBuffer.h"
 #include "FrameBuffer.h"
 #include "IndexBuffer.h"
@@ -282,6 +283,13 @@ namespace Quelos {
         virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;
         virtual void Destroy(GpuBufferHandle bufferHandle) = 0;
 
+        virtual FenceHandle CreateFence(const FenceSpec& fenceSpec) = 0;
+        virtual void Destroy(FenceHandle fenceHandle) = 0;
+
+        virtual void EnqueueSignal(FenceHandle fenceHandle, uint64_t value) = 0;
+        virtual void WaitForFence(FenceHandle fenceHandle, uint64_t value) = 0;
+        virtual uint64_t FenceGetCompletedValue(FenceHandle fenceHandle) = 0;
+
         virtual GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) = 0;
         virtual GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle, BufferViewType bufferViewType) = 0;
 
@@ -411,6 +419,9 @@ namespace Quelos {
 
         virtual void IncRef(Handle<RenderPass> textureHandle) = 0;
         virtual void DecRef(Handle<RenderPass> textureHandle) = 0;
+
+        virtual void IncRef(Handle<Fence> fence) = 0;
+        virtual void DecRef(Handle<Fence> fence) = 0;
 
         virtual void IncRef(Handle<ShaderResourceBinding> textureHandle) = 0;
         virtual void DecRef(Handle<ShaderResourceBinding> textureHandle) = 0;

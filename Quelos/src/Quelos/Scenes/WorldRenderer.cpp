@@ -661,7 +661,7 @@ namespace Quelos {
     }
 
     const WorldRendererView* WorldRenderer::CreateView(std::string_view name, Extent2D size) {
-        Scope<WorldRendererView> view = CreateScope<WorldRendererView>(this, m_ActiveViews.size());
+        Scope<WorldRendererView> view = CreateScope<WorldRendererView>(this, static_cast<uint32_t>(m_ActiveViews.size()));
 
         {
             view->Size = size;
@@ -814,7 +814,7 @@ namespace Quelos {
     void WorldRenderer::ResizeView(const WorldRendererView* worldRendererView, const Extent2D size) const {
         QS_CORE_ASSERT(worldRendererView, "[WorldRenderer] WorldRenderer::ResizeView requires a valid WorldRendererView!");
 
-        auto& view = m_ActiveViews[worldRendererView->ViewID];
+        auto& view = m_ActiveViews[worldRendererView->GetViewID()];
 
         view->Size = size;
 
@@ -1162,7 +1162,7 @@ namespace Quelos {
     void WorldRenderer::Render(const WorldRendererView* worldRendererView, const RenderViewParams& renderViewParams) const {
         QS_CORE_ASSERT(worldRendererView, "WorldRenderer WorldRenderer::Render Requires a valid WorldRendererView!");
 
-        auto& view = *m_ActiveViews[worldRendererView->ViewID].get();
+        auto& view = *m_ActiveViews[worldRendererView->GetViewID()];
 
         if (view.ReductionReadbackReady) {
             void* mapped;

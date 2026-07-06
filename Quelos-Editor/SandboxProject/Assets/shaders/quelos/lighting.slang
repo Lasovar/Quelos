@@ -1,5 +1,5 @@
-Texture2D<float> ShadowMask;
-SamplerState ShadowMask_sampler;
+__extern_cpp Texture2D<float> ShadowMask;
+__extern_cpp SamplerState ShadowMask_sampler;
 
 float GetShadowMask(float4 position) {
     uint2 maskSize;

@@ -92,7 +92,7 @@ namespace QuelosEditor {
         idDesc.Width = 1;
         idDesc.Height = 1;
         idDesc.Format = ImageFormat::R32UInt;
-        idDesc.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+        idDesc.BindFlags = Bind::RenderTarget;
         idDesc.Usage = Usage::Default;
 
         m_IDTexture = Renderer::CreateTexture(idDesc);
@@ -214,6 +214,10 @@ namespace QuelosEditor {
             SetShaderResourceFlag::None
         );
 
+        FenceSpec fenceSpec;
+        fenceSpec.Name = "PickFence";
+        m_PickFence = Renderer::CreateFence(fenceSpec);
+
         CreateOutlineMaskResources();
         CreateOutlineCompositeResources();
 
@@ -275,7 +279,9 @@ namespace QuelosEditor {
         }
 
         if (m_SceneViewportPanel.ShouldDraw()) {
-            if (m_PickRequest.Resolve()) {
+            if (m_PickRequest.IsRequested() && Renderer::FenceGetCompletedValue(m_PickFence.GetHandle()) >= m_PickFenceValue) {
+                m_PickRequest = false;
+
                 MappedTextureSubresource mapped;
                 Renderer::MapTextureSubresource(
                     m_IDStagingTexture.GetHandle(),
@@ -293,8 +299,8 @@ namespace QuelosEditor {
                     uint32_t rowPitch = mapped.Stride / sizeof(uint32_t); // Stride is in bytes
                     uint32_t pickedId = pixels[position.y * rowPitch + position.x];
 
-                    if (pickedId < m_PickIds.size()) {
-                        SetSelectEntity(m_PickIds[pickedId]);
+                    if (pickedId > 0 && pickedId - 1 < m_PickIds.size()) {
+                        SetSelectEntity(m_PickIds[pickedId - 1].GetParent());
                     } else {
                         SetSelectEntity({});
                     }
@@ -345,10 +351,7 @@ namespace QuelosEditor {
                 ClearValue idClearValues[2];
                 idClearValues[0].Format = ImageFormat::R32UInt;
 
-                uint32_t invalidId = std::numeric_limits<uint32_t>::max();
-                float clearAsFloat;
-                memcpy(&clearAsFloat, &invalidId, 4);
-
+                float clearAsFloat = 0.0f;
                 idClearValues[0].Color = {clearAsFloat};
 
                 idClearValues[1].Format = ImageFormat::Depth32Float;
@@ -399,7 +402,7 @@ namespace QuelosEditor {
                             instances[instanceCount++] = InstanceData{
                                 .Transform = drawCalls[j].Transform,
                                 .MaterialId = j,
-                                .EntityIndex = j
+                                .EntityIndex = j + 1
                             };
 
                             QS_ASSERT(m_PickIds.size() == j);
@@ -434,6 +437,8 @@ namespace QuelosEditor {
                 copy.SourceTransitionMode = ResourceStateTransitionMode::Transition;
                 copy.DestinationTransitionMode = ResourceStateTransitionMode::Transition;
                 Renderer::CopyTexture(copy);
+
+                Renderer::EnqueueSignal(m_PickFence.GetHandle(), ++m_PickFenceValue);
 
                 m_PickRequest = true;
             }

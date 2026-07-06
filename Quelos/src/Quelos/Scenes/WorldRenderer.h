@@ -185,11 +185,14 @@ namespace Quelos {
     /// a WorldRenderer's per-view resources
     struct QS_API WorldRendererView {
         WorldRendererView() = default;
+
         WorldRendererView(const WorldRendererView& other) = delete;
         WorldRendererView& operator=(const WorldRendererView& other) = delete;
+        WorldRendererView(WorldRendererView&& other) = default;
+        WorldRendererView& operator=(WorldRendererView&& other) = default;
 
         explicit WorldRendererView(const WorldRenderer* worldRenderer, const uint32_t id)
-            : ViewID(id), m_WorldRenderer(worldRenderer) {}
+            : m_WorldRenderer(worldRenderer), m_ViewID(id) {}
 
         Extent2D Size;
 
@@ -226,9 +229,11 @@ namespace Quelos {
 
         void Resize(Extent2D size) const;
 
-        const uint32_t ViewID = ~0u;
+        [[nodiscard]] uint32_t GetViewID() const { return m_ViewID; }
+
     private:
         const WorldRenderer* m_WorldRenderer = nullptr;
+        uint32_t m_ViewID = ~0u;
     };
 
     struct QS_API RenderViewParams {
@@ -236,13 +241,18 @@ namespace Quelos {
         float4x4 View;
         float3 CameraPosition;
         Color SceneColorClear;
-        float NearClip;
-        float FarClip;
+        float NearClip = 0.0f;
+        float FarClip = 0.0f;
     };
 
     class QS_API WorldRenderer {
     public:
         WorldRenderer();
+
+        WorldRenderer(const WorldRenderer&) = delete;
+        WorldRenderer& operator=(const WorldRenderer&) = delete;
+        WorldRenderer(WorldRenderer&&) = default;
+        WorldRenderer& operator=(WorldRenderer&&) = default;
 
         void SetWorld(const flecs::world& world);
 

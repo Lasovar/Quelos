@@ -123,6 +123,9 @@ namespace QuelosEditor {
         ResourceRef<PipelineStateObject> m_IDPSO;
         ResourceRef<ShaderResourceBinding> m_IDSRB;
 
+        uint64_t m_PickFenceValue = 0;
+        ResourceRef<Fence> m_PickFence;
+
         alignas(GraphicsShader) byte m_IDShaderStorage[sizeof(GraphicsShader)]{};
 
         ResourceRef<GpuBuffer> m_OutlineSettingsUB;
