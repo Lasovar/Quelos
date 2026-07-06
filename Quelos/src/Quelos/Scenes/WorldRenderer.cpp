@@ -334,9 +334,51 @@ namespace Quelos {
         }
         */
 
-        m_RenderingQuery = world.query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>();
+        m_RenderingQuery = world.query_builder<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent
+                                               &>()
+                                .term_at(0).up()
+                                .term_at(1).up()
+                                .build();
+
+        m_WorldRendererPipeline = world.pipeline()
+                                       .with(flecs::System)
+                                       .with<WorldRendererSystem>()
+                                       .build();
+
+        world.system<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>("QueueRenderCommands")
+             .kind<WorldRendererSystem>()
+             .term_at(0).up()
+             .term_at(1).up()
+             .multi_threaded(false)
+             .each([&](
+                 flecs::iter& it, size_t index,
+                 const WorldTransform& transform, const MeshRenderer& meshRenderer,
+                 const PipelineStateComponent& psoComponent
+             ) {
+                     const uint64_t sortKey =
+                         (static_cast<uint64_t>(static_cast<uint32_t>(psoComponent.Order - INT32_MIN)) << 48) |
+                         (static_cast<uint64_t>(psoComponent.PSO.GetHandle().Index()) << 24) |
+                         static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
+
+                     m_DrawCalls.emplace_back(
+                         sortKey,
+                         it.entity(index),
+                         &meshRenderer.Mesh.Get(),
+                         psoComponent.PSO.GetHandle(),
+                         transform.Value,
+                         psoComponent.MaterialIndex
+                     );
+
+                     m_InstancingDrawCalls.emplace_back(
+                         transform.Value,
+                         &meshRenderer.Mesh.Get(),
+                         meshRenderer.Mesh.GetAssetHandle().Index
+                     );
+                 });
+
+
         m_PSOQuery = world.query_builder<const MeshRenderer&>()
-                            .without<PipelineStateComponent>()
+                            .without<CheckedMeshRenderer>()
                             .build();
 
         m_DirectionalLightQuery = world.query<const WorldTransform&, const DirectionalLight&>();
@@ -877,16 +919,13 @@ namespace Quelos {
                 || !meshRenderer.Material
                 || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
             ) {
-                entity.remove<PipelineStateComponent>();
+                entity.destruct();
                 isDirty = true;
             }
 
-            for (const PipelineData& pipeline : pipelineStateComponent.Pipelines) {
-                if (!Renderer::IsAlive(pipeline.PSO.GetHandle())) {
-                    m_PipelineStates.erase(pipelineStateComponent.ShaderID);
-                    entity.remove<PipelineStateComponent>();
-                    return;
-                }
+            if (!Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())) {
+                m_PipelineStates.erase(pipelineStateComponent.ShaderID);
+                entity.destruct();
             }
         });
 
@@ -910,25 +949,18 @@ namespace Quelos {
             const auto it = m_PipelineStates.find(shader.GetAssetID());
             if (it != m_PipelineStates.end()) {
                 if (Renderer::IsAlive(it->second.Pipelines.front().PSO)) {
-                    Vec<PipelineData> pipelines;
-                    pipelines.reserve(it->second.Pipelines.size());
-                    std::ranges::transform(
-                        it->second.Pipelines,
-                        std::back_inserter(pipelines),
-                        [](const WeakPipelineData& pipelineData) {
-                            return PipelineData{
-                                .PSO = pipelineData.PSO,
-                                .Order = pipelineData.Order
-                            };
-                        }
-                    );
+                    for (const WeakPipelineData& pipeline : it->second.Pipelines) {
+                        entity.child()
+                              .emplace<PipelineStateComponent>(
+                                  pipeline.PSO,
+                                  pipeline.Order,
+                                  it->second.MaterialRegistry.Add(meshRenderer.Material),
+                                  shader.GetAssetID()
+                              );
+                    }
 
-                    entity.emplace<PipelineStateComponent>(
-                        std::move(pipelines),
-                        it->second.MaterialRegistry.Add(meshRenderer.Material),
-                        shader.GetAssetID()
-                    );
 
+                    entity.add<CheckedMeshRenderer>();
                     return;
                 }
 
@@ -1042,29 +1074,27 @@ namespace Quelos {
                 shader.AddPipelineState(pipelineStateHandle);
             }
 
-            Vec<PipelineData> entityPipelines;
-            entityPipelines.reserve(worldPipelines.size());
-            std::ranges::transform(
-                worldPipelines,
-                std::back_inserter(entityPipelines),
-                [](const WeakPipelineData& pipeline) {
-                    return PipelineData{pipeline.PSO, pipeline.Order};
-                }
-            );
-
-            MaterialRegistry& materialRegistry = m_PipelineStates.try_emplace(
+            PipelineInfo& pipelineInfo = m_PipelineStates.try_emplace(
                 shader.GetAssetID(),
                 std::move(worldPipelines),
                 MaterialRegistry(shader.GetName(), shader.GetMaterialSize())
-            ).first->second.MaterialRegistry;
+            ).first->second;
 
+            MaterialRegistry& materialRegistry = pipelineInfo.MaterialRegistry;
             materialRegistry.GetTextureRegistry().Init(m_WhiteTexture, m_MagentaTexture);
+            uint32_t materialId = materialRegistry.Add(meshRenderer.Material);
 
-            entity.emplace<PipelineStateComponent>(
-                std::move(entityPipelines),
-                materialRegistry.Add(meshRenderer.Material),
-                shader.GetAssetID()
-            );
+            for (WeakPipelineData& weakPipelineData : pipelineInfo.Pipelines) {
+                entity.child()
+                      .emplace<PipelineStateComponent>(
+                          weakPipelineData.PSO,
+                          weakPipelineData.Order,
+                          materialId,
+                          shader.GetAssetID()
+                      );
+            }
+
+            entity.add<CheckedMeshRenderer>();
 
             for (auto& view : m_ActiveViews) {
                 for (const WeakPipelineData& pipeline : worldPipelines) {
@@ -1080,33 +1110,7 @@ namespace Quelos {
         m_DrawCalls.reserve(m_RenderingQuery.count());
         m_InstancingDrawCalls.reserve(m_RenderingQuery.count());
 
-        m_World->defer_begin();
-
-        m_RenderingQuery.each([&](
-            flecs::entity entity,
-            const WorldTransform& transform, const MeshRenderer& meshRenderer,
-            const PipelineStateComponent& pipelineStateComponent
-        ) {
-            for (const auto& pipeline : pipelineStateComponent.Pipelines) {
-                uint64_t sortKey =
-                    (static_cast<uint64_t>(static_cast<uint32_t>(pipeline.Order - INT32_MIN)) << 48) |
-                    (static_cast<uint64_t>(pipeline.PSO.GetHandle().Index()) << 24) |
-                    static_cast<uint64_t>(meshRenderer.Mesh.GetAssetHandle().Index);
-
-                m_DrawCalls.emplace_back(
-                    sortKey,
-                    entity,
-                    &meshRenderer.Mesh.Get(),
-                    pipeline.PSO.GetHandle(),
-                    transform.Value,
-                    pipelineStateComponent.MaterialIndex
-                );
-            }
-
-            m_InstancingDrawCalls.emplace_back(transform.Value, &meshRenderer.Mesh.Get(), meshRenderer.Mesh.GetAssetHandle().Index);
-        });
-
-        m_World->defer_end();
+        m_World->run_pipeline(m_WorldRendererPipeline);
 
         for (auto& pipelineInfo : m_PipelineStates | std::views::values) {
             pipelineInfo.MaterialRegistry.FlushToGPU();

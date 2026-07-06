@@ -43,6 +43,10 @@ namespace QuelosEditor {
             world.defer_begin();
             uint32_t order = 0;
             m_SceneRoot.GetInternalID().children([&](const flecs::entity entity) {
+                if (!entity.has<EntityID>()) {
+                    return;
+                }
+
                 m_EntitiesStack.clear();
                 DrawActor(entity, 0, m_EntitiesStack, order);
                 order++;
@@ -120,7 +124,13 @@ namespace QuelosEditor {
         // Row
         const bool selected = ImGui::Selectable("##row", m_SceneWorkspace.GetSelectedEntity() == actor);
 
-        const int count = actor.ChildrenCount();
+        uint32_t count = 0;
+        actor.GetInternalID().children([&count](const flecs::entity child) {
+            if (child.has<EntityID>()) {
+                count++;
+            }
+        });
+
         const bool hasChildren = count > 0;
 
         const ImVec2 min = ImGui::GetItemRectMin();
@@ -268,6 +278,10 @@ namespace QuelosEditor {
                             const Actor parent = dropped.GetParent();
 
                             dropped.GetInternalID().children([&](const flecs::entity child) {
+                                if (!child.has<EntityID>()) {
+                                    return;
+                                }
+
                                 if (parent.IsValid()) {
                                     m_UndoSystem.Push<SetEntityParent>(
                                         child.get<EntityID>(),
@@ -325,6 +339,10 @@ namespace QuelosEditor {
 
             int childOrder = 0;
             actor.GetInternalID().children([&](const flecs::entity child) {
+                if (!child.has<EntityID>()) {
+                    return;
+                }
+
                 stack.push_back(childOrder < count - 1);
 
                 DrawActor(child, depth + 1, stack, childOrder);

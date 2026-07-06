@@ -130,13 +130,10 @@ namespace Quelos {
         bool m_WasReallocated = false;
     };
 
-    struct PipelineData {
+    struct QS_API CheckedMeshRenderer { };
+    struct QS_API PipelineStateComponent {
         ResourceRef<PipelineStateObject> PSO;
         int32_t Order;
-    };
-
-    struct QS_API PipelineStateComponent {
-        Vec<PipelineData> Pipelines;
         uint32_t MaterialIndex;
         AssetID ShaderID;
     };
@@ -273,6 +270,8 @@ namespace Quelos {
         [[nodiscard]] RenderPassHandle GetShadowMaskPass() const { return m_ShadowMaskRenderPass.GetHandle(); }
         [[nodiscard]] RenderPassHandle GetRenderPass() const { return m_RenderPass; }
     private:
+        struct WorldRendererPipeline { };
+        struct WorldRendererSystem { };
 
         struct WeakPipelineData {
             PipelineStateHandle PSO;
@@ -333,5 +332,6 @@ namespace Quelos {
         ResourceRef<GpuBuffer> m_CascadeShadowDataBuffer;
         ResourceRef<RenderPass> m_ShadowMaskRenderPass;
         ResourceRef<PipelineStateObject> m_ShadowMaskPSO;
+        flecs::entity m_WorldRendererPipeline;
     };
 }
