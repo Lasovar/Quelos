@@ -74,6 +74,12 @@ namespace Quelos {
         static PipelineResourceSignatureHandle CreatePipelineResourceSignature(const PipelineResourceSignatureSpec& pipelineResourceSignatureSpec);
         static void Destroy(PipelineResourceSignatureHandle pipelineResourceSignatureHandle);
 
+        static FenceHandle CreateFence(const FenceSpec& fenceSpec);
+        static void Destroy(FenceHandle fenceHandle);
+        static void EnqueueSignal(FenceHandle fenceHandle, uint64_t value);
+        static uint64_t FenceGetCompletedValue(FenceHandle fenceHandle);
+        static void WaitForFence(FenceHandle fenceHandle, uint64_t value);
+
         static GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView bufferView);
         static GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle gpuBuffer, BufferViewType bufferViewType);
 
@@ -204,6 +210,8 @@ namespace Quelos {
         static void DecRef(Handle<GpuBuffer> textureHandle);
         static void IncRef(Handle<RenderPass> textureHandle);
         static void DecRef(Handle<RenderPass> textureHandle);
+        static void IncRef(Handle<Fence> fence);
+        static void DecRef(Handle<Fence> fence);
         static void IncRef(Handle<ShaderResourceBinding> textureHandle);
         static void DecRef(Handle<ShaderResourceBinding> textureHandle);
         static void IncRef(Handle<PipelineStateObject> textureHandle);

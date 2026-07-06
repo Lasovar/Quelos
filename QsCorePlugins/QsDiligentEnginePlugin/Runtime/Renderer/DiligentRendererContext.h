@@ -102,6 +102,12 @@ namespace Quelos {
         GraphicsPipelineSpec GraphicsPipeline;
     };
 
+    struct FenceData {
+        IFence* Fence = nullptr;
+        std::string Name;
+        FenceSpec Spec;
+    };
+
     struct QBufferData {
         IBuffer* Buffer;
         std::string Name;
@@ -179,6 +185,12 @@ namespace Quelos {
         void BindPipelineState(PipelineStateHandle pipelineStateHandle) override;
 
         void Destroy(PipelineStateHandle pipelineStateHandle) override;
+
+        FenceHandle CreateFence(const FenceSpec& fenceSpec) override;
+        void Destroy(FenceHandle fenceHandle) override;
+        void EnqueueSignal(FenceHandle fenceHandle, uint64_t value) override;
+        uint64_t FenceGetCompletedValue(FenceHandle fenceHandle) override;
+        void WaitForFence(FenceHandle fenceHandle, uint64_t value) override;
 
         GpuBufferHandle CreateBuffer(const GpuBufferSpec& bufferSpec, BufferView data) override;
         GpuBufferViewHandle GetDefaultBufferView(GpuBufferHandle bufferHandle, BufferViewType bufferViewType) override;
@@ -300,6 +312,8 @@ namespace Quelos {
         void DecRef(Handle<GpuBuffer> textureHandle) override;
         void IncRef(Handle<RenderPass> textureHandle) override;
         void DecRef(Handle<RenderPass> textureHandle) override;
+        void IncRef(Handle<Fence> fence) override;
+        void DecRef(Handle<Fence> fence) override;
         void IncRef(Handle<ShaderResourceBinding> srb) override;
         void DecRef(Handle<ShaderResourceBinding> srb) override;
         void IncRef(Handle<PipelineStateObject> pso) override;
@@ -320,6 +334,7 @@ namespace Quelos {
         ResourceTable<TextureViewData, TextureView> m_TextureViewTable;
         ResourceTable<RenderPassData, RenderPass> m_RenderPassTable;
         ResourceTable<QFrameBufferData, FrameBuffer> m_FrameBufferTable;
+        ResourceTable<FenceData, Fence> m_FenceTable;
         ResourceTable<QBufferData, GpuBuffer> m_BufferTable;
         ResourceTable<QBufferViewData, GpuBufferView> m_BufferViewTable;
         ResourceTable<PipelineStateData, PipelineStateObject> m_PipelineStateTable;

@@ -189,6 +189,26 @@ namespace Quelos {
         s_RendererContext->Destroy(pipelineResourceSignatureHandle);
     }
 
+    FenceHandle Renderer::CreateFence(const FenceSpec& fenceSpec) {
+        return s_RendererContext->CreateFence(fenceSpec);
+    }
+
+    void Renderer::Destroy(const FenceHandle fenceHandle) {
+        s_RendererContext->Destroy(fenceHandle);
+    }
+
+    void Renderer::EnqueueSignal(const FenceHandle fenceHandle, const uint64_t value) {
+        s_RendererContext->EnqueueSignal(fenceHandle, value);
+    }
+
+    uint64_t Renderer::FenceGetCompletedValue(const FenceHandle fenceHandle) {
+        return s_RendererContext->FenceGetCompletedValue(fenceHandle);
+    }
+
+    void Renderer::WaitForFence(const FenceHandle fenceHandle, const uint64_t value) {
+        s_RendererContext->WaitForFence(fenceHandle, value);
+    }
+
     void Renderer::Shutdown() {
         s_RendererContext->Shutdown();
         s_IsInitialized = false;
@@ -440,6 +460,8 @@ namespace Quelos {
     void Renderer::DecRef(const Handle<GpuBuffer> textureHandle) { s_RendererContext->DecRef(textureHandle); }
     void Renderer::IncRef(const Handle<RenderPass> textureHandle) { s_RendererContext->IncRef(textureHandle); }
     void Renderer::DecRef(const Handle<RenderPass> textureHandle) { s_RendererContext->DecRef(textureHandle); }
+    void Renderer::IncRef(const Handle<Fence> fence) { s_RendererContext->IncRef(fence); }
+    void Renderer::DecRef(const Handle<Fence> fence) { s_RendererContext->DecRef(fence); }
     void Renderer::IncRef(const Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->IncRef(textureHandle); }
     void Renderer::DecRef(const Handle<ShaderResourceBinding> textureHandle) { s_RendererContext->DecRef(textureHandle); }
     void Renderer::IncRef(const Handle<PipelineStateObject> textureHandle) { s_RendererContext->IncRef(textureHandle); }

@@ -627,6 +627,10 @@ namespace Quelos {
         constexpr SET_SHADER_RESOURCE_FLAGS GetSetShaderResourceFlag(SetShaderResourceFlag flags) {
             return static_cast<SET_SHADER_RESOURCE_FLAGS>(flags);
         }
+
+        constexpr FENCE_TYPE GetFenceType(FenceType type) {
+            return static_cast<FENCE_TYPE>(type);
+        }
     }
 
     namespace TextureUtil {
@@ -2258,7 +2262,7 @@ namespace Quelos {
         }
     }
 
-    void DiligentRendererContext::BindPipelineState(PipelineStateHandle pipelineStateHandle) {
+    void DiligentRendererContext::BindPipelineState(const PipelineStateHandle pipelineStateHandle) {
         PipelineStateData* slot = m_PipelineStateTable.At(pipelineStateHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
@@ -2274,7 +2278,7 @@ namespace Quelos {
         m_pImmediateContext->SetPipelineState(slot->PSO);
     }
 
-    void DiligentRendererContext::Destroy(PipelineStateHandle pipelineStateHandle) {
+    void DiligentRendererContext::Destroy(const PipelineStateHandle pipelineStateHandle) {
         PipelineStateData* slot = m_PipelineStateTable.At(pipelineStateHandle);
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
@@ -2297,6 +2301,58 @@ namespace Quelos {
         slot->OwnedStrings.clear();
 
         m_PipelineStateTable.Erase(pipelineStateHandle);
+    }
+
+    FenceHandle DiligentRendererContext::CreateFence(const FenceSpec& fenceSpec) {
+        const FenceHandle handle = m_FenceTable.Emplace();
+        QS_CORE_ASSERT(
+            handle,
+            "DiligentRendererContext::CreateFence(FenceSpec): Failed to emplace fence handle!"
+        );
+
+        FenceData* slot = m_FenceTable.At(handle);
+
+        slot->Name = fenceSpec.Name;
+        slot->Spec = fenceSpec;
+
+        FenceDesc desc;
+        desc.Name = slot->Name.c_str();
+        desc.Type = Utils::GetFenceType(slot->Spec.Type);
+
+        m_pDevice->CreateFence(desc, &slot->Fence);
+
+        QS_CORE_ASSERT(
+            slot->Fence,
+            "DiligentRendererContext::CreateFence(FenceSpec): Failed to create fence!"
+        );
+
+        return handle;
+    }
+
+    void DiligentRendererContext::Destroy(const FenceHandle fenceHandle) {
+        FenceData* slot = m_FenceTable.At(fenceHandle);
+        QS_CORE_ASSERT(
+            slot,
+            "DiligentRendererContext::Destroy(FenceHandle) failed to get slot at handle ({},{})!",
+            fenceHandle.Index(), fenceHandle.Generation()
+        );
+
+        slot->Fence->Release();
+        slot->Fence = nullptr;
+
+        m_FenceTable.Erase(fenceHandle);
+    }
+
+    void DiligentRendererContext::EnqueueSignal(const FenceHandle fenceHandle, const uint64_t value) {
+        m_pImmediateContext->EnqueueSignal(m_FenceTable.At(fenceHandle)->Fence, value);
+    }
+
+    uint64_t DiligentRendererContext::FenceGetCompletedValue(const FenceHandle fenceHandle) {
+        return m_FenceTable.At(fenceHandle)->Fence->GetCompletedValue();
+    }
+
+    void DiligentRendererContext::WaitForFence(const FenceHandle fenceHandle, const uint64_t value) {
+        m_pImmediateContext->DeviceWaitForFence(m_FenceTable.At(fenceHandle)->Fence, value);
     }
 
     VertexBufferHandle
@@ -2458,6 +2514,14 @@ namespace Quelos {
             Destroy(renderPass);
         }
     }
+
+    void DiligentRendererContext::IncRef(Handle<Fence> fence) { m_FenceTable.IncRef(fence); }
+    void DiligentRendererContext::DecRef(Handle<Fence> fence) {
+        if (m_FenceTable.DecRef(fence)) {
+            Destroy(fence);
+        }
+    }
+
     void DiligentRendererContext::IncRef(Handle<ShaderResourceBinding> srb) {m_ShaderResourceBindingTable.IncRef(srb);}
     void DiligentRendererContext::DecRef(Handle<ShaderResourceBinding> srb) {
         if (m_ShaderResourceBindingTable.DecRef(srb)) {

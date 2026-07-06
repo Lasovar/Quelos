@@ -12,7 +12,7 @@ EditorVSOut vertexMain(VertexIn input, uint instanceID: SV_InstanceID) {
 
     EditorVSOut o;
     o.pos = mul(mul(float4(input.position, 1.0), inst.Transform), global.viewProj);
-    o.entityId = inst.MaterialID;
+    o.entityId = inst.EntityID;
 
     return o;
 }
