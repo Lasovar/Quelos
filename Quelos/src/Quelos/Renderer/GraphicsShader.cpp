@@ -68,7 +68,9 @@ namespace Quelos {
         }
 
         for (const PipelineStateHandle& pipelineState : m_PipelineStates) {
-            Renderer::Destroy(pipelineState);
+            if (Renderer::IsAlive(pipelineState)) {
+                Renderer::Destroy(pipelineState);
+            }
         }
 
         for (const GraphicsShaderPass& pass : m_Passes) {
