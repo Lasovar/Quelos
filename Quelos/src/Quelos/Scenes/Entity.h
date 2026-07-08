@@ -112,6 +112,11 @@ namespace Quelos {
             return m_ID.has<T>();
         }
 
+        template <typename TFirst>
+        [[nodiscard]] Entity Target(const int32_t index = 0) const {
+            return m_ID.target<TFirst>(index);
+        }
+
         [[nodiscard]] Entity GetParent() const {
             return m_ID.parent();
         }

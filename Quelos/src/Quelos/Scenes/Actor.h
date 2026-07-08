@@ -149,7 +149,11 @@ namespace Quelos {
             Vec<Pair<flecs::entity, ChildOrder>> children;
 
             m_ID.children([&](const flecs::entity c) {
-                children.push_back({c, c.get<ChildOrder>()});
+                if (const auto* childOrder = c.try_get<ChildOrder>()) {
+                    children.emplace_back(c, *childOrder);
+                } else {
+                    children.emplace_back(c, ChildOrder{});
+                }
             });
 
             if (children.empty()) {

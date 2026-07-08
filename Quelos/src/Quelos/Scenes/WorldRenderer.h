@@ -131,12 +131,15 @@ namespace Quelos {
     };
 
     struct QS_API CheckedMeshRenderer { };
-    struct QS_API PipelineStateComponent {
+    struct QS_API PipelineOf { };
+    struct QS_API PipelineHandleComponent {
         ResourceRef<PipelineStateObject> PSO;
         int32_t Order;
         uint32_t MaterialIndex;
         AssetID ShaderID;
     };
+
+    struct QS_API DepthWriteTag { };
 
     struct QS_API DrawCommand {
         uint64_t SortKey;
@@ -152,6 +155,8 @@ namespace Quelos {
         pfloat4x4 Transform;
         Mesh* Mesh;
         uint32_t SortKey;
+        // temp
+        bool DepthWrite;
     };
 
     struct QS_API alignas(16) Globals {
@@ -286,9 +291,10 @@ namespace Quelos {
         struct WeakPipelineData {
             PipelineStateHandle PSO;
             int32_t Order = 0;
-            bool HasTextures = false;
-            bool HasShadowMask = false;
-            bool IsShadowMaskBound = false;
+            bool HasTextures:1 = false;
+            bool DepthWrite:1 = false;
+            bool HasShadowMask:1 = false;
+            bool IsShadowMaskBound:1 = false;
         };
 
         struct PipelineInfo {
@@ -320,7 +326,7 @@ namespace Quelos {
         const flecs::world* m_World = nullptr;
         flecs::query<const DirectionalLight&, const EntityID&> m_DirectionalLightCreateSMQuery;
         flecs::query<const WorldTransform&, const EntityID&> m_DirectionalLightSMQuery;
-        flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&> m_RenderingQuery;
+        flecs::query<const WorldTransform&, const MeshRenderer&, const PipelineHandleComponent&> m_RenderingQuery;
         flecs::query<const MeshRenderer&> m_PSOQuery;
         flecs::query<const WorldTransform&, const DirectionalLight&> m_DirectionalLightQuery;
 

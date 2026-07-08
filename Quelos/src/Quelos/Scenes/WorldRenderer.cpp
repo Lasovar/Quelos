@@ -334,10 +334,15 @@ namespace Quelos {
         }
         */
 
-        m_RenderingQuery = world.query_builder<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent
+        // ReSharper disable once CppExpressionWithoutSideEffects
+        world.component<PipelineOf>()
+             .add(flecs::OnDeleteTarget, flecs::Delete)
+             .add(flecs::Traversable);
+
+        m_RenderingQuery = world.query_builder<const WorldTransform&, const MeshRenderer&, const PipelineHandleComponent
                                                &>()
-                                .term_at(0).up()
-                                .term_at(1).up()
+                                .term_at(0).up<PipelineOf>()
+                                .term_at(1).up<PipelineOf>()
                                 .build();
 
         m_WorldRendererPipeline = world.pipeline()
@@ -345,16 +350,18 @@ namespace Quelos {
                                        .with<WorldRendererSystem>()
                                        .build();
 
-        world.system<const WorldTransform&, const MeshRenderer&, const PipelineStateComponent&>("QueueRenderCommands")
+        world.system<const WorldTransform&, const MeshRenderer&, const PipelineHandleComponent&>("QueueRenderCommands")
              .kind<WorldRendererSystem>()
-             .term_at(0).up()
-             .term_at(1).up()
+             .term_at(0).up<PipelineOf>()
+             .term_at(1).up<PipelineOf>()
              .multi_threaded(false)
              .each([&](
                  flecs::iter& it, size_t index,
                  const WorldTransform& transform, const MeshRenderer& meshRenderer,
-                 const PipelineStateComponent& psoComponent
+                 const PipelineHandleComponent& psoComponent
              ) {
+                     const auto entity = it.entity(index);
+
                      const uint64_t sortKey =
                          (static_cast<uint64_t>(static_cast<uint32_t>(psoComponent.Order - INT32_MIN)) << 48) |
                          (static_cast<uint64_t>(psoComponent.PSO.GetHandle().Index()) << 24) |
@@ -362,7 +369,7 @@ namespace Quelos {
 
                      m_DrawCalls.emplace_back(
                          sortKey,
-                         it.entity(index),
+                         entity,
                          &meshRenderer.Mesh.Get(),
                          psoComponent.PSO.GetHandle(),
                          transform.Value,
@@ -372,9 +379,11 @@ namespace Quelos {
                      m_InstancingDrawCalls.emplace_back(
                          transform.Value,
                          &meshRenderer.Mesh.Get(),
-                         meshRenderer.Mesh.GetAssetHandle().Index
+                         meshRenderer.Mesh.GetAssetHandle().Index,
+                         entity.has<DepthWriteTag>()
                      );
-                 });
+                 }
+             );
 
 
         m_PSOQuery = world.query_builder<const MeshRenderer&>()
@@ -913,7 +922,7 @@ namespace Quelos {
 
         m_RenderingQuery.each([&](
             const flecs::entity entity, const WorldTransform&, const MeshRenderer& meshRenderer,
-            const PipelineStateComponent& pipelineStateComponent
+            const PipelineHandleComponent& pipelineStateComponent
         ) {
             if (!meshRenderer.Mesh
                 || !meshRenderer.Material
@@ -950,15 +959,19 @@ namespace Quelos {
             if (it != m_PipelineStates.end()) {
                 if (Renderer::IsAlive(it->second.Pipelines.front().PSO)) {
                     for (const WeakPipelineData& pipeline : it->second.Pipelines) {
-                        entity.child()
-                              .emplace<PipelineStateComponent>(
+                        flecs::entity pipelineHandle = m_World->entity()
+                              .add<PipelineOf>(entity)
+                              .emplace<PipelineHandleComponent>(
                                   pipeline.PSO,
                                   pipeline.Order,
                                   it->second.MaterialRegistry.Add(meshRenderer.Material),
                                   shader.GetAssetID()
                               );
-                    }
 
+                        if (pipeline.DepthWrite) {
+                            pipelineHandle.add<DepthWriteTag>();
+                        }
+                    }
 
                     entity.add<CheckedMeshRenderer>();
                     return;
@@ -990,6 +1003,7 @@ namespace Quelos {
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
+                bool depthWrite = true;
                 for (const auto & pipelineOption : pipelineData.PipelineOptions) {
                     switch (pipelineOption.first) {
                     case PipelineOption::None:
@@ -999,10 +1013,7 @@ namespace Quelos {
                             static_cast<bool>(std::get<int32_t>(pipelineOption.second));
                         break;
                     case PipelineOption::DepthWriteEnable:
-                        /*
-                        pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable =
-                            static_cast<bool>(std::get<int32_t>(pipelineOption.second));
-                    */
+                        depthWrite = static_cast<bool>(std::get<int32_t>(pipelineOption.second));
                     break;
                     case PipelineOption::CullMode:
                         pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode =
@@ -1070,7 +1081,14 @@ namespace Quelos {
 
                 Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
 
-                worldPipelines.emplace_back(pipelineStateHandle, pipelineData.Order, true, hasShadowMaps, false);
+                worldPipelines.emplace_back(
+                    pipelineStateHandle,
+                    pipelineData.Order,
+                    true,
+                    depthWrite,
+                    hasShadowMaps,
+                    false
+                );
                 shader.AddPipelineState(pipelineStateHandle);
             }
 
@@ -1085,13 +1103,18 @@ namespace Quelos {
             uint32_t materialId = materialRegistry.Add(meshRenderer.Material);
 
             for (WeakPipelineData& weakPipelineData : pipelineInfo.Pipelines) {
-                entity.child()
-                      .emplace<PipelineStateComponent>(
+                flecs::entity pipelineHandle = m_World->entity()
+                      .add<PipelineOf>(entity)
+                      .emplace<PipelineHandleComponent>(
                           weakPipelineData.PSO,
                           weakPipelineData.Order,
                           materialId,
                           shader.GetAssetID()
                       );
+
+                if (weakPipelineData.DepthWrite) {
+                    pipelineHandle.add<DepthWriteTag>();
+                }
             }
 
             entity.add<CheckedMeshRenderer>();
@@ -1226,6 +1249,11 @@ namespace Quelos {
                     && instanceCount < k_MaxInstances
                     && mesh == m_InstancingDrawCalls[drawIndex].Mesh
                 ) {
+                    if (!m_InstancingDrawCalls[drawIndex].DepthWrite) {
+                        drawIndex++;
+                        continue;
+                    }
+
                     instances[instanceCount++] = InstanceData{
                         .Transform = m_InstancingDrawCalls[drawIndex].Transform,
                         .MaterialId = 0,
@@ -1236,6 +1264,10 @@ namespace Quelos {
                 }
 
                 Renderer::Unmap(m_InstancesGpuBuffer, MapType::Write);
+
+                if (instanceCount == 0) {
+                    continue;
+                }
 
                 Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
                 Renderer::BindIndexBuffer(mesh->GetIndexBuffer());

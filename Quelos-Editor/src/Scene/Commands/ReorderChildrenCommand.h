@@ -44,13 +44,17 @@ namespace Quelos {
                     return;
                 }
 
-                const EntityID childId = entity.get<EntityID>();
-                if (childId == ActorId) {
+                const auto* childId = entity.try_get<EntityID>();
+                if (!childId) {
+                    return;
+                }
+
+                if (*childId == ActorId) {
                     found = true;
                     PreviousNextActor = prevActorId;
                 }
 
-                prevActorId = childId;
+                prevActorId = *childId;
             });
         }
 
