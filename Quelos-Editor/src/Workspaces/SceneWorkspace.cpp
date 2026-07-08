@@ -300,7 +300,7 @@ namespace QuelosEditor {
                     uint32_t pickedId = pixels[position.y * rowPitch + position.x];
 
                     if (pickedId > 0 && pickedId - 1 < m_PickIds.size()) {
-                        SetSelectEntity(m_PickIds[pickedId - 1].GetParent());
+                        SetSelectEntity(m_PickIds[pickedId - 1].Target<PipelineOf>());
                     } else {
                         SetSelectEntity({});
                     }
