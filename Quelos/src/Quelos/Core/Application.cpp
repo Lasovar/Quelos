@@ -57,17 +57,21 @@ namespace Quelos {
 		Renderer::StartFrame();
 
 		{
-			QS_PROFILE_SCOPED_N("LayersTick");
+			QS_PROFILE_SCOPED_N("Layers Tick");
 			for (auto& layer : m_LayerStack) {
+				QS_PROFILE_SCOPED();
+				QS_PROFILE_NAME(layer->GetName().c_str(), layer->GetName().size());
 				layer->Tick(m_Time->DeltaTime());
 			}
 		}
 
 		{
-			QS_PROFILE_SCOPED_N("ImGuiRender");
+			QS_PROFILE_SCOPED_N("Layers ImGuiRender");
 			m_ImGuiLayer->Begin();
 
 			for (auto& layer : m_LayerStack) {
+				QS_PROFILE_SCOPED();
+				QS_PROFILE_NAME(layer->GetName().c_str(), layer->GetName().size());
 				layer->ImGuiRender();
 			}
 

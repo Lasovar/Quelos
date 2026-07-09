@@ -358,8 +358,13 @@ namespace QuelosEditor {
         }
 
         Option<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
-            // TODO: Use AssetID or AssetPath/AssetName
-            QS_PROFILE_SCOPED_N("Shader compilation");
+#if QS_ENABLE_PROFILING
+            QS_PROFILE_SCOPED();
+            std::string_view shaderName = FS::Filename(shaderPath);
+            QS_PROFILE_NAME_F("ShaderImporter::CompileShader(%.*s)",  static_cast<int>(shaderName.size()), shaderName.begin());
+            QS_PROFILE_TEXT_F("compiling shader %s", shaderPath.c_str());
+#endif
+
             slang::SessionDesc sessionDesc;
 
             SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
