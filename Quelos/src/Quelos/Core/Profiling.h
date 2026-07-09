@@ -29,6 +29,10 @@ inline void tracy_free_impl(void* p) {
 
 #define QS_PROFILE_SCOPED() ZoneScoped
 #define QS_PROFILE_SCOPED_N(name) ZoneScopedN(name)
+#define QS_PROFILE_NAME(name, size) ZoneName(name, size)
+#define QS_PROFILE_NAME_F(format, ...) ZoneNameF(format, ##__VA_ARGS__)
+#define QS_PROFILE_TEXT(name, size) ZoneText(name, size)
+#define QS_PROFILE_TEXT_F(format, ...) ZoneTextF(format, ##__VA_ARGS__)
 #define QS_PROFILE_SCOPED_C(color) ZoneScopedC(color)
 #define QS_PROFILE_SCOPED_NC(name, color) ZoneScopedNC(name, color)
 #define QS_PROFILE_FRAME() FrameMark
