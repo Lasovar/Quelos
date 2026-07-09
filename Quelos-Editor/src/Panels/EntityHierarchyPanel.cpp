@@ -6,24 +6,11 @@
 
 #include "Scene/Commands/CreateActorCommand.h"
 #include "Scene/Commands/ReorderChildrenCommand.h"
-#include "Scene/Commands/SetParentCommand.h"
 #include "Workspaces/SceneWorkspace.h"
 
 #include "Quelos/ImGui/icons_font_awesome.h"
 
 namespace QuelosEditor {
-
-    static int FindGapIndex(const Vec<HierarchyRow>& rows, float mouseY) {
-        const auto it = std::ranges::partition_point(
-            rows,
-            [mouseY](const HierarchyRow& row) {
-                return (row.Top + row.Bottom) * 0.5f <= mouseY;
-            }
-        );
-
-        return static_cast<int>(std::distance(rows.begin(), it));
-    }
-
     static void GetDepthRange(const Vec<HierarchyRow>& rows, const int gapIndex, int& outMin, int& outMax) {
         outMax = gapIndex > 0 ? rows[gapIndex - 1].Depth + 1 : 0;
         outMin = gapIndex < static_cast<int>(rows.size()) ? rows[gapIndex].Depth : 0;
@@ -48,22 +35,6 @@ namespace QuelosEditor {
         });
 
         return last;
-    }
-
-    static Vec<const HierarchyRow*> BuildAncestorChain(const Vec<HierarchyRow>& rows, EntityID parent) {
-        Vec<const HierarchyRow*> chain;
-        while (parent.IsValid()) {
-            const HierarchyRow* row = FindRow(rows, parent);
-            if (!row) {
-                break;
-            }
-
-            chain.push_back(row);
-            parent = row->Parent;
-        }
-
-        std::ranges::reverse(chain); // root-first
-        return chain;
     }
 
     static int FindSubtreeEndIndex(const Vec<HierarchyRow>& rows, const int parentIndex) {
@@ -109,17 +80,17 @@ namespace QuelosEditor {
         return idx >= 0 && mouseY < rows[idx].Bottom ? idx : -1;
     }
 
-    static float TrunkX(const float originX, const int depth, const float indent) {
-        return originX + static_cast<float>(depth) * indent + 12.0f;
+    float EntityHierarchyPanel::TrunkX(const float originX, const int depth) const {
+        return originX + static_cast<float>(depth) * m_Indent + k_ConnectorXRatio * m_Indent;
     }
 
-    static float TextX(const float originX, const int depth, const float indent) {
-        return originX + static_cast<float>(depth) * indent + 24.0f;
+    float EntityHierarchyPanel::TextX(const float originX, const int depth) const {
+        return originX + static_cast<float>(depth) * m_Indent + k_TextXRatio * m_Indent;
     }
 
     EntityHierarchyPanel::EntityHierarchyPanel(
         SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem
-    ) : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) { }
+    ) : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) {}
 
     void EntityHierarchyPanel::SetScene(const Ref<Scene>& scene) {
         m_Scene = scene;
@@ -149,23 +120,24 @@ namespace QuelosEditor {
             uint32_t order = 0;
 
             m_UIScale = ImGui::GetFontSize() / k_ReferenceFontSize;
-            m_Indent  = k_BaseIndent * m_UIScale;
+            m_Indent = k_BaseIndent * m_UIScale;
 
 
             m_SelectedPath.clear();
             for (Entity cursor = m_SceneWorkspace.GetSelectedEntity(); cursor.IsValid(); cursor = cursor.GetParent()) {
-                EntityID entityId = cursor.Get<EntityID>();
+                auto entityId = cursor.Get<EntityID>();
                 if (!entityId) {
                     break;
                 }
 
                 m_SelectedPath.push_back(entityId);
             }
+            std::ranges::reverse(m_SelectedPath);
 
             m_VisibleRows.clear();
 
             const ImVec2 listOrigin = ImGui::GetCursorScreenPos();
-            const float availWidth  = ImGui::GetContentRegionAvail().x;
+            const float availWidth = ImGui::GetContentRegionAvail().x;
             const float availHeight = ImGui::GetContentRegionAvail().y;
 
             m_SceneRoot.GetInternalID().children([&](const flecs::entity entity) {
@@ -180,11 +152,11 @@ namespace QuelosEditor {
 
             if (m_SelectedPath.size() > 1) {
                 const ImU32 selColor = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive));
-                DrawPathOverlay(listOrigin, m_SelectedPath, selColor, std::max(1.0f, 1.5f * m_UIScale));
+                DrawPathOverlay(listOrigin, m_SelectedPath, selColor, math::max(1.0f, 1.5f * m_UIScale));
             }
 
             const float drawnHeight = ImGui::GetCursorScreenPos().y - listOrigin.y;
-            ResolveDragDrop(listOrigin, availWidth, std::max(drawnHeight, availHeight));
+            ResolveDragDrop(listOrigin, availWidth, math::max(drawnHeight, availHeight));
 
             world.defer_end();
 
@@ -195,6 +167,10 @@ namespace QuelosEditor {
                     m_ReorderTargetAfter,
                     m_Scene
                 );
+
+                if (m_ReorderTarget) {
+                    SetSelectedActor(m_Scene->GetActor(m_ReorderTarget));
+                }
 
                 m_ReorderTargetParent = {};
                 m_ReorderTargetAfter = {};
@@ -207,14 +183,16 @@ namespace QuelosEditor {
 
             const ImVec2 mouse = ImGui::GetIO().MousePos;
             const ImVec2 cursor = ImGui::GetCursorScreenPos();
-
-            if (mouse.y > cursor.y &&
+            if (
+                mouse.y > cursor.y &&
                 ImGui::IsWindowHovered() &&
                 ImGui::IsMouseClicked(0) &&
-                !ImGui::IsAnyItemHovered()) {
+                !ImGui::IsAnyItemHovered()
+            ) {
                 SetSelectedActor({});
             }
-        } UI::End();
+        }
+        UI::End();
     }
 
     void EntityHierarchyPanel::SetSelectedActor(const Actor& actor) const {
@@ -224,6 +202,7 @@ namespace QuelosEditor {
     void EntityHierarchyPanel::DrawActor(const Entity& actor, int depth, Vec<bool>& stack, const EntityID& parent) {
         ImGui::PushID(actor.GetInternalID());
 
+        const ImVec2 actorCursorPosition = ImGui::GetCursorScreenPos();
         const bool selected = ImGui::Selectable("##row", m_SceneWorkspace.GetSelectedEntity() == actor);
 
         uint32_t count = 0;
@@ -248,29 +227,42 @@ namespace QuelosEditor {
 
         for (int i = 0; i < depth - 1; i++) {
             if (stack[i]) {
-                const float x = TrunkX(baseX, i, m_Indent);
-                draw->AddLine(ImVec2(x, min.y), ImVec2(x, max.y), lineColor, 1.0f);
+                const float x = TrunkX(baseX, i);
+                draw->AddLine(ImVec2(x, min.y), ImVec2(x, max.y), lineColor, ImGui::GetStyle().TreeLinesSize);
             }
         }
 
         if (depth > 0) {
-            const float x = TrunkX(baseX, depth - 1, m_Indent);
+            const float x = TrunkX(baseX, depth - 1);
             const bool hasNext = stack.back();
 
-            draw->AddLine(ImVec2(x, min.y), ImVec2(x, hasNext ? max.y : centerY), lineColor, 1.0f);
-            draw->AddLine(ImVec2(x, centerY), ImVec2(hasChildren ? x + 12.0f : x + 24.0f, centerY), lineColor, 1.0f);
+            draw->AddLine(ImVec2(x, min.y), ImVec2(x, hasNext ? max.y : centerY), lineColor, ImGui::GetStyle().TreeLinesSize);
+            draw->AddLine(ImVec2(x, centerY), ImVec2(hasChildren ? x + k_ConnectorXRatio * m_Indent : x + k_TextXRatio * m_Indent, centerY), lineColor, ImGui::GetStyle().TreeLinesSize);
 
             if (!hasNext) {
-                draw->AddCircleFilled(ImVec2(x, centerY), 1.5f, lineColor);
+                //draw->AddCircleFilled(ImVec2(x, centerY), 1.5f, lineColor);
             }
         }
-        const bool open = std::ranges::contains(m_OpenEntities, actor);
-        const float arrowX = baseX + depth * m_Indent + 4.0f;
-        const ImRect arrowRect(ImVec2(arrowX, min.y), ImVec2(arrowX + m_Indent * k_ArrowRatio, max.y));
+
+        const bool open = m_OpenEntities.contains(actor);
+        const float arrowSize = m_Indent * k_ArrowRatio;
+        const float arrowX = baseX + depth * m_Indent + m_Indent * k_ArrowInsetRatio;
+        const ImRect arrowRect(ImVec2(arrowX, min.y), ImVec2(arrowX + arrowSize, max.y));
         const bool hovered = arrowRect.Contains(ImGui::GetIO().MousePos);
         const bool clicked = hovered && ImGui::IsMouseReleased(0);
+        if (hasChildren && open) {
+            const float x = TrunkX(baseX, depth);
+            draw->AddLine(
+                ImVec2(x, max.y),
+                ImVec2(x, max.y - k_ArrowBaseConnector * m_UIScale),
+                lineColor,
+                ImGui::GetStyle().TreeLinesSize
+            );
+        }
 
-        if (open && !hasChildren) m_OpenEntities.erase(actor);
+        if (open && !hasChildren) {
+            m_OpenEntities.erase(actor);
+        }
 
         if (clicked && hasChildren) {
             if (open) m_OpenEntities.erase(actor);
@@ -282,16 +274,43 @@ namespace QuelosEditor {
 
         if (hasChildren) {
             const ImU32 color = hovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(180, 180, 180, 255);
-            ImGui::RenderArrow(draw,
-                               ImVec2(arrowX, centerY - ImGui::GetFontSize() * 0.35f),
-                               color,
-                               open ? ImGuiDir_Down : ImGuiDir_Right,
-                               0.8f);
+            const auto& dc = ImGui::GetCurrentWindow()->DC;
+
+            const char* label = open ? ICON_FA_CHEVRON_DOWN : ICON_FA_CHEVRON_RIGHT;
+            const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, true);
+            const ImVec2 pos(arrowX, actorCursorPosition.y + dc.CurrLineTextBaseOffset);
+            const ImRect bb(min, max);
+
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::RenderTextClipped(
+                pos,
+                ImVec2(max.x, pos.y + labelSize.y),
+                label,
+                nullptr,
+                &labelSize,
+                ImGui::GetStyle().SelectableTextAlign,
+                &bb
+            );
+            ImGui::PopStyleColor();
         }
 
-        const float textX = TextX(baseX, depth, m_Indent);
-        const std::string label = std::format("{} {}", ICON_FA_CUBE, actor.GetName());
-        draw->AddText(ImVec2(textX, centerY - ImGui::GetFontSize() * 0.5f), IM_COL32_WHITE, label.c_str());
+        const float textX = TextX(baseX, depth);
+        const auto& dc = ImGui::GetCurrentWindow()->DC;
+
+        const char* label = FormatTemp("{} {}", ICON_FA_CUBE, actor.GetName());
+        const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, true);
+        const ImVec2 pos(textX, actorCursorPosition.y + dc.CurrLineTextBaseOffset);
+        const ImRect bb(min, max);
+
+        ImGui::RenderTextClipped(
+            pos,
+            ImVec2(max.x, pos.y + labelSize.y),
+            label,
+            nullptr,
+            &labelSize,
+            ImGui::GetStyle().SelectableTextAlign,
+            &bb
+        );
 
         if (ImGui::BeginPopupContextItem("EntityContext")) {
             SetSelectedActor(actor);
@@ -372,8 +391,8 @@ namespace QuelosEditor {
 
                 int minDepth, maxDepth;
                 GetDepthRange(m_VisibleRows, gapIndex, minDepth, maxDepth);
-                const int rawDepth = static_cast<int>(std::lround((mouse.x - listOrigin.x) / m_Indent));
-                depth = std::clamp(rawDepth, minDepth, maxDepth);
+                const int rawDepth = static_cast<int>(math::lround((mouse.x - listOrigin.x) / m_Indent));
+                depth = math::clamp(rawDepth, minDepth, maxDepth);
                 ResolveParentAndSibling(m_VisibleRows, gapIndex, depth, parent, insertAfter);
                 lineY = GapY(gapIndex, listOrigin);
             }
@@ -390,8 +409,8 @@ namespace QuelosEditor {
                     const int gapIndex = hoveredIdx + 1;
                     int minDepth, maxDepth;
                     GetDepthRange(m_VisibleRows, gapIndex, minDepth, maxDepth);
-                    const int rawDepth = static_cast<int>(std::lround((mouse.x - listOrigin.x) / m_Indent));
-                    depth = std::clamp(rawDepth, minDepth, maxDepth);
+                    const int rawDepth = static_cast<int>(math::lround((mouse.x - listOrigin.x) / m_Indent));
+                    depth = math::clamp(rawDepth, minDepth, maxDepth);
                     ResolveParentAndSibling(m_VisibleRows, gapIndex, depth, parent, insertAfter);
                     lineY = row.Bottom;
                 }
@@ -420,14 +439,14 @@ namespace QuelosEditor {
             if (valid) {
                 if (parent.IsValid()) {
                     if (const HierarchyRow* parentRow = FindRow(m_VisibleRows, parent)) {
-                        DrawParentHighlight(listOrigin, listWidth, *parentRow);
+                        //DrawParentHighlight(listOrigin, listWidth, *parentRow);
 
-                        const ImU32 dragColor = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-                        DrawHopConnector(listOrigin, *parentRow, lineY, depth, dragColor, 2.0f);
+                        const ImU32 dragColor = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
+                        DrawHopConnector(listOrigin, listWidth, *parentRow, lineY, depth, dragColor, 2.0f);
                     }
                 }
 
-                DrawInsertionIndicator(listOrigin, listWidth, lineY, depth);
+                //DrawInsertionIndicator(listOrigin, lineY, depth);
 
                 if (payload->Delivery) {
                     m_ReorderTargetParent = parent;
@@ -463,42 +482,29 @@ namespace QuelosEditor {
         return m_VisibleRows[gapIndex].Top;
     }
 
-    void EntityHierarchyPanel::DrawParentHighlight(
-        const ImVec2& listOrigin, const float listWidth, const HierarchyRow& row
-    ) const {
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
-        const ImVec4 accent4 = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
-        const ImU32 fill = ImGui::GetColorU32(ImVec4(accent4.x, accent4.y, accent4.z, 0.18f));
-        const ImU32 border = ImGui::GetColorU32(accent4);
+    void EntityHierarchyPanel::DrawInsertionIndicator(const ImVec2& listOrigin, const float y, const int depth) const {
+        const float x0 = TextX(listOrigin.x, depth);
 
-        const ImVec2 rowMin(listOrigin.x, row.Top);
-        const ImVec2 rowMax(listOrigin.x + listWidth, row.Bottom);
-        draw->AddRectFilled(rowMin, rowMax, fill);
-        draw->AddRect(rowMin, rowMax, border, 0.0f, 0, 2.0f);
-    }
-
-    void EntityHierarchyPanel::DrawInsertionIndicator(
-        const ImVec2& listOrigin, const float listWidth, const float y, const int depth
-    ) const {
-        const float x0 = TextX(listOrigin.x, depth, m_Indent);
-        const float x1 = listOrigin.x + listWidth;
-
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
-        const ImU32 color = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        const ImU32 color = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
         draw->AddCircleFilled(ImVec2(x0, y), 2.5f, color);
-        draw->AddLine(ImVec2(x0, y), ImVec2(x1, y), color, 2.0f);
     }
 
     void EntityHierarchyPanel::DrawHopConnector(
-        const ImVec2& listOrigin, const HierarchyRow& parentRow, const float childY, const int childDepth,
+        const ImVec2& listOrigin, const float listWidth, const HierarchyRow& parentRow, const float childY, const int childDepth,
         const ImU32 color, const float thickness
     ) const {
-        const float trunkX = TrunkX(listOrigin.x, parentRow.Depth, m_Indent);
-        const float parentY = (parentRow.Top + parentRow.Bottom) * 0.5f;
+        const float trunkX = TrunkX(listOrigin.x, parentRow.Depth) - ImGui::GetStyle().ItemInnerSpacing.x;
+        const float parentY = parentRow.Bottom - k_ArrowBaseConnector * m_UIScale;
 
-        ImDrawList* draw = ImGui::GetForegroundDrawList();
+        ImDrawList* draw = ImGui::GetWindowDrawList();
         draw->AddLine(ImVec2(trunkX, parentY), ImVec2(trunkX, childY), color, thickness);
-        draw->AddLine(ImVec2(trunkX, childY), ImVec2(TextX(listOrigin.x, childDepth, m_Indent), childY), color, thickness);
+        draw->AddLine(
+            ImVec2(trunkX, childY),
+            ImVec2(listWidth == 0.0f ? TextX(listOrigin.x, childDepth) : listOrigin.x + listWidth, childY),
+            color,
+            thickness
+        );
     }
 
     void EntityHierarchyPanel::DrawPathOverlay(
@@ -507,10 +513,16 @@ namespace QuelosEditor {
         for (size_t i = 0; i + 1 < chainRootFirst.size(); ++i) {
             const HierarchyRow* parentRow = FindRow(m_VisibleRows, chainRootFirst[i]);
             const HierarchyRow* childRow = FindRow(m_VisibleRows, chainRootFirst[i + 1]);
-            if (!parentRow || !childRow) continue; // ancestor currently collapsed/not visible — skip that hop
+            if (!parentRow || !childRow) {
+                continue; // ancestor currently collapsed/not visible, skip that hop
+            }
 
             const float childY = (childRow->Top + childRow->Bottom) * 0.5f;
-            DrawHopConnector(listOrigin, *parentRow, childY, childRow->Depth, color, thickness);
+            float width = childRow->HasChildren ? k_ConnectorXRatio * m_Indent : k_TextXRatio * m_Indent;
+            const float trunkX = TrunkX(0, childRow->Depth - 1) - ImGui::GetStyle().ItemInnerSpacing.x;
+            width += trunkX;
+
+            DrawHopConnector(listOrigin, width, *parentRow, childY, childRow->Depth, color, thickness);
         }
     }
 }
