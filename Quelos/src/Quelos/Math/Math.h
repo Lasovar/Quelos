@@ -112,10 +112,15 @@ namespace Quelos {
         using hlslpp::max;
 
         using hlslpp::floor;
+        using hlslpp::round;
+
+        constexpr long lround(const float f) { return std::lround(f); }
+        constexpr long lround(const double f) { return std::lround(f); }
 
         using hlslpp::clamp;
         inline float clamp(const float f, const float minf, const float maxf) { return min(max(f, minf), maxf); }
         inline double clamp(const double f, const double minf, const double maxf) { return min(max(f, minf), maxf); }
+        inline int clamp(const int f, const int minf, const int maxf) { return min(max(f, minf), maxf); }
 
         using hlslpp::saturate;
         inline float saturate(const float f) { return clamp(f, 0.0f, 1.0f); }
