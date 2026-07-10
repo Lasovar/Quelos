@@ -50,13 +50,14 @@ FragmentOut fragmentMain(VertexOut v) {
     float shadow = GetShadowMask(v.position);
     shadow = smoothstep(0.49, 0.51, shadow);
     shadow = min(shadow, step(0.001, ndotl));
+    shadow = clamp(shadow, 0.3, 1.0);
 
     float ToonLevels = 4.0;
     float shade = floor(ndotl * ToonLevels) / ToonLevels;
     shade = lerp(0.35, 1.0, shade) * shadow;
 
     float4 albedo = g_Textures[mat.MainTex].Sample(g_Textures_sampler, v.uv) * mat.Color;
-    output.color = albedo * shade;
+    output.color = float4(albedo.rgb * shade, albedo.a);
 
     return output;
 }

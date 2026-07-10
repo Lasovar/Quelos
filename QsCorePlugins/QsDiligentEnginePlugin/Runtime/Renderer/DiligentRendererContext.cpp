@@ -57,6 +57,8 @@ namespace Quelos {
                 return TEX_FORMAT_ETC2_RGB8_UNORM;
             case ImageFormat::RGBA8UNorm:
                 return TEX_FORMAT_RGBA8_UNORM;
+            case ImageFormat::RGBA8SNorm:
+                return TEX_FORMAT_RGBA8_SNORM;
             case ImageFormat::RGBA16Float:
                 return TEX_FORMAT_RGBA16_FLOAT;
             case ImageFormat::RGBA32Float:
