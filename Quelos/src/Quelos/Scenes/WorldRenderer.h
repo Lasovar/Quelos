@@ -204,12 +204,16 @@ namespace Quelos {
         ResourceRef<Texture> SceneColorMSAA;
         ResourceRef<Texture> SceneColor;
         ResourceRef<Texture> SceneDepthMSAA;
+        ResourceRef<Texture> SceneNormalMSAA;
 
         TextureViewHandle SceneColorRTV;
         TextureViewHandle SceneColorSRV;
 
         TextureViewHandle SceneDepthSRV;
         TextureViewHandle SceneDepthDSV;
+
+        TextureViewHandle SceneNormalRTV;
+        TextureViewHandle SceneNormalSRV;
 
         ResourceRef<FrameBuffer> SceneFB;
         ResourceRef<FrameBuffer> DepthPrepassFB;

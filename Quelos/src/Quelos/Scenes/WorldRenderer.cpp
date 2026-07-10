@@ -252,17 +252,26 @@ namespace Quelos {
         Renderer::TransitionResource(m_MagentaTexture, ResourceState::ShaderResource);
 
         // Depth Render Pass
-        RenderPassAttachmentSpec depthPassAttachment[1];
+        RenderPassAttachmentSpec depthPassAttachment[2];
         depthPassAttachment[0].Format = ImageFormat::Depth32Float;
         depthPassAttachment[0].SampleCount = 4;
         depthPassAttachment[0].LoadOp = AttachmentLoadOp::Clear;
         depthPassAttachment[0].StoreOp = AttachmentStoreOp::Store;
         depthPassAttachment[0].InitialState = ResourceState::DepthWrite;
-        depthPassAttachment[0].FinalState = ResourceState::DepthWrite;
+        depthPassAttachment[0].FinalState = ResourceState::DepthRead;
+
+        depthPassAttachment[1].Format = ImageFormat::RGBA8UNorm;
+        depthPassAttachment[1].SampleCount = 4;
+        depthPassAttachment[1].LoadOp = AttachmentLoadOp::Clear;
+        depthPassAttachment[1].StoreOp = AttachmentStoreOp::Store;
+        depthPassAttachment[1].InitialState = ResourceState::RenderTarget;
+        depthPassAttachment[1].FinalState = ResourceState::ShaderResource;
 
         AttachmentReference depthRef = {0, ResourceState::DepthWrite};
+        AttachmentReference normalRef = {1, ResourceState::RenderTarget};
 
         SubPassSpec depthSubPass[1];
+        depthSubPass[0].RenderTargetAttachments = Span32(&normalRef, 1);
         depthSubPass[0].pDepthAttachment = &depthRef;
 
         RenderPassSpec depthPrepassSpec;
@@ -438,7 +447,9 @@ namespace Quelos {
 
         gfx.InputLayout.LayoutElements = layoutBuilder;
 
-        psoCI.VertexShader = shader->GetShaderPass("ShadowDepth")->Pipelines.front().VertexShader;
+        const GraphicsShaderPipelineData& shaderPipeline = shader->GetShaderPass("ShadowDepth")->Pipelines.front();
+        psoCI.VertexShader = shaderPipeline.VertexShader;
+        psoCI.FragmentShader = shaderPipeline.FragmentShader;
 
         m_DepthPrepassPSO = Renderer::CreatePipelineState(psoCI);
 
@@ -574,9 +585,10 @@ namespace Quelos {
         // No depth
         psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
 
-        constexpr ShaderResourceVariableSpec vars[3] = {
+        constexpr ShaderResourceVariableSpec vars[4] = {
             {"CascadeData", ShaderType::Fragment, ShaderResourceVariableType::Static},
             {"SceneDepth", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
+            {"SceneNormal", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
             {"ShadowMaps", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
         };
 
@@ -721,6 +733,26 @@ namespace Quelos {
                 view->SceneDepthMSAA.GetHandle(),
                 TextureViewType::DepthStencil
             );
+
+
+            TextureSpecification sceneNormal;
+            sceneNormal.Width = size.Width;
+            sceneNormal.Height = size.Height;
+            sceneNormal.Format = ImageFormat::RGBA8UNorm;
+            sceneNormal.SamplerWrap = WrapMode::Repeat;
+            sceneNormal.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+            sceneNormal.SampleCount = SampleCount::x4;
+
+            view->SceneNormalMSAA = Renderer::CreateTexture(sceneNormal);
+
+            view->SceneNormalRTV = Renderer::TextureGetDefaultView(
+                view->SceneNormalMSAA.GetHandle(),
+                TextureViewType::RenderTarget
+            );
+            view->SceneNormalSRV = Renderer::TextureGetDefaultView(
+                view->SceneNormalMSAA.GetHandle(),
+                TextureViewType::ShaderResource
+            );
         }
 
         {
@@ -746,7 +778,10 @@ namespace Quelos {
             FrameBufferSpec depthFBSpec;
             depthFBSpec.Name = depthPrepassName;
             depthFBSpec.RenderPassHandle = m_DepthPrepass.GetHandle();
-            depthFBSpec.Attachments = Span32(&view->SceneDepthDSV, 1);
+
+            TextureViewHandle attachments[2] = { view->SceneDepthDSV, view->SceneNormalRTV };
+
+            depthFBSpec.Attachments = attachments;
             depthFBSpec.Size = size;
 
             view->DepthPrepassFB = Renderer::CreateFrameBuffer(depthFBSpec);
@@ -784,6 +819,14 @@ namespace Quelos {
                 view->ShadowMaskSRB.GetHandle(),
                 "SceneDepth",
                 view->SceneDepthSRV,
+                SetShaderResourceFlag::None
+            );
+
+            Renderer::BindVariableByName(
+                ShaderType::Fragment,
+                view->ShadowMaskSRB.GetHandle(),
+                "SceneNormal",
+                view->SceneNormalSRV,
                 SetShaderResourceFlag::None
             );
         }
@@ -830,6 +873,7 @@ namespace Quelos {
         Renderer::TextureResize(view->SceneColorMSAA.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneColor.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneDepthMSAA.GetHandle(), size.Width, size.Height);
+        Renderer::TextureResize(view->SceneNormalMSAA.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view->SceneFB.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view->DepthPrepassFB.GetHandle(), size.Width, size.Height);
 
@@ -854,6 +898,14 @@ namespace Quelos {
             view->ShadowMaskSRB.GetHandle(),
             "SceneDepth",
             view->SceneDepthSRV,
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            view->ShadowMaskSRB.GetHandle(),
+            "SceneNormal",
+            view->SceneNormalSRV,
             SetShaderResourceFlag::None
         );
 
@@ -1228,8 +1280,10 @@ namespace Quelos {
             depthPrepassAttribs.FrameBufferHandle = view.DepthPrepassFB.GetHandle();
             depthPrepassAttribs.RenderPassHandle = m_DepthPrepass.GetHandle();
 
-            ClearValue clear[1];
-            clear->DepthStencil.Depth = 1.0f;
+            ClearValue clear[2];
+            clear[0].DepthStencil.Depth = 1.0f;
+            clear[1].Color = { 0.5f, 0.5f, 0.5f, 0.0f };
+
             depthPrepassAttribs.ClearColors = clear;
 
             Renderer::BeginRenderPass(depthPrepassAttribs);

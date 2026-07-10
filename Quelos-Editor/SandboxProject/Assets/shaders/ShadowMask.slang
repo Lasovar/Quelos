@@ -1,6 +1,7 @@
 import quelos;
 
 __extern_cpp Texture2DMS<float> SceneDepth;
+__extern_cpp Texture2DMS SceneNormal;
 __extern_cpp Texture2DArray<float> ShadowMaps;
 __extern_cpp SamplerComparisonState ShadowMaps_sampler;
 
@@ -32,7 +33,6 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
 
     float2 uv = (svPos.xy) / float2(dims);
     float2 ndc = uv * float2(2, -2) + float2(-1, 1);
-    //float2 ndc = uv * 2.0 - 1.0;
     float depth = SceneDepth.Load(uint2(svPos.xy), 0);
 
     if (depth >= 1.0) {
@@ -44,17 +44,15 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     float4 worldH = mul(clipPos, CascadeData.InvViewProj);
     float3 worldPos = worldH.xyz / worldH.w;
 
-    float3 dpdx = ddx(worldPos);
-    float3 dpdy = ddy(worldPos);
-    float3 faceNormal = normalize(cross(dpdx, dpdy));
-
+    float3 N = SceneNormal.Load(uint2(svPos.xy), 0).xyz * 2.0 - 1.0; // decode from unorm to snorm
     float3 L = normalize(-CascadeData.LightDirectionAndShadowMapSize.xyz);
-    float NdotL = dot(faceNormal, L);
+    float NdotL = dot(N, L);
 
-    // Backfacing to light = always shadowed, skip shadow map entirely
-    if (NdotL <= 0.0) {
+    if (NdotL <= 0.01) {
         return float4(0.0, 0.0, 0.0, 0.0);
     }
+
+    float terminatorMask = smoothstep(0.0, 0.1, NdotL);
 
     // View-space Z for cascade selection
     float4 viewPos = mul(float4(worldPos, 1.0), CascadeData.View);
@@ -92,5 +90,5 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     shadow /= 9.0;
     */
 
-    return float4(shadow, 0, 0, 0);
+    return float4(shadow * terminatorMask, 0, 0, 0);
 }

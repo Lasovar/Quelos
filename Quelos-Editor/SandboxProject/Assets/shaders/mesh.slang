@@ -46,6 +46,7 @@ FragmentOut fragmentMain(VertexOut v) {
     float3 N = normalize(v.normal);
 
     float shadow = clamp(GetShadowMask(v.position), 0.3, 1.0);
+
     float4 texColor = g_Textures[mat._MainTex].Sample(g_Textures_sampler, v.uv) * mat.Color;
     output.color = float4(texColor.rgb * shadow, texColor.a);
 

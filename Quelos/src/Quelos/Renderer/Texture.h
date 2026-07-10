@@ -22,6 +22,7 @@ namespace Quelos {
         RG32Float,
         RGB,
         RGBA8UNorm,
+        RGBA8SNorm,
         RGBA16Float,
         RGBA32Float,
 
