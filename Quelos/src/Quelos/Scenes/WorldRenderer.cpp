@@ -260,7 +260,7 @@ namespace Quelos {
         depthPassAttachment[0].InitialState = ResourceState::DepthWrite;
         depthPassAttachment[0].FinalState = ResourceState::DepthRead;
 
-        depthPassAttachment[1].Format = ImageFormat::RGBA8UNorm;
+        depthPassAttachment[1].Format = ImageFormat::RGBA16Float;
         depthPassAttachment[1].SampleCount = 4;
         depthPassAttachment[1].LoadOp = AttachmentLoadOp::Clear;
         depthPassAttachment[1].StoreOp = AttachmentStoreOp::Store;
@@ -531,7 +531,7 @@ namespace Quelos {
         gfx.RenderPass = m_ShadowRenderPass;
         gfx.RasterizerSpec.CullMode = CullMode::Front;
         gfx.RasterizerSpec.DepthBias = 3;
-        gfx.RasterizerSpec.SlopeScaledDepthBias = 6.0f;
+        gfx.RasterizerSpec.SlopeScaledDepthBias = 8.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
@@ -738,7 +738,7 @@ namespace Quelos {
             TextureSpecification sceneNormal;
             sceneNormal.Width = size.Width;
             sceneNormal.Height = size.Height;
-            sceneNormal.Format = ImageFormat::RGBA8UNorm;
+            sceneNormal.Format = ImageFormat::RGBA16Float;
             sceneNormal.SamplerWrap = WrapMode::Repeat;
             sceneNormal.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
             sceneNormal.SampleCount = SampleCount::x4;
@@ -980,12 +980,17 @@ namespace Quelos {
                 || !meshRenderer.Material
                 || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
             ) {
+                entity.target<PipelineOf>().remove<CheckedMeshRenderer>();
                 entity.destruct();
                 isDirty = true;
             }
 
             if (!Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())) {
                 m_PipelineStates.erase(pipelineStateComponent.ShaderID);
+                for (const auto& worldRendererView : m_ActiveViews) {
+                    worldRendererView->ViewSRBs.erase(pipelineStateComponent.PSO.GetHandle());
+                }
+                entity.target<PipelineOf>().remove<CheckedMeshRenderer>();
                 entity.destruct();
             }
         });

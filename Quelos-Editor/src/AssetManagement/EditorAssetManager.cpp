@@ -95,7 +95,7 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::Reimport(const AssetID assetId) {
-        m_ReimportQueue.push_back(assetId);
+        m_ReimportQueue.emplace(assetId);
     }
 
     void EditorAssetManager::FlushReimportQueue() {
@@ -484,7 +484,7 @@ namespace QuelosEditor {
                 break;
             }
 
-            m_ReimportQueue.push_back(metadata->Handle);
+            m_ReimportQueue.emplace(metadata->Handle);
             break;
         }
         default:
