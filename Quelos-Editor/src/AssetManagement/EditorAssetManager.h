@@ -103,7 +103,7 @@ namespace QuelosEditor {
         efsw::FileWatcher m_FileWatcher;
         HashMap<efsw::WatchID, AssetID> m_WatchedAssets;
 
-        Vec<AssetID> m_ReimportQueue;
+        HashSet<AssetID> m_ReimportQueue;
 
         efsw::WatchID m_WatchID;
     };
