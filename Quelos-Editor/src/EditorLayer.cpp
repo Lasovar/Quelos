@@ -10,6 +10,7 @@
 #include "ProjectSerializer.h"
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
+#include "Quelos/Core/Allocators.hpp"
 #include "Quelos/ImGui/widgets/texture.h"
 #include "Quelos/Core/Application.h"
 
@@ -120,6 +121,49 @@ namespace QuelosEditor {
     	m_CurrentTheme = 1;
 
         ImGuizmo::Create();
+
+    	PagePool pagePool;
+    	LinearArena linearArena(pagePool);
+    	ArenaMemoryResource arenaMemoryResource(linearArena);
+
+    	std::pmr::string test("Test", &arenaMemoryResource);
+
+    	ankerl::unordered_dense::pmr::map<std::pmr::string, std::pmr::string> map;
+    	map["TestKey" ] = "TestValue";
+    	map["TestKey2"] = "TestValue2";
+
+    	QS_INFO("{}", test);
+
+    	for (const auto& [key, value] : map) {
+    		QS_INFO("{}: {}", key, value);
+    	}
+
+    	linearArena.Reset();
+
+    	std::pmr::string test2("Test", &arenaMemoryResource);
+    	ankerl::unordered_dense::pmr::map<std::pmr::string, std::pmr::string> map2;
+    	map2[{ "TestKey", &arenaMemoryResource }] = { "TestValue", &arenaMemoryResource };
+    	map2[{ "TestKey2", &arenaMemoryResource }] = { "TestValue2", &arenaMemoryResource };
+
+    	QS_INFO("{}", test2);
+
+    	for (const auto& [key, value] : map2) {
+    		QS_INFO("{}: {}", key, value);
+    	}
+
+    	linearArena.Reset();
+
+    	SmallVec<int, 2> small(Allocator::Temp);
+    	small.push_back(1);
+    	small.push_back(2);
+    	small.push_back(3);
+    	small.push_back(4);
+
+    	for (const auto& value : small) {
+    		QS_INFO("{}", value);
+    	}
+
+    	linearArena.Reset();
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {

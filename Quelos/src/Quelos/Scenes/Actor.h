@@ -49,7 +49,7 @@ namespace Quelos {
 
         void OrderBefore(const Actor target) const {
             const flecs::entity parent = target.GetInternalID().parent();
-            Vec<flecs::entity> children;
+            SmallVec<flecs::entity> children(Allocator::Temp);
 
             parent.children([&](const flecs::entity child) {
                 children.push_back(child);
@@ -75,7 +75,7 @@ namespace Quelos {
 
         void OrderAfter(const Actor target) const {
             const flecs::entity parent = target.GetInternalID().target(flecs::ChildOf);
-            Vec<flecs::entity> children;
+            SmallVec<flecs::entity> children(Allocator::Temp);
 
             parent.children([&](const flecs::entity c) {
                 children.push_back(c);
@@ -146,7 +146,7 @@ namespace Quelos {
                 return;
             }
 
-            Vec<Pair<flecs::entity, ChildOrder>> children;
+            SmallVec<Pair<flecs::entity, ChildOrder>> children(Allocator::Temp);
 
             m_ID.children([&](const flecs::entity c) {
                 if (const auto* childOrder = c.try_get<ChildOrder>()) {
@@ -167,7 +167,7 @@ namespace Quelos {
                 }
             );
 
-            Vec<flecs::entity_t> ids;
+            SmallVec<flecs::entity_t> ids(Allocator::Temp);
             ids.reserve(children.size());
 
             std::ranges::transform(children,

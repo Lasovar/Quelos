@@ -920,7 +920,7 @@ namespace QuelosEditor {
         compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].DestBlend = BlendFactor::InvSrcAlpha;
         compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].BlendOp = BlendOperation::Add;
 
-        SmallVec<ShaderResourceVariableSpec, 2> vars = {
+        SmallVec<ShaderResourceVariableSpec, 3> vars = {
             {"Settings", ShaderType::Fragment, ShaderResourceVariableType::Static},
             {"FullMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
             {"VisibleMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
