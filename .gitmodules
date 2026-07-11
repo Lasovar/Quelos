@@ -35,3 +35,6 @@
 [submodule "Quelos-Editor/vendor/slang"]
 	path = Quelos-Editor/vendor/slang
 	url = https://github.com/Lasovar/slang.git
+[submodule "Quelos/vendor/FiberTaskingLib"]
+	path = Quelos/vendor/FiberTaskingLib
+	url = https://github.com/Lasovar/FiberTaskingLib.git
