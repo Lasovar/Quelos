@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "Allocators.hpp"
 #include "Base.h"
 #include "Quelos/Project/Project.h"
 
@@ -45,6 +46,11 @@ namespace Quelos {
 		void Tick() const;
 	public:
 		static Application& Get() { return *s_Instance; }
+
+		static ArenaMemoryResource& GetTempAllocator() {
+			return Get().m_TempAllocator;
+		}
+
 	private:
 		static Application* s_Instance;
 	private:
@@ -55,6 +61,10 @@ namespace Quelos {
 
 		Ref<Window> m_Window;
 		ApplicationSpecification m_Specifications;
+
+		PagePool m_PagePool;
+		LinearArena m_TempAllocatorArena;
+		ArenaMemoryResource m_TempAllocator;
 
 		bool m_IsRunning = false;
 	};

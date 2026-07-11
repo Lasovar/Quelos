@@ -562,6 +562,8 @@ namespace QuelosEditor {
             }
 
             for (auto& [passName, shaders] : passMap) {
+                result.Passes.try_emplace(passName, Allocator::Persistent);
+
                 for (uint32_t i = 0; i < shaders.size(); i++) {
                     ShaderInfo& shader = shaders[i];
 
@@ -639,6 +641,7 @@ namespace QuelosEditor {
                 std::string_view passName = reader.ReadString().value_or("");
                 uint32_t numOfShaders = reader.Read<uint32_t>().value_or(0);
 
+                createInfo.Passes.try_emplace(std::string(passName), Allocator::Persistent);
                 for (uint32_t shaderIndex = 0; shaderIndex < numOfShaders; shaderIndex++) {
                     ShaderData shader;
                     shader.EntryPoint = reader.ReadString().value_or("");

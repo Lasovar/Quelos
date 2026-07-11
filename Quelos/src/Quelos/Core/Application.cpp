@@ -14,7 +14,7 @@ namespace Quelos {
 	QS_API Application* Application::s_Instance = nullptr;
 
 	Application::Application(ApplicationSpecification appSpecs)
-		: m_Specifications(appSpecs)
+		: m_Specifications(appSpecs), m_TempAllocatorArena(m_PagePool), m_TempAllocator(m_TempAllocatorArena)
 	{
 		s_Instance = this;
 		Log::Init(m_Specifications.Name);
@@ -48,6 +48,7 @@ namespace Quelos {
 		while (!m_Window->ShouldClose()) {
 			m_Window->PollEvents();
 			Tick();
+			m_TempAllocatorArena.Reset();
 
 			QS_PROFILE_FRAME();
 		}

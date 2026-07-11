@@ -7,36 +7,46 @@
 #include <type_traits>
 #include <cstdint>
 
+#include "Quelos/Core/AllocatorType.hpp"
 #include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
-    template <typename T, uint32_t N>
+    template <typename T, uint32_t N = 0>
     class SmallVec {
     public:
         using value_type = T;
         using size_type = uint32_t;
+        using allocator_type = std::pmr::polymorphic_allocator<T>;
         using iterator = T*;
         using const_iterator = const T*;
 
     public:
         SmallVec() noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N) {}
+            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(&GetInvalidAllocator()) {}
+
+        explicit SmallVec(std::pmr::memory_resource* allocator) noexcept
+            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(allocator) {}
+
+        explicit SmallVec(const AllocatorType allocatorType) noexcept
+            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
 
         ~SmallVec() {
             clear();
             if (!is_inline()) {
-                operator delete(m_Data);
+                allocator().deallocate(m_Data, m_Capacity);
                 QS_PROFILE_FREE(m_Data);
             }
         }
 
-        explicit SmallVec(std::span<const T> src) {
+        explicit SmallVec(std::span<const T> src, std::pmr::memory_resource* memoryResource)
+            : m_MemoryResource(memoryResource)
+        {
             if (src.size() <= N) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
             }
             else {
-                m_Data = static_cast<T*>(operator new(src.size() * sizeof(T)));
+                m_Data = allocator().allocate(src.size());
                 QS_PROFILE_ALLOC(m_Data, src.size() * sizeof(T));
                 m_Capacity = static_cast<size_type>(src.size());
             }
@@ -45,11 +55,17 @@ namespace Quelos {
             copy_range(m_Data, src.data(), m_Size);
         }
 
+        explicit SmallVec(std::span<const T> src, const AllocatorType allocatorType)
+            : SmallVec(src, GetAllocator(allocatorType)) {}
+
+        /// @remarks Can only use inline memory
         SmallVec(std::initializer_list<T> list)
-            : SmallVec(std::span<const T>(list.begin(), list.size())) {}
+            : SmallVec(std::span<const T>(list.begin(), list.size()), &GetInvalidAllocator()) {}
 
         template <std::input_iterator It>
-        SmallVec(It first, It last) {
+        SmallVec(It first, It last, std::pmr::memory_resource* memoryResource)
+            : m_MemoryResource(memoryResource)
+        {
             m_Data = inline_ptr();
             m_Capacity = N;
             m_Size = 0;
@@ -58,6 +74,10 @@ namespace Quelos {
                 emplace_back(*first);
             }
         }
+
+        template <std::input_iterator It>
+        SmallVec(It first, It last, const AllocatorType allocatorType)
+            : SmallVec(first, last, allocatorType) {}
 
         SmallVec(const SmallVec& other) {
             init_from(other);
@@ -71,7 +91,7 @@ namespace Quelos {
             if (this != &other) {
                 clear();
                 if (!is_inline()) {
-                    operator delete(m_Data);
+                    allocator().deallocate(m_Data, m_Capacity);
                     QS_PROFILE_FREE(m_Data);
                 }
 
@@ -85,7 +105,7 @@ namespace Quelos {
             if (this != &other) {
                 clear();
                 if (!is_inline()) {
-                    operator delete(m_Data);
+                    allocator().deallocate(m_Data, m_Capacity);
                     QS_PROFILE_FREE(m_Data);
                 }
 
@@ -148,7 +168,11 @@ namespace Quelos {
         }
 
         void pop_back() {
-            m_Data[--m_Size].~T();
+            --m_Size;
+
+            if constexpr (!std::is_trivially_destructible_v<T>) {
+                m_Data[m_Size].~T();
+            }
         }
 
         class back_insert_iterator {
@@ -182,7 +206,7 @@ namespace Quelos {
 
         friend back_insert_iterator back_inserter(SmallVec& vec) {
             return back_insert_iterator(vec);
-        };
+        }
 
         template <std::input_iterator It>
         iterator insert(iterator pos, It first, It last) {
@@ -284,11 +308,11 @@ namespace Quelos {
 
     private:
         T* inline_ptr() {
-            return reinterpret_cast<T*>(m_Inline);
+            return std::launder(reinterpret_cast<T*>(m_Inline));
         }
 
         const T* inline_ptr() const {
-            return reinterpret_cast<const T*>(m_Inline);
+            return std::launder(reinterpret_cast<const T*>(m_Inline));
         }
 
         [[nodiscard]] bool is_inline() const {
@@ -296,19 +320,18 @@ namespace Quelos {
         }
 
         void grow() {
-            grow_to(m_Capacity * 2);
+            grow_to(std::max<size_type>(1, m_Capacity * 2));
         }
 
         void grow_to(const size_type newCap) {
-            T* newData = static_cast<T*>(operator new(
-                newCap * sizeof(T)
-            ));
+            allocator_type alloc = allocator();
+            T* newData = alloc.allocate(newCap);
 
             move_range(newData, m_Data, m_Size);
             destroy_range(m_Data, m_Size);
 
             if (!is_inline()) {
-                operator delete(m_Data);
+                alloc.deallocate(m_Data, m_Capacity);
                 QS_PROFILE_FREE(m_Data);
             }
 
@@ -317,12 +340,14 @@ namespace Quelos {
         }
 
         void init_from(const SmallVec& other) {
+            m_MemoryResource = other.m_MemoryResource;
+
             if (other.m_Size <= N) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
             }
             else {
-                m_Data = static_cast<T*>(operator new(other.m_Size * sizeof(T)));
+                m_Data = allocator().allocate(other.m_Size);
                 QS_PROFILE_ALLOC(m_Data, other.m_Size * sizeof(T));
                 m_Capacity = other.m_Size;
             }
@@ -332,6 +357,8 @@ namespace Quelos {
         }
 
         void move_from(SmallVec&& other) {
+            m_MemoryResource = other.m_MemoryResource;
+
             if (other.is_inline()) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
@@ -378,11 +405,14 @@ namespace Quelos {
             }
         }
 
+        [[nodiscard]] allocator_type allocator() const { return allocator_type(m_MemoryResource); }
+
     private:
         alignas(T) unsigned char m_Inline[sizeof(T) * N]{};
 
         T* m_Data;
         size_type m_Size;
         size_type m_Capacity;
+        std::pmr::memory_resource* m_MemoryResource;
     };
 }
