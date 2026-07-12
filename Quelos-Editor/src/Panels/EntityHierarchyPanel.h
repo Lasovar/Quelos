@@ -56,10 +56,10 @@ namespace QuelosEditor {
         Actor m_SceneRoot;
 
         // False for every last child
-        Vec<bool> m_EntitiesStack;
-        Vec<HierarchyRow> m_VisibleRows;
+        Vec<bool> m_EntitiesStack{Allocator::Persistent};
+        Vec<HierarchyRow> m_VisibleRows{Allocator::Persistent};
         HashSet<Entity> m_OpenEntities;
-        Vec<EntityID> m_SelectedPath;
+        Vec<EntityID> m_SelectedPath{Allocator::Persistent};
 
         static constexpr float k_ReferenceFontSize = 17.0f;
         static constexpr float k_BaseIndent = 20.0f;

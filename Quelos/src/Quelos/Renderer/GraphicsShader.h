@@ -133,9 +133,9 @@ namespace Quelos {
     private:
         std::string m_Name;
 
-        Vec<GraphicsShaderPass> m_Passes;
+        Vec<GraphicsShaderPass> m_Passes{Allocator::Persistent};
 
-        Vec<PipelineStateHandle> m_PipelineStates;
+        Vec<PipelineStateHandle> m_PipelineStates{Allocator::Persistent};
         Vec<MaterialPropertySpec> m_MaterialProperties;
 
         uint64_t m_MaterialSize;

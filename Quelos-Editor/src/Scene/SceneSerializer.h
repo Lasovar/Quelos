@@ -74,6 +74,8 @@ namespace Quelos {
         static inline const std::string ScenePatchFileExtension = ".qpatch";
     public:
         SceneSerializer() = default;
+        SceneSerializer(SceneSerializer&&) = default;
+        SceneSerializer& operator=(SceneSerializer&&) = default;
         SceneSerializer(const Ref<Scene>& scene, const OsPath& sceneFolderPath);
         ~SceneSerializer() = default;
 
@@ -269,10 +271,10 @@ namespace Quelos {
 
         HashMap<EntityID, Vec<ChildEntry>> m_ParentPairsToResolve;
 
-        Vec<Serialization::TextArchiveValue> m_ValuePool;
-        Vec<Pair<std::string_view, size_t>> m_FieldTable;
+        Vec<Serialization::TextArchiveValue> m_ValuePool{Allocator::Persistent};
+        Vec<Pair<std::string_view, size_t>> m_FieldTable{Allocator::Persistent};
 
-        Vec<size_t> m_ContainerStack;
+        Vec<size_t> m_ContainerStack{Allocator::Persistent};
 
         bool hadError = false;
     };

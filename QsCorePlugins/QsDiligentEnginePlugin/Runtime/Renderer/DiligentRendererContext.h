@@ -59,7 +59,7 @@ namespace Quelos {
     struct QTextureData {
         ITexture* Texture = nullptr;
         TextureSpecification Specification;
-        Vec<Pair<TextureViewHandle, bool>> TextureViews; // Handle + IsDefaultView
+        Vec<Pair<TextureViewHandle, bool>> TextureViews{Allocator::Persistent}; // Handle + IsDefaultView
     };
 
     struct TextureViewData {
@@ -71,7 +71,7 @@ namespace Quelos {
     struct QFrameBufferData {
         IFramebuffer* FrameBuffer = nullptr;
         std::string Name;
-        SmallVec<TextureViewHandle, 2> Attachments;
+        SmallVec<TextureViewHandle, 2> Attachments{Allocator::Persistent};
 
         FrameBufferSpec Specification;
     };
@@ -79,9 +79,9 @@ namespace Quelos {
     struct RenderPassData {
         IRenderPass* RenderPass = nullptr;
         std::string Name;
-        SmallVec<AttachmentReference, 4> AttachmentReferences;
-        SmallVec<SubPassSpec, 2> SubPasses;
-        SmallVec<RenderPassAttachmentSpec, 2> Attachments;
+        SmallVec<AttachmentReference, 4> AttachmentReferences{Allocator::Persistent};
+        SmallVec<SubPassSpec, 2> SubPasses{Allocator::Persistent};
+        SmallVec<RenderPassAttachmentSpec, 2> Attachments{Allocator::Persistent};
         RenderPassSpec Specification;
     };
 
@@ -95,8 +95,8 @@ namespace Quelos {
     struct PipelineStateData {
         IPipelineState* PSO = nullptr;
         std::string Name;
-        Vec<ShaderResourceVariableSpec> Variables;
-        Vec<ImmutableSamplerSpec> ImmutableSamplers;
+        Vec<ShaderResourceVariableSpec> Variables{Allocator::Persistent};
+        Vec<ImmutableSamplerSpec> ImmutableSamplers{Allocator::Persistent};
         Deque<std::string> OwnedStrings;
         PipelineStateSpec PipelineSpec;
         GraphicsPipelineSpec GraphicsPipeline;
@@ -112,7 +112,7 @@ namespace Quelos {
         IBuffer* Buffer;
         std::string Name;
         GpuBufferSpec Specification;
-        Vec<GpuBufferViewHandle> BufferViews;
+        Vec<GpuBufferViewHandle> BufferViews{Allocator::Persistent};
     };
 
     struct QBufferViewData {
@@ -125,8 +125,8 @@ namespace Quelos {
         std::string Name;
         std::string CombinedSamplerSuffix;
         Deque<std::string> OwnedStrings;
-        Vec<PipelineResourceSpec> Resources;
-        Vec<ImmutableSamplerSpec> ImmutableSamplers;
+        Vec<PipelineResourceSpec> Resources{Allocator::Persistent};
+        Vec<ImmutableSamplerSpec> ImmutableSamplers{Allocator::Persistent};
         PipelineResourceSignatureSpec Specification;
     };
 

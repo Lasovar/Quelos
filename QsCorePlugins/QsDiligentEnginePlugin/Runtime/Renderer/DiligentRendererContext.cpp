@@ -316,7 +316,9 @@ namespace Quelos {
             Vec<Diligent::LayoutElement> Elements;
             InputLayoutDesc Desc;
 
-            explicit DiligentInputLayoutDesc(const InputLayoutSpec& spec) {
+            explicit DiligentInputLayoutDesc(const InputLayoutSpec& spec, const AllocatorType allocatorType)
+                : Elements(allocatorType)
+            {
                 Elements.reserve(spec.LayoutElements.size());
 
                 for (const auto& element : spec.LayoutElements) {
@@ -520,7 +522,7 @@ namespace Quelos {
 
             desc.Name = spec.Name.data();
 
-            Vec<ImmutableSamplerDesc> samplers;
+            Vec<ImmutableSamplerDesc> samplers(Allocator::Temp);
             samplers.reserve(spec.ImmutableSamplers.size());
             for (const ImmutableSamplerSpec& immutableSampler : spec.ImmutableSamplers) {
                 samplers.push_back(GetImmutableSampler(immutableSampler));
@@ -529,7 +531,7 @@ namespace Quelos {
             desc.ImmutableSamplers = samplers.data();
             desc.NumImmutableSamplers = samplers.size();
 
-            Vec<PipelineResourceDesc> resources;
+            Vec<PipelineResourceDesc> resources(Allocator::Temp);
             resources.reserve(spec.Resources.size());
             for (const PipelineResourceSpec& resource : spec.Resources) {
                 resources.push_back(GetPipelineResourceDesc(resource));
@@ -2008,7 +2010,7 @@ namespace Quelos {
 
         PSOCreateInfo.GraphicsPipeline.BlendDesc = Utils::GetBlendStateSpec(gpSpec.BlendSpec);
 
-        Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout);
+        Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout, Allocator::Temp);
 
         PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
 
@@ -2021,7 +2023,7 @@ namespace Quelos {
         }
 
         // Define variable type that will be used by default
-        Vec<ShaderResourceVariableDesc> variables;
+        Vec<ShaderResourceVariableDesc> variables(Allocator::Temp);
         variables.resize(slot->Variables.size());
         for (uint32_t i = 0; i < variables.size(); i++) {
             const ShaderResourceVariableSpec& variable = slot->Variables[i];
@@ -2036,7 +2038,7 @@ namespace Quelos {
         PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
         PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
 
-        Vec<ImmutableSamplerDesc> immutableSamplers;
+        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Temp);
         immutableSamplers.resize(slot->ImmutableSamplers.size());
         for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
             const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];
@@ -2105,7 +2107,7 @@ namespace Quelos {
         PSOCreateInfo.pCS = m_ShaderTable.At(pipelineStateCreateInfo.ComputeShader)->Shader;
 
         // Define variable type that will be used by default
-        Vec<ShaderResourceVariableDesc> variables;
+        Vec<ShaderResourceVariableDesc> variables(Allocator::Temp);
         variables.resize(slot->Variables.size());
         for (uint32_t i = 0; i < variables.size(); i++) {
             const ShaderResourceVariableSpec& variable = slot->Variables[i];
@@ -2120,7 +2122,7 @@ namespace Quelos {
         PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
         PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
 
-        Vec<ImmutableSamplerDesc> immutableSamplers;
+        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Temp);
         immutableSamplers.resize(slot->ImmutableSamplers.size());
         for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
             const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];

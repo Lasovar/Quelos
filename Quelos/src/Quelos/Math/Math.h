@@ -1,8 +1,9 @@
 #pragma once
 
 #include "hlsl++.h"
-#include "Quelos/Core/Base.h"
 #include <cmath>
+
+#include "Quelos/Core/API.h"
 
 #include "Portable.h"
 

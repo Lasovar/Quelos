@@ -80,7 +80,7 @@ namespace QuelosEditor {
     private:
         flecs::world m_EditorWorld;
         flecs::world m_RuntimeWorld;
-        Vec<SelectionCallback> m_OnSelectionChangedCallbacks;
+        Vec<SelectionCallback> m_OnSelectionChangedCallbacks{Allocator::Persistent};
 
         SceneState m_SceneState = SceneState::Edit;
         bool m_IsScenePaused = false;
@@ -103,7 +103,7 @@ namespace QuelosEditor {
 
         Entity m_SelectedEntity;
         Request m_PickRequest = false;
-        Vec<Entity> m_PickIds;
+        Vec<Entity> m_PickIds{Allocator::Persistent};
 
         EntityInspectorPanel m_InspectorPanel;
         EntityHierarchyPanel m_EntityHierarchyPanel;

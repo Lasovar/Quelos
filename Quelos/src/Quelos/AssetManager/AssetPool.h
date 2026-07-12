@@ -46,7 +46,7 @@ namespace Quelos {
     struct AssetPool {
         // Should probably be replaced with a pager
         Deque<AssetSlot<T>> Slots;
-        Vec<uint32_t> FreeList;
+        Vec<uint32_t> FreeList{Allocator::Persistent};
 
         UntypedAssetHandle Allocate() {
             if (!FreeList.empty()) {

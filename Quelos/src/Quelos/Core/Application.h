@@ -54,7 +54,7 @@ namespace Quelos {
 	private:
 		static Application* s_Instance;
 	private:
-		Vec<Ref<Layer>> m_LayerStack;
+		Vec<Ref<Layer>> m_LayerStack{Allocator::Persistent};
 		Ref<ImGuiLayer> m_ImGuiLayer;
 
 		Ref<Time> m_Time;

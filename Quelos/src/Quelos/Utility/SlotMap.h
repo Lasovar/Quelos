@@ -225,7 +225,7 @@ namespace Quelos {
     private:
         // Maybe replaces with an arena allocator/Pager?
         Deque<Slot<TValue>> m_Slots;
-        Vec<uint32_t> m_FreeList;
+        Vec<uint32_t> m_FreeList{Allocator::Persistent};
     };
 
     template <typename Resource, typename Impl>

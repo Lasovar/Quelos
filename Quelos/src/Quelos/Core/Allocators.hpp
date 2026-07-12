@@ -5,12 +5,10 @@
 #pragma once
 
 #include "API.h"
-#include "Log.h"
 
+#include <assert.h>
 #include <atomic>
 #include <memory_resource>
-
-#include "Assert.h"
 
 namespace Quelos {
 
@@ -100,12 +98,23 @@ namespace Quelos {
         /// @tparam Args The arguments to pass to the constructor
         /// @param args The arguments to pass to the constructor
         /// @return A pointer to the allocated object
-        /// @note If the constructor acquires resources, they will be leaked since `Reset` does not call the destructor
+        /// @remarks If the constructor acquires resources, they will be leaked since `Reset` does not call the destructor.
+        /// Consider calling `Destroy` to call the destructor
         template <typename T, typename... Args>
         T* Create(Args&&... args) {
             void* memory = Allocate(sizeof(T), alignof(T));
-            QS_CORE_ASSERT(memory);
-            return new(memory) T(std::forward<Args>(args)...);
+            assert(memory);
+            return std::construct_at(memory, std::forward<Args>(args)...);
+        }
+
+        /// Destroys an object and calls the destructor
+        /// @tparam T The type of the object
+        /// @param data A pointer to the object to destroy
+        /// @remarks This doesn't actually allow for the memory of the object to be resued
+        /// It's just a way to call the destructor
+        template <typename T>
+        void Destroy(T* data) {
+            std::destroy_at(data);
         }
 
         void Reset();

@@ -11,13 +11,14 @@
 namespace Quelos {
     GraphicsShader::GraphicsShader(const GraphicsShaderCreateInfo& createInfo)
         : m_Name(createInfo.Name),
-          m_MaterialProperties(createInfo.MaterialProperties.begin(), createInfo.MaterialProperties.end()),
+          m_MaterialProperties(createInfo.MaterialProperties.begin(), createInfo.MaterialProperties.end(), Allocator::Persistent),
           m_MaterialSize(createInfo.MaterialSize)
     {
         for (const auto& [passName, shaders] : createInfo.Passes) {
             GraphicsShaderPass pass;
             pass.Name = passName;
-            pass.Variables = createInfo.Variables;
+            pass.Pipelines = Vec<GraphicsShaderPipelineData>(Allocator::Persistent);
+            pass.Variables = createInfo.Variables.clone(Allocator::Persistent);
 
             for (const auto & shader : shaders) {
                 if (shader.Type != ShaderType::Vertex && shader.Type != ShaderType::Fragment) {
@@ -58,7 +59,7 @@ namespace Quelos {
                 }
             }
 
-            m_Passes.push_back(pass);
+            m_Passes.push_back(std::move(pass));
         }
     }
 

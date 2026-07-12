@@ -166,7 +166,10 @@ namespace Quelos {
                             );
 
                             if (errCode == std::errc()) {
-                                m_ParentPairsToResolve[m_CurrentParentID].emplace_back(m_CurrentEntity, order);
+                                m_ParentPairsToResolve.try_emplace(
+                                    m_CurrentParentID,
+                                    Allocator::Persistent
+                                ).first->second.emplace_back(m_CurrentEntity, order);
                             }
                             else {
                                 QS_ERROR_TAG(
@@ -221,7 +224,7 @@ namespace Quelos {
             value.Data = e.Value;
 
             size_t index = m_ValuePool.size();
-            m_ValuePool.push_back(value);
+            m_ValuePool.push_back(std::move(value));
 
             if (m_ContainerStack.empty()) {
                 m_FieldTable.emplace_back(m_CurrentField, index);
@@ -238,7 +241,7 @@ namespace Quelos {
         value.Data = TupleValue{};
 
         size_t index = m_ValuePool.size();
-        m_ValuePool.push_back(value);
+        m_ValuePool.push_back(std::move(value));
 
         if (m_ContainerStack.empty()) {
             m_FieldTable.emplace_back(m_CurrentField, index);
@@ -263,7 +266,7 @@ namespace Quelos {
         value.Data = ArrayValue{};
 
         size_t index = m_ValuePool.size();
-        m_ValuePool.push_back(value);
+        m_ValuePool.push_back(std::move(value));
 
         if (m_ContainerStack.empty()) {
             m_FieldTable.emplace_back(m_CurrentField, index);
@@ -416,7 +419,7 @@ namespace Quelos {
         }
 
         const size_t fileSize = file.tellg();
-        Vec<byte> buffer(fileSize);
+        Vec64<byte> buffer(fileSize, Allocator::Temp);
 
         file.seekg(0);
         file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
