@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include "Quelos/Core/DataTypes.hpp"
 #include "Ref.h"
 #include "Quelos/Math/Math.h"
 

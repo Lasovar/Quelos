@@ -124,7 +124,7 @@ namespace QuelosEditor {
             uint32_t tupleIndex = 0;
             MaterialPropertySpec materialProperty;
 
-            ShaderMetadata metadata;
+            ShaderMetadata metadata{{}, Vec<MaterialPropertySpec>(Allocator::Persistent)};
 
             for (auto&& parserEvent : reader.Parse()) {
                 std::visit(
@@ -520,7 +520,7 @@ namespace QuelosEditor {
                     passName = "GBuffer";
                 }
 
-                passMap[std::string(passName)].emplace(shaderInfo);
+                passMap[std::string(passName)].emplace(std::move(shaderInfo));
             }
 
             if (diagnostics) {
@@ -630,6 +630,7 @@ namespace QuelosEditor {
             createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
 
             uint32_t numOfParameters = reader.Read<uint32_t>().value_or(0);
+            createInfo.Variables = Vec<std::string>(Allocator::Temp);
             createInfo.Variables.reserve(numOfParameters);
             for (uint32_t parameterIndex = 0; parameterIndex < numOfParameters; parameterIndex++) {
                 createInfo.Variables.emplace_back(reader.ReadString().value_or(""));
@@ -641,13 +642,14 @@ namespace QuelosEditor {
                 std::string_view passName = reader.ReadString().value_or("");
                 uint32_t numOfShaders = reader.Read<uint32_t>().value_or(0);
 
-                createInfo.Passes.try_emplace(std::string(passName), Allocator::Persistent);
+                createInfo.Passes.try_emplace(std::string(passName), Allocator::Temp);
                 for (uint32_t shaderIndex = 0; shaderIndex < numOfShaders; shaderIndex++) {
                     ShaderData shader;
                     shader.EntryPoint = reader.ReadString().value_or("");
                     shader.Type = reader.Read<ShaderType>().value_or(ShaderType::Unknown);
                     shader.Order = reader.Read<int32_t>().value_or(0);
 
+                    shader.PipelineOptions = Vec<Pair<PipelineOption, PipelineOptionValue>>(Allocator::Temp);
                     shader.PipelineOptions.resize(reader.Read<uint32_t>().value_or(0));
                     for (auto& option : shader.PipelineOptions) {
                         option.first = reader.Read<PipelineOption>().value_or(PipelineOption::None);
@@ -665,7 +667,7 @@ namespace QuelosEditor {
 
                     shader.Code = reader.ReadBytesWithSize();
 
-                    createInfo.Passes[std::string(passName)].push_back(shader);
+                    createInfo.Passes[std::string(passName)].push_back(std::move(shader));
                 }
             }
 

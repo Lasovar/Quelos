@@ -73,7 +73,7 @@ namespace Quelos {
         }
 
     private:
-        Vec<AssetRef<Texture2D>> m_Textures;
+        Vec<AssetRef<Texture2D>> m_Textures{Allocator::Persistent};
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
         std::array<uint64_t, k_MaxTextures> m_TextureArray = {};
@@ -121,7 +121,7 @@ namespace Quelos {
         std::string m_PipelineName;
         uint64_t m_MaterialSize = 0;
 
-        Vec<AssetRef<Material>> m_CpuMaterials;
+        Vec<AssetRef<Material>> m_CpuMaterials{Allocator::Persistent};
         GpuBufferHandle m_GPUBuffer;
         GpuBufferViewHandle m_GpuBufferView;
         TextureRegistry m_TextureRegistry;
@@ -302,14 +302,14 @@ namespace Quelos {
         };
 
         struct PipelineInfo {
-            Vec<WeakPipelineData> Pipelines;
+            Vec<WeakPipelineData> Pipelines{Allocator::Persistent};
             MaterialRegistry MaterialRegistry;
         };
 
         void CreatePerViewResources(const Scope<WorldRendererView>& view, const MaterialRegistry& materialRegistry, const WeakPipelineData& pipeline) const;
 
     private:
-        Vec<Scope<WorldRendererView>> m_ActiveViews;
+        Vec<Scope<WorldRendererView>> m_ActiveViews{Allocator::Persistent};
 
         RenderPassHandle m_RenderPass;
 
@@ -324,8 +324,8 @@ namespace Quelos {
         HashMap<AssetID, PipelineInfo> m_PipelineStates;
         HashMap<EntityID, DirectionalLightShadowMap> m_ShadowMaps;
 
-        Vec<DrawCommand> m_DrawCalls;
-        Vec<InstanceDrawCommand> m_InstancingDrawCalls;
+        Vec<DrawCommand> m_DrawCalls{Allocator::Persistent};
+        Vec<InstanceDrawCommand> m_InstancingDrawCalls{Allocator::Persistent};
 
         const flecs::world* m_World = nullptr;
         flecs::query<const DirectionalLight&, const EntityID&> m_DirectionalLightCreateSMQuery;

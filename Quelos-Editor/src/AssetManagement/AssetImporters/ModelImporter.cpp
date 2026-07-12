@@ -89,7 +89,12 @@ namespace QuelosEditor {
             std::string_view currentSection;
             std::string_view currentField;
 
-            ModelMetadata modelMetadata;
+            ModelMetadata modelMetadata{
+                AssetID(),
+                Vec<MeshMetadata>(Allocator::Temp),
+                Vec<MaterialMetadata>(Allocator::Temp)
+            };
+
             MeshMetadata meshMetadata;
             MaterialMetadata materialMetadata;
 
@@ -460,7 +465,7 @@ namespace QuelosEditor {
             void* userData
         ) {
             if (mainAssetMetadata.Type != Model::GetStaticType()) {
-                return {};
+                return Vec<AssetMetadata>();
             }
 
             return RegisterModelSubAssets(assetPath, mainAssetMetadata);

@@ -1,20 +1,16 @@
 #pragma once
 
 #include "VertexBuffer.h"
+#include "Quelos/Utility/Vec.hpp"
 
 namespace Quelos {
     struct MeshData {
         MeshData() = default;
-        MeshData(std::string name, Vec<Vertex> vertices, Vec<uint16_t> indices) :
-            Name(std::move(name)),
-            Vertices(std::move(vertices)),
-            Indices(std::move(indices))
-        {}
 
         AssetID AssetId;
         std::string Name;
 
-        Vec<Vertex> Vertices;
-        Vec<uint16_t> Indices;
+        Vec<Vertex> Vertices{Allocator::Persistent};
+        Vec<uint16_t> Indices{Allocator::Persistent};
     };
 }

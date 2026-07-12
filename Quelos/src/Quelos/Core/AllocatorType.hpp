@@ -7,7 +7,26 @@
 
 #include "API.h"
 
+#include "Profiling.h"
+
 namespace Quelos {
+    inline void* Allocate(const size_t size) {
+#ifdef QS_ENABLE_PROFILING
+        void* pointer = std::malloc(size);
+        TracyAlloc(pointer, size);
+        return pointer;
+#else
+        return std::malloc(size);
+#endif
+    }
+
+    inline void Free(void* pointer) {
+#ifdef QS_ENABLE_PROFILING
+        TracyFree(pointer);
+#endif
+        std::free(pointer);
+    }
+
     enum class Allocator {
         None,
         Temp,

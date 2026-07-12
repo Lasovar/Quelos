@@ -1042,7 +1042,7 @@ namespace Quelos {
                 return;
             }
 
-            Vec<WeakPipelineData> worldPipelines;
+            Vec<WeakPipelineData> worldPipelines(Allocator::Temp);
 
             bool hasShadowMaps = false;
             for (const GraphicsShaderPipelineData& pipelineData : shaderPass->Pipelines) {

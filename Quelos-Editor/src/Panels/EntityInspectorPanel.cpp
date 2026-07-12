@@ -346,7 +346,7 @@ namespace QuelosEditor {
                         double Score;
                     };
 
-                    static Vec<ComponentResult> results;
+                    static Vec<ComponentResult> results(Allocator::Persistent);
 
                     if (ImGui::IsWindowAppearing()) {
                         ImGui::SetKeyboardFocusHere();

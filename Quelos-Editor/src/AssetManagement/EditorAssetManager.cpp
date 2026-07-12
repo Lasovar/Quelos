@@ -361,9 +361,10 @@ namespace QuelosEditor {
         StringQuelWriter writer(buffer);
 
         auto& assetRegistry = m_AssetRegistry.GetAssetsMetadata();
-        Vec<AssetMetadata> assets;
+        Vec<AssetMetadata> assets(Allocator::Temp);
         assets.reserve(assetRegistry.size());
 
+        std::vector<AssetMetadata> s;
         assets.append_range(assetRegistry | std::views::values);
         std::ranges::sort(assets, [](const AssetMetadata& a, const AssetMetadata& b) {
             return a.Type < b.Type;

@@ -128,7 +128,7 @@ namespace QuelosEditor {
 
     	std::pmr::string test("Test", &arenaMemoryResource);
 
-    	ankerl::unordered_dense::pmr::map<std::pmr::string, std::pmr::string> map;
+    	ankerl::unordered_dense::pmr::map<std::string_view, std::pmr::string> map;
     	map["TestKey" ] = "TestValue";
     	map["TestKey2"] = "TestValue2";
 

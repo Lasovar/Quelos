@@ -85,7 +85,7 @@ namespace QuelosEditor {
         {
             const Material& material = MaterialAsset.Get();
             Before = material.GetShader().GetAssetID();
-            BeforeValues = material.GetMaterialPropertyValues();
+            BeforeValues = material.GetMaterialPropertyValues().clone(Allocator::Persistent);
         }
 
         void Apply() const {

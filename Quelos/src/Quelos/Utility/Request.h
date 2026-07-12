@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Quelos/Core/Base.h"
+#include "Quelos/Core/DataTypes.hpp"
 
 namespace Quelos {
     // Basically a boolean that can only be resolved once

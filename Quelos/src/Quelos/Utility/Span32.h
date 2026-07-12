@@ -62,6 +62,13 @@ namespace Quelos {
             assert(vec.size() <= UINT32_MAX);
         }
 
+        template <typename U, typename SizeType>
+            requires std::is_convertible_v<U (*)[], T (*)[]>
+        constexpr Span32(Vec<U, SizeType>& vec) noexcept
+            : m_Data(vec.data()), m_Size(static_cast<uint32_t>(vec.size())) {
+            assert(vec.size() <= UINT32_MAX);
+        }
+
         template <typename U, uint32_t N>
             requires std::is_convertible_v<U (*)[], T (*)[]>
         constexpr Span32(SmallVec<U, N>& vec)

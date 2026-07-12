@@ -6,7 +6,7 @@
 namespace Quelos {
     class QS_API Model : public Asset {
     public:
-        void AddMesh(const MeshData& mesh) { m_Meshes.push_back(mesh); }
+        void AddMesh(MeshData&& mesh) { m_Meshes.push_back(std::move(mesh)); }
         const Deque<MeshData>& GetMeshes() const { return m_Meshes; }
         Deque<MeshData>& GetMeshes() { return m_Meshes; }
 

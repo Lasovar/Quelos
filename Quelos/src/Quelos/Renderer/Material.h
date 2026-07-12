@@ -22,7 +22,7 @@ namespace Quelos {
             m_Shader = AssetRef<GraphicsShader>(shaderId);
 
             if (const GraphicsShader* graphicsShader = m_Shader.TryGet()) {
-                m_MaterialProperties = graphicsShader->GetMaterialProperties();
+                m_MaterialProperties = graphicsShader->GetMaterialProperties().clone(Allocator::Persistent);
                 m_Values.resize(m_MaterialProperties.size());
 
                 for (size_t i = 0; i < m_MaterialProperties.size(); i++) {
@@ -118,8 +118,8 @@ namespace Quelos {
     private:
         AssetRef<GraphicsShader> m_Shader;
 
-        Vec<MaterialPropertySpec> m_MaterialProperties;
-        Vec<MaterialPropertyValue> m_Values;
+        Vec<MaterialPropertySpec> m_MaterialProperties{Allocator::Persistent};
+        Vec<MaterialPropertyValue> m_Values{Allocator::Persistent};
 
     public:
         static const AssetType& GetStaticType() {

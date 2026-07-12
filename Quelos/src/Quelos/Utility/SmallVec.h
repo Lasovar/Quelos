@@ -11,7 +11,7 @@
 #include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
-    template <typename T, uint32_t N = 0>
+    template <typename T, uint32_t N>
     class SmallVec {
     public:
         using value_type = T;

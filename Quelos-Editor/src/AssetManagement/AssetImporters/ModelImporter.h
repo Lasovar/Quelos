@@ -25,8 +25,8 @@ namespace QuelosEditor {
 
         struct ModelMetadata {
             AssetID ModelHandle;
-            Vec<MeshMetadata> MeshesMetadata;
-            Vec<MaterialMetadata> MaterialsMetadata;
+            Vec<MeshMetadata> MeshesMetadata{};
+            Vec<MaterialMetadata> MaterialsMetadata{};
         };
 
         // Core importer functions

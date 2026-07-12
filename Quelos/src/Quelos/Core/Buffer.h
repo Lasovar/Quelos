@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Base.h"
+#include "DataTypes.hpp"
 
 namespace Quelos {
     struct QS_API Buffer {

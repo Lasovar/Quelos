@@ -37,11 +37,11 @@ namespace Quelos::Serialization {
     struct TextArchiveValue;
 
     struct QS_API TupleValue {
-        Vec<size_t> Elements;
+        Vec<size_t> Elements{Allocator::Temp};
     };
 
     struct QS_API ArrayValue {
-        Vec<size_t> Elements;
+        Vec<size_t> Elements{Allocator::Temp};
     };
 
     struct QS_API TextArchiveValue {
@@ -598,8 +598,8 @@ namespace Quelos::Serialization {
         }
 
     private:
-        const std::vector<std::pair<std::string_view, size_t>>& m_Fields;
-        const std::vector<TextArchiveValue>& m_Pool;
+        const Vec<std::pair<std::string_view, size_t>>& m_Fields;
+        const Vec<TextArchiveValue>& m_Pool;
 
         const TupleValue* m_CurrentTuple = nullptr;
         uint32_t m_TupleIndex = 0;
@@ -609,11 +609,11 @@ namespace Quelos::Serialization {
     struct AutoTextArchiveValue;
 
     struct QS_API AutoTupleValue {
-        Vec<AutoTextArchiveValue> Elements;
+        Vec<AutoTextArchiveValue> Elements{Allocator::Persistent};
     };
 
     struct QS_API AutoArrayValue {
-        Vec<AutoTextArchiveValue> Elements;
+        Vec<AutoTextArchiveValue> Elements{Allocator::Persistent};
     };
 
     struct QS_API AutoTextArchiveValue {
@@ -685,7 +685,7 @@ namespace Quelos::Serialization {
             Serialization::Component* currentComponent = nullptr;
             Serialization::FieldMap* currentFieldMap = nullptr;
             std::string_view currentField;
-            Vec<AutoTextArchiveValue*> containerStack;
+            Vec<AutoTextArchiveValue*> containerStack{Allocator::Temp};
 
             for (auto& parseEvent : reader.Parse()) {
                 std::visit(

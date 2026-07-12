@@ -60,7 +60,7 @@ namespace QuelosEditor {
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
-        Vec<AssetMetadata> m_OpenAssetWorkspaceRequests;
+        Vec<AssetMetadata> m_OpenAssetWorkspaceRequests{Allocator::Persistent};
         HashMap<AssetID, Scope<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 
@@ -68,7 +68,7 @@ namespace QuelosEditor {
 
         HashMap<const SceneWorkspace*, std::string> m_PlayingScenes;
         uint32_t m_CurrentTheme = 0;
-        Vec<Pair<std::string, void(*)()>> m_Themes;
+        Vec<Pair<std::string, void(*)()>> m_Themes{Allocator::Persistent};
 
         bool m_CtrlKey : 1 = false;
         bool m_ZKey : 1 = false;
