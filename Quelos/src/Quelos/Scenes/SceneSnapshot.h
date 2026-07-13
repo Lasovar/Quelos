@@ -20,7 +20,7 @@ namespace Quelos {
 
     struct QS_API SceneSnapshot {
         std::string SceneName;
-        Vec<byte> Data;
+        Vec64<byte> Data{Allocator::Persistent};
 
         // Expects an already created empty scene
         void Load(const Ref<Scene>& scene) {

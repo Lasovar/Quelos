@@ -6,7 +6,7 @@ namespace Quelos {
     class Scene;
 
     struct QS_API EntitySnapshot {
-        Vec<byte> Data;
+        Vec64<byte> Data{Allocator::Persistent};
 
         Entity Load(const Ref<Scene>& scene) const; // NOLINT(*-use-nodiscard)
 

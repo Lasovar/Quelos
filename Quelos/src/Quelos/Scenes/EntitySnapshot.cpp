@@ -19,7 +19,7 @@ namespace Quelos {
             std::as_bytes(std::span(name.data(), name.size()))
         );
 
-        Vec<byte> entityComponentsBuffer;
+        Vec64<byte> entityComponentsBuffer(Allocator::Temp);
         Serialization::BinaryWriter entityComponentWriter(entityComponentsBuffer);
         uint32_t componentCount = 0;
 
@@ -31,7 +31,7 @@ namespace Quelos {
         writer.Write(parentId);
         writer.Write(actor.Get<ChildOrder>().Value);
 
-        Vec<byte> tempComponentData;
+        Vec64<byte> tempComponentData(Allocator::Temp);
         actor.GetInternalID().each([&](const flecs::id id) {
             const ComponentID* componentId = id.second().try_get<ComponentID>();
             if (!componentId) {

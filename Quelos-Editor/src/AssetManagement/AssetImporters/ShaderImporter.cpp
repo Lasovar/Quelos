@@ -328,7 +328,7 @@ namespace QuelosEditor {
 
         struct ShaderCompilationResult {
             HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes;
-            Vec<MaterialPropertySpec> MaterialProperties;
+            Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
             HashSet<std::string> Variables;
             uint64_t MaterialSize = 0;
         };
@@ -453,7 +453,7 @@ namespace QuelosEditor {
                 Slang::ComPtr<slang::IEntryPoint> EntryPoint;
                 int32_t Order = 0;
                 SlangStage Stage = SLANG_STAGE_NONE;
-                Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
+                Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions{Allocator::Temp};
                 Array<uint64_t, 3> ThreadGroupSize = {0, 0, 0};
 
                 struct Compare {
@@ -533,7 +533,7 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
-            Vec<slang::IComponentType*> components;
+            Vec<slang::IComponentType*> components(Allocator::Temp);
             components.push_back(module);
             for (const auto& shaders : passMap | std::views::values) {
                 std::ranges::transform(
@@ -739,7 +739,7 @@ namespace QuelosEditor {
 
             shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
 
-            Vec<byte> buffer;
+            Vec64<byte> buffer(Allocator::Temp);
             Serialization::BinaryWriter writer(buffer);
 
             writer.Write(compiledShaders.MaterialSize);

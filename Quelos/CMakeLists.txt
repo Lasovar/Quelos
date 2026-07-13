@@ -104,6 +104,7 @@ function(setup_quelos_target target type)
             GLM_FORCE_QUAT_DATA_WXYZ
             GLM_FORCE_LEFT_HANDED
             HLSLPP_FEATURE_TRANSFORM
+            QS_ENABLE_ASSERTS
     )
 
     target_compile_features(${target} PUBLIC cxx_std_23)

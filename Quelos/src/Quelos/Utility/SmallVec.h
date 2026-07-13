@@ -22,13 +22,13 @@ namespace Quelos {
 
     public:
         SmallVec() noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(&GetInvalidAllocator()) {}
+            : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(&GetInvalidAllocator()) {}
 
         explicit SmallVec(std::pmr::memory_resource* allocator) noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(allocator) {}
+            : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(allocator) {}
 
         explicit SmallVec(const AllocatorType allocatorType) noexcept
-            : m_Data(inline_ptr()), m_Size(0), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
+            : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
 
         ~SmallVec() {
             clear();
@@ -79,27 +79,13 @@ namespace Quelos {
         SmallVec(It first, It last, const AllocatorType allocatorType)
             : SmallVec(first, last, allocatorType) {}
 
-        SmallVec(const SmallVec& other) {
-            init_from(other);
-        }
+        SmallVec(const SmallVec& other) = delete;
+        SmallVec& operator=(const SmallVec& other) = delete;
 
         SmallVec(SmallVec&& other) noexcept {
             move_from(std::move(other));
         }
 
-        SmallVec& operator=(const SmallVec& other) {
-            if (this != &other) {
-                clear();
-                if (!is_inline()) {
-                    allocator().deallocate(m_Data, m_Capacity);
-                    QS_PROFILE_FREE(m_Data);
-                }
-
-                init_from(other);
-            }
-
-            return *this;
-        }
 
         SmallVec& operator=(SmallVec&& other) noexcept {
             if (this != &other) {
@@ -410,9 +396,9 @@ namespace Quelos {
     private:
         alignas(T) unsigned char m_Inline[sizeof(T) * N]{};
 
-        T* m_Data;
-        size_type m_Size;
-        size_type m_Capacity;
-        std::pmr::memory_resource* m_MemoryResource;
+        T* m_Data = nullptr;
+        size_type m_Size = 0;
+        size_type m_Capacity = 0;
+        std::pmr::memory_resource* m_MemoryResource = nullptr;
     };
 }

@@ -6,7 +6,7 @@
 
 #include "API.h"
 
-#include <assert.h>
+#include <cassert>
 #include <atomic>
 #include <memory_resource>
 
@@ -28,8 +28,14 @@ namespace Quelos {
         uint64_t Capacity = 0;
 
         void* Allocate(uint64_t size, uint64_t alignment);
-        void Reset() { Used = 0; }
-        size_t Remaining() const { return Capacity - Used; }
+        void Reset() {
+            Used = 0;
+#if QS_ENABLE_ASSERTS
+            std::memset(Memory, 0xDD, Used);
+#endif
+        }
+
+        [[nodiscard]] uint64_t Remaining() const { return Capacity - Used; }
 
         template <typename T>
         T* Allocate() { return static_cast<T*>(Allocate(sizeof(T), alignof(T))); }
@@ -91,7 +97,7 @@ namespace Quelos {
             : m_Pool(pagePool) {}
 
         /// Allocates a raw memory buffer
-        void* Allocate(size_t size, size_t alignment);
+        void* Allocate(uint64_t size, uint64_t alignment);
 
         /// Allocates and calls the constructor
         /// @tparam T The type to allocate
