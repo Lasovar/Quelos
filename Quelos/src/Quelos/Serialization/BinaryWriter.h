@@ -82,7 +82,7 @@ namespace Quelos::Serialization {
 
     class QS_API BinaryWriter {
     public:
-        explicit BinaryWriter(Vec<byte>& buffer)
+        explicit BinaryWriter(Vec64<byte>& buffer)
             : m_Buffer(buffer) {
         }
 
@@ -110,7 +110,7 @@ namespace Quelos::Serialization {
         }
 
     private:
-        Vec<byte>& m_Buffer;
+        Vec64<byte>& m_Buffer;
     };
 
     class QS_API BinaryWriteArchive {

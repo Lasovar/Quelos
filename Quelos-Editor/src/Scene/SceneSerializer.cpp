@@ -804,7 +804,7 @@ namespace Quelos {
         flecs::world& world = m_Scene->GetWorld();
         const auto& types = ComponentRegistry::GetSerializableComponents();
 
-        Vec<byte> buffer;
+        Vec64<byte> buffer(Allocator::Temp);
         BinaryWriter writer(buffer);
 
         Entity sceneRoot = m_Scene->GetSceneRoot();

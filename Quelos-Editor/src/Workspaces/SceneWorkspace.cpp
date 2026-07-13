@@ -983,8 +983,7 @@ namespace QuelosEditor {
             return;
         }
 
-        static Vec<InstanceData> maskInstances;
-        maskInstances.clear();
+        Vec<InstanceData> maskInstances(Allocator::Temp);
 
         maskInstances.push_back(InstanceData {
             .Transform = m_SelectedEntity.Get<WorldTransform>().Value,
