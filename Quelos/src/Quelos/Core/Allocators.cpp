@@ -11,11 +11,17 @@
 namespace Quelos {
     static uint64_t g_PageSize = Platform::GetMaxPageSize();
 
-    static Page AllocatePage() {
-        return { static_cast<byte*>(Platform::AllocatePages(g_PageSize)), 0, g_PageSize };
+    static Page AllocatePage(const uint64_t minSize) {
+        const size_t capacity = AlignUp(std::max(minSize, g_PageSize), g_PageSize);
+
+        return {
+            .Memory = static_cast<byte*>(Platform::AllocatePages(capacity)),
+            .Used = 0,
+            .Capacity = capacity
+        };
     }
 
-    PageEntry* PagePool::Acquire() {
+    PageEntry* PagePool::Acquire(const uint64_t minSize) {
         PageEntry* head = m_FreeList.load(std::memory_order_acquire);
 
         while (head) {
@@ -29,13 +35,17 @@ namespace Quelos {
                     std::memory_order_acquire
                 )
             ) {
+                if (head->Page.Capacity < minSize) {
+                    continue;
+                }
+
                 head->Next = nullptr;
                 head->Page.Used = 0;
                 return head;
             }
         }
 
-        return AllocatePageEntry();
+        return AllocatePageEntry(minSize);
     }
 
     void* Page::Allocate(const uint64_t size, const uint64_t alignment) {
@@ -51,13 +61,13 @@ namespace Quelos {
         return Memory + offset;
     }
 
-    PageEntry* PageBlock::Allocate() {
+    PageEntry* PageBlock::Allocate(const uint64_t minSize) {
         PageEntry* pageEntry = m_Storage.Allocate<PageEntry>();
         if (!pageEntry) {
             return nullptr;
         }
 
-        *pageEntry = { AllocatePage(), nullptr };
+        *pageEntry = { .Page = AllocatePage(minSize), .Next = nullptr };
         ++m_Size;
 
         return pageEntry;
@@ -71,11 +81,11 @@ namespace Quelos {
     }
 
     PageBlock* PageBlock::Create() {
-        Page page = AllocatePage();
+        Page page = AllocatePage(g_PageSize);
         QS_CORE_ASSERT(page.Memory);
 
         PageBlock* block = page.Allocate<PageBlock>();
-        block->m_Storage = std::move(page);
+        block->m_Storage = page;
         QS_CORE_ASSERT(block);
 
         return block;
@@ -117,9 +127,9 @@ namespace Quelos {
         );
     }
 
-    PageEntry* PagePool::AllocatePageEntry() {
+    PageEntry* PagePool::AllocatePageEntry(const uint64_t minSize) {
         PageBlock* pageBlock = m_PageBlocks.load(std::memory_order_acquire);
-        PageEntry* pageEntry = pageBlock->Allocate();
+        PageEntry* pageEntry = pageBlock->Allocate(minSize);
 
         if (!pageEntry) {
             PageBlock* newHead = PageBlock::Create();
@@ -136,7 +146,7 @@ namespace Quelos {
                 )
             );
 
-            pageEntry = newHead->Allocate();
+            pageEntry = newHead->Allocate(minSize);
         }
 
         return pageEntry;
@@ -144,14 +154,14 @@ namespace Quelos {
 
     void* LinearArena::Allocate(const uint64_t size, const uint64_t alignment) {
         if (!m_Current) {
-            m_Current = m_Head = m_Pool.Acquire();
+            m_Current = m_Head = m_Pool.Acquire(size);
         }
 
         if (void* ptr = m_Current->Page.Allocate(size, alignment)) {
             return ptr;
         }
 
-        PageEntry* page = m_Pool.Acquire();
+        PageEntry* page = m_Pool.Acquire(size);
 
         m_Current->Next = page;
         m_Current = page;

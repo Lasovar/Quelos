@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <atomic>
+#include <cstring>
 #include <memory_resource>
 
 namespace Quelos {
@@ -52,7 +53,7 @@ namespace Quelos {
         PageBlock(const PageBlock&) = delete;
         PageBlock& operator=(const PageBlock&) = delete;
 
-        [[nodiscard]] PageEntry* Allocate();
+        [[nodiscard]] PageEntry* Allocate(uint64_t minSize);
 
         [[nodiscard]] PageEntry* GetFirstPageEntry() const {
             return reinterpret_cast<PageEntry*>(
@@ -80,11 +81,11 @@ namespace Quelos {
         PagePool();
         ~PagePool();
 
-        PageEntry* Acquire();
+        PageEntry* Acquire(uint64_t minSize);
         void Release(PageEntry* head, PageEntry* tail);
 
     private:
-        PageEntry* AllocatePageEntry();
+        PageEntry* AllocatePageEntry(uint64_t minSize);
 
     private:
         std::atomic<PageBlock*> m_PageBlocks;

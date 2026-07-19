@@ -34,7 +34,7 @@
 	url = https://github.com/Lasovar/DiligentEngine.git
 [submodule "Quelos-Editor/vendor/slang"]
 	path = Quelos-Editor/vendor/slang
-	url = https://github.com/Lasovar/slang.git
+	url = https://github.com/shader-slang/slang.git
 [submodule "Quelos/vendor/FiberTaskingLib"]
 	path = Quelos/vendor/FiberTaskingLib
 	url = https://github.com/Lasovar/FiberTaskingLib.git
