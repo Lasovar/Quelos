@@ -1091,7 +1091,7 @@ namespace Quelos {
 
                 pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
 
-                SmallVec<ShaderResourceVariableSpec, 5> vars = {
+                InlineVec<ShaderResourceVariableSpec, 5> vars = {
                     {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                     {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
                 };
@@ -1111,7 +1111,7 @@ namespace Quelos {
                 samplerSpec.MagFilter = FilterMode::Linear;
                 samplerSpec.MipFilter = FilterMode::Linear;
 
-                SmallVec<ImmutableSamplerSpec, 2> immutableSamplers;
+                InlineVec<ImmutableSamplerSpec, 2> immutableSamplers;
                 immutableSamplers.emplace_back();
                 immutableSamplers[0].SamplerOrTextureName = "g_Textures";
                 immutableSamplers[0].Specification = samplerSpec;

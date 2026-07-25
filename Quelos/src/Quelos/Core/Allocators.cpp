@@ -22,6 +22,10 @@ namespace Quelos {
     }
 
     PageEntry* PagePool::Acquire(const uint64_t minSize) {
+        if (minSize > g_PageSize) {
+            return AllocatePageEntry(minSize); // large tier: always exact-fit
+        }
+
         PageEntry* head = m_FreeList.load(std::memory_order_acquire);
 
         while (head) {
@@ -35,10 +39,6 @@ namespace Quelos {
                     std::memory_order_acquire
                 )
             ) {
-                if (head->Page.Capacity < minSize) {
-                    continue;
-                }
-
                 head->Next = nullptr;
                 head->Page.Used = 0;
                 return head;
@@ -75,8 +75,9 @@ namespace Quelos {
 
     PageBlock::~PageBlock() {
         for (uint32_t i = 0; i < m_Size; i++) {
-            const PageEntry* pageEntry = GetFirstPageEntry() + i;
-            Platform::FreePages(pageEntry->Page.Memory, pageEntry->Page.Capacity);
+            if (const PageEntry* pageEntry = GetFirstPageEntry() + i; pageEntry->Page.Memory) {
+                Platform::FreePages(pageEntry->Page.Memory, pageEntry->Page.Capacity);
+            }
         }
     }
 
@@ -112,15 +113,39 @@ namespace Quelos {
         }
     }
 
-    void PagePool::Release(PageEntry* head, PageEntry* tail) {
-        PageEntry* oldHead = m_FreeList.load(std::memory_order_acquire);
+    void PagePool::Release(PageEntry* head) {
+        PageEntry* standardHead = nullptr;
+        PageEntry* standardTail = nullptr;
 
+        PageEntry* current = head;
+        while (current) {
+            PageEntry* next = current->Next; // grab before we repurpose Next
+
+            if (current->Page.Capacity > g_PageSize) {
+                current->Next = nullptr;
+                ReleaseLarge(current); // free immediately
+            } else {
+                current->Next = standardHead;
+                standardHead = current;
+                if (!standardTail) {
+                    standardTail = current;
+                }
+            }
+
+            current = next;
+        }
+
+        if (!standardHead) {
+            return;
+        }
+
+        PageEntry* oldHead = m_FreeList.load(std::memory_order_acquire);
         do {
-            tail->Next = oldHead;
+            standardTail->Next = oldHead;
         } while (
             !m_FreeList.compare_exchange_weak(
                 oldHead,
-                head,
+                standardHead,
                 std::memory_order_acq_rel,
                 std::memory_order_acquire
             )
@@ -152,6 +177,15 @@ namespace Quelos {
         return pageEntry;
     }
 
+    void PagePool::ReleaseLarge(PageEntry* pageEntry) {
+        Platform::FreePages(pageEntry->Page.Memory, pageEntry->Page.Capacity);
+
+        pageEntry->Page.Memory = nullptr;
+        pageEntry->Page.Capacity = 0;
+        pageEntry->Page.Used = 0;
+        pageEntry->Next = nullptr;
+    }
+
     void* LinearArena::Allocate(const uint64_t size, const uint64_t alignment) {
         if (!m_Current) {
             m_Current = m_Head = m_Pool.Acquire(size);
@@ -179,12 +213,10 @@ namespace Quelos {
         }
 
         if (PageEntry* second = m_Head->Next) {
-            PageEntry* tail = m_Current;
-
             m_Head->Next = nullptr;
             m_Current = m_Head; // Keep at least one page
 
-            m_Pool.Release(second, tail);
+            m_Pool.Release(second);
         }
     }
 }

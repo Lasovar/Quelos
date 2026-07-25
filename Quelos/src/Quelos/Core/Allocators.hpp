@@ -82,10 +82,12 @@ namespace Quelos {
         ~PagePool();
 
         PageEntry* Acquire(uint64_t minSize);
-        void Release(PageEntry* head, PageEntry* tail);
+        void Release(PageEntry* head);
 
     private:
         PageEntry* AllocatePageEntry(uint64_t minSize);
+
+        static void ReleaseLarge(PageEntry* pageEntry);
 
     private:
         std::atomic<PageBlock*> m_PageBlocks;

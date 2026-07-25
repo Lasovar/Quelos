@@ -7,5 +7,7 @@
 #include "Quelos/Core/API.h"
 
 namespace Quelos::Platform {
-    QS_API void* GetNSViewFromWindow(void* nsWindowPtr);
+    namespace MacOS {
+        QS_API void* GetNSViewFromWindow(void* nsWindowPtr);
+    }
 }

@@ -12,11 +12,11 @@
 
 #include "Quelos/Utility/SortedVec.h"
 #include "Quelos/Utility/SortedSet.h"
-#include "Quelos/Utility/SmallVec.h"
+#include "Quelos/Utility/InlineVec.hpp"
 #include "Quelos/Utility/Vec.hpp"
 #include "Quelos/Utility/Span32.h"
 #include "Quelos/Utility/FlatMap.h"
-#include "Quelos/Utility/SmallVec.h"
+#include "Quelos/Utility/InlineVec.hpp"
 
 namespace Quelos {
     using byte = std::byte;
@@ -40,7 +40,7 @@ namespace Quelos {
     using SegmentedSet = ankerl::unordered_dense::segmented_set<TValue>;
 
     template <typename T>
-    using Vec32 = Vec<T>;
+    using Vec32 = Vec<T, uint32_t>; // Default
 
     template <typename T>
     using Vec64 = Vec<T, uint64_t>;

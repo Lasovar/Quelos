@@ -71,7 +71,7 @@ namespace Quelos {
     struct QFrameBufferData {
         IFramebuffer* FrameBuffer = nullptr;
         std::string Name;
-        SmallVec<TextureViewHandle, 2> Attachments{Allocator::Persistent};
+        InlineVec<TextureViewHandle, 2> Attachments{Allocator::Persistent};
 
         FrameBufferSpec Specification;
     };
@@ -79,9 +79,9 @@ namespace Quelos {
     struct RenderPassData {
         IRenderPass* RenderPass = nullptr;
         std::string Name;
-        SmallVec<AttachmentReference, 4> AttachmentReferences{Allocator::Persistent};
-        SmallVec<SubPassSpec, 2> SubPasses{Allocator::Persistent};
-        SmallVec<RenderPassAttachmentSpec, 2> Attachments{Allocator::Persistent};
+        InlineVec<AttachmentReference, 4> AttachmentReferences{Allocator::Persistent};
+        InlineVec<SubPassSpec, 2> SubPasses{Allocator::Persistent};
+        InlineVec<RenderPassAttachmentSpec, 2> Attachments{Allocator::Persistent};
         RenderPassSpec Specification;
     };
 
