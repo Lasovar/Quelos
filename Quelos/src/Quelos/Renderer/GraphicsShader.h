@@ -75,7 +75,7 @@ namespace Quelos {
 
     struct QS_API GraphicsShaderCreateInfo {
         std::string_view Name;
-        HashMap<std::string, SmallVec<ShaderData, 2>> Passes;
+        HashMap<std::string, InlineVec<ShaderData, 2>> Passes;
         Vec<std::string> Variables;
         Span<const MaterialPropertySpec> MaterialProperties;
         uint64_t MaterialSize = 0;

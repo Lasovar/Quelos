@@ -12,7 +12,7 @@
 
 namespace Quelos {
     template <typename T, uint32_t N>
-    class SmallVec {
+    class InlineVec {
     public:
         using value_type = T;
         using size_type = uint32_t;
@@ -21,16 +21,16 @@ namespace Quelos {
         using const_iterator = const T*;
 
     public:
-        SmallVec() noexcept
+        InlineVec() noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(&GetInvalidAllocator()) {}
 
-        explicit SmallVec(std::pmr::memory_resource* allocator) noexcept
+        explicit InlineVec(std::pmr::memory_resource* allocator) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(allocator) {}
 
-        explicit SmallVec(const AllocatorType allocatorType) noexcept
+        explicit InlineVec(const AllocatorType allocatorType) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
 
-        ~SmallVec() {
+        ~InlineVec() {
             clear();
             if (!is_inline()) {
                 allocator().deallocate(m_Data, m_Capacity);
@@ -38,7 +38,7 @@ namespace Quelos {
             }
         }
 
-        explicit SmallVec(std::span<const T> src, std::pmr::memory_resource* memoryResource)
+        explicit InlineVec(std::span<const T> src, std::pmr::memory_resource* memoryResource)
             : m_MemoryResource(memoryResource)
         {
             if (src.size() <= N) {
@@ -55,15 +55,15 @@ namespace Quelos {
             copy_range(m_Data, src.data(), m_Size);
         }
 
-        explicit SmallVec(std::span<const T> src, const AllocatorType allocatorType)
-            : SmallVec(src, GetAllocator(allocatorType)) {}
+        explicit InlineVec(std::span<const T> src, const AllocatorType allocatorType)
+            : InlineVec(src, GetAllocator(allocatorType)) {}
 
         /// @remarks Can only use inline memory
-        SmallVec(std::initializer_list<T> list)
-            : SmallVec(std::span<const T>(list.begin(), list.size()), &GetInvalidAllocator()) {}
+        InlineVec(std::initializer_list<T> list)
+            : InlineVec(std::span<const T>(list.begin(), list.size()), &GetInvalidAllocator()) {}
 
         template <std::input_iterator It>
-        SmallVec(It first, It last, std::pmr::memory_resource* memoryResource)
+        InlineVec(It first, It last, std::pmr::memory_resource* memoryResource)
             : m_MemoryResource(memoryResource)
         {
             m_Data = inline_ptr();
@@ -76,18 +76,18 @@ namespace Quelos {
         }
 
         template <std::input_iterator It>
-        SmallVec(It first, It last, const AllocatorType allocatorType)
-            : SmallVec(first, last, allocatorType) {}
+        InlineVec(It first, It last, const AllocatorType allocatorType)
+            : InlineVec(first, last, allocatorType) {}
 
-        SmallVec(const SmallVec& other) = delete;
-        SmallVec& operator=(const SmallVec& other) = delete;
+        InlineVec(const InlineVec& other) = delete;
+        InlineVec& operator=(const InlineVec& other) = delete;
 
-        SmallVec(SmallVec&& other) noexcept {
+        InlineVec(InlineVec&& other) noexcept {
             move_from(std::move(other));
         }
 
 
-        SmallVec& operator=(SmallVec&& other) noexcept {
+        InlineVec& operator=(InlineVec&& other) noexcept {
             if (this != &other) {
                 clear();
                 if (!is_inline()) {
@@ -169,7 +169,7 @@ namespace Quelos {
             using pointer = void;
             using reference = void;
 
-            explicit back_insert_iterator(SmallVec& vec)
+            explicit back_insert_iterator(InlineVec& vec)
                 : m_Vec(&vec) {}
 
             back_insert_iterator& operator=(const T& value) {
@@ -187,10 +187,10 @@ namespace Quelos {
             back_insert_iterator operator++(int) { return *this; }
 
         private:
-            SmallVec* m_Vec;
+            InlineVec* m_Vec;
         };
 
-        friend back_insert_iterator back_inserter(SmallVec& vec) {
+        friend back_insert_iterator back_inserter(InlineVec& vec) {
             return back_insert_iterator(vec);
         }
 
@@ -325,7 +325,7 @@ namespace Quelos {
             m_Capacity = newCap;
         }
 
-        void init_from(const SmallVec& other) {
+        void init_from(const InlineVec& other) {
             m_MemoryResource = other.m_MemoryResource;
 
             if (other.m_Size <= N) {
@@ -342,7 +342,7 @@ namespace Quelos {
             m_Size = other.m_Size;
         }
 
-        void move_from(SmallVec&& other) {
+        void move_from(InlineVec&& other) {
             m_MemoryResource = other.m_MemoryResource;
 
             if (other.is_inline()) {

@@ -789,7 +789,7 @@ namespace Quelos {
         }
 #elif QS_PLATFORM_MACOS
         MacOSNativeWindow nativeWindow;
-        nativeWindow.pNSView = Platform::GetNSViewFromWindow(window->GetNativeWindow());
+        nativeWindow.pNSView = Platform::MacOS::GetNSViewFromWindow(window->GetNativeWindow());
 #endif
 
         // TODO: Maybe fallback option?
@@ -962,7 +962,7 @@ namespace Quelos {
     }
 
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
-        SmallVec<OptimizedClearValue, 2> clearValues(Allocator::Temp);
+        InlineVec<OptimizedClearValue, 2> clearValues(Allocator::Temp);
         clearValues.reserve(beginRenderPassAttrib.ClearColors.size());
         for (const ClearValue& clearColor : beginRenderPassAttrib.ClearColors) {
             OptimizedClearValue optimizedClearValue;
@@ -1578,7 +1578,7 @@ namespace Quelos {
 
         // Own data
         slot->Name = renderPassSpec.Name;
-        slot->Attachments = SmallVec<RenderPassAttachmentSpec, 2>(renderPassSpec.Attachments, Allocator::Persistent);
+        slot->Attachments = InlineVec<RenderPassAttachmentSpec, 2>(renderPassSpec.Attachments, Allocator::Persistent);
 
         uint32_t renderTargetAttachmentRefsCount = 0;
         for (const SubPassSpec& subPass : renderPassSpec.SubPasses) {
@@ -1624,14 +1624,14 @@ namespace Quelos {
         spec.SubPasses = slot->SubPasses;
         spec.Attachments = slot->Attachments;
 
-        SmallVec<RenderPassAttachmentDesc, 3> attachments(Allocator::Temp);
+        InlineVec<RenderPassAttachmentDesc, 3> attachments(Allocator::Temp);
 
         for (const RenderPassAttachmentSpec& attachment : spec.Attachments) {
             attachments.push_back(Utils::GetRenderPassAttachmentDesc(attachment));
         }
 
-        SmallVec<SubpassDesc, 2> subpasses(Allocator::Temp);
-        SmallVec<Diligent::AttachmentReference, 3> attachmentRefs(Allocator::Temp);
+        InlineVec<SubpassDesc, 2> subpasses(Allocator::Temp);
+        InlineVec<Diligent::AttachmentReference, 3> attachmentRefs(Allocator::Temp);
 
         uint32_t totalAttachmentRefCount = 0;
         for (const SubPassSpec& pass : spec.SubPasses) {
@@ -1703,12 +1703,12 @@ namespace Quelos {
 
         // Own data
         slot->Name = frameBufferSpec.Name;
-        slot->Attachments = SmallVec<TextureViewHandle, 2>(frameBufferSpec.Attachments, Allocator::Persistent);
+        slot->Attachments = InlineVec<TextureViewHandle, 2>(frameBufferSpec.Attachments, Allocator::Persistent);
 
         FrameBufferSpec& spec = slot->Specification;
         spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.NumArraySlices, frameBufferSpec.Size};
 
-        SmallVec<ITextureView*, 2> textureAttachments(Allocator::Temp);
+        InlineVec<ITextureView*, 2> textureAttachments(Allocator::Temp);
         textureAttachments.reserve(spec.Attachments.size());
         for (const TextureViewHandle attachment : spec.Attachments) {
             textureAttachments.push_back(m_TextureViewTable.At(attachment)->TextureView);
@@ -1755,7 +1755,7 @@ namespace Quelos {
         QFrameBufferData* data = m_FrameBufferTable.At(frameBufferHandle);
         data->Specification.Size = {width, height};
 
-        SmallVec<ITextureView*, 2> textureViews(Allocator::Temp);
+        InlineVec<ITextureView*, 2> textureViews(Allocator::Temp);
         for (const TextureViewHandle attachment : data->Attachments) {
             const TextureViewData* textureViewData = m_TextureViewTable.At(attachment);
             textureViews.push_back(textureViewData->TextureView);

@@ -153,7 +153,7 @@ namespace QuelosEditor {
 
     	linearArena.Reset();
 
-    	SmallVec<int, 2> small(Allocator::Temp);
+    	InlineVec<int, 2> small(Allocator::Temp);
     	small.push_back(1);
     	small.push_back(2);
     	small.push_back(3);

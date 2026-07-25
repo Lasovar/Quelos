@@ -327,7 +327,7 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
-            HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes;
+            HashMap<std::string, InlineVec<CompiledShaderData, 2>> Passes;
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
             HashSet<std::string> Variables;
             uint64_t MaterialSize = 0;
@@ -367,7 +367,7 @@ namespace QuelosEditor {
 
             slang::SessionDesc sessionDesc;
 
-            SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
+            InlineVec<slang::CompilerOptionEntry, 3> compilerOptions;
 
             compilerOptions.push_back({
                 slang::CompilerOptionName::GenerateWholeProgram,
@@ -752,12 +752,12 @@ namespace QuelosEditor {
             for (const auto& [passName, shaders] : compiledShaders.Passes) {
                 writer.WriteString(passName);
 
-                writer.Write(static_cast<uint32_t>(shaders.size()));
+                writer.Write(shaders.size());
                 for (const auto& shader : shaders) {
                     writer.WriteString(shader.EntryPoint);
                     writer.Write(shader.Type);
                     writer.Write(static_cast<int32_t>(shader.Order));
-                    writer.Write(static_cast<uint32_t>(shader.PipelineOptions.size()));
+                    writer.Write(shader.PipelineOptions.size());
                     for (const auto& option : shader.PipelineOptions) {
                         writer.Write(option.first);
                         writer.Write(static_cast<uint8_t>(option.second.index()));
