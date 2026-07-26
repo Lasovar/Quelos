@@ -17,7 +17,7 @@ namespace Quelos {
             return componentId;
         }
 
-        void Set(const Ref<Scene>& scene, const Entity entity) const {
+        void Set(const SharedPtr<Scene>& scene, const Entity entity) const {
             if (!entity.IsValid() || Data.empty()) {
                 return;
             }
@@ -47,7 +47,7 @@ namespace Quelos {
             }
         }
 
-        static ComponentSnapshot Create(const Ref<Scene>& scene, const Entity entity, const ComponentID componentId) {
+        static ComponentSnapshot Create(const SharedPtr<Scene>& scene, const Entity entity, const ComponentID componentId) {
             ComponentSnapshot snapshot;
 
             if (entity.IsValid() && componentId) {
@@ -66,7 +66,7 @@ namespace Quelos {
         }
 
         template <typename TComponent>
-        static ComponentSnapshot Create(const Ref<Scene>& scene, TComponent& component) {
+        static ComponentSnapshot Create(const SharedPtr<Scene>& scene, TComponent& component) {
             ComponentSnapshot snapshot;
 
             if (const ComponentID componentId = ComponentRegistry::GetComponentID<TComponent>()) {
@@ -86,7 +86,7 @@ namespace Quelos {
 
     class AddComponentCommand {
     public:
-        AddComponentCommand(const EntityID& actorId, Ref<Scene>& scene, const ComponentID& componentId)
+        AddComponentCommand(const EntityID& actorId, SharedPtr<Scene>& scene, const ComponentID& componentId)
             : EntityId(actorId), Scene(scene), ComponentId(componentId) { }
 
         void Apply() const {
@@ -106,14 +106,14 @@ namespace Quelos {
         }
 
         EntityID EntityId;
-        Ref<Scene>& Scene;
+        SharedPtr<Scene>& Scene;
 
         ComponentID ComponentId;
     };
 
     class RemoveComponentCommand {
     public:
-        RemoveComponentCommand(const EntityID& actorId, const Ref<Scene>& scene, const ComponentID& componentId)
+        RemoveComponentCommand(const EntityID& actorId, const SharedPtr<Scene>& scene, const ComponentID& componentId)
             : EntityId(actorId), Scene(scene) {
             Snapshot = ComponentSnapshot::Create(Scene, static_cast<Entity>(Scene->GetActor(actorId)), componentId);
         }
@@ -131,13 +131,13 @@ namespace Quelos {
         }
 
         EntityID EntityId;
-        Ref<Scene> Scene;
+        SharedPtr<Scene> Scene;
         ComponentSnapshot Snapshot;
     };
 
     struct SetComponentCommand {
         SetComponentCommand(
-            const Ref<Scene>& scene,
+            const SharedPtr<Scene>& scene,
             const EntityID entityId,
             ComponentSnapshot&& before,
             ComponentSnapshot&& after
@@ -160,6 +160,6 @@ namespace Quelos {
         ComponentSnapshot After;
 
         EntityID EntityId;
-        Ref<Scene> Scene;
+        SharedPtr<Scene> Scene;
     };
 }

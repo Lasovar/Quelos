@@ -18,6 +18,7 @@
 #include "Quelos/Renderer/VertexBuffer.h"
 #include "Quelos/Renderer/Material.h"
 #include "Quelos/Scenes/ComponentRegistery.h"
+#include "Quelos/Utility/String.hpp"
 
 #include "Workspaces/MaterialWorkspace/MaterialWorkspace.h"
 
@@ -39,7 +40,7 @@ namespace QuelosEditor {
 
         m_ProjectSerializer = ProjectSerializer(
             Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
-        m_EditorAssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
+        m_EditorAssetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
 
         /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
             cameraComponent.Camera.SetOrthographic(15, -100, 100);
@@ -103,13 +104,13 @@ namespace QuelosEditor {
         m_ContentBrowserPanel.Init();
 
         m_WorkspaceFactories[Scene::GetStaticType()] =
-            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> Scope<Workspace> {
-                return CreateScope<SceneWorkspace>(undoSystem, metadata);
+            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> UniquePtr<Workspace> {
+                return CreateUnique<SceneWorkspace>(undoSystem, metadata);
             };
 
         m_WorkspaceFactories[Material::GetStaticType()] =
-            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> Scope<Workspace> {
-                return CreateScope<MaterialWorkspace>(undoSystem, metadata);
+            [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> UniquePtr<Workspace> {
+                return CreateUnique<MaterialWorkspace>(undoSystem, metadata);
             };
 
         m_Themes.emplace_back("Catppuccin", CatppuccinTheme);
@@ -126,42 +127,13 @@ namespace QuelosEditor {
     	LinearArena linearArena(pagePool);
     	ArenaMemoryResource arenaMemoryResource(linearArena);
 
-    	std::pmr::string test("Test", &arenaMemoryResource);
+    	String name(Allocator::Persistent);
+    	name = "Attack";
 
-    	ankerl::unordered_dense::pmr::map<std::string_view, std::pmr::string> map;
-    	map["TestKey" ] = "TestValue";
-    	map["TestKey2"] = "TestValue2";
+    	String name2 = std::move(name);
 
-    	QS_INFO("{}", test);
-
-    	for (const auto& [key, value] : map) {
-    		QS_INFO("{}: {}", key, value);
-    	}
-
-    	linearArena.Reset();
-
-    	std::pmr::string test2("Test", &arenaMemoryResource);
-    	ankerl::unordered_dense::pmr::map<std::pmr::string, std::pmr::string> map2;
-    	map2[{ "TestKey", &arenaMemoryResource }] = { "TestValue", &arenaMemoryResource };
-    	map2[{ "TestKey2", &arenaMemoryResource }] = { "TestValue2", &arenaMemoryResource };
-
-    	QS_INFO("{}", test2);
-
-    	for (const auto& [key, value] : map2) {
-    		QS_INFO("{}: {}", key, value);
-    	}
-
-    	linearArena.Reset();
-
-    	InlineVec<int, 2> small(Allocator::Temp);
-    	small.push_back(1);
-    	small.push_back(2);
-    	small.push_back(3);
-    	small.push_back(4);
-
-    	for (const auto& value : small) {
-    		QS_INFO("{}", value);
-    	}
+    	QS_INFO("{}", name.view());
+    	QS_INFO("{}", name2.view());
 
     	linearArena.Reset();
     }
@@ -414,7 +386,7 @@ namespace QuelosEditor {
 
 
     	std::erase_if(m_Workspaces,
-					  [](const Pair<AssetID, Scope<Workspace>>& workspace) {
+					  [](const Pair<AssetID, UniquePtr<Workspace>>& workspace) {
 						  return !workspace.second->IsOpen();
 					  });
 
@@ -499,7 +471,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            Scope<Workspace> workspace = it->second(m_UndoSystem, metadata);
+            UniquePtr<Workspace> workspace = it->second(m_UndoSystem, metadata);
             if (!workspace) {
                 QS_CORE_ERROR_TAG(
                     "EditorLayer",

@@ -132,7 +132,7 @@ namespace Quelos {
 
     class DiligentRendererContext : public RendererContext {
     public:
-        void Init(const Ref<Window>& window, RendererAPI api) override;
+        void Init(const SharedPtr<Window>& window, RendererAPI api) override;
         RendererAPI GetRendererAPI() override;
         bool HomogenousDepth() override;
 
@@ -325,7 +325,7 @@ namespace Quelos {
         static DiligentRendererContext* s_Instance;
 
         RendererAPI m_RendererAPI = RendererAPI::None;
-        Ref<Window> m_Window;
+        SharedPtr<Window> m_Window;
 
         ResourceTable<IBuffer*, VertexBuffer> m_VertexBufferTable;
         ResourceTable<IBuffer*, IndexBuffer> m_IndexBufferTable;

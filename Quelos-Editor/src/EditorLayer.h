@@ -2,7 +2,7 @@
 
 #include <Quelos/Core/Layer.h>
 #include <Quelos/Scenes/Scene.h>
-#include <Quelos/Core/Ref.h>
+#include <Quelos/Core/SmartPointers.h>
 
 #include "ProjectSerializer.h"
 #include "UndoSystem.h"
@@ -55,13 +55,13 @@ namespace QuelosEditor {
     private:
         ProjectSerializer m_ProjectSerializer;
 
-        Ref<EditorAssetManager> m_EditorAssetManager;
+        SharedPtr<EditorAssetManager> m_EditorAssetManager;
 
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};
 
         Vec<AssetMetadata> m_OpenAssetWorkspaceRequests{Allocator::Persistent};
-        HashMap<AssetID, Scope<Workspace>> m_Workspaces;
+        HashMap<AssetID, UniquePtr<Workspace>> m_Workspaces;
         ContentBrowserPanel m_ContentBrowserPanel;
 
         HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;

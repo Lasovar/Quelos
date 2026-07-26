@@ -15,6 +15,6 @@ namespace QuelosEditor {
 
         void Serialize() const;
     private:
-        Ref<EditorAssetManager> m_AssetManager;
+        SharedPtr<EditorAssetManager> m_AssetManager;
     };
 }

@@ -20,7 +20,7 @@ namespace Quelos {
         Renderer::FrameBufferResize(m_Handle, width, height);
     }
 
-    Ref<FrameBuffer> FrameBuffer::Create(const FrameBufferSpec& frameBufferSpec) {
-        return CreateRef<FrameBuffer>(Renderer::CreateFrameBuffer(frameBufferSpec));
+    SharedPtr<FrameBuffer> FrameBuffer::Create(const FrameBufferSpec& frameBufferSpec) {
+        return CreateShared<FrameBuffer>(Renderer::CreateFrameBuffer(frameBufferSpec));
     }
 }

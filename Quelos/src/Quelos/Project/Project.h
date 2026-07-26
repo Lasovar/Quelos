@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "Quelos/Core/Base.h"
-#include "Quelos/Core/Ref.h"
+#include "Quelos/Core/SmartPointers.h"
 
 #include "Quelos/AssetManager/AssetManagerBase.h"
 
@@ -50,8 +50,8 @@ namespace Quelos {
 
         static ProjectConfig& GetConfig() { return s_ActiveProject->m_Config; }
 
-        static Ref<Project> Load(const ProjectConfig& projectConfig) {
-            s_ActiveProject = CreateRef<Project>(projectConfig);
+        static SharedPtr<Project> Load(const ProjectConfig& projectConfig) {
+            s_ActiveProject = CreateShared<Project>(projectConfig);
 
             if (!std::filesystem::exists(GetAssetsPath())) {
                 std::filesystem::create_directories(GetAssetsPath());
@@ -76,11 +76,11 @@ namespace Quelos {
             return s_ActiveProject;
         }
 
-        [[nodiscard]] static const Ref<AssetManagerBase>& GetAssetManager() {
+        [[nodiscard]] static const SharedPtr<AssetManagerBase>& GetAssetManager() {
             return s_ActiveProject->m_AssetManager;
         }
 
-        static void SetAssetManager(const Ref<AssetManagerBase>& assetManager) {
+        static void SetAssetManager(const SharedPtr<AssetManagerBase>& assetManager) {
             s_ActiveProject->m_AssetManager = assetManager;
         }
 
@@ -90,11 +90,11 @@ namespace Quelos {
         }
 
     private:
-        static Ref<Project> s_ActiveProject;
+        static SharedPtr<Project> s_ActiveProject;
 
     private:
         ProjectConfig m_Config;
         OsPath m_CookedAssetsPath;
-        Ref<AssetManagerBase> m_AssetManager;
+        SharedPtr<AssetManagerBase> m_AssetManager;
     };
 }

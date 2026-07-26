@@ -1,7 +1,7 @@
 #include <qspch.h>
 #include <unordered_set>
 
-#include "Ref.h"
+#include "SmartPointers.h"
 
 namespace Quelos {
 	namespace RefUtils {

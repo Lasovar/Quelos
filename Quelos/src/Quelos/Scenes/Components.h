@@ -26,7 +26,7 @@ namespace Quelos {
         SceneRoot() = default;
 
         explicit SceneRoot(Scene* scene) : m_Scene(scene) {}
-        [[nodiscard]] Ref<Scene> GetScene() const;
+        [[nodiscard]] SharedPtr<Scene> GetScene() const;
     private:
         Scene* m_Scene = nullptr;
     };

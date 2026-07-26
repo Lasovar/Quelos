@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VertexBuffer.h"
-#include "Quelos/Utility/Vec.hpp"
+#include "Quelos/Utility/Vector.hpp"
 
 namespace Quelos {
     struct MeshData {

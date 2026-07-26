@@ -44,7 +44,7 @@ namespace QuelosEditor {
         GraphicsShader* GetMaskShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_MaskShaderStorage)); }
         [[nodiscard]] const GraphicsShader* GetMaskShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_MaskShaderStorage)); }
 
-        const Ref<Scene>& GetScene() { return m_ActiveScene; }
+        const SharedPtr<Scene>& GetScene() { return m_ActiveScene; }
         [[nodiscard]] Entity GetSelectedEntity() const { return m_SelectedEntity; }
 
         void ScenePlay();
@@ -91,8 +91,8 @@ namespace QuelosEditor {
         Request m_StopRequest;
 
         SceneSnapshot m_SceneSnapshot;
-        Ref<Scene> m_EditorScene;
-        Ref<Scene> m_ActiveScene;
+        SharedPtr<Scene> m_EditorScene;
+        SharedPtr<Scene> m_ActiveScene;
 
         WorldRenderer m_WorldRenderer;
 

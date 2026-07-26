@@ -92,7 +92,7 @@ namespace QuelosEditor {
         SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem
     ) : m_SceneWorkspace(sceneWorkspace), m_UndoSystem(undoSystem) {}
 
-    void EntityHierarchyPanel::SetScene(const Ref<Scene>& scene) {
+    void EntityHierarchyPanel::SetScene(const SharedPtr<Scene>& scene) {
         m_Scene = scene;
         m_SceneRoot = m_Scene->GetSceneRoot().GetInternalID();
     }

@@ -41,7 +41,7 @@ namespace QuelosEditor {
             return true;
         }
 
-        Option<MaterialMetadata> DeserializeMaterial(const OsPath& materialPath) {
+        Optional<MaterialMetadata> DeserializeMaterial(const OsPath& materialPath) {
             using namespace Serialization;
 
             std::ifstream materialFile(materialPath, std::ios::binary | std::ios::ate);
@@ -123,7 +123,7 @@ namespace QuelosEditor {
         }
 
         bool LoadAsset(void* slot, const AssetMetadata& assetMetadata) {
-            Option<MaterialMetadata> materialMetadataResult = DeserializeMaterial(GetMetadataPath(assetMetadata.FilePath));
+            Optional<MaterialMetadata> materialMetadataResult = DeserializeMaterial(GetMetadataPath(assetMetadata.FilePath));
             if (!materialMetadataResult) {
                 return false;
             }
@@ -154,7 +154,7 @@ namespace QuelosEditor {
         }
 
         AssetID ReadAssetID(const std::string_view materialPath) {
-            const Option<MaterialMetadata> materialMetadata = DeserializeMaterial(GetMetadataPath(materialPath));
+            const Optional<MaterialMetadata> materialMetadata = DeserializeMaterial(GetMetadataPath(materialPath));
             if (!materialMetadata) {
                 return {};
             }
@@ -164,7 +164,7 @@ namespace QuelosEditor {
 
         bool WriteAssetID(const std::string_view materialPath, const AssetID& assetId) {
             const OsPath metadataPath = GetMetadataPath(materialPath);
-            Option<MaterialMetadata> materialMetadata = DeserializeMaterial(metadataPath);
+            Optional<MaterialMetadata> materialMetadata = DeserializeMaterial(metadataPath);
             if (materialMetadata && materialMetadata->AssetId == assetId) {
                 return true;
             }

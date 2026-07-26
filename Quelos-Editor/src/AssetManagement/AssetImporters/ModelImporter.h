@@ -31,7 +31,7 @@ namespace QuelosEditor {
 
         // Core importer functions
         bool IsAssetSupported(std::string_view path);
-        void ReimportModel(Ref<Asset>& model, const AssetMetadata& metadata);
+        void ReimportModel(SharedPtr<Asset>& model, const AssetMetadata& metadata);
         bool ImportModel(void* dataSlot, const AssetMetadata& metadata);
         
         // Metadata handling for .quel files
@@ -45,7 +45,7 @@ namespace QuelosEditor {
         );
         
         // Sub-asset resolution (editor-only)
-        Ref<Asset> ResolveMeshSubAsset(
+        SharedPtr<Asset> ResolveMeshSubAsset(
             const AssetID& meshHandle,
             const AssetMetadata& meshMetadata
         );

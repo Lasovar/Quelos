@@ -357,7 +357,7 @@ namespace QuelosEditor {
             }
         }
 
-        Option<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
+        Optional<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
 #if QS_ENABLE_PROFILING
             QS_PROFILE_SCOPED();
             std::string_view shaderName = FS::Filename(shaderPath);
@@ -611,7 +611,7 @@ namespace QuelosEditor {
         }
 
         bool Import(void* dataSlot, const AssetMetadata& metadata) {
-            Option<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
+            Optional<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
             if (!shaderMetadata) {
                 return false;
             }
@@ -725,7 +725,7 @@ namespace QuelosEditor {
             ShaderMetadata shaderMetadata;
             shaderMetadata.AssetId = metadata.Handle;
 
-            Option<ShaderCompilationResult> compilationResult = CompileShader(metadata.FilePath);
+            Optional<ShaderCompilationResult> compilationResult = CompileShader(metadata.FilePath);
 
             if (!compilationResult) {
                 return false;

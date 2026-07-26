@@ -121,7 +121,7 @@ namespace QuelosEditor {
 
         Project::Load(config);
 
-        m_AssetManager = CreateRef<EditorAssetManager>();
+        m_AssetManager = CreateShared<EditorAssetManager>();
         m_AssetManager->DeserializeAssetRegistry();
 
         Project::SetAssetManager(m_AssetManager);

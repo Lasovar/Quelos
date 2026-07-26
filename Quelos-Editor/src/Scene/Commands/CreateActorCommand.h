@@ -20,8 +20,8 @@ namespace Quelos {
         }
 
         CreateActor() = default;
-        CreateActor(const EntityID entityId, const Ref<Scene>& scene) : CreateActor(entityId, {}, scene) { }
-        CreateActor(const EntityID entityId, const EntityID parentId, const Ref<Scene>& scene) {
+        CreateActor(const EntityID entityId, const SharedPtr<Scene>& scene) : CreateActor(entityId, {}, scene) { }
+        CreateActor(const EntityID entityId, const EntityID parentId, const SharedPtr<Scene>& scene) {
             ActorId = entityId;
             ParentId = parentId;
             Scene = scene;
@@ -29,7 +29,7 @@ namespace Quelos {
 
         EntityID ActorId{};
         EntityID ParentId;
-        Ref<Scene> Scene;
+        SharedPtr<Scene> Scene;
     };
 
     struct DestroyActor {
@@ -43,7 +43,7 @@ namespace Quelos {
         }
 
         DestroyActor() = default;
-        DestroyActor(const EntityID actorId, const Ref<Scene>& scene) {
+        DestroyActor(const EntityID actorId, const SharedPtr<Scene>& scene) {
             ActorId = actorId;
             Scene = scene;
             Snapshot = EntitySnapshot::Create(scene, actorId);
@@ -51,6 +51,6 @@ namespace Quelos {
 
         EntityID ActorId;
         EntitySnapshot Snapshot;
-        Ref<Scene> Scene;
+        SharedPtr<Scene> Scene;
     };
 }

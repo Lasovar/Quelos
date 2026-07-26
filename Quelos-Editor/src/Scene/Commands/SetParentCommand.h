@@ -29,7 +29,7 @@ namespace Quelos {
         }
 
         SetEntityParent() = default;
-        SetEntityParent(const EntityID actorId, const EntityID parentId, const Ref<Scene>& scene) {
+        SetEntityParent(const EntityID actorId, const EntityID parentId, const SharedPtr<Scene>& scene) {
             ActorId = actorId;
             NewParentId = parentId;
             Scene = scene;
@@ -44,6 +44,6 @@ namespace Quelos {
         EntityID NewParentId{};
         EntityID PreviousParentId{};
 
-        Ref<Scene> Scene;
+        SharedPtr<Scene> Scene;
     };
 }

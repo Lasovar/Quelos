@@ -12,10 +12,10 @@
 #endif
 
 namespace Quelos {
-    Ref<Window> Window::Create(const WindowSpecification& windowSpecification) {
+    SharedPtr<Window> Window::Create(const WindowSpecification& windowSpecification) {
         switch (windowSpecification.Backed) {
 #ifdef QUELOS_USE_SDL
-            case WindowingBackend::SDL:     return CreateRef<SDLWindow>(windowSpecification);
+            case WindowingBackend::SDL:     return CreateShared<SDLWindow>(windowSpecification);
 #elif QUELOS_USE_GLFW
             case WindowingBackend::GLFW:    return CreateRef<GLFWWindow>(windowSpecification);
 #endif

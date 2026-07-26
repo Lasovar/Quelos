@@ -161,7 +161,7 @@ namespace QuelosEditor {
         }
     }
 
-    void EntityInspectorPanel::SetScene(const Ref<Scene>& scene) {
+    void EntityInspectorPanel::SetScene(const SharedPtr<Scene>& scene) {
         m_Scene = scene;
     }
 

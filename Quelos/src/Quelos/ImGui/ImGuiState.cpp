@@ -7,7 +7,7 @@ namespace Quelos {
         s_StateFactory = imGuiStateFactory;
     }
 
-    Ref<ImGuiState> ImGuiState::Create() {
+    SharedPtr<ImGuiState> ImGuiState::Create() {
         if (!s_StateFactory) {
             return nullptr;
         }

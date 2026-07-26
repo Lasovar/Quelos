@@ -16,6 +16,6 @@ namespace Quelos {
 
     public:
         static void Register(ImGuiStateFactory imGuiStateFactory);
-        static Ref<ImGuiState> Create();
+        static SharedPtr<ImGuiState> Create();
     };
 }

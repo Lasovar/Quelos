@@ -2,7 +2,7 @@
 
 #include "AssetMetadata.h"
 #include <functional>
-#include "Quelos/Utility/Vec.hpp"
+#include "Quelos/Core/DataTypes.hpp"
 
 namespace Quelos {
     class AssetManagerBase;

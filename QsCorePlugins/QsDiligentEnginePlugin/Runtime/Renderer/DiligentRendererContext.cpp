@@ -720,7 +720,7 @@ namespace Quelos {
 
     DiligentRendererContext* DiligentRendererContext::s_Instance = nullptr;
 
-    void DiligentRendererContext::Init(const Ref<Window>& window, RendererAPI api) {
+    void DiligentRendererContext::Init(const SharedPtr<Window>& window, RendererAPI api) {
         m_RendererAPI = api;
         m_Window = window;
         s_Instance = this;

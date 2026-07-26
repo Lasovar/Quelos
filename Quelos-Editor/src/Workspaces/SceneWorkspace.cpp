@@ -252,7 +252,7 @@ namespace QuelosEditor {
 
         float dt = deltaTime;
         if (m_SceneState == SceneState::Play) {
-            if (Option<bool> pauseRequest = m_PauseRequest.Resolve()) {
+            if (Optional<bool> pauseRequest = m_PauseRequest.Resolve()) {
                 if (*pauseRequest) {
                     m_RuntimeWorld.entity<SimulationPhase>().disable();
                 } else {
@@ -570,7 +570,7 @@ namespace QuelosEditor {
 
     void SceneWorkspace::OnScenePlay() {
         m_SceneSnapshot = SceneSnapshot::Create(m_EditorScene);
-        m_ActiveScene = CreateRef<Scene>(m_RuntimeWorld);
+        m_ActiveScene = CreateShared<Scene>(m_RuntimeWorld);
         m_SceneSnapshot.Load(m_ActiveScene);
 
         Init();

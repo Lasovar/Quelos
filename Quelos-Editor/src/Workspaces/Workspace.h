@@ -9,7 +9,7 @@ namespace QuelosEditor {
     class Workspace;
 
     // Workspaces should have a constructor that matches this pattern
-    using WorkspaceFactory = Scope<Workspace>(*)(UndoSystem& undoSystem, const AssetMetadata& metadata);
+    using WorkspaceFactory = UniquePtr<Workspace>(*)(UndoSystem& undoSystem, const AssetMetadata& metadata);
     class Workspace {
     public:
         Workspace() = delete;

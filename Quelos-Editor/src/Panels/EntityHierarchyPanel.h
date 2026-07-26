@@ -25,7 +25,7 @@ namespace QuelosEditor {
     public:
         EntityHierarchyPanel(SceneWorkspace& sceneWorkspace, UndoSystem& undoSystem);
 
-        void SetScene(const Ref<Scene>& scene);
+        void SetScene(const SharedPtr<Scene>& scene);
 
         void OnImGuiRender(ImGuiID dockspaceID, const ImGuiWindowClass& windowClass);
     private:
@@ -49,7 +49,7 @@ namespace QuelosEditor {
         float TextX(float originX, int depth) const;
 
     private:
-        Ref<Scene> m_Scene;
+        SharedPtr<Scene> m_Scene;
         SceneWorkspace& m_SceneWorkspace;
         UndoSystem& m_UndoSystem;
 

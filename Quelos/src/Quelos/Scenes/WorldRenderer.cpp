@@ -620,7 +620,7 @@ namespace Quelos {
     }
 
     void WorldRenderer::CreatePerViewResources(
-        const Scope<WorldRendererView>& view,
+        const UniquePtr<WorldRendererView>& view,
         const MaterialRegistry& materialRegistry,
         const WeakPipelineData& pipeline
     ) const {
@@ -682,7 +682,7 @@ namespace Quelos {
     }
 
     const WorldRendererView* WorldRenderer::CreateView(std::string_view name, Extent2D size) {
-        Scope<WorldRendererView> view = CreateScope<WorldRendererView>(this, static_cast<uint32_t>(m_ActiveViews.size()));
+        UniquePtr<WorldRendererView> view = CreateUnique<WorldRendererView>(this, static_cast<uint32_t>(m_ActiveViews.size()));
 
         {
             view->Size = size;

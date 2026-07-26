@@ -3,7 +3,7 @@
 #include "EntryPoint.h"
 #include "Quelos/Core/Window.h"
 #include <Quelos/Core/Application.h>
-#include <Quelos/Core/Ref.h>
+#include <Quelos/Core/SmartPointers.h>
 #include <Quelos/Core/Layer.h>
 #include <print>
 
@@ -58,7 +58,7 @@ Quelos::Application* Quelos::CreateApplication(int argc, char** argv) {
 	//RegisterBgfxEditorPlugin(&g_EditorAPI);
 
 	const auto app = new QuelosEditorApp(specs);
-	const Ref<QuelosEditor::EditorLayer> editorLayer = app->PushLayer<QuelosEditor::EditorLayer>();
+	const SharedPtr<QuelosEditor::EditorLayer> editorLayer = app->PushLayer<QuelosEditor::EditorLayer>();
 
 	return app;
 }

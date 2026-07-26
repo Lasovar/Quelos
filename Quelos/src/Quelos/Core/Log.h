@@ -4,7 +4,7 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "Quelos/Core/DataTypes.hpp"
-#include "Ref.h"
+#include "SmartPointers.h"
 #include "Quelos/Math/Math.h"
 
 namespace Quelos {
@@ -94,9 +94,9 @@ namespace Quelos {
 		}
 		
 	private:
-		static Ref<spdlog::logger> s_CoreLogger;
-		static Ref<spdlog::logger> s_ClientLogger;
-		static Ref<spdlog::logger> s_EditorConsoleLogger;
+		static SharedPtr<spdlog::logger> s_CoreLogger;
+		static SharedPtr<spdlog::logger> s_ClientLogger;
+		static SharedPtr<spdlog::logger> s_EditorConsoleLogger;
 
 		static HashMap<std::string, TagDetails> s_EnabledTags;
 		static HashMap<std::string, TagDetails> s_DefaultTagDetails;

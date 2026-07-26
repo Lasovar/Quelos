@@ -9,10 +9,10 @@ using namespace Quelos;
 QS_PLUGIN_EXPORT void RegisterDiligentEnginePlugin(PluginContext& pluginContext) {
     Renderer::RegisterRendererContext({
         [] {
-            return RefAs<RendererContext>(CreateRef<DiligentRendererContext>());
+            return SharedAs<RendererContext>(CreateShared<DiligentRendererContext>());
         },
         [] {
-            return RefAs<ImGuiState>(CreateRef<Diligent::DiligentImGuiState>());
+            return SharedAs<ImGuiState>(CreateShared<Diligent::DiligentImGuiState>());
         }
     });
 }

@@ -126,7 +126,7 @@ namespace Quelos {
 
 
         template <typename T>
-        std::optional<T> as_value(const uint64_t offset = 0) const {
+        Optional<T> as_value(const uint64_t offset = 0) const {
             if (offset + sizeof(T) > m_Size) {
                 return std::nullopt;
             }

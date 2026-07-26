@@ -16,13 +16,13 @@
 #include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
-    static Ref<Window> s_Window;
-    static Ref<Time> s_Time;
+    static SharedPtr<Window> s_Window;
+    static SharedPtr<Time> s_Time;
 
     static bool s_NeedReset = false;
     static bool s_IsInitialized = false;
 
-    static Ref<RendererContext> s_RendererContext;
+    static SharedPtr<RendererContext> s_RendererContext;
 
     static RendererFactory s_RendererContextFactory;
 
@@ -46,7 +46,7 @@ namespace Quelos {
         ImGuiState::Register(s_RendererContextFactory.ImGuiStateFactory);
     }
 
-    void Renderer::Init(const Ref<Window>& window, const RendererAPI api) {
+    void Renderer::Init(const SharedPtr<Window>& window, const RendererAPI api) {
         s_Window = window;
         s_Time = Application::Get().GetTime();
 

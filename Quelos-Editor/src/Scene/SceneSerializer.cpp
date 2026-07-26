@@ -37,7 +37,7 @@ namespace Quelos {
         return PatchState::Changed;
     }
 
-    SceneSerializer::SceneSerializer(const Ref<Scene>& scene, const OsPath& sceneFolderPath)
+    SceneSerializer::SceneSerializer(const SharedPtr<Scene>& scene, const OsPath& sceneFolderPath)
         : m_Scene(scene), m_ScenePath(Project::GetProjectPath() / sceneFolderPath) { }
 
     void SceneSerializer::DeserializeComponentData() {

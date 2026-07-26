@@ -12,7 +12,7 @@ namespace ImGui {
         uint32_t unused;
     };
 
-	ImTextureID toId(const Quelos::Ref<Quelos::Texture>& texture, const uint8_t _flags, const uint8_t _mip) {
+	ImTextureID toId(const Quelos::SharedPtr<Quelos::Texture>& texture, const uint8_t _flags, const uint8_t _mip) {
 		const uint16_t handle = texture->GetHandle().GetNativeHandle();
 
 		const QuelosTexture tex {
@@ -26,7 +26,7 @@ namespace ImGui {
 	}
 
 	void Image(
-		const Quelos::Ref<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
 		const uint8_t flags,
 		const uint8_t mip,
 		const ImVec2& size,
@@ -39,7 +39,7 @@ namespace ImGui {
 	}
 
 	void Image(
-		const Quelos::Ref<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
 		const ImVec2& size,
 		const ImVec2& uv0,
 		const ImVec2& uv1,
@@ -50,7 +50,7 @@ namespace ImGui {
 	}
 
 	bool ImageButton(
-		const Quelos::Ref<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
 		const uint8_t flags,
 		const uint8_t mip,
 		const ImVec2& size,
@@ -63,7 +63,7 @@ namespace ImGui {
 	}
 
 	bool ImageButton(
-		const Quelos::Ref<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
 		const ImVec2& size,
 		const ImVec2& uv0,
 		const ImVec2& uv1,

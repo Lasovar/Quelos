@@ -33,7 +33,7 @@ namespace Quelos {
         [[nodiscard]] FrameBufferHandle GetHandle() const { return m_Handle; }
 
     public:
-        static Ref<FrameBuffer> Create(const FrameBufferSpec& frameBufferSpec);
+        static SharedPtr<FrameBuffer> Create(const FrameBufferSpec& frameBufferSpec);
     private:
         FrameBufferHandle m_Handle;
     };

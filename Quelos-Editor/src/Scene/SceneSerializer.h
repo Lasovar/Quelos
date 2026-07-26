@@ -76,7 +76,7 @@ namespace Quelos {
         SceneSerializer() = default;
         SceneSerializer(SceneSerializer&&) = default;
         SceneSerializer& operator=(SceneSerializer&&) = default;
-        SceneSerializer(const Ref<Scene>& scene, const OsPath& sceneFolderPath);
+        SceneSerializer(const SharedPtr<Scene>& scene, const OsPath& sceneFolderPath);
         ~SceneSerializer() = default;
 
         bool EnsureSceneExists() const;
@@ -209,7 +209,7 @@ namespace Quelos {
         }
 
     private:
-        Ref<Scene> m_Scene;
+        SharedPtr<Scene> m_Scene;
         std::filesystem::path m_ScenePath;
 
     private:
