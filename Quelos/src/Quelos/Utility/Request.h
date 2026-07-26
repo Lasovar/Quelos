@@ -43,7 +43,7 @@ namespace Quelos {
             Payload = payload;
         }
 
-        [[nodiscard]] Option<T> Resolve() {
+        [[nodiscard]] Optional<T> Resolve() {
             if (m_Requested) {
                 m_Requested = false;
                 return Payload;

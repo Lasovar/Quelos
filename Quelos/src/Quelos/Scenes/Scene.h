@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Entity.h"
-#include <Quelos/Core/Ref.h>
+#include <Quelos/Core/SmartPointers.h>
 
 #include "Actor.h"
 #include "Quelos/Renderer/FrameBuffer.h"
@@ -169,7 +169,7 @@ namespace Quelos {
         }
 
     public:
-        static Ref<Scene> GetScene(const flecs::world& world) {
+        static SharedPtr<Scene> GetScene(const flecs::world& world) {
             return world.get<SceneRoot>().GetScene();
         }
 

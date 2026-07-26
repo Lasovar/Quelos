@@ -15,16 +15,16 @@ namespace Quelos {
         Renderer::Destroy(m_Handle);
     }
 
-    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec) {
-        return CreateRef<Texture2D>(Renderer::CreateTexture(spec));
+    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec) {
+        return CreateShared<Texture2D>(Renderer::CreateTexture(spec));
     }
 
-    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const BufferView data) {
-        return CreateRef<Texture2D>(Renderer::CreateTexture(spec, data));
+    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec, const BufferView data) {
+        return CreateShared<Texture2D>(Renderer::CreateTexture(spec, data));
     }
 
-    Ref<Texture2D> Texture2D::Create(const TextureSpecification& spec, const OsPath& texturePath) {
-        return CreateRef<Texture2D>(Renderer::CreateTexture(spec, texturePath));
+    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec, const OsPath& texturePath) {
+        return CreateShared<Texture2D>(Renderer::CreateTexture(spec, texturePath));
     }
 
     void Texture2D::Resize(const uint2& size) const {

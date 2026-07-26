@@ -95,7 +95,7 @@ namespace QuelosEditor {
         InspectorArchive(
             const Entity& entity,
             flecs::id componentID,
-            Ref<Scene>& scene,
+            SharedPtr<Scene>& scene,
             UndoSystem& undoSystem,
             SetFieldSerializeFn serializeComponentFunc,
             const HashMap<Serialization::PathID, std::string>& formattedFieldNames
@@ -172,7 +172,7 @@ namespace QuelosEditor {
     private:
         Actor m_Actor;
         flecs::id m_ComponentID;
-        Ref<Scene>& m_Scene;
+        SharedPtr<Scene>& m_Scene;
         SetFieldSerializeFn m_SerializeComponentFunc = nullptr;
         UndoSystem& m_UndoSystem;
         const HashMap<Serialization::PathID, std::string>& m_FormattedFieldNames;

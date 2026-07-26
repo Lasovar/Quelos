@@ -34,7 +34,7 @@ namespace Quelos {
             const EntityID actorId,
             const EntityID parentId,
             const EntityID moveAfterId,
-            const Ref<Quelos::Scene>& scene
+            const SharedPtr<Quelos::Scene>& scene
         ) : SetEntityParent(actorId, parentId, scene), NewNextActor(moveAfterId)
         {
             bool found = false;

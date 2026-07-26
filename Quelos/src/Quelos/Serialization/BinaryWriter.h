@@ -32,8 +32,8 @@ namespace Quelos::Serialization {
             return value;
         }
 
-        Option<std::string_view> ReadString() {
-            const Option<uint64_t> sizeResult = Read<uint64_t>();
+        Optional<std::string_view> ReadString() {
+            const Optional<uint64_t> sizeResult = Read<uint64_t>();
             if (!sizeResult) {
                 return None;
             }
@@ -52,7 +52,7 @@ namespace Quelos::Serialization {
         }
 
         [[nodiscard]] BufferView ReadBytesWithSize() {
-            const Option<uint64_t> sizeResult = Read<uint64_t>();
+            const Optional<uint64_t> sizeResult = Read<uint64_t>();
             if (!sizeResult) {
                 return {};
             }

@@ -10,7 +10,7 @@ namespace QuelosEditor {
 
     template<typename T>
     concept IsSceneCommand = requires(const T& cmd) {
-        { cmd.Scene } -> std::convertible_to<Ref<Scene>>;
+        { cmd.Scene } -> std::convertible_to<SharedPtr<Scene>>;
     };
 
     class UndoSystem;
@@ -186,11 +186,11 @@ namespace QuelosEditor {
             m_RedoStack.clear();
         }
 
-        void AddSceneSerializer(const Ref<Scene>& scene, SceneSerializer* sceneSerializer) {
+        void AddSceneSerializer(const SharedPtr<Scene>& scene, SceneSerializer* sceneSerializer) {
             m_SceneSerializers[scene->GetAssetID()] = sceneSerializer;
         }
 
-        void RemoveSceneSerializer(const Ref<Scene>& scene) {
+        void RemoveSceneSerializer(const SharedPtr<Scene>& scene) {
             m_SceneSerializers.erase(scene->GetAssetID());
         }
 

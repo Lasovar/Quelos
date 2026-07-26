@@ -33,7 +33,7 @@ namespace QuelosEditor {
 
         void SetInspectorEntityName(const Entity& entity);
 
-        void SetScene(const Ref<Scene>& scene);
+        void SetScene(const SharedPtr<Scene>& scene);
 
         void RegisterCustomInspector(const CustomInspector& customInspector) {
             m_CustomInspectors[customInspector.ComponentId] = customInspector;
@@ -52,7 +52,7 @@ namespace QuelosEditor {
         HashMap<Entity, HashSet<ComponentID>> m_CollapsedComponents;
         HashMap<ComponentID, CustomInspector> m_CustomInspectors;
 
-        Ref<Scene> m_Scene;
+        SharedPtr<Scene> m_Scene;
         SceneWorkspace& m_SceneWorkspace;
         UndoSystem& m_UndoSystem;
     };

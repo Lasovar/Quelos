@@ -1,5 +1,5 @@
 #pragma once
-#include "Ref.h"
+#include "SmartPointers.h"
 
 namespace Quelos {
 	enum class QS_API WindowingBackend {
@@ -21,7 +21,7 @@ namespace Quelos {
 		Locked
 	};
 
-	class QS_API Window : public RefCounted<Window> {
+	class QS_API Window : public SharedFromThis<Window> {
 	public:
 		virtual ~Window() = default;
 
@@ -47,7 +47,7 @@ namespace Quelos {
 
 		virtual bool ShouldClose() const = 0;
 	public:
-		static Ref<Window> Create(const WindowSpecification& windowSpecification);
+		static SharedPtr<Window> Create(const WindowSpecification& windowSpecification);
 	protected:
 		static void OnResize(uint32_t width, uint32_t height);
 	};

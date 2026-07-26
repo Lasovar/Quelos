@@ -7,10 +7,10 @@
 #define QS_HAS_CONSOLE 1
 
 namespace Quelos {
-	Ref<spdlog::logger> Log::s_CoreLogger;
-	Ref<spdlog::logger> Log::s_ClientLogger;
+	SharedPtr<spdlog::logger> Log::s_CoreLogger;
+	SharedPtr<spdlog::logger> Log::s_ClientLogger;
 	HashMap<std::string, Log::TagDetails> Log::s_EnabledTags;
-	Ref<spdlog::logger> Log::s_EditorConsoleLogger;
+	SharedPtr<spdlog::logger> Log::s_EditorConsoleLogger;
 
 	HashMap<std::string, Log::TagDetails> Log::s_DefaultTagDetails = {
 		{ "Core",              TagDetails{  true, Level::Trace } },

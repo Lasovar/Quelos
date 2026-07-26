@@ -988,7 +988,7 @@ namespace Quelos::Serialization {
         }
 
         template <typename T>
-        Option<T> ConvertScalar(const ValueEvent::ValueType& v) {
+        Optional<T> ConvertScalar(const ValueEvent::ValueType& v) {
             return std::visit(
                 []<typename TValue>(TValue&& value) -> std::optional<T> {
                     using V = std::decay_t<TValue>;

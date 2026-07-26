@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include "Quelos/Core/Profiling.h"
+
 namespace Quelos::Platform {
     uint64_t GetMaxPageSize() {
         return static_cast<size_t>(sysconf(_SC_PAGESIZE));
@@ -18,7 +20,7 @@ namespace Quelos::Platform {
     }
 
     void* AllocatePages(const uint64_t size) {
-        return mmap(
+        void* ptr = mmap(
             nullptr,
             size,
             PROT_READ | PROT_WRITE,
@@ -26,9 +28,14 @@ namespace Quelos::Platform {
             -1,
             0
         );
+
+        QS_PROFILE_ALLOC_N(ptr, size, "Quelos::Platform::AllocatePages");
+
+        return ptr;
     }
 
     void FreePages(void* memory, const uint64_t size) {
         munmap(memory, size);
+        QS_PROFILE_FREE_N(memory, "Quelos::Platform::FreePages");
     }
 }

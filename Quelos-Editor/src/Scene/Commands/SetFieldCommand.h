@@ -43,7 +43,7 @@ namespace Quelos {
     struct SetField {
         ComponentID ComponentId{};
         EntityID ActorId{};
-        Ref<Scene>& Scene;
+        SharedPtr<Scene>& Scene;
 
         SetFieldSerializeFn SerializeComponentFunc = nullptr;
 
@@ -79,7 +79,7 @@ namespace Quelos {
     struct SetField<AssetRef<T>> {
         ComponentID ComponentId{};
         EntityID ActorId{};
-        Ref<Scene>& Scene;
+        SharedPtr<Scene>& Scene;
 
         SetFieldSerializeFn SerializeComponentFunc = nullptr;
 

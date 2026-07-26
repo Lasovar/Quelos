@@ -6,7 +6,7 @@
 #include "EntitySnapshot.h"
 
 namespace Quelos {
-    void SceneSnapshot::Load(const Ref<Scene>& scene, const std::string& sceneName, const BufferView data) {
+    void SceneSnapshot::Load(const SharedPtr<Scene>& scene, const std::string& sceneName, const BufferView data) {
         using namespace Serialization;
 
         BinaryReader reader(data);
@@ -45,7 +45,7 @@ namespace Quelos {
         world.defer_end();
     }
 
-    SceneSnapshot SceneSnapshot::Create(const Ref<Scene>& scene) {
+    SceneSnapshot SceneSnapshot::Create(const SharedPtr<Scene>& scene) {
         using namespace Serialization;
 
         SceneSnapshot snapshot;

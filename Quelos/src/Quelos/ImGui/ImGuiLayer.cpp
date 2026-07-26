@@ -23,7 +23,7 @@
 #include "ImGuiState.h"
 
 namespace Quelos {
-	static Ref<ImGuiState> s_ImGuiState;
+	static SharedPtr<ImGuiState> s_ImGuiState;
 
 	static std::function<void()> s_ImGuiWindowImpl_NewFrameFn;
 
@@ -53,7 +53,7 @@ namespace Quelos {
 		}
 
 		s_ImGuiState->Init();
-		Ref<Window> window = Application::Get().GetWindow();
+		SharedPtr<Window> window = Application::Get().GetWindow();
 
 		const float scaleFactor = window->GetDisplayScaling();
 		const float fontSize = 17 * scaleFactor;

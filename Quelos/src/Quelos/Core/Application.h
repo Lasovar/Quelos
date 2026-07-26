@@ -32,14 +32,14 @@ namespace Quelos {
 		void Run();
 		void Stop();
 
-		[[nodiscard]] Ref<Window> GetWindow() const { return m_Window; }
-		[[nodiscard]] Ref<Time> GetTime() const { return m_Time;}
+		[[nodiscard]] SharedPtr<Window> GetWindow() const { return m_Window; }
+		[[nodiscard]] SharedPtr<Time> GetTime() const { return m_Time;}
 		[[nodiscard]] const OsPath& GetApplicationPath() const { return m_Specifications.ApplicationPath; }
 		[[nodiscard]] const ApplicationSpecification& GetApplicationSpecification() const { return m_Specifications; }
 		
 		template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
-		Ref<TLayer> PushLayer();
+		SharedPtr<TLayer> PushLayer();
 
 		void RaiseEvent(Event& event);
 
@@ -54,12 +54,12 @@ namespace Quelos {
 	private:
 		static Application* s_Instance;
 	private:
-		Vec<Ref<Layer>> m_LayerStack{Allocator::Persistent};
-		Ref<ImGuiLayer> m_ImGuiLayer;
+		Vec<SharedPtr<Layer>> m_LayerStack{Allocator::Persistent};
+		SharedPtr<ImGuiLayer> m_ImGuiLayer;
 
-		Ref<Time> m_Time;
+		SharedPtr<Time> m_Time;
 
-		Ref<Window> m_Window;
+		SharedPtr<Window> m_Window;
 		ApplicationSpecification m_Specifications;
 
 		PagePool m_PagePool;
@@ -73,8 +73,8 @@ namespace Quelos {
 
 	template <typename TLayer>
 		requires(std::is_base_of_v<Layer, TLayer>)
-	Ref<TLayer> Application::PushLayer() {
-		Ref<TLayer> newLayer = CreateRef<TLayer>();
+	SharedPtr<TLayer> Application::PushLayer() {
+		SharedPtr<TLayer> newLayer = CreateShared<TLayer>();
 		m_LayerStack.push_back(newLayer);
 		newLayer->OnAttach();
 		return newLayer;

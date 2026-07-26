@@ -71,7 +71,7 @@ namespace Quelos {
         });
     }
 
-    EntitySnapshot EntitySnapshot::Create(const Ref<Scene>& scene, const EntityID entityId) {
+    EntitySnapshot EntitySnapshot::Create(const SharedPtr<Scene>& scene, const EntityID entityId) {
         EntitySnapshot snapshot;
 
         const Actor entity = scene->GetActor(entityId);
@@ -83,7 +83,7 @@ namespace Quelos {
     }
 
     static Entity LoadEntity(
-        const Ref<Scene>& scene,
+        const SharedPtr<Scene>& scene,
         Serialization::BinaryReader& reader,
         flecs::world& world
     ) {
@@ -252,11 +252,11 @@ namespace Quelos {
         return entity;
     }
 
-    Entity EntitySnapshot::Load(const Ref<Scene>& scene) const {
+    Entity EntitySnapshot::Load(const SharedPtr<Scene>& scene) const {
         return Load(scene, Data);
     }
 
-    Entity EntitySnapshot::Load(const Ref<Scene>& scene, const BufferView& entitySnapshot) {
+    Entity EntitySnapshot::Load(const SharedPtr<Scene>& scene, const BufferView& entitySnapshot) {
         Serialization::BinaryReader reader(entitySnapshot);
         return LoadEntity(scene, reader, scene->GetWorld());
     }

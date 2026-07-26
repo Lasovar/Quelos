@@ -6,7 +6,7 @@
 #include "PipelineResourceSignature.h"
 #include "Quelos/Math/Math.h"
 #include "Quelos/AssetManager/Asset.h"
-#include "Quelos/Core/Ref.h"
+#include "Quelos/Core/SmartPointers.h"
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
@@ -119,9 +119,9 @@ namespace Quelos {
         Texture2D(const TextureHandle& handle) : m_Handle(handle) {}
         ~Texture2D() override;
 
-        static Ref<Texture2D> Create(const TextureSpecification& spec);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, BufferView data);
-        static Ref<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
+        static SharedPtr<Texture2D> Create(const TextureSpecification& spec);
+        static SharedPtr<Texture2D> Create(const TextureSpecification& spec, BufferView data);
+        static SharedPtr<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
 
     public:
         void Resize(const uint2& size) const;

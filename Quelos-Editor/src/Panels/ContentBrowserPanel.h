@@ -54,6 +54,6 @@ namespace QuelosEditor {
 
         SortedMap<std::string, DirectoryData> m_Directories;
         bool m_QueueDirectoryTreeRebuild = false;
-        Ref<EditorAssetManager> m_AssetManager;
+        SharedPtr<EditorAssetManager> m_AssetManager;
     };
 }

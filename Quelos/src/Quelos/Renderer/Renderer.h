@@ -15,8 +15,8 @@ namespace Quelos {
     class ImGuiState;
     class Window;
 
-    using RendererContextFactory = Ref<RendererContext>(*)();
-    using ImGuiStateFactory = Ref<ImGuiState>(*)();
+    using RendererContextFactory = SharedPtr<RendererContext>(*)();
+    using ImGuiStateFactory = SharedPtr<ImGuiState>(*)();
 
     struct RendererFactory {
         RendererContextFactory ContextFactory = nullptr;
@@ -27,7 +27,7 @@ namespace Quelos {
     public:
         static bool IsInitialized();
         static void RegisterRendererContext(RendererFactory factory);
-        static void Init(const Ref<Window>& window, RendererAPI api);
+        static void Init(const SharedPtr<Window>& window, RendererAPI api);
         static RendererAPI GetRendererAPI();
         static void Shutdown();
 

@@ -346,7 +346,7 @@ namespace QuelosEditor {
     }
 
     void ContentBrowserPanel::Init() {
-        m_AssetManager = RefAs<EditorAssetManager>(Project::GetAssetManager());
+        m_AssetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
         const auto& rootPath = Project::GetProjectPath();
         m_RootPath = rootPath.generic_string();
         m_RelativeRootPath = std::filesystem::relative(rootPath, rootPath).generic_string();

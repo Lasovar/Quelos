@@ -23,12 +23,12 @@ namespace Quelos {
         Vec64<byte> Data{Allocator::Persistent};
 
         // Expects an already created empty scene
-        void Load(const Ref<Scene>& scene) {
+        void Load(const SharedPtr<Scene>& scene) {
             Load(scene, SceneName, Data);
         }
 
         // Expects an already created empty scene
-        static void Load(const Ref<Scene>& scene, const std::string& sceneName, BufferView data);
-        static SceneSnapshot Create(const Ref<Scene>& scene);
+        static void Load(const SharedPtr<Scene>& scene, const std::string& sceneName, BufferView data);
+        static SceneSnapshot Create(const SharedPtr<Scene>& scene);
     };
 }

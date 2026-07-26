@@ -19,7 +19,7 @@ namespace Quelos {
 		s_Instance = this;
 		Log::Init(m_Specifications.Name);
 
-		m_Time = CreateRef<Time>();
+		m_Time = CreateShared<Time>();
 		m_Time->Init();
 
 		QS_CORE_INFO_TAG("Core", "Application {} initialized!", appSpecs.Name);

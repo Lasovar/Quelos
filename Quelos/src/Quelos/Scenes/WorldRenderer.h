@@ -306,10 +306,10 @@ namespace Quelos {
             MaterialRegistry MaterialRegistry;
         };
 
-        void CreatePerViewResources(const Scope<WorldRendererView>& view, const MaterialRegistry& materialRegistry, const WeakPipelineData& pipeline) const;
+        void CreatePerViewResources(const UniquePtr<WorldRendererView>& view, const MaterialRegistry& materialRegistry, const WeakPipelineData& pipeline) const;
 
     private:
-        Vec<Scope<WorldRendererView>> m_ActiveViews{Allocator::Persistent};
+        Vec<UniquePtr<WorldRendererView>> m_ActiveViews{Allocator::Persistent};
 
         RenderPassHandle m_RenderPass;
 

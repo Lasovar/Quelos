@@ -59,13 +59,16 @@
 #include <type_traits>
 #include <utility>
 
+#include "CollectionErrors.hpp"
+#include "Expected.hpp"
 #include "Memory.hpp"
+#include "ReferenceWrapper.hpp"
 #include "Quelos/Core/AllocatorType.hpp"
 
 namespace Quelos {
-    template <typename T, typename SizeType = uint32_t>
+    template <typename T, typename SizeType>
         requires (std::is_unsigned_v<SizeType> && std::is_integral_v<SizeType>)
-    class Vec {
+    class VectorT {
     public:
         using value_type = T;
         using size_type = SizeType;
@@ -82,39 +85,39 @@ namespace Quelos {
         // construction
 
         // Initializes m_Resource to &GetInvalidAllocator()
-        Vec() noexcept {}
+        VectorT() noexcept = default;
 
-        explicit Vec(std::pmr::memory_resource* resource) noexcept
+        explicit VectorT(std::pmr::memory_resource* resource) noexcept
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator()) {}
 
-        explicit Vec(const AllocatorType allocatorType) noexcept
+        explicit VectorT(const AllocatorType allocatorType) noexcept
             : m_Resource(GetAllocator(allocatorType)) {}
 
-        explicit Vec(size_type count, std::pmr::memory_resource* resource)
+        explicit VectorT(size_type count, std::pmr::memory_resource* resource)
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator())
         {
             resize(count);
         }
 
-        explicit Vec(size_type count, const AllocatorType allocatorType)
-            : Vec(count, GetAllocator(allocatorType))
+        explicit VectorT(size_type count, const AllocatorType allocatorType)
+            : VectorT(count, GetAllocator(allocatorType))
         {
         }
 
-        Vec(size_type count, const T& value, std::pmr::memory_resource* resource)
+        VectorT(size_type count, const T& value, std::pmr::memory_resource* resource)
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator())
         {
             resize(count, value);
         }
 
-        Vec(size_type count, const T& value, const AllocatorType allocatorType)
-            : Vec(count, value, GetAllocator(allocatorType))
+        VectorT(size_type count, const T& value, const AllocatorType allocatorType)
+            : VectorT(count, value, GetAllocator(allocatorType))
         {
         }
 
         template <typename InputIt>
             requires std::input_iterator<InputIt>
-        Vec(InputIt first, InputIt last, std::pmr::memory_resource* resource)
+        VectorT(InputIt first, InputIt last, std::pmr::memory_resource* resource)
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator())
         {
             if constexpr (std::forward_iterator<InputIt>) {
@@ -128,20 +131,20 @@ namespace Quelos {
 
         template <typename InputIt>
             requires std::input_iterator<InputIt>
-        Vec(InputIt first, InputIt last, const AllocatorType allocatorType)
-            : Vec(first, last, GetAllocator(allocatorType)) {}
+        VectorT(InputIt first, InputIt last, const AllocatorType allocatorType)
+            : VectorT(first, last, GetAllocator(allocatorType)) {}
 
-        Vec(std::initializer_list<T> ilist, std::pmr::memory_resource* resource)
-            : Vec(ilist.begin(), ilist.end(), resource) {}
+        VectorT(std::initializer_list<T> ilist, std::pmr::memory_resource* resource)
+            : VectorT(ilist.begin(), ilist.end(), resource) {}
 
 
-        Vec(std::initializer_list<T> ilist, const AllocatorType allocatorType)
-            : Vec(ilist.begin(), ilist.end(), GetAllocator(allocatorType)) {}
+        VectorT(std::initializer_list<T> ilist, const AllocatorType allocatorType)
+            : VectorT(ilist.begin(), ilist.end(), GetAllocator(allocatorType)) {}
 
-        Vec(const Vec&) = delete;
-        Vec& operator=(const Vec&) = delete;
+        VectorT(const VectorT&) = delete;
+        VectorT& operator=(const VectorT&) = delete;
 
-        Vec(Vec&& other) noexcept
+        VectorT(VectorT&& other) noexcept
             : m_Data(other.m_Data),
               m_Size(other.m_Size),
               m_Capacity(other.m_Capacity),
@@ -153,7 +156,7 @@ namespace Quelos {
             // other.m_Resource intentionally left unchanged - see header comment.
         }
 
-        Vec& operator=(Vec&& other) noexcept {
+        VectorT& operator=(VectorT&& other) noexcept {
             if (this == &other) {
                 return *this;
             }
@@ -172,20 +175,20 @@ namespace Quelos {
             return *this;
         }
 
-        Vec& operator=(std::initializer_list<T> ilist) {
+        VectorT& operator=(std::initializer_list<T> ilist) {
             assign(ilist);
             return *this;
         }
 
-        ~Vec() {
+        ~VectorT() {
             memory::destroy_range(m_Data, m_Data + m_Size);
             DeallocateStorage(m_Data, m_Capacity);
         }
 
         // Explicit deep copy. Clones into `resource`, or into this Vec's own resource if
         // `resource` is nullptr.
-        [[nodiscard]] Vec clone(std::pmr::memory_resource* resource) const {
-            Vec result(resource != nullptr ? resource : m_Resource);
+        [[nodiscard]] VectorT clone(std::pmr::memory_resource* resource) const {
+            VectorT result(resource != nullptr ? resource : m_Resource);
             result.reserve(m_Size);
             if constexpr (std::is_trivially_copyable_v<T>) {
                 if (m_Size > 0) {
@@ -202,7 +205,7 @@ namespace Quelos {
             return result;
         }
 
-        [[nodiscard]] Vec clone(const AllocatorType allocatorType) const {
+        [[nodiscard]] VectorT clone(const AllocatorType allocatorType) const {
             return clone(GetAllocator(allocatorType));
         }
 
@@ -270,17 +273,17 @@ namespace Quelos {
             return m_Data[index];
         }
 
-        [[nodiscard]] std::expected<std::reference_wrapper<T>, std::out_of_range> at(size_type index) {
+        [[nodiscard]] Expected<Ref<T>, IndexOutOfRange> at(size_type index) {
             if (index >= m_Size) {
-                return std::out_of_range("Vec::at: index out of range");
+                return Unexpected(IndexOutOfRange{ .Index = index, .Size = m_Size });
             }
 
             return m_Data[index];
         }
 
-        [[nodiscard]] std::expected<std::reference_wrapper<const T>, std::out_of_range> at(size_type index) const {
+        [[nodiscard]] Expected<Ref<const T>, IndexOutOfRange> at(size_type index) const {
             if (index >= m_Size) {
-                return std::out_of_range("Vec::at: index out of range");
+                return Unexpected(IndexOutOfRange { .Index = index, .Size = m_Size });
             }
 
             return m_Data[index];
@@ -525,7 +528,7 @@ namespace Quelos {
             }
         }
 
-        void swap(Vec& other) noexcept {
+        void swap(VectorT& other) noexcept {
             using std::swap;
 
             swap(m_Data, other.m_Data);
@@ -534,13 +537,13 @@ namespace Quelos {
             swap(m_Resource, other.m_Resource);
         }
 
-        friend void swap(Vec& lhs, Vec& rhs) noexcept { lhs.swap(rhs); }
+        friend void swap(VectorT& lhs, VectorT& rhs) noexcept { lhs.swap(rhs); }
 
-        [[nodiscard]] friend bool operator==(const Vec& lhs, const Vec& rhs) {
+        [[nodiscard]] friend bool operator==(const VectorT& lhs, const VectorT& rhs) {
             return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
         }
 
-        [[nodiscard]] friend auto operator<=>(const Vec& lhs, const Vec& rhs) {
+        [[nodiscard]] friend auto operator<=>(const VectorT& lhs, const VectorT& rhs) {
             return std::lexicographical_compare_three_way(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
         }
 
@@ -632,33 +635,40 @@ namespace Quelos {
         }
     };
 
-    template<typename T>
-    Vec(std::initializer_list<T>) -> Vec<T>;
+    template<typename T, typename SizeType = uint32_t>
+    VectorT(std::initializer_list<T>) -> VectorT<T, SizeType>;
 
-    template<typename T>
-    Vec(std::initializer_list<T>, std::pmr::memory_resource*) -> Vec<T>;
+    template<typename T, typename SizeType = uint32_t>
+    VectorT(std::initializer_list<T>, std::pmr::memory_resource*) -> VectorT<T, SizeType>;
 
-    template<std::input_iterator It>
-    Vec(It, It) -> Vec<std::iter_value_t<It>>;
+    template<std::input_iterator It, typename SizeType = uint32_t>
+    VectorT(It, It) -> VectorT<std::iter_value_t<It>, SizeType>;
 
-    template<std::input_iterator It>
-    Vec(It, It, std::pmr::memory_resource*) -> Vec<std::iter_value_t<It>>;
+    template<std::input_iterator It, typename SizeType = uint32_t>
+    VectorT(It, It, std::pmr::memory_resource*) -> VectorT<std::iter_value_t<It>, SizeType>;
 
-    template<std::ranges::input_range R>
-    Vec(R&&) -> Vec<std::ranges::range_value_t<R>>;
+    template<std::ranges::input_range R, typename SizeType = uint32_t>
+    VectorT(R&&) -> VectorT<std::ranges::range_value_t<R>, SizeType>;
 
-    template<std::ranges::input_range R>
-    Vec(R&&, std::pmr::memory_resource*) -> Vec<std::ranges::range_value_t<R>>;
+    template<std::ranges::input_range R, typename SizeType = uint32_t>
+    VectorT(R&&, std::pmr::memory_resource*) -> VectorT<std::ranges::range_value_t<R>, SizeType>;
 
     template <typename T, typename SizeType, typename Pred>
-    typename Vec<T, SizeType>::size_type erase_if(Vec<T, SizeType>& vec, Pred&& predicate) {
+    typename VectorT<T, SizeType>::size_type erase_if(VectorT<T, SizeType>& vec, Pred&& predicate) {
         return vec.erase_if(std::forward<Pred>(predicate));
     }
 
     template <typename T, typename SizeType, typename U = T>
-    typename Vec<T, SizeType>::size_type erase(Vec<T, SizeType>& vec, const U& value) {
+    typename VectorT<T, SizeType>::size_type erase(VectorT<T, SizeType>& vec, const U& value) {
         return vec.erase_if([&value](const T& x) { return x == value; });
     }
+
+    template <typename T>
+    using Vec32 = VectorT<T, uint32_t>;
+    template <typename T>
+    using Vec64 = VectorT<T, uint64_t>;
+    template <typename T>
+    using Vec = Vec32<T>;
 } // namespace Quelos
 
 namespace std {
