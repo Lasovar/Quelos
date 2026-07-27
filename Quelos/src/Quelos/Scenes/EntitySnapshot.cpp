@@ -209,7 +209,7 @@ namespace Quelos {
 
                 // Deserialize
                 Serialization::BinaryReader componentBlobReader(componentBlob);
-                static HashMap<uint64_t, BufferView> fieldsMap;
+                static HashMap<uint64_t, BufferView> fieldsMap{Allocator::Persistent};
 
                 fieldsMap.clear();
                 while (componentBlobReader.HasRemaining()) {

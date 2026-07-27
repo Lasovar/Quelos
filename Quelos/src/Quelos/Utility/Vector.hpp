@@ -81,6 +81,7 @@ namespace Quelos {
         using const_iterator = const T*;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+        using allocator_type = std::pmr::polymorphic_allocator<T>;
 
         // construction
 
@@ -89,6 +90,9 @@ namespace Quelos {
 
         explicit VectorT(std::pmr::memory_resource* resource) noexcept
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator()) {}
+
+        explicit VectorT(allocator_type allocator) noexcept
+            : VectorT(allocator.resource()) {}
 
         explicit VectorT(const AllocatorType allocatorType) noexcept
             : m_Resource(GetAllocator(allocatorType)) {}
@@ -99,6 +103,9 @@ namespace Quelos {
             resize(count);
         }
 
+        explicit VectorT(size_type count, allocator_type allocator)
+            : VectorT(count, allocator.resource()){}
+
         explicit VectorT(size_type count, const AllocatorType allocatorType)
             : VectorT(count, GetAllocator(allocatorType))
         {
@@ -108,6 +115,11 @@ namespace Quelos {
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator())
         {
             resize(count, value);
+        }
+
+        VectorT(size_type count, const T& value, const allocator_type allocator)
+            : VectorT(count, value, allocator.resource())
+        {
         }
 
         VectorT(size_type count, const T& value, const AllocatorType allocatorType)
@@ -131,12 +143,16 @@ namespace Quelos {
 
         template <typename InputIt>
             requires std::input_iterator<InputIt>
+        VectorT(InputIt first, InputIt last, const allocator_type allocator)
+            : VectorT(first, last, allocator) {}
+
+        template <typename InputIt>
+            requires std::input_iterator<InputIt>
         VectorT(InputIt first, InputIt last, const AllocatorType allocatorType)
             : VectorT(first, last, GetAllocator(allocatorType)) {}
 
         VectorT(std::initializer_list<T> ilist, std::pmr::memory_resource* resource)
             : VectorT(ilist.begin(), ilist.end(), resource) {}
-
 
         VectorT(std::initializer_list<T> ilist, const AllocatorType allocatorType)
             : VectorT(ilist.begin(), ilist.end(), GetAllocator(allocatorType)) {}
@@ -145,6 +161,19 @@ namespace Quelos {
         VectorT& operator=(const VectorT&) = delete;
 
         VectorT(VectorT&& other) noexcept
+            : m_Data(other.m_Data),
+              m_Size(other.m_Size),
+              m_Capacity(other.m_Capacity),
+              m_Resource(other.m_Resource)
+        {
+            other.m_Data = nullptr;
+            other.m_Size = 0;
+            other.m_Capacity = 0;
+            // other.m_Resource intentionally left unchanged - see header comment.
+        }
+
+        // TODO:
+        VectorT(VectorT&& other, allocator_type allocator) noexcept
             : m_Data(other.m_Data),
               m_Size(other.m_Size),
               m_Capacity(other.m_Capacity),
@@ -183,6 +212,19 @@ namespace Quelos {
         ~VectorT() {
             memory::destroy_range(m_Data, m_Data + m_Size);
             DeallocateStorage(m_Data, m_Capacity);
+        }
+
+        // TODO: Needs to clear/reset memory
+        void init(std::pmr::memory_resource* resource) {
+            m_Resource = resource;
+        }
+
+        void init(const AllocatorType allocatorType) {
+            init(GetAllocator(allocatorType));
+        }
+
+        void init(allocator_type allocator) {
+            init(allocator.resource());
         }
 
         // Explicit deep copy. Clones into `resource`, or into this Vec's own resource if

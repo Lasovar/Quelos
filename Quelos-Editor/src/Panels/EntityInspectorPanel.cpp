@@ -10,7 +10,7 @@
 #include "EditorUI.h"
 
 namespace QuelosEditor {
-    HashMap<ComponentID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{};
+    HashMap<ComponentID, InspectorComponent> EntityInspectorPanel::s_InspectorArchiveSerialize{Allocator::Persistent};
 
     template <typename TComponent>
         requires (IsSerializable<TComponent>)
@@ -25,14 +25,14 @@ namespace QuelosEditor {
             TComponent::Serialize(archive, *static_cast<TComponent*>(data));
         };
 
-        HashMap<Serialization::PathID, std::string> formattedFields;
+        HashMap<Serialization::PathID, std::string> formattedFields{Allocator::Persistent};
         BeatifyFieldNamesArchive beatifyFieldNames{formattedFields};
         TComponent pseudoComponent;
         TComponent::Serialize(beatifyFieldNames, pseudoComponent);
 
-        componentMap[ComponentRegistry::GetComponentID<TComponent>()] = {
-            inspectorSerialize, setFieldSerialize, BeautifyLabel(TypeNameShort<TComponent>()), formattedFields
-        };
+        componentMap.try_emplace(ComponentRegistry::GetComponentID<TComponent>(),
+            inspectorSerialize, setFieldSerialize, BeautifyLabel(TypeNameShort<TComponent>()), std::move(formattedFields)
+        );
     }
 
     template <typename... TComponent>
@@ -183,7 +183,7 @@ namespace QuelosEditor {
         const bool hovered = ImGui::IsItemHovered();
         const bool clicked = ImGui::IsItemClicked();
 
-        auto& state = m_CollapsedComponents[m_SceneWorkspace.GetSelectedEntity()];
+        auto& state = m_CollapsedComponents.try_emplace(m_SceneWorkspace.GetSelectedEntity()).first->second;
 
         if (clicked) {
             if (state.contains(componentId)) {

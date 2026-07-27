@@ -228,8 +228,8 @@ namespace QuelosEditor {
         uint64_t m_Tail = 0;
 
         Deque<uint64_t> m_UndoStack;
-        Vec<uint64_t> m_RedoStack;
+        Vec<uint64_t> m_RedoStack{Allocator::Persistent};
 
-        HashMap<AssetID, SceneSerializer*> m_SceneSerializers;
+        HashMap<AssetID, SceneSerializer*> m_SceneSerializers{Allocator::Persistent};
     };
 }

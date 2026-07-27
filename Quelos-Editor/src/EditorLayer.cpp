@@ -33,7 +33,7 @@ namespace QuelosEditor {
     };
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
-    HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers;
+    HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers{Allocator::Persistent};
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
@@ -134,6 +134,16 @@ namespace QuelosEditor {
 
     	QS_INFO("{}", name.view());
     	QS_INFO("{}", name2.view());
+
+    	HashMap<uint64_t, uint64_t> map(Allocator::Temp);
+    	map[1] = 1;
+    	map[2] = 2;
+    	map[3] = 3;
+    	map[4] = 4;
+    	map[5] = 4;
+    	map[6] = 4;
+    	map[7] = 4;
+    	map[8] = 4;
 
     	linearArena.Reset();
     }
@@ -383,7 +393,6 @@ namespace QuelosEditor {
 
             ImGui::End();
         }
-
 
     	std::erase_if(m_Workspaces,
 					  [](const Pair<AssetID, UniquePtr<Workspace>>& workspace) {

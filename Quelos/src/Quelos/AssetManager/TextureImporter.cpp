@@ -9,7 +9,10 @@
 namespace Quelos {
     bool TextureImporter::IsAssetSupported(const std::string_view path) {
         static HashSet<std::string_view> s_ImportableExtensions = {
-            ".png", ".jpeg"
+            {
+                ".png", ".jpeg"
+            },
+            AllocatorType::Persistent
         };
 
         return s_ImportableExtensions.find(FS::Extension(path)) != s_ImportableExtensions.end();

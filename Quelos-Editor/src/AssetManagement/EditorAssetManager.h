@@ -97,13 +97,13 @@ namespace QuelosEditor {
 
     private:
         AssetRegistry m_AssetRegistry;
-        AssetMap m_LoadedAssets;
-        AssetPools m_AssetPools;
+        AssetMap m_LoadedAssets{Allocator::Persistent};
+        AssetPools m_AssetPools{Allocator::Persistent};
 
         efsw::FileWatcher m_FileWatcher;
-        HashMap<efsw::WatchID, AssetID> m_WatchedAssets;
+        HashMap<efsw::WatchID, AssetID> m_WatchedAssets{Allocator::Persistent};
 
-        HashSet<AssetID> m_ReimportQueue;
+        HashSet<AssetID> m_ReimportQueue{Allocator::Persistent};
 
         efsw::WatchID m_WatchID;
     };

@@ -5,8 +5,7 @@
 namespace Quelos {
     class QS_API AssetRegistry {
     public:
-        // TODO: Removing the reserve causes a crash when rehashing... investigate
-        AssetRegistry() : m_AssetMetadata(100) {}
+        AssetRegistry() : m_AssetMetadata(100, Allocator::Persistent) {}
 
         [[nodiscard]] bool IsAssetHandleValid(const AssetID& handle) const;
         [[nodiscard]] bool IsAssetPathValid(std::string_view path) const;

@@ -7,7 +7,7 @@
 #include "Quelos/Core/Profiling.h"
 
 namespace Quelos {
-    static HashMap<AssetTypeID, AssetImporterConfig> s_AssetLoaders;
+    static HashMap<AssetTypeID, AssetImporterConfig> s_AssetLoaders{Allocator::Persistent};
 
     void AssetImporter::RegisterAssetImporter(const AssetImporterConfig& config) {
         s_AssetLoaders[config.Type] = config;

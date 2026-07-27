@@ -167,8 +167,7 @@ namespace Quelos {
 
                             if (errCode == std::errc()) {
                                 m_ParentPairsToResolve.try_emplace(
-                                    m_CurrentParentID,
-                                    Allocator::Persistent
+                                    m_CurrentParentID
                                 ).first->second.emplace_back(m_CurrentEntity, order);
                             }
                             else {
@@ -561,7 +560,7 @@ namespace Quelos {
         const HashMap<ComponentID, RuntimeID>& componentsMap = m_Scene->GetWorld().get<ComponentIDsMap>().Value;
 
         std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
-        HashSet<std::string_view> fieldsToWrite;
+        HashSet<std::string_view> fieldsToWrite{Allocator::Temp};
         for (auto& [actorId, patch] : m_Actors) {
             if (!actorId) {
                 continue;

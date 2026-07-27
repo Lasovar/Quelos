@@ -182,8 +182,8 @@ namespace Quelos {
         friend class SceneBinarySerializer;
 
     private:
-        HashMap<EntityID, Actor> m_ActorsMap;
-        HashMap<EntityID, Entity> m_EntitiesMap;
+        HashMap<EntityID, Actor> m_ActorsMap{Allocator::Persistent};
+        HashMap<EntityID, Entity> m_EntitiesMap{Allocator::Persistent};
 
         flecs::world& m_World;
 
