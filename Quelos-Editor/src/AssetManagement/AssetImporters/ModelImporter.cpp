@@ -226,7 +226,7 @@ namespace QuelosEditor {
                     }
                 }
 
-                HashMap<uint64_t, float3> smoothMap;
+                HashMap<uint64_t, float3> smoothMap(Allocator::Temp);
 
                 auto hashPos = [](const pfloat3 p) -> uint64_t { return Hash::Fnv1a64(&p, sizeof(pfloat3)); };
 

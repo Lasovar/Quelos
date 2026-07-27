@@ -34,7 +34,7 @@ namespace QuelosEditor {
         AssetID AssetId;
         AssetID ShaderId;
 
-        HashMap<std::string, MaterialProperty> Properties;
+        HashMap<std::string, MaterialProperty> Properties{Allocator::Persistent};
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, MaterialMetadata& metadata) {

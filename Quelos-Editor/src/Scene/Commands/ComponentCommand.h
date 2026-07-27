@@ -29,7 +29,7 @@ namespace Quelos {
                 const RuntimeID runtimeId = scene->GetWorld().get<ComponentIDsMap>().Value.at(componentInfo->Guid);
                 entity.Add(runtimeId);
 
-                HashMap<uint64_t, BufferView> fieldsMap;
+                HashMap<uint64_t, BufferView> fieldsMap{Allocator::Temp};
 
                 while (componentBlobReader.HasRemaining()) {
                     auto fieldHash = componentBlobReader.Read<uint64_t>();

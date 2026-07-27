@@ -27,6 +27,9 @@ namespace Quelos {
         explicit InlineVec(std::pmr::memory_resource* allocator) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(allocator) {}
 
+        explicit InlineVec(allocator_type allocator) noexcept
+            : InlineVec(allocator.resource()) {}
+
         explicit InlineVec(const AllocatorType allocatorType) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
 
@@ -86,6 +89,13 @@ namespace Quelos {
             move_from(std::move(other));
         }
 
+        InlineVec(InlineVec&& other, allocator_type allocator) noexcept {
+            move_from(std::move(other), allocator.resource());
+        }
+
+        InlineVec(InlineVec&& other, std::pmr::memory_resource* memoryResource) noexcept {
+            move_from(std::move(other), memoryResource);
+        }
 
         InlineVec& operator=(InlineVec&& other) noexcept {
             if (this != &other) {
@@ -99,6 +109,19 @@ namespace Quelos {
             }
 
             return *this;
+        }
+
+        // TODO: Needs to clear/reset memory
+        void init(std::pmr::memory_resource* resource) {
+            m_MemoryResource = resource;
+        }
+
+        void init(const AllocatorType allocatorType) {
+            init(GetAllocator(allocatorType));
+        }
+
+        void init(allocator_type allocator) {
+            init(allocator.resource());
         }
 
         T& operator[](size_type i) { return m_Data[i]; }
@@ -343,16 +366,33 @@ namespace Quelos {
         }
 
         void move_from(InlineVec&& other) {
-            m_MemoryResource = other.m_MemoryResource;
+            move_from(std::move(other), nullptr);
+        }
+
+        void move_from(InlineVec&& other, std::pmr::memory_resource* memoryResource) {
+            if (!memoryResource) {
+                memoryResource = other.m_MemoryResource;
+            }
+
+            m_MemoryResource = memoryResource;
 
             if (other.is_inline()) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
                 move_range(m_Data, other.m_Data, other.m_Size);
             }
-            else {
+            else if (other.m_MemoryResource == memoryResource) {
                 m_Data = other.m_Data;
                 m_Capacity = other.m_Capacity;
+                other.m_Data = other.inline_ptr();
+                other.m_Capacity = N;
+            } else {
+                grow_to(other.m_Size);
+                move_range(m_Data, other.m_Data, other.m_Size);
+                destroy_range(other.m_Data, other.m_Size);
+                other.allocator().deallocate(other.m_Data, other.m_Capacity);
+                QS_PROFILE_FREE(other.m_Data);
+
                 other.m_Data = other.inline_ptr();
                 other.m_Capacity = N;
             }

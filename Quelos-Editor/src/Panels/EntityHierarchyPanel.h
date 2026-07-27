@@ -58,7 +58,7 @@ namespace QuelosEditor {
         // False for every last child
         Vec<bool> m_EntitiesStack{Allocator::Persistent};
         Vec<HierarchyRow> m_VisibleRows{Allocator::Persistent};
-        HashSet<Entity> m_OpenEntities;
+        HashSet<Entity> m_OpenEntities{Allocator::Persistent};
         Vec<EntityID> m_SelectedPath{Allocator::Persistent};
 
         static constexpr float k_ReferenceFontSize = 17.0f;

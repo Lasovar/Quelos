@@ -61,12 +61,12 @@ namespace QuelosEditor {
         UndoSystem m_UndoSystem{};
 
         Vec<AssetMetadata> m_OpenAssetWorkspaceRequests{Allocator::Persistent};
-        HashMap<AssetID, UniquePtr<Workspace>> m_Workspaces;
+        HashMap<AssetID, UniquePtr<Workspace>> m_Workspaces{Allocator::Persistent};
         ContentBrowserPanel m_ContentBrowserPanel;
 
-        HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories;
+        HashMap<AssetTypeID, WorkspaceFactory> m_WorkspaceFactories{Allocator::Persistent};
 
-        HashMap<const SceneWorkspace*, std::string> m_PlayingScenes;
+        HashMap<const SceneWorkspace*, std::string> m_PlayingScenes{Allocator::Persistent};
         uint32_t m_CurrentTheme = 0;
         Vec<Pair<std::string, void(*)()>> m_Themes{Allocator::Persistent};
 

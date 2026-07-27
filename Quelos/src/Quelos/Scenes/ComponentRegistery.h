@@ -33,7 +33,7 @@ namespace Quelos {
     };
 
     struct QS_API ComponentIDsMap {
-        HashMap<ComponentID, RuntimeID> Value;
+        HashMap<ComponentID, RuntimeID> Value{Allocator::Persistent};
     };
 
     namespace ComponentRegistry {

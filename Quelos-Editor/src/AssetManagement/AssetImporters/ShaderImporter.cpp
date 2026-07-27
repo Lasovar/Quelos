@@ -327,9 +327,9 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
-            HashMap<std::string, InlineVec<CompiledShaderData, 2>> Passes;
+            HashMap<std::string, InlineVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
-            HashSet<std::string> Variables;
+            HashSet<std::string> Variables{Allocator::Temp};
             uint64_t MaterialSize = 0;
         };
 
@@ -467,7 +467,7 @@ namespace QuelosEditor {
                 };
             };
 
-            HashMap<std::string, SortedVec<ShaderInfo, ShaderInfo::Compare>> passMap;
+            HashMap<std::string, SortedVec<ShaderInfo, ShaderInfo::Compare>> passMap{Allocator::Temp};
 
             for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
                 ShaderInfo shaderInfo;
@@ -562,7 +562,7 @@ namespace QuelosEditor {
             }
 
             for (auto& [passName, shaders] : passMap) {
-                result.Passes.try_emplace(passName, Allocator::Persistent);
+                result.Passes.try_emplace(passName);
 
                 for (uint32_t i = 0; i < shaders.size(); i++) {
                     ShaderInfo& shader = shaders[i];
@@ -630,19 +630,20 @@ namespace QuelosEditor {
             createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
 
             uint32_t numOfParameters = reader.Read<uint32_t>().value_or(0);
-            createInfo.Variables = Vec<std::string>(Allocator::Temp);
+            createInfo.Variables.init(Allocator::Temp);
             createInfo.Variables.reserve(numOfParameters);
             for (uint32_t parameterIndex = 0; parameterIndex < numOfParameters; parameterIndex++) {
                 createInfo.Variables.emplace_back(reader.ReadString().value_or(""));
             }
 
             uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
+            createInfo.Passes.init(Allocator::Temp);
             createInfo.Passes.reserve(numOfPasses);
             for (uint32_t passIndex = 0; passIndex < numOfPasses; passIndex++) {
                 std::string_view passName = reader.ReadString().value_or("");
                 uint32_t numOfShaders = reader.Read<uint32_t>().value_or(0);
 
-                createInfo.Passes.try_emplace(std::string(passName), Allocator::Temp);
+                createInfo.Passes.try_emplace(std::string(passName));
                 for (uint32_t shaderIndex = 0; shaderIndex < numOfShaders; shaderIndex++) {
                     ShaderData shader;
                     shader.EntryPoint = reader.ReadString().value_or("");

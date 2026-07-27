@@ -85,7 +85,7 @@ namespace Quelos {
         int32_t Order = 0;
         ShaderHandle VertexShader;
         ShaderHandle FragmentShader;
-        HashMap<PipelineOption, PipelineOptionValue> PipelineOptions;
+        HashMap<PipelineOption, PipelineOptionValue> PipelineOptions{Allocator::Persistent};
     };
 
     struct QS_API GraphicsShaderPass {

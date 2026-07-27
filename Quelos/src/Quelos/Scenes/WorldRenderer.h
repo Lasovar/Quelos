@@ -219,7 +219,7 @@ namespace Quelos {
         ResourceRef<FrameBuffer> DepthPrepassFB;
 
         /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMaps)
-        HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs;
+        HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs{Allocator::Persistent};
 
         // Shadow mask
         ResourceRef<Texture> ShadowMask;
@@ -321,8 +321,8 @@ namespace Quelos {
         RenderPassHandle m_ShadowRenderPass;
         ComputeShader* m_DepthReductionCompute;
 
-        HashMap<AssetID, PipelineInfo> m_PipelineStates;
-        HashMap<EntityID, DirectionalLightShadowMap> m_ShadowMaps;
+        HashMap<AssetID, PipelineInfo> m_PipelineStates{Allocator::Persistent};
+        HashMap<EntityID, DirectionalLightShadowMap> m_ShadowMaps{Allocator::Persistent};
 
         Vec<DrawCommand> m_DrawCalls{Allocator::Persistent};
         Vec<InstanceDrawCommand> m_InstancingDrawCalls{Allocator::Persistent};

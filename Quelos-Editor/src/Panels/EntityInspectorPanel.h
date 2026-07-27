@@ -16,7 +16,24 @@ namespace QuelosEditor {
         InspectorArchiveSerializeFn InspectorSerializeFn = nullptr;
         SetFieldSerializeFn SetFieldSerializeFn = nullptr;
         std::string ComponentName;
-        HashMap<Serialization::PathID, std::string> FormattedFieldNames;
+        HashMap<Serialization::PathID, std::string> FormattedFieldNames{Allocator::Persistent};
+
+        InspectorComponent(InspectorComponent&&) noexcept = default;
+        InspectorComponent& operator=(InspectorComponent&&) noexcept = default;
+
+        InspectorComponent(
+            InspectorArchiveSerializeFn serialize,
+            Quelos::SetFieldSerializeFn setField,
+            std::string name,
+            HashMap<Serialization::PathID, std::string> fields
+        )
+            : InspectorSerializeFn(serialize)
+              , SetFieldSerializeFn(setField)
+              , ComponentName(std::move(name))
+              , FormattedFieldNames(std::move(fields)) {}
+
+        InspectorComponent(const InspectorComponent&) = delete;
+        InspectorComponent& operator=(const InspectorComponent&) = delete;
     };
 
     using DrawComponentInspector = std::function<void(void* componentData, const InspectorComponent& componentInfo, Entity entity)>;
@@ -49,8 +66,8 @@ namespace QuelosEditor {
 
     private:
         std::array<char, 64> m_EntityNameField{};
-        HashMap<Entity, HashSet<ComponentID>> m_CollapsedComponents;
-        HashMap<ComponentID, CustomInspector> m_CustomInspectors;
+        HashMap<Entity, HashSet<ComponentID>> m_CollapsedComponents{Allocator::Persistent};
+        HashMap<ComponentID, CustomInspector> m_CustomInspectors{Allocator::Persistent};
 
         SharedPtr<Scene> m_Scene;
         SceneWorkspace& m_SceneWorkspace;

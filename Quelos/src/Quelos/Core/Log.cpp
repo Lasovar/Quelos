@@ -13,17 +13,20 @@ namespace Quelos {
 	SharedPtr<spdlog::logger> Log::s_EditorConsoleLogger;
 
 	HashMap<std::string, Log::TagDetails> Log::s_DefaultTagDetails = {
-		{ "Core",              TagDetails{  true, Level::Trace } },
-		{ "GLFW",              TagDetails{  true, Level::Error } },
-		{ "Memory",            TagDetails{  true, Level::Error } },
-		{ "Mesh",              TagDetails{  true, Level::Warn  } },
-		{ "Physics",           TagDetails{  true, Level::Warn  } },
-		{ "Project",           TagDetails{  true, Level::Warn  } },
-		{ "AssetManager",      TagDetails{  true, Level::Warn  } },
-		{ "Renderer",          TagDetails{  true, Level::Info  } },
-		{ "Scene",             TagDetails{  true, Level::Info  } },
-		{ "Scripting",         TagDetails{  true, Level::Warn  } },
-		{ "Timer",             TagDetails{ false, Level::Trace } },
+		{
+			{ "Core",              TagDetails{  true, Level::Trace } },
+			{ "GLFW",              TagDetails{  true, Level::Error } },
+			{ "Memory",            TagDetails{  true, Level::Error } },
+			{ "Mesh",              TagDetails{  true, Level::Warn  } },
+			{ "Physics",           TagDetails{  true, Level::Warn  } },
+			{ "Project",           TagDetails{  true, Level::Warn  } },
+			{ "AssetManager",      TagDetails{  true, Level::Warn  } },
+			{ "Renderer",          TagDetails{  true, Level::Info  } },
+			{ "Scene",             TagDetails{  true, Level::Info  } },
+			{ "Scripting",         TagDetails{  true, Level::Warn  } },
+			{ "Timer",             TagDetails{ false, Level::Trace } },
+		},
+		Allocator::Persistent
 	};
 
 	void Log::Init(const std::string& appName) {
@@ -96,7 +99,7 @@ namespace Quelos {
 	}
 
 	void Log::SetDefaultTagSettings() {
-		s_EnabledTags = s_DefaultTagDetails;
+		s_EnabledTags = s_DefaultTagDetails.clone(AllocatorType::Persistent);
 	}
 }
 

@@ -16,7 +16,10 @@
 #include "Quelos/Utility/Vector.hpp"
 #include "Quelos/Utility/Span32.h"
 #include "Quelos/Utility/FlatMap.h"
+#include "Quelos/Utility/Pair.hpp"
 #include "Quelos/Utility/InlineVec.hpp"
+#include "Quelos/Utility/HashMap.hpp"
+#include "Quelos/Utility/HashSet.hpp"
 #include "Quelos/Utility/ReferenceWrapper.hpp"
 #include "Quelos/Utility/Optional.hpp"
 #include "Quelos/Utility/Expected.hpp"
@@ -30,16 +33,10 @@ namespace Quelos {
     using Array = std::array<TKey, N>;
 
     template <typename TKey, typename TValue>
-    using HashMap = ankerl::unordered_dense::map<TKey, TValue>;
-
-    template <typename TKey, typename TValue>
     using SegmentedMap = ankerl::unordered_dense::segmented_map<TKey, TValue>;
 
     template <typename TKey, typename TValue>
     using SortedMap = FlatMap<TKey, TValue>;
-
-    template <typename TValue>
-    using HashSet = ankerl::unordered_dense::set<TValue>;
 
     template <typename TValue>
     using SegmentedSet = ankerl::unordered_dense::segmented_set<TValue>;
@@ -49,9 +46,6 @@ namespace Quelos {
 
     template <typename T>
     using Span = std::span<T>;
-
-    template <typename TFirst, typename TSecond>
-    using Pair = std::pair<TFirst, TSecond>;
 
     using BufferView = Span<const byte>;
     using MutBufferView = Span<byte>;

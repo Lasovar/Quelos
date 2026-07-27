@@ -19,8 +19,14 @@ namespace Quelos {
 
     struct ComponentPatch {
         uint32_t AllFields = 0;
-        HashMap<std::string_view, uint32_t> Fields;
+        HashMap<std::string_view, uint32_t> Fields{Allocator::Persistent};
         Deque<PatchState> PatchStates;
+
+        ComponentPatch() = default;
+        ComponentPatch(ComponentPatch&&) noexcept = default;
+        ComponentPatch& operator=(ComponentPatch&&) = default;
+        ComponentPatch(const ComponentPatch&) = delete;
+        ComponentPatch& operator=(const ComponentPatch&) = delete;
 
         void StatePushBack(const PatchState next) {
             PatchStates.push_back(next);
@@ -40,9 +46,15 @@ namespace Quelos {
     };
 
     struct ActorPatch {
-        SortedMap<ComponentID, ComponentPatch> Components;
+        std::map<ComponentID, ComponentPatch> Components;
         uint32_t ParentPatchCount = 0;
         Deque<PatchState> PatchStates;
+
+        ActorPatch() = default;
+        ActorPatch(ActorPatch&&) noexcept = default;
+        ActorPatch& operator=(ActorPatch&&) = default;
+        ActorPatch(const ActorPatch&) = delete;
+        ActorPatch& operator=(const ActorPatch&) = delete;
 
         void StatePushBack(const PatchState next) {
             PatchStates.push_back(next);
@@ -111,7 +123,7 @@ namespace Quelos {
         }
 
         void Record(const AddComponentCommand& cmd) {
-            auto& entityPatch = m_Actors[cmd.EntityId];
+            auto& entityPatch = m_Actors.try_emplace(cmd.EntityId).first->second;
             entityPatch.Components[cmd.ComponentId].StatePushBack(PatchState::Added);
             entityPatch.StatePushBack(PatchState::Changed);
         }
@@ -229,7 +241,7 @@ namespace Quelos {
         void PushBackToContainer(size_t childIndex);
 
     private:
-        HashMap<EntityID, ActorPatch> m_Actors{};
+        HashMap<EntityID, ActorPatch> m_Actors{Allocator::Persistent};
 
         enum class ParserState : uint8_t {
             None = 0,
@@ -267,9 +279,9 @@ namespace Quelos {
         std::string_view m_CurrentField;
         bool m_IsFirstComponentField = true;
 
-        HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap;
+        HashMap<std::string_view, Serialization::TextArchiveValue> m_FieldsMap{Allocator::Persistent};
 
-        HashMap<EntityID, Vec<ChildEntry>> m_ParentPairsToResolve;
+        HashMap<EntityID, Vec<ChildEntry>> m_ParentPairsToResolve{Allocator::Persistent};
 
         Vec<Serialization::TextArchiveValue> m_ValuePool{Allocator::Persistent};
         Vec<Pair<std::string_view, size_t>> m_FieldTable{Allocator::Persistent};

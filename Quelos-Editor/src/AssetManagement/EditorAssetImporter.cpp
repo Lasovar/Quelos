@@ -4,7 +4,7 @@
 namespace QuelosEditor {
     using namespace Quelos;
 
-    static HashMap<AssetType, EditorAssetImporterConfig> s_EditorAssetLoaders;
+    static HashMap<AssetType, EditorAssetImporterConfig> s_EditorAssetLoaders{Allocator::Persistent};
 
     void EditorAssetImporter::RegisterAssetImporter(const EditorAssetImporterConfig& config) {
         s_EditorAssetLoaders[config.Type] = config;

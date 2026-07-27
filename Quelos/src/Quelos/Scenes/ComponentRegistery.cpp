@@ -6,8 +6,8 @@
 #include "Quelos/Scenes/Components.h"
 
 namespace Quelos {
-    static HashMap<ComponentID, ComponentTypeInfo> s_ComponentInfos;
-    static HashMap<ComponentID, SerializableComponentInfo> s_SerializableComponentInfos;
+    static HashMap<ComponentID, ComponentTypeInfo> s_ComponentInfos{Allocator::Persistent};
+    static HashMap<ComponentID, SerializableComponentInfo> s_SerializableComponentInfos{Allocator::Persistent};
 
     ComponentID ComponentRegistry::GetComponentID(const std::string_view typeName) {
         return ComponentID(XXH3_64bits(typeName.data(), typeName.size()));
