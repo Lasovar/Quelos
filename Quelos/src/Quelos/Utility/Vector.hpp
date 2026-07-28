@@ -88,7 +88,7 @@ namespace Quelos {
         // Initializes m_Resource to &GetInvalidAllocator()
         VectorT() noexcept = default;
 
-        explicit VectorT(std::pmr::memory_resource* resource) noexcept
+        constexpr explicit VectorT(std::pmr::memory_resource* resource) noexcept
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator()) {}
 
         explicit VectorT(allocator_type allocator) noexcept
@@ -215,15 +215,14 @@ namespace Quelos {
         }
 
         // TODO: Needs to clear/reset memory
-        void init(std::pmr::memory_resource* resource) {
+        constexpr void init(std::pmr::memory_resource* resource) {
             m_Resource = resource;
         }
-
         void init(const AllocatorType allocatorType) {
             init(GetAllocator(allocatorType));
         }
 
-        void init(allocator_type allocator) {
+        constexpr void init(allocator_type allocator) {
             init(allocator.resource());
         }
 
@@ -253,7 +252,7 @@ namespace Quelos {
 
         // Allocator Access
 
-        [[nodiscard]] std::pmr::memory_resource* get_allocator() const noexcept { return m_Resource; }
+        [[nodiscard]] constexpr std::pmr::memory_resource* get_allocator() const noexcept { return m_Resource; }
 
         // Iterators
 
@@ -362,7 +361,7 @@ namespace Quelos {
         }
 
         template <typename... Args>
-        reference emplace_back(Args&&... args) {
+        constexpr reference emplace_back(Args&&... args) {
             if (m_Size == m_Capacity) {
                 Reallocate(NextCapacity(m_Size + 1));
             }
@@ -373,10 +372,10 @@ namespace Quelos {
             return *slot;
         }
 
-        reference push_back(const T& value) { return emplace_back(value); }
-        reference push_back(T&& value) { return emplace_back(std::move(value)); }
+        constexpr reference push_back(const T& value) { return emplace_back(value); }
+        constexpr reference push_back(T&& value) { return emplace_back(std::move(value)); }
 
-        void pop_back() noexcept {
+        constexpr void pop_back() noexcept {
             assert(m_Size > 0 && "Vec::pop_back called on empty Vec");
             --m_Size;
             std::destroy_at(m_Data + m_Size);
@@ -597,7 +596,7 @@ namespace Quelos {
 
         // internal helpers
 
-        [[nodiscard]] T* AllocateStorage(size_type capacity) const {
+        [[nodiscard]] constexpr T* AllocateStorage(size_type capacity) const {
             if (capacity == 0) {
                 return nullptr;
             }
@@ -605,13 +604,13 @@ namespace Quelos {
             return static_cast<T*>(raw);
         }
 
-        void DeallocateStorage(T* ptr, size_type capacity) noexcept {
+        constexpr void DeallocateStorage(T* ptr, size_type capacity) noexcept {
             if (ptr != nullptr) {
                 m_Resource->deallocate(ptr, static_cast<std::size_t>(capacity) * sizeof(T), alignof(T));
             }
         }
 
-        [[nodiscard]] size_type NextCapacity(size_type requested) const noexcept {
+        [[nodiscard]] constexpr size_type NextCapacity(size_type requested) const noexcept {
             assert(requested <= max_size() && "Vec: requested capacity exceeds SizeType range");
             size_type doubled = m_Capacity > max_size() / 2 ? max_size() : static_cast<size_type>(m_Capacity * 2);
             if (doubled == 0) {
@@ -621,7 +620,7 @@ namespace Quelos {
             return doubled > requested ? doubled : requested;
         }
 
-        void Reallocate(size_type new_capacity) {
+        constexpr void Reallocate(size_type new_capacity) {
             T* new_data = AllocateStorage(new_capacity);
             memory::relocate_range(new_data, m_Data, m_Size);
             DeallocateStorage(m_Data, m_Capacity);
@@ -632,7 +631,7 @@ namespace Quelos {
         // Opens up a gap of `n` uninitialized slots at `index`, growing the buffer if
         // needed. Bumps m_size by n. Every slot in [index, index+n) is guaranteed to be
         // raw, un-constructed storage on return -- callers placement-construct into it.
-        void MakeUninitializedGap(size_type index, size_type n) {
+        constexpr void MakeUninitializedGap(size_type index, size_type n) {
             if (n == 0) {
                 return;
             }

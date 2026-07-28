@@ -18,11 +18,6 @@ namespace Quelos {
         QS_CORE_ASSERT(false, "Uninitialized Memory Allocator!");
     }
 
-    InvalidAllocator& GetInvalidAllocator() {
-        static InvalidAllocator invalidAllocator;
-        return invalidAllocator;
-    }
-
     ArenaMemoryResource& GetTempAllocator() {
         return Application::GetTempAllocator();
     }

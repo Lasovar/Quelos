@@ -46,7 +46,10 @@ namespace Quelos {
         }
     };
 
-    QS_API InvalidAllocator& GetInvalidAllocator();
+    QS_API constexpr InvalidAllocator& GetInvalidAllocator() {
+        static InvalidAllocator invalidAllocator;
+        return invalidAllocator;
+    }
 
     class ArenaMemoryResource;
     QS_API ArenaMemoryResource& GetTempAllocator();
