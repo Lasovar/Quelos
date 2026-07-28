@@ -327,7 +327,7 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
-            HashMap<std::string, InlineVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
+            HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
             HashSet<std::string> Variables{Allocator::Temp};
             uint64_t MaterialSize = 0;
@@ -367,7 +367,7 @@ namespace QuelosEditor {
 
             slang::SessionDesc sessionDesc;
 
-            InlineVec<slang::CompilerOptionEntry, 3> compilerOptions;
+            SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
 
             compilerOptions.push_back({
                 slang::CompilerOptionName::GenerateWholeProgram,

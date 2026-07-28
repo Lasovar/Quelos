@@ -71,12 +71,12 @@ namespace Quelos {
 
         template <typename U, uint32_t N>
             requires std::is_convertible_v<U (*)[], T (*)[]>
-        constexpr Span32(InlineVec<U, N>& vec)
+        constexpr Span32(SmallVec<U, N>& vec)
             : m_Data(vec.data()), m_Size(vec.size()) {}
 
         template <typename U, uint32_t N>
             requires std::is_convertible_v<const U (*)[], T (*)[]>
-        constexpr Span32(const InlineVec<U, N>& vec)
+        constexpr Span32(const SmallVec<U, N>& vec)
             : m_Data(vec.data()), m_Size(vec.size()) {}
 
         template <typename U, typename Alloc>
@@ -164,10 +164,10 @@ namespace Quelos {
     };
 
     template <typename T, uint32_t N>
-    Span32(InlineVec<T, N>&) -> Span32<T>;
+    Span32(SmallVec<T, N>&) -> Span32<T>;
 
     template <typename T, uint32_t N>
-    Span32(const InlineVec<T, N>&) -> Span32<const T>;
+    Span32(const SmallVec<T, N>&) -> Span32<const T>;
 
     template <typename T, size_t N>
     Span32(std::array<T, N>&) -> Span32<T>;

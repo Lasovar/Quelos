@@ -12,7 +12,7 @@
 
 namespace Quelos {
     template <typename T, uint32_t N>
-    class InlineVec {
+    class SmallVec {
     public:
         using value_type = T;
         using size_type = uint32_t;
@@ -21,19 +21,19 @@ namespace Quelos {
         using const_iterator = const T*;
 
     public:
-        InlineVec() noexcept
+        SmallVec() noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(&GetInvalidAllocator()) {}
 
-        explicit InlineVec(std::pmr::memory_resource* allocator) noexcept
+        explicit SmallVec(std::pmr::memory_resource* allocator) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(allocator) {}
 
-        explicit InlineVec(allocator_type allocator) noexcept
-            : InlineVec(allocator.resource()) {}
+        explicit SmallVec(allocator_type allocator) noexcept
+            : SmallVec(allocator.resource()) {}
 
-        explicit InlineVec(const AllocatorType allocatorType) noexcept
+        explicit SmallVec(const AllocatorType allocatorType) noexcept
             : m_Data(inline_ptr()), m_Capacity(N), m_MemoryResource(GetAllocator(allocatorType)) {}
 
-        ~InlineVec() {
+        ~SmallVec() {
             clear();
             if (!is_inline()) {
                 allocator().deallocate(m_Data, m_Capacity);
@@ -41,7 +41,7 @@ namespace Quelos {
             }
         }
 
-        explicit InlineVec(std::span<const T> src, std::pmr::memory_resource* memoryResource)
+        explicit SmallVec(std::span<const T> src, std::pmr::memory_resource* memoryResource)
             : m_MemoryResource(memoryResource)
         {
             if (src.size() <= N) {
@@ -58,15 +58,15 @@ namespace Quelos {
             copy_range(m_Data, src.data(), m_Size);
         }
 
-        explicit InlineVec(std::span<const T> src, const AllocatorType allocatorType)
-            : InlineVec(src, GetAllocator(allocatorType)) {}
+        explicit SmallVec(std::span<const T> src, const AllocatorType allocatorType)
+            : SmallVec(src, GetAllocator(allocatorType)) {}
 
         /// @remarks Can only use inline memory
-        InlineVec(std::initializer_list<T> list)
-            : InlineVec(std::span<const T>(list.begin(), list.size()), &GetInvalidAllocator()) {}
+        SmallVec(std::initializer_list<T> list)
+            : SmallVec(std::span<const T>(list.begin(), list.size()), &GetInvalidAllocator()) {}
 
         template <std::input_iterator It>
-        InlineVec(It first, It last, std::pmr::memory_resource* memoryResource)
+        SmallVec(It first, It last, std::pmr::memory_resource* memoryResource)
             : m_MemoryResource(memoryResource)
         {
             m_Data = inline_ptr();
@@ -79,25 +79,25 @@ namespace Quelos {
         }
 
         template <std::input_iterator It>
-        InlineVec(It first, It last, const AllocatorType allocatorType)
-            : InlineVec(first, last, allocatorType) {}
+        SmallVec(It first, It last, const AllocatorType allocatorType)
+            : SmallVec(first, last, allocatorType) {}
 
-        InlineVec(const InlineVec& other) = delete;
-        InlineVec& operator=(const InlineVec& other) = delete;
+        SmallVec(const SmallVec& other) = delete;
+        SmallVec& operator=(const SmallVec& other) = delete;
 
-        InlineVec(InlineVec&& other) noexcept {
+        SmallVec(SmallVec&& other) noexcept {
             move_from(std::move(other));
         }
 
-        InlineVec(InlineVec&& other, allocator_type allocator) noexcept {
+        SmallVec(SmallVec&& other, allocator_type allocator) noexcept {
             move_from(std::move(other), allocator.resource());
         }
 
-        InlineVec(InlineVec&& other, std::pmr::memory_resource* memoryResource) noexcept {
+        SmallVec(SmallVec&& other, std::pmr::memory_resource* memoryResource) noexcept {
             move_from(std::move(other), memoryResource);
         }
 
-        InlineVec& operator=(InlineVec&& other) noexcept {
+        SmallVec& operator=(SmallVec&& other) noexcept {
             if (this != &other) {
                 clear();
                 if (!is_inline()) {
@@ -192,7 +192,7 @@ namespace Quelos {
             using pointer = void;
             using reference = void;
 
-            explicit back_insert_iterator(InlineVec& vec)
+            explicit back_insert_iterator(SmallVec& vec)
                 : m_Vec(&vec) {}
 
             back_insert_iterator& operator=(const T& value) {
@@ -210,10 +210,10 @@ namespace Quelos {
             back_insert_iterator operator++(int) { return *this; }
 
         private:
-            InlineVec* m_Vec;
+            SmallVec* m_Vec;
         };
 
-        friend back_insert_iterator back_inserter(InlineVec& vec) {
+        friend back_insert_iterator back_inserter(SmallVec& vec) {
             return back_insert_iterator(vec);
         }
 
@@ -348,7 +348,7 @@ namespace Quelos {
             m_Capacity = newCap;
         }
 
-        void init_from(const InlineVec& other) {
+        void init_from(const SmallVec& other) {
             m_MemoryResource = other.m_MemoryResource;
 
             if (other.m_Size <= N) {
@@ -365,11 +365,11 @@ namespace Quelos {
             m_Size = other.m_Size;
         }
 
-        void move_from(InlineVec&& other) {
+        void move_from(SmallVec&& other) {
             move_from(std::move(other), nullptr);
         }
 
-        void move_from(InlineVec&& other, std::pmr::memory_resource* memoryResource) {
+        void move_from(SmallVec&& other, std::pmr::memory_resource* memoryResource) {
             if (!memoryResource) {
                 memoryResource = other.m_MemoryResource;
             }

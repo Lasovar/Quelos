@@ -34,7 +34,7 @@ namespace Quelos {
 		if (!std::filesystem::exists(logsDirectory))
 			std::filesystem::create_directories(logsDirectory);
 
-		InlineVec<spdlog::sink_ptr, 2> quelosSinks = {
+		SmallVec<spdlog::sink_ptr, 2> quelosSinks = {
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/Quelos.log", true),
 		};
 
@@ -46,7 +46,7 @@ namespace Quelos {
 		quelosSinks.push_back(quelosColorSink);
 #endif
 
-		InlineVec<spdlog::sink_ptr, 2> appSinks = {
+		SmallVec<spdlog::sink_ptr, 2> appSinks = {
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 		};
 
@@ -59,7 +59,7 @@ namespace Quelos {
 #endif
 
 		
-		InlineVec<spdlog::sink_ptr, 2> editorConsoleSinks = {
+		SmallVec<spdlog::sink_ptr, 2> editorConsoleSinks = {
 			std::make_shared<spdlog::sinks::basic_file_sink_mt>(std::format("logs/{}.log", appName), true),
 		};
 
