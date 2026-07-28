@@ -4,7 +4,7 @@
 
 #include "Quelos/Platform/Allocators.hpp"
 
-#include "Windows.h"
+#include "windows.h"
 #include "Quelos/Core/Profiling.h"
 
 namespace Quelos::Platform {
@@ -20,7 +20,7 @@ namespace Quelos::Platform {
         return { info.dwPageSize, info.dwAllocationGranularity };
     }
 
-    void* AllocatePages(uint64_t size) {
+    void* AllocatePages(const uint64_t size) {
         void* ptr = VirtualAlloc(
             nullptr,
             size,
@@ -29,6 +29,7 @@ namespace Quelos::Platform {
         );
 
         QS_PROFILE_ALLOC_N(ptr, size, "Quelos::Platform::AllocatePages");
+        return ptr;
     }
 
     void FreePages(void* memory, size_t) {

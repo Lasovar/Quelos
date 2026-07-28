@@ -587,9 +587,9 @@ namespace Quelos {
                 m_Reader = QuelReader(patchFileBuffer);
 
                 ComponentID componentID{};
-                PatchState previousPatchState;
-                SectionKind sectionKind;
-                ParserState parserState;
+                PatchState previousPatchState = PatchState::Changed;
+                SectionKind sectionKind = SectionKind::None;
+                ParserState parserState = ParserState::None;
                 std::string_view sectionField;
                 bool firstComponentField = true;
 
