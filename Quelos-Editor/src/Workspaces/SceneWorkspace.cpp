@@ -187,7 +187,7 @@ namespace QuelosEditor {
         pipelineStateCreateInfo.VertexShader = pass->Pipelines.front().VertexShader;
         pipelineStateCreateInfo.FragmentShader = pass->Pipelines.front().FragmentShader;
 
-        InlineVec<ShaderResourceVariableSpec, 4> vars = {
+        SmallVec<ShaderResourceVariableSpec, 4> vars = {
             {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
             {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
         };
@@ -687,7 +687,7 @@ namespace QuelosEditor {
 
             fullMaskPsoCI.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-            InlineVec<ShaderResourceVariableSpec, 2> vars = {
+            SmallVec<ShaderResourceVariableSpec, 2> vars = {
                 {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                 {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
             };
@@ -814,7 +814,7 @@ namespace QuelosEditor {
 
             visibleMaskPsoCI.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-            InlineVec<ShaderResourceVariableSpec, 2> vars = {
+            SmallVec<ShaderResourceVariableSpec, 2> vars = {
                 {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                 {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
             };
@@ -920,7 +920,7 @@ namespace QuelosEditor {
         compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].DestBlend = BlendFactor::InvSrcAlpha;
         compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].BlendOp = BlendOperation::Add;
 
-        InlineVec<ShaderResourceVariableSpec, 3> vars = {
+        SmallVec<ShaderResourceVariableSpec, 3> vars = {
             {"Settings", ShaderType::Fragment, ShaderResourceVariableType::Static},
             {"FullMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
             {"VisibleMask", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
