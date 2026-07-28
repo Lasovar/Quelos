@@ -6,6 +6,12 @@
 namespace Quelos {
     class QS_API Model : public Asset {
     public:
+        Model() = default;
+        Model(const Model&) = delete;
+        Model& operator=(const Model&) = delete;
+        Model(Model&&) noexcept = default;
+        Model& operator=(Model&&) = default;
+
         void AddMesh(MeshData&& mesh) { m_Meshes.push_back(std::move(mesh)); }
         const Deque<MeshData>& GetMeshes() const { return m_Meshes; }
         Deque<MeshData>& GetMeshes() { return m_Meshes; }

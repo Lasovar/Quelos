@@ -610,14 +610,37 @@ namespace Quelos::Serialization {
 
     struct QS_API AutoTupleValue {
         Vec<AutoTextArchiveValue> Elements{Allocator::Persistent};
+        AutoTupleValue() = default;
+        AutoTupleValue(const AutoTupleValue&) = delete;
+        AutoTupleValue& operator=(const AutoTupleValue&) = delete;
+        AutoTupleValue(AutoTupleValue&&) = default;
+        AutoTupleValue& operator=(AutoTupleValue&&) = default;
+        ~AutoTupleValue() = default;
     };
 
     struct QS_API AutoArrayValue {
         Vec<AutoTextArchiveValue> Elements{Allocator::Persistent};
+        AutoArrayValue() = default;
+        AutoArrayValue(const AutoArrayValue&) = delete;
+        AutoArrayValue& operator=(const AutoArrayValue&) = delete;
+        AutoArrayValue(AutoArrayValue&&) = default;
+        AutoArrayValue& operator=(AutoArrayValue&&) = default;
+        ~AutoArrayValue() = default;
     };
 
     struct QS_API AutoTextArchiveValue {
         std::variant<ValueEvent::ValueType, AutoTupleValue, AutoArrayValue> Data;
+
+        AutoTextArchiveValue() = default;
+        AutoTextArchiveValue(ValueEvent::ValueType value) : Data(value) {}
+        AutoTextArchiveValue(AutoTupleValue value) : Data(std::move(value)) {}
+        AutoTextArchiveValue(AutoArrayValue value) : Data(std::move(value)) {}
+
+        AutoTextArchiveValue(const AutoTextArchiveValue&) = delete;
+        AutoTextArchiveValue& operator=(const AutoTextArchiveValue&) = delete;
+        AutoTextArchiveValue(AutoTextArchiveValue&&) = default;
+        AutoTextArchiveValue& operator=(AutoTextArchiveValue&&) = default;
+        ~AutoTextArchiveValue() = default;
 
         [[nodiscard]] bool IsScalar() const {
             return std::holds_alternative<ValueEvent::ValueType>(Data);
@@ -646,17 +669,38 @@ namespace Quelos::Serialization {
 
     struct FieldMap {
         SegmentedMap<std::string_view, AutoTextArchiveValue> Fields;
+
+        FieldMap() = default;
+        FieldMap(const FieldMap&) = delete;
+        FieldMap& operator=(const FieldMap&) = delete;
+        FieldMap(FieldMap&&) = default;
+        FieldMap& operator=(FieldMap&&) = default;
+        ~FieldMap() = default;
     };
 
     struct Component {
         SegmentedMap<std::string_view, AutoTextArchiveValue> Fields;
         SegmentedMap<std::string_view, FieldMap> FieldMaps;
+
+        Component() = default;
+        Component(const Component&) = delete;
+        Component& operator=(const Component&) = delete;
+        Component(Component&&) = default;
+        Component& operator=(Component&&) = default;
+        ~Component() = default;
     };
 
     struct Section {
         SegmentedMap<std::string_view, AutoTextArchiveValue> Fields;
         SegmentedMap<std::string_view, FieldMap> FieldMaps;
         SegmentedMap<std::string_view, Component> Components;
+
+        Section() = default;
+        Section(const Section&) = delete;
+        Section& operator=(const Section&) = delete;
+        Section(Section&&) = default;
+        Section& operator=(Section&&) = default;
+        ~Section() = default;
     };
 
     // TODO:
@@ -805,6 +849,12 @@ namespace Quelos::Serialization {
                 );
             }
         }
+
+        QuelAutoReadArchive(const QuelAutoReadArchive&) = delete;
+        QuelAutoReadArchive& operator=(const QuelAutoReadArchive&) = delete;
+        QuelAutoReadArchive(QuelAutoReadArchive&&) = default;
+        QuelAutoReadArchive& operator=(QuelAutoReadArchive&&) = default;
+        ~QuelAutoReadArchive() = default;
 
         void Section(const std::string_view name) {
             const auto it = m_Map.find(name);

@@ -12,5 +12,11 @@ namespace Quelos {
 
         Vec<Vertex> Vertices{Allocator::Persistent};
         Vec<uint16_t> Indices{Allocator::Persistent};
+
+        MeshData(const MeshData&) = delete;
+        MeshData& operator=(const MeshData&) = delete;
+        MeshData(MeshData&&) = default;
+        MeshData& operator=(MeshData&&) = default;
+        ~MeshData() = default;
     };
 }

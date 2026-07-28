@@ -2,6 +2,7 @@
 
 #include "hlsl++.h"
 #include <cmath>
+#include <limits>
 
 #include "Quelos/Core/API.h"
 
