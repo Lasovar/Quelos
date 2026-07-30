@@ -37,7 +37,7 @@ namespace Quelos {
         ~SmallVec() {
             clear();
             if (!is_inline()) {
-                allocator().deallocate(m_Data, m_Capacity);
+                get_allocator().deallocate(m_Data, m_Capacity);
             }
         }
 
@@ -49,12 +49,12 @@ namespace Quelos {
                 m_Capacity = N;
             }
             else {
-                m_Data = allocator().allocate(src.size());
+                m_Data = get_allocator().allocate(src.size());
                 m_Capacity = static_cast<size_type>(src.size());
             }
 
             m_Size = static_cast<size_type>(src.size());
-            memory::copy_range(m_Data, src.data(), m_Size, allocator());
+            memory::uninitialized_copy_range(m_Data, src.data(), m_Size, get_allocator());
         }
 
         explicit SmallVec(std::span<const T> src, const AllocatorType allocatorType)
@@ -100,7 +100,7 @@ namespace Quelos {
             if (this != &other) {
                 clear();
                 if (!is_inline()) {
-                    allocator().deallocate(m_Data, m_Capacity);
+                    get_allocator().deallocate(m_Data, m_Capacity);
                 }
 
                 move_from(std::move(other));
@@ -113,7 +113,7 @@ namespace Quelos {
         void init(std::pmr::memory_resource* resource) {
             clear();
             if (!is_inline()) {
-                allocator().deallocate(m_Data, m_Size);
+                get_allocator().deallocate(m_Data, m_Size);
                 m_Data = m_Inline;
                 m_Capacity = N;
             }
@@ -156,7 +156,7 @@ namespace Quelos {
         }
 
         void clear() {
-            destroy_range(m_Data, m_Size);
+            memory::destroy_range(m_Data, m_Size);
             m_Size = 0;
         }
 
@@ -338,11 +338,11 @@ namespace Quelos {
         }
 
         void grow_to(const size_type newCap) {
-            allocator_type alloc = allocator();
+            allocator_type alloc = get_allocator();
             T* newData = alloc.allocate(newCap);
 
-            memory::move_range(newData, m_Data, m_Size, alloc);
-            destroy_range(m_Data, m_Size);
+            memory::relocate_range(newData, m_Data, m_Size, alloc);
+            memory::destroy_range(m_Data, m_Size);
 
             if (!is_inline()) {
                 alloc.deallocate(m_Data, m_Capacity);
@@ -360,11 +360,11 @@ namespace Quelos {
                 m_Capacity = N;
             }
             else {
-                m_Data = allocator().allocate(other.m_Size);
+                m_Data = get_allocator().allocate(other.m_Size);
                 m_Capacity = other.m_Size;
             }
 
-            memory::copy_range(m_Data, other.m_Data, other.m_Size, allocator());
+            memory::uninitialized_copy_range(m_Data, other.m_Data, other.m_Size, get_allocator());
             m_Size = other.m_Size;
         }
 
@@ -382,7 +382,7 @@ namespace Quelos {
             if (other.is_inline()) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
-                memory::move_range(m_Data, other.m_Data, other.m_Size, allocator());
+                memory::relocate_range(m_Data, other.m_Data, other.m_Size, get_allocator());
             }
             else if (other.m_MemoryResource == memoryResource) {
                 m_Data = other.m_Data;
@@ -391,9 +391,9 @@ namespace Quelos {
                 other.m_Capacity = N;
             } else {
                 grow_to(other.m_Size);
-                memory::move_range(m_Data, other.m_Data, other.m_Size, allocator());
+                memory::relocate_range(m_Data, other.m_Data, other.m_Size, get_allocator());
                 memory::destroy_range(other.m_Data, other.m_Size);
-                other.allocator().deallocate(other.m_Data, other.m_Capacity);
+                other.get_allocator().deallocate(other.m_Data, other.m_Capacity);
 
                 other.m_Data = other.inline_ptr();
                 other.m_Capacity = N;
@@ -403,7 +403,7 @@ namespace Quelos {
             other.m_Size = 0;
         }
 
-        [[nodiscard]] allocator_type allocator() const { return allocator_type(m_MemoryResource); }
+        [[nodiscard]] allocator_type get_allocator() const { return allocator_type(m_MemoryResource); }
 
     private:
         alignas(T) unsigned char m_Inline[sizeof(T) * N]{};
