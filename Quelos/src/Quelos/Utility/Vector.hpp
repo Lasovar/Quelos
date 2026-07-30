@@ -296,7 +296,7 @@ namespace Quelos {
             }
 
             T* new_data = AllocateStorage(m_Size);
-            memory::relocate_range(new_data, m_Data, m_Size);
+            memory::move_range(new_data, m_Data, m_Size);
             DeallocateStorage(m_Data, m_Capacity);
             m_Data = new_data;
             m_Capacity = m_Size;
@@ -622,7 +622,7 @@ namespace Quelos {
 
         constexpr void Reallocate(size_type new_capacity) {
             T* new_data = AllocateStorage(new_capacity);
-            memory::relocate_range(new_data, m_Data, m_Size);
+            memory::move_range(new_data, m_Data, m_Size);
             DeallocateStorage(m_Data, m_Capacity);
             m_Data = new_data;
             m_Capacity = new_capacity;
@@ -641,8 +641,8 @@ namespace Quelos {
             if (new_size > m_Capacity) {
                 size_type new_capacity = NextCapacity(new_size);
                 T* new_data = AllocateStorage(new_capacity);
-                memory::relocate_range(new_data, m_Data, index);
-                memory::relocate_range(new_data + index + n, m_Data + index, m_Size - index);
+                memory::move_range(new_data, m_Data, index);
+                memory::move_range(new_data + index + n, m_Data + index, m_Size - index);
                 DeallocateStorage(m_Data, m_Capacity);
                 m_Data = new_data;
                 m_Capacity = new_capacity;

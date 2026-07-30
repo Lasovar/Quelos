@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <cstdint>
 
+#include "Memory.hpp"
 #include "Quelos/Core/AllocatorType.hpp"
 #include "Quelos/Core/Profiling.h"
 
@@ -37,7 +38,6 @@ namespace Quelos {
             clear();
             if (!is_inline()) {
                 allocator().deallocate(m_Data, m_Capacity);
-                QS_PROFILE_FREE(m_Data);
             }
         }
 
@@ -50,12 +50,11 @@ namespace Quelos {
             }
             else {
                 m_Data = allocator().allocate(src.size());
-                QS_PROFILE_ALLOC(m_Data, src.size() * sizeof(T));
                 m_Capacity = static_cast<size_type>(src.size());
             }
 
             m_Size = static_cast<size_type>(src.size());
-            copy_range(m_Data, src.data(), m_Size);
+            memory::copy_range(m_Data, src.data(), m_Size, allocator());
         }
 
         explicit SmallVec(std::span<const T> src, const AllocatorType allocatorType)
@@ -102,7 +101,6 @@ namespace Quelos {
                 clear();
                 if (!is_inline()) {
                     allocator().deallocate(m_Data, m_Capacity);
-                    QS_PROFILE_FREE(m_Data);
                 }
 
                 move_from(std::move(other));
@@ -113,6 +111,13 @@ namespace Quelos {
 
         // TODO: Needs to clear/reset memory
         void init(std::pmr::memory_resource* resource) {
+            clear();
+            if (!is_inline()) {
+                allocator().deallocate(m_Data, m_Size);
+                m_Data = m_Inline;
+                m_Capacity = N;
+            }
+
             m_MemoryResource = resource;
         }
 
@@ -336,12 +341,11 @@ namespace Quelos {
             allocator_type alloc = allocator();
             T* newData = alloc.allocate(newCap);
 
-            move_range(newData, m_Data, m_Size);
+            memory::move_range(newData, m_Data, m_Size, alloc);
             destroy_range(m_Data, m_Size);
 
             if (!is_inline()) {
                 alloc.deallocate(m_Data, m_Capacity);
-                QS_PROFILE_FREE(m_Data);
             }
 
             m_Data = newData;
@@ -357,11 +361,10 @@ namespace Quelos {
             }
             else {
                 m_Data = allocator().allocate(other.m_Size);
-                QS_PROFILE_ALLOC(m_Data, other.m_Size * sizeof(T));
                 m_Capacity = other.m_Size;
             }
 
-            copy_range(m_Data, other.m_Data, other.m_Size);
+            memory::copy_range(m_Data, other.m_Data, other.m_Size, allocator());
             m_Size = other.m_Size;
         }
 
@@ -379,7 +382,7 @@ namespace Quelos {
             if (other.is_inline()) {
                 m_Data = inline_ptr();
                 m_Capacity = N;
-                move_range(m_Data, other.m_Data, other.m_Size);
+                memory::move_range(m_Data, other.m_Data, other.m_Size, allocator());
             }
             else if (other.m_MemoryResource == memoryResource) {
                 m_Data = other.m_Data;
@@ -388,10 +391,9 @@ namespace Quelos {
                 other.m_Capacity = N;
             } else {
                 grow_to(other.m_Size);
-                move_range(m_Data, other.m_Data, other.m_Size);
-                destroy_range(other.m_Data, other.m_Size);
+                memory::move_range(m_Data, other.m_Data, other.m_Size, allocator());
+                memory::destroy_range(other.m_Data, other.m_Size);
                 other.allocator().deallocate(other.m_Data, other.m_Capacity);
-                QS_PROFILE_FREE(other.m_Data);
 
                 other.m_Data = other.inline_ptr();
                 other.m_Capacity = N;
@@ -399,36 +401,6 @@ namespace Quelos {
 
             m_Size = other.m_Size;
             other.m_Size = 0;
-        }
-
-        static void destroy_range(T* data, const size_type count) {
-            if constexpr (!std::is_trivially_destructible_v<T>) {
-                for (size_type i = 0; i < count; i++) {
-                    data[i].~T();
-                }
-            }
-        }
-
-        static void move_range(T* dst, T* src, const size_type count) {
-            if constexpr (std::is_trivially_copyable_v<T>) {
-                std::memcpy(dst, src, count * sizeof(T));
-            }
-            else {
-                for (size_type i = 0; i < count; ++i) {
-                    new(&dst[i]) T(std::move(src[i]));
-                }
-            }
-        }
-
-        static void copy_range(T* dst, const T* src, const size_type count) {
-            if constexpr (std::is_trivially_copyable_v<T>) {
-                std::memcpy(dst, src, count * sizeof(T));
-            }
-            else {
-                for (size_type i = 0; i < count; ++i) {
-                    new(&dst[i]) T(src[i]);
-                }
-            }
         }
 
         [[nodiscard]] allocator_type allocator() const { return allocator_type(m_MemoryResource); }
