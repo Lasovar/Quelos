@@ -203,6 +203,12 @@ namespace Quelos {
             return m_Table->at(key);
         }
 
+        template <typename K, typename Q = T>
+        auto at(K const& key) const -> Q const& {
+            EnsureBound();
+            return m_Table->at(key);
+        }
+
         [[nodiscard]] iterator find(const Key& key) {
             EnsureBound();
             return m_Table->find(key);

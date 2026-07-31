@@ -130,7 +130,7 @@ namespace QuelosEditor {
     	String name(Allocator::Persistent);
     	name = "Attack";
 
-    	String name2 = std::move(name);
+    	String name2(std::move(name), Allocator::Temp);
 
     	QS_INFO("{}", name.view());
     	QS_INFO("{}", name2.view());

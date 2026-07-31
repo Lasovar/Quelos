@@ -251,6 +251,18 @@ struct fmt::formatter<hlslpp::float2> {
 	}
 };
 
+template<typename SizeType>
+struct fmt::formatter<Quelos::StringT<SizeType>> {
+	constexpr auto parse(fmt::format_parse_context& ctx) {
+		return ctx.begin();
+	}
+
+	template<typename FormatContext>
+	auto format(const Quelos::StringT<SizeType>& v, FormatContext& ctx) const {
+		return fmt::format_to(ctx.out(), "{}", v.view());
+	}
+};
+
 template <>
 struct fmt::formatter<Quelos::float3> {
 	constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }

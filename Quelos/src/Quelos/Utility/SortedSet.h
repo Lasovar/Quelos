@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <algorithm>
 
 #include "DefaultComparer.h"
@@ -9,11 +8,58 @@ namespace Quelos {
     template <typename T, typename Compare = DefaultCompare<T>>
     class SortedSet {
     public:
-        using container_type = std::vector<T>;
+        using container_type = Vec64<T>;
         using iterator = typename container_type::iterator;
         using const_iterator = typename container_type::const_iterator;
+        using allocator_type = typename container_type::allocator_type;
 
     public:
+        SortedSet() = default;
+
+        explicit SortedSet(std::pmr::memory_resource* memoryResource) : m_Data(memoryResource) {}
+        explicit SortedSet(allocator_type allocator) : m_Data(allocator) {}
+        explicit SortedSet(AllocatorType allocatorType) : m_Data(allocatorType) {}
+
+        SortedSet(const SortedSet&) = delete;
+        SortedSet& operator=(const SortedSet&) = delete;
+
+        SortedSet(SortedSet&&) noexcept = default;
+        SortedSet& operator=(SortedSet&&) = default;
+
+        explicit SortedSet(SortedSet&& other, std::pmr::memory_resource* allocatorType)
+            : m_Data(std::move(other.m_Data), allocatorType), m_Compare(other.m_Compare) {}
+
+        explicit SortedSet(SortedSet&& other, const allocator_type& allocator)
+            : SortedSet(std::move(other), allocator.resource()) {}
+
+        explicit SortedSet(SortedSet&& other, const AllocatorType allocatorType)
+            : SortedSet(std::move(other), GetAllocator(allocatorType)) {}
+
+        void init(std::pmr::memory_resource* memoryResource) {
+            m_Data.init(memoryResource);
+        }
+
+        void init(allocator_type allocator) {
+            m_Data.init(allocator);
+        }
+
+        void init(AllocatorType allocatorType) {
+            m_Data.init(allocatorType);
+        }
+
+        [[nodiscard]] SortedSet clone(std::pmr::memory_resource* memoryResource) {
+            return SortedSet(m_Data.clone(memoryResource));
+        }
+
+        [[nodiscard]] SortedSet clone(const allocator_type& allocator) {
+            return SortedVec(m_Data.clone(allocator));
+        }
+
+        [[nodiscard]] SortedSet clone(AllocatorType allocatorType) {
+            return SortedSet(m_Data.clone(allocatorType));
+        }
+
+
         iterator find(const T& value) {
             auto it = lower_bound(value);
             if (it != m_Data.end() && equals(*it, value)) {
@@ -38,7 +84,12 @@ namespace Quelos {
 
         template <typename... Args>
         std::pair<iterator, bool> emplace(Args&&... args) {
-            T value(std::forward<Args>(args)...);
+            auto value = std::make_from_tuple<T>(
+                std::uses_allocator_construction_args<T>(
+                    m_Data.get_allocator(),
+                    std::forward<Args>(args)...
+                )
+            );
 
             auto it = std::lower_bound(m_Data.begin(), m_Data.end(), value, m_Compare);
             if (it != m_Data.end() && equals(*it, value)) {
@@ -90,8 +141,9 @@ namespace Quelos {
         const_iterator begin() const { return m_Data.begin(); }
         const_iterator end() const { return m_Data.end(); }
 
-        size_t size() const { return m_Data.size(); }
-        bool empty() const { return m_Data.empty(); }
+        [[nodiscard]] size_t size() const { return m_Data.size(); }
+        [[nodiscard]] bool empty() const { return m_Data.empty(); }
+
         void reserve(size_t n) { m_Data.reserve(n); }
         void clear() { m_Data.clear(); }
 
