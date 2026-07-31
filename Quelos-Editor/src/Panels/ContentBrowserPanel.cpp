@@ -16,9 +16,9 @@
 
 namespace QuelosEditor {
 
-    void ContentBrowserPanel::DrawDirectoryTile(const std::string& path) {
+    void ContentBrowserPanel::DrawDirectoryTile(const std::string_view path) {
         std::string_view directoryName = FS::Filename(path);
-        ImGui::PushID(path.c_str());
+        ImGui::PushID(static_cast<int32_t>(Hash::Fnv1a32(path)));
         ImGui::BeginGroup();
 
         if (ImGui::ButtonEx(ICON_FA_FOLDER, ImVec2(80, 80), ImGuiButtonFlags_PressedOnDoubleClick)) {
@@ -227,7 +227,12 @@ namespace QuelosEditor {
         }
     }
 
-    void ContentBrowserPanel::DrawDirectoryNode(const std::string& path) {
+    void ContentBrowserPanel::DrawDirectoryNode(const std::string_view path) {
+        const Optional<Ref<DirectoryData>> directoryOption = m_Directories.at(path);
+        if (!directoryOption) {
+            return;
+        }
+
         ImGuiTreeNodeFlags flags = 0
             | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_DrawLinesToNodes
@@ -237,7 +242,7 @@ namespace QuelosEditor {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
 
-        auto& directory = m_Directories[path];
+        DirectoryData& directory = directoryOption->get();
         const bool hasChildren = !directory.SubDirectories.empty();
         if (!hasChildren) {
             flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -280,16 +285,13 @@ namespace QuelosEditor {
             if (ImGui::BeginChild("##main", ImVec2(0, 0), ImGuiChildFlags_Borders)) {
                 if (ImGui::BeginPopupContextWindow("MainViewContext")) {
                     if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_FILE, "Create Scene"))) {
-                        SceneSerializer::CreateSceneAsset(m_CurrentPath + "/NewScene");
+                        SceneSerializer::CreateSceneAsset(FormatTemp("{}/NewScene", m_CurrentPath));
                         m_QueueDirectoryTreeRebuild = true;
                     }
 
                     if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_PAINT_BRUSH, "Create Material"))) {
-                        const std::string assetPath = m_CurrentPath + "/NewMaterial.qmat";
-                        AssetID newMaterialId = MaterialImporter::CreateDefaultMaterialAsset(
-                            assetPath
-                        );
-
+                        const String assetPath(FormatTemp("{}/NewMaterial.qmat", m_CurrentPath), Allocator::Temp);
+                        const AssetID newMaterialId = MaterialImporter::CreateDefaultMaterialAsset(assetPath);
                         m_AssetManager->ProcessAssetRegistration(assetPath);
                         StartAssetRename(FS::Filename(assetPath), newMaterialId);
                         m_QueueDirectoryTreeRebuild = true;
@@ -315,30 +317,30 @@ namespace QuelosEditor {
             return;
         }
 
-        const std::string path = std::filesystem::relative(directory.path(), m_RootPath).generic_string();
+        const std::string path = std::filesystem::relative(directory.path(), m_RootPath.view()).generic_string();
 
         for (auto& entry : std::filesystem::directory_iterator(directory)) {
-            const std::string& relativePath = std::filesystem::relative(entry.path(), m_RootPath).generic_string();
+            const std::string& relativePath = std::filesystem::relative(entry.path(), m_RootPath.view()).generic_string();
 
             if (const auto* metadata = m_AssetManager->GetAssetMetadata(relativePath)) {
-                AssetEntry assetEntry;
+                AssetEntry assetEntry(Allocator::Persistent);
                 assetEntry.IsImportable = false;
                 assetEntry.Metadata = *metadata;
                 assetEntry.Name = FS::Filename(metadata->FilePath);
 
-                m_Directories[path].Assets.insert(assetEntry);
+                m_Directories[path].Assets.insert(std::move(assetEntry));
             }
             else if (EditorAssetManager::IsAssetSupported(relativePath)) {
-                AssetEntry assetEntry;
+                AssetEntry assetEntry(Allocator::Persistent);
                 assetEntry.IsImportable = true;
                 assetEntry.Name = FS::Filename(relativePath);
                 assetEntry.Metadata.FilePath = relativePath;
 
-                m_Directories[path].Assets.insert(assetEntry);
+                m_Directories[path].Assets.insert(std::move(assetEntry));
             }
             else if (entry.is_directory() && entry.path() != Project::GetLibraryPath() && entry.path() !=
                 Project::GetProjectSettingsPath()) {
-                m_Directories[path].SubDirectories.emplace(relativePath);
+                m_Directories[path].SubDirectories.emplace(std::string_view(relativePath));
 
                 IterateDirectory(entry);
             }
@@ -359,6 +361,6 @@ namespace QuelosEditor {
     void ContentBrowserPanel::RebuildDirectoryTree() {
         m_Directories.clear();
 
-        IterateDirectory(std::filesystem::directory_entry(m_RootPath));
+        IterateDirectory(std::filesystem::directory_entry(m_RootPath.view()));
     }
 }

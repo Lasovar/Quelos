@@ -327,7 +327,7 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
-            HashMap<std::string, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
+            HashMap<String, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
             HashSet<std::string> Variables{Allocator::Temp};
             uint64_t MaterialSize = 0;
@@ -449,12 +449,38 @@ namespace QuelosEditor {
             }
 
             struct ShaderInfo {
+                using allocator_type = typename Vec<Pair<PipelineOption,PipelineOptionValue>>::allocator_type;
+
                 const char* EntryPointName = nullptr;
                 Slang::ComPtr<slang::IEntryPoint> EntryPoint;
                 int32_t Order = 0;
                 SlangStage Stage = SLANG_STAGE_NONE;
-                Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions{Allocator::Temp};
+                Vec<Pair<PipelineOption, PipelineOptionValue>> PipelineOptions;
                 Array<uint64_t, 3> ThreadGroupSize = {0, 0, 0};
+
+                ShaderInfo() = default;
+                explicit ShaderInfo(std::pmr::memory_resource* memoryResource) : PipelineOptions(memoryResource) {}
+                explicit ShaderInfo(const allocator_type& allocator) : PipelineOptions(allocator) {}
+                explicit ShaderInfo(const AllocatorType allocatorType) : PipelineOptions(allocatorType) {}
+
+                ShaderInfo(const ShaderInfo&) = delete;
+                ShaderInfo& operator=(const ShaderInfo&) = delete;
+                ShaderInfo(ShaderInfo&&) noexcept = default;
+                ShaderInfo& operator=(ShaderInfo&&) = default;
+
+                explicit ShaderInfo(ShaderInfo&& other, std::pmr::memory_resource* allocator)
+                    : EntryPointName(other.EntryPointName),
+                      EntryPoint(other.EntryPoint),
+                      Order(other.Order),
+                      Stage(other.Stage),
+                      PipelineOptions(std::move(other.PipelineOptions), allocator),
+                      ThreadGroupSize(other.ThreadGroupSize) {}
+
+                explicit ShaderInfo(ShaderInfo&& other, const allocator_type& allocator)
+                    : ShaderInfo(std::move(other), allocator.resource()) {}
+
+                explicit ShaderInfo(ShaderInfo&& other, const AllocatorType allocatorType)
+                    : ShaderInfo(std::move(other), GetAllocator(allocatorType)) {}
 
                 struct Compare {
                     constexpr bool operator()(const ShaderInfo& a, const ShaderInfo& b) const {
@@ -467,10 +493,11 @@ namespace QuelosEditor {
                 };
             };
 
-            HashMap<std::string, SortedVec<ShaderInfo, ShaderInfo::Compare>> passMap{Allocator::Temp};
+            HashMap<String, SortedVec<ShaderInfo, ShaderInfo::Compare>, TransparentStringHash, TransparentStringEqual>
+            passMap{Allocator::Temp};
 
             for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
-                ShaderInfo shaderInfo;
+                ShaderInfo shaderInfo(Allocator::Temp);
 
                 module->getDefinedEntryPoint(i, shaderInfo.EntryPoint.writeRef());
 
@@ -520,7 +547,7 @@ namespace QuelosEditor {
                     passName = "GBuffer";
                 }
 
-                passMap[std::string(passName)].emplace(std::move(shaderInfo));
+                passMap.try_emplace(String(passName, Allocator::Temp)).first->second.emplace(std::move(shaderInfo));
             }
 
             if (diagnostics) {
@@ -562,7 +589,7 @@ namespace QuelosEditor {
             }
 
             for (auto& [passName, shaders] : passMap) {
-                result.Passes.try_emplace(passName);
+                result.Passes.try_emplace(passName.clone(Allocator::Temp));
 
                 for (uint32_t i = 0; i < shaders.size(); i++) {
                     ShaderInfo& shader = shaders[i];
@@ -599,7 +626,7 @@ namespace QuelosEditor {
                     shaderData.PipelineOptions = std::move(shader.PipelineOptions);
                     shaderData.ThreadGroupSize = shader.ThreadGroupSize;
 
-                    result.Passes[passName].push_back(std::move(shaderData));
+                    result.Passes.at(passName).push_back(std::move(shaderData));
                 }
             }
 
