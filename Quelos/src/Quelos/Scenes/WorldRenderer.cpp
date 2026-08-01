@@ -530,8 +530,8 @@ namespace Quelos {
         GraphicsPipelineSpec& gfx = psoCI.GraphicsPipeline;
         gfx.RenderPass = m_ShadowRenderPass;
         gfx.RasterizerSpec.CullMode = CullMode::Front;
-        gfx.RasterizerSpec.DepthBias = 3;
-        gfx.RasterizerSpec.SlopeScaledDepthBias = 8.0f;
+        gfx.RasterizerSpec.DepthBias = 2;
+        gfx.RasterizerSpec.SlopeScaledDepthBias = 40.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;

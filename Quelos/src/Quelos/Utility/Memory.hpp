@@ -30,6 +30,16 @@ namespace Quelos::memory {
     using std::construct_at;
     using std::destroy_at;
 
+    template <typename  T, typename Allocator>
+    T alloc_relocate(T&& value, const Allocator& alloc) {
+        return std::make_from_tuple<T>(
+            std::uses_allocator_construction_args<T>(
+                alloc,
+                std::forward<T>(value)
+            )
+        );
+    }
+
     template <typename T>
     void destroy_range(T* first, T* last) noexcept {
         if constexpr (!std::is_trivially_destructible_v<T>) {
