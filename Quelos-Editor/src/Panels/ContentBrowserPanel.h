@@ -27,10 +27,9 @@ namespace QuelosEditor {
             : Name(allocatorType) {}
 
         explicit AssetEntry(AssetEntry&& other, const allocator_type allocator)
-            : IsImportable(other.IsImportable), Metadata(other.Metadata), Name(std::move(other.Name), allocator)
+            : IsImportable(other.IsImportable), Metadata(std::move(other.Metadata)), Name(std::move(other.Name), allocator)
         {
             other.IsImportable = false;
-            other.Metadata = {};
         }
 
         struct Compare {
@@ -83,8 +82,8 @@ namespace QuelosEditor {
 
     private:
         String m_RootPath{Allocator::Persistent};
-        String m_RelativeRootPath{".", AllocatorType::Persistent};
-        String m_CurrentPath{".", AllocatorType::Persistent};
+        String m_RelativeRootPath{".", Allocator::Persistent};
+        String m_CurrentPath{".", Allocator::Persistent};
 
         fmt::memory_buffer m_RenameBuffer;
         AssetID m_RenamingAsset;
