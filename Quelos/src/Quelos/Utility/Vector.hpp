@@ -334,20 +334,20 @@ namespace Quelos {
             return m_Data[index];
         }
 
-        [[nodiscard]] Expected<Ref<T>, IndexOutOfRange> at(size_type index) {
+        [[nodiscard]] Expected<Ref<T>, IndexOutOfRangeT<SizeType>> at(size_type index) {
             if (index >= m_Size) {
-                return Unexpected(IndexOutOfRange{ .Index = index, .Size = m_Size });
+                return Unexpected(IndexOutOfRangeT<SizeType>{ .Index = index, .Size = m_Size });
             }
 
-            return m_Data[index];
+            return Expected<Ref<T>, IndexOutOfRangeT<SizeType>>(m_Data[index]);
         }
 
-        [[nodiscard]] Expected<Ref<const T>, IndexOutOfRange> at(size_type index) const {
+        [[nodiscard]] Expected<Ref<const T>, IndexOutOfRangeT<SizeType>> at(size_type index) const {
             if (index >= m_Size) {
-                return Unexpected(IndexOutOfRange { .Index = index, .Size = m_Size });
+                return Unexpected(IndexOutOfRangeT<SizeType> { .Index = index, .Size = m_Size });
             }
 
-            return m_Data[index];
+            return Expected<Ref<const T>, IndexOutOfRangeT<SizeType>>(m_Data[index]);
         }
 
         [[nodiscard]] reference front() noexcept {

@@ -218,7 +218,7 @@ namespace Quelos {
         ResourceRef<FrameBuffer> SceneFB;
         ResourceRef<FrameBuffer> DepthPrepassFB;
 
-        /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMaps)
+        /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMask)
         HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs{Allocator::Persistent};
 
         // Shadow mask
@@ -229,6 +229,8 @@ namespace Quelos {
 
         bool ReductionReadbackReady = false;
         ResourceRef<GpuBuffer> ReductionStagingBuffer;
+        uint64_t ReductionStagingFenceValue = 0;
+        ResourceRef<Fence> ReductionStagingFence;
         ResourceRef<ShaderResourceBinding> ShadowComputeSRB;
 
         float LastMinNDC = 0.0f;
