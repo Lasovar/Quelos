@@ -3,11 +3,16 @@
 //
 
 #pragma once
-#include <cstdint>
 
 namespace Quelos {
-    struct IndexOutOfRange {
-        uint64_t Index;
-        uint64_t Size;
+    template <typename SizeType>
+        requires (std::is_integral_v<SizeType> && std::is_unsigned_v<SizeType>)
+    struct IndexOutOfRangeT {
+        SizeType Index;
+        SizeType Size;
     };
+
+    using IndexOutOfRange32 = IndexOutOfRangeT<uint32_t>;
+    using IndexOutOfRange64 = IndexOutOfRangeT<uint64_t>;
+    using IndexOutOfRange = IndexOutOfRange32;
 }

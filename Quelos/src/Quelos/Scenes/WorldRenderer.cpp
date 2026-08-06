@@ -841,6 +841,10 @@ namespace Quelos {
             stagingSpec.CpuAccessFlags = CpuAccess::Read;
 
             view->ReductionStagingBuffer = Renderer::CreateBuffer(stagingSpec, {});
+            FenceSpec fenceSpec;
+            fenceSpec.Name = "DepthReductionStagingFence";
+            fenceSpec.Type = FenceType::CpuWaitOnly;
+            view->ReductionStagingFence = Renderer::CreateFence(fenceSpec);
 
             view->ShadowComputeSRB = Renderer::CreateShaderResourceBinding(m_ShadowComputePSO.GetHandle(), true);
 
@@ -1244,14 +1248,17 @@ namespace Quelos {
 
         auto& view = *m_ActiveViews[worldRendererView->GetViewID()];
 
-        if (view.ReductionReadbackReady) {
+        if (
+            view.ReductionReadbackReady
+            && Renderer::FenceGetCompletedValue(view.ReductionStagingFence.GetHandle()) >=  view.ReductionStagingFenceValue
+        ) {
             void* mapped;
-            Renderer::Map(view.ReductionStagingBuffer.GetHandle(), MapType::Read, MapFlags::DoNotWait, mapped);
+            Renderer::Map(view.ReductionStagingBuffer.GetHandle(), Map::Read, MapFlags::DoNotWait, mapped);
             if (mapped) {
                 auto readback = static_cast<uint32_t*>(mapped);
                 view.LastMinNDC = std::bit_cast<float>(readback[0]);
                 view.LastMaxNDC = std::bit_cast<float>(readback[1]);
-                Renderer::Unmap(view.ReductionStagingBuffer.GetHandle(), MapType::Read);
+                Renderer::Unmap(view.ReductionStagingBuffer.GetHandle(), Map::Read);
             }
         }
 
@@ -1669,6 +1676,7 @@ namespace Quelos {
             sizeof(uint64_t),
             ResourceStateTransitionMode::Transition
         );
+        Renderer::EnqueueSignal(view.ReductionStagingFence.GetHandle(), ++view.ReductionStagingFenceValue);
 
         view.ReductionReadbackReady = true;
     }
