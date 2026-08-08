@@ -40,7 +40,7 @@ namespace Quelos {
                 )
             ) {
                 head->Next = nullptr;
-                head->Page.Used = 0;
+                head->Page.Reset();
                 return head;
             }
         }

@@ -8,16 +8,19 @@
 #define QS_STRINGIFY_IMPL(x) #x
 #define QS_STRINGIFY(x) QS_STRINGIFY_IMPL(x)
 
-namespace Quelos {
-    consteval int GetBit(const int x) { return 1 << x; }
-
+/// TypeName needs to be in a different namespace because in gcc
+/// if the function TypeName was called from the same namespace
+/// gcc will omit that namespace name in the __PRETTY_FUNCTION__ output
+/// Making the function in a different namespace will just insure that it works across compilers
+/// Quelos namespace has a wrapper for it Quelos::TypeName<T>
+namespace QuelosReflect {
     template <typename T>
     constexpr std::string_view TypeName() {
 #if defined(__clang__) || defined(__GNUC__)
         constexpr std::string_view p = __PRETTY_FUNCTION__;
         constexpr std::string_view key = "T = ";
         constexpr size_t start = p.find(key) + key.size();
-        constexpr size_t end = p.find(']', start);
+        constexpr size_t end = p.find_first_of(";]", start);
         return p.substr(start, end - start);
 #elif defined(_MSC_VER)
         // Maybe try something different? to messy
@@ -46,6 +49,15 @@ namespace Quelos {
 #else
 #   error Unsupported compiler
 #endif
+    }
+}
+
+namespace Quelos {
+    consteval int GetBit(const int x) { return 1 << x; }
+
+    template <typename T>
+    constexpr std::string_view TypeName() {
+        return QuelosReflect::TypeName<T>();
     }
 
     template<typename T>

@@ -468,16 +468,17 @@ namespace QuelosEditor {
             const auto it = m_WorkspaceFactories.find(metadata.Type);
             if (it == m_WorkspaceFactories.end()) {
                 QS_CORE_WARN_TAG(
+                    "EditorLayer",
                     "No suitable workspace found for asset '{}'!",
                     metadata.FilePath
                 );
 
-                return;
+                continue;
             }
 
             if (const auto workspaceIt = m_Workspaces.find(metadata.Handle); workspaceIt != m_Workspaces.end()) {
                 workspaceIt->second->Focus();
-                return;
+                continue;
             }
 
             UniquePtr<Workspace> workspace = it->second(m_UndoSystem, metadata);
@@ -488,7 +489,7 @@ namespace QuelosEditor {
                     metadata.FilePath
                 );
 
-                return;
+                continue;
             }
 
             workspace->Focus();
