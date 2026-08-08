@@ -15,7 +15,9 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-add_compile_definitions(BX_CONFIG_DEBUG)
+add_compile_options(
+        $<$<CXX_COMPILER_ID:GNU>:-Wno-error=changes-meaning>
+)
 
 # MSVC-specific options
 if (MSVC)

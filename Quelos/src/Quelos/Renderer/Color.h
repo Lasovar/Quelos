@@ -4,7 +4,7 @@
 
 namespace Quelos {
     struct Color : float4 {
-        constexpr Color() = default;
+        Color() = default;
         inline Color(const float4& f) : float4(f) {}
         inline Color(const float r, const float g, const float b, const float a = 1.0f)
             : float4(r, g, b, a) {}

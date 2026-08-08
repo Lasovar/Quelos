@@ -11,4 +11,6 @@ namespace Quelos {
 
     template <typename TError>
     using Unexpected = std::unexpected<TError>;
+
+    inline constexpr std::unexpect_t Unexpect{};
 }

@@ -335,19 +335,21 @@ namespace Quelos {
         }
 
         [[nodiscard]] Expected<Ref<T>, IndexOutOfRangeT<SizeType>> at(size_type index) {
+            using Expect = Expected<Ref<T>, IndexOutOfRangeT<SizeType>>;
             if (index >= m_Size) {
-                return Unexpected(IndexOutOfRangeT<SizeType>{ .Index = index, .Size = m_Size });
+                return Expect(Unexpect, index, m_Size);
             }
 
-            return Expected<Ref<T>, IndexOutOfRangeT<SizeType>>(m_Data[index]);
+            return Expect(std::in_place, m_Data[index]);
         }
 
         [[nodiscard]] Expected<Ref<const T>, IndexOutOfRangeT<SizeType>> at(size_type index) const {
+            using Expect = Expected<Ref<T>, IndexOutOfRangeT<SizeType>>;
             if (index >= m_Size) {
-                return Unexpected(IndexOutOfRangeT<SizeType> { .Index = index, .Size = m_Size });
+                return Expect(Unexpect, index, m_Size);
             }
 
-            return Expected<Ref<const T>, IndexOutOfRangeT<SizeType>>(m_Data[index]);
+            return Expect(std::in_place, m_Data[index]);
         }
 
         [[nodiscard]] reference front() noexcept {
@@ -387,7 +389,13 @@ namespace Quelos {
             }
 
             T* slot = m_Data + m_Size;
-            std::construct_at(slot, std::forward<Args>(args)...);
+            if constexpr (std::uses_allocator_v<T, allocator_type>) {
+                std::uninitialized_construct_using_allocator(slot, get_allocator(), std::forward<Args>(args)...);
+            }
+            else {
+                std::construct_at(slot, std::forward<Args>(args)...);
+            }
+
             ++m_Size;
             return *slot;
         }
