@@ -95,7 +95,7 @@ namespace QuelosEditor {
 
             if (asset.IsImportable && ImGui::MenuItem("Import")) {
                 const Vec<const AssetMetadata*> assetsMetadata = m_AssetManager->ProcessAssetRegistration(
-                    asset.Metadata.FilePath
+                    asset.Metadata.FilePath, Allocator::Temp
                 );
 
                 if (!assetsMetadata.empty() && assetsMetadata[0] && assetsMetadata[0]->Handle) {
@@ -292,7 +292,7 @@ namespace QuelosEditor {
                     if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_PAINT_BRUSH, "Create Material"))) {
                         const String assetPath(FormatTemp("{}/NewMaterial.qmat", m_CurrentPath), Allocator::Temp);
                         const AssetID newMaterialId = MaterialImporter::CreateDefaultMaterialAsset(assetPath);
-                        m_AssetManager->ProcessAssetRegistration(assetPath);
+                        m_AssetManager->ProcessAssetRegistration(assetPath, Allocator::Temp);
                         StartAssetRename(FS::Filename(assetPath), newMaterialId);
                         m_QueueDirectoryTreeRebuild = true;
                     }

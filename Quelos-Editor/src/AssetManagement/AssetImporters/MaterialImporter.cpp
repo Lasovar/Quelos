@@ -74,7 +74,7 @@ namespace QuelosEditor {
             AssetID assetId = materialAsset.GetAssetID();
             if (!assetId) {
                 assetId = AssetID::Generate();
-                materialAsset->SetAssetID(assetId);
+                materialAsset.Get().SetAssetID(assetId);
             }
 
             Material& material = materialAsset.Get();

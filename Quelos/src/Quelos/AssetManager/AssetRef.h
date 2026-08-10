@@ -72,16 +72,17 @@ namespace Quelos {
             m_Handle = AssetHandle<T>();
         }
 
-        T* TryGet() const {
+        Optional<Ref<T>> TryGet() const {
             if (!IsValid()) {
-                return nullptr;
+                return None;
             }
 
-            return static_cast<T*>(Project::GetAssetManager()->TryGet(m_Handle));
-        }
+            T* asset = static_cast<T*>(Project::GetAssetManager()->TryGet(m_Handle));
+            if (!asset) {
+                return None;
+            }
 
-        T* operator->() const {
-            return TryGet();
+            return Optional<Ref<T>>(*asset);
         }
 
         T& Get() const {
@@ -103,8 +104,8 @@ namespace Quelos {
         }
 
         [[nodiscard]] AssetID GetAssetID() const {
-            T* asset = TryGet();
-            return asset ? asset->GetAssetID() : AssetID();
+            Optional<Ref<T>> asset = TryGet();
+            return asset ? asset->get().GetAssetID() : AssetID();
         }
 
     private:

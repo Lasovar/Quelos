@@ -21,7 +21,8 @@ namespace Quelos {
         [[nodiscard]] virtual bool IsAssetLoaded(const AssetID& assetId) const = 0;
         [[nodiscard]] virtual bool IsAssetHandleValid(const AssetID& assetId) const = 0;
 
-        [[nodiscard]] virtual Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID assetId) const = 0;
+        [[nodiscard]] virtual Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type, AllocatorType allocatorType) const = 0;
+        [[nodiscard]] virtual Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID assetId, std::pmr::polymorphic_allocator<> allocator) const = 0;
 
         // Doesn't increment reference count
         virtual UntypedAssetHandle Acquire(AssetID assetId) = 0;

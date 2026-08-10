@@ -1,4 +1,8 @@
 [Quelos.Scene]
+handle = be91e72f-6179-4910-8578-21a507111fa8
+path = "Assets/Lighting"
+
+[Quelos.Scene]
 handle = 009bd427-eec8-4038-829b-4b49be965a3a
 path = "Assets/Sandbox"
 
@@ -8,9 +12,9 @@ parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 path = "Assets/Meshes/Cube.fbx/Meshes/Cube.001"
 
 [Quelos.Mesh]
-handle = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
-parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
-path = "Assets/Meshes/Cube.fbx/Meshes/Icosphere"
+handle = 7454a857-a0d2-464c-a711-6ca3088cfd5e
+parent = d1b9f3ab-4152-419e-919b-4a08e7d70829
+path = "Assets/Meshes/Plane.fbx/Meshes/Plane"
 
 [Quelos.Mesh]
 handle = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
@@ -18,21 +22,25 @@ parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
 path = "Assets/Meshes/Cube.fbx/Meshes/Suzanne"
 
 [Quelos.Mesh]
-handle = 7454a857-a0d2-464c-a711-6ca3088cfd5e
-parent = d1b9f3ab-4152-419e-919b-4a08e7d70829
-path = "Assets/Meshes/Plane.fbx/Meshes/Plane"
+handle = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
+parent = 7db739a7-f8ee-4dcc-bc41-747e4d937af1
+path = "Assets/Meshes/Cube.fbx/Meshes/Icosphere"
 
 [Quelos.GraphicsShader]
-handle = a50703a3-7416-44e3-a477-97850513d27c
-path = "Assets/shaders/toon.slang"
+handle = 2ed33623-5f39-4f32-a26c-4d125e9a13c9
+path = "Assets/shaders/LightingTest.slang"
+
+[Quelos.GraphicsShader]
+handle = 5830a917-9591-48b3-8941-7f080914f2c5
+path = "Assets/shaders/fallback.slang"
 
 [Quelos.GraphicsShader]
 handle = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
 path = "Assets/shaders/mesh.slang"
 
 [Quelos.GraphicsShader]
-handle = 5830a917-9591-48b3-8941-7f080914f2c5
-path = "Assets/shaders/fallback.slang"
+handle = a50703a3-7416-44e3-a477-97850513d27c
+path = "Assets/shaders/toon.slang"
 
 [Quelos.Material]
 handle = ca12b8a3-0ebd-4b87-991f-4367f4f3c395
@@ -45,6 +53,10 @@ path = "Assets/Materials/DefaultMat.qmat"
 [Quelos.Material]
 handle = d96a38ab-74c7-49f3-a7c1-cac9e6d18c14
 path = "Assets/Materials/Unlit.qmat"
+
+[Quelos.Material]
+handle = 0c26d27b-aa30-48eb-982a-46ac02443597
+path = "Assets/Materials/Lighting.qmat"
 
 [Quelos.Model]
 handle = d1b9f3ab-4152-419e-919b-4a08e7d70829

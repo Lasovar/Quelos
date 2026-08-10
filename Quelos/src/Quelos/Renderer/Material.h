@@ -21,8 +21,8 @@ namespace Quelos {
             m_Values.clear();
             m_Shader = AssetRef<GraphicsShader>(shaderId);
 
-            if (const GraphicsShader* graphicsShader = m_Shader.TryGet()) {
-                m_MaterialProperties = graphicsShader->GetMaterialProperties().clone(Allocator::Persistent);
+            if (const auto& graphicsShader = m_Shader.TryGet()) {
+                m_MaterialProperties = graphicsShader->get().GetMaterialProperties().clone(Allocator::Persistent);
                 m_Values.resize(m_MaterialProperties.size());
 
                 for (size_t i = 0; i < m_MaterialProperties.size(); i++) {

@@ -106,10 +106,11 @@ namespace QuelosEditor {
 
             ImGui::SameLine(0, itemInnerSpacing);
 
-            static Vec<const AssetMetadata*> searchAssetMetadata;
+            static Vec<const AssetMetadata*> searchAssetMetadata(Allocator::Persistent);
             // Search button
             if (ImGui::Button("...", ImVec2(buttonSize, buttonSize))) {
-                searchAssetMetadata = AssetManager::FindAssetsOfType<T>();
+                searchAssetMetadata.clear();
+                searchAssetMetadata.append_range(AssetManager::FindAssetsOfType<T>(Allocator::Temp));
                 ImGui::OpenPopup("AssetSearchPopup");
             }
 
@@ -121,8 +122,7 @@ namespace QuelosEditor {
                     double Score = 0.0f;
                 };
 
-                static Vec<AssetSearchResult> results;
-                results.clear();
+                Vec<AssetSearchResult> results(AllocatorType::Temp);
 
                 if (ImGui::IsWindowAppearing()) {
                     ImGui::SetKeyboardFocusHere();

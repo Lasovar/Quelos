@@ -146,6 +146,21 @@ namespace QuelosEditor {
     	map[8] = 4;
 
     	linearArena.Reset();
+
+    	Vec<String> str(Allocator::Temp);
+    	str.emplace_back("Hello world!");
+
+    	static constexpr auto printExpected = [](const auto& expected) {
+    		if (expected) {
+    			QS_INFO("{}", expected->get());
+    		} else {
+    			const IndexOutOfRange& error = expected.error();
+    			QS_ERROR("Index '{}' is out of range '{}'", error.Index, error.Size);
+    		}
+    	};
+
+    	printExpected(str.at(10));
+    	printExpected(str.at(0));
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {

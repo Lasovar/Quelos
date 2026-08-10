@@ -8,6 +8,7 @@ namespace QuelosEditor {
         : m_UndoSystem(undoSystem), m_WorkspaceName(std::move(workspaceName))
     {
         m_WorkspaceID = ImHashStr(FormatTemp("{}_Dockspace", m_WorkspaceName));
+        m_WorkspaceNameHash = m_WorkspaceName;
 
         m_WorkspaceClass.ClassId = ImHashStr(m_WorkspaceName.c_str());
         m_WorkspaceClass.DockingAllowUnclassed = false;
@@ -29,7 +30,7 @@ namespace QuelosEditor {
             m_FocusRequest = false;
         }
 
-        if (ImGui::Begin(m_WorkspaceName.c_str(), &m_IsOpen, flags)) {
+        if (ImGui::Begin(FormatTemp("{}###{}", m_WorkspaceName.c_str(), m_WorkspaceNameHash), &m_IsOpen, flags)) {
             // Workspace-local dockspace
             ImGui::DockSpace(m_WorkspaceID, ImVec2(0, 0), ImGuiDockNodeFlags_NoWindowMenuButton, &m_WorkspaceClass);
 

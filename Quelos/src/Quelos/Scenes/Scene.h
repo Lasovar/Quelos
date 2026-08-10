@@ -175,6 +175,7 @@ namespace Quelos {
 
         const AssetType& GetAssetType() const override { return GetStaticType(); }
         static const AssetType& GetStaticType() {
+            static_assert(TypeName<Quelos::Scene>() == "Quelos::Scene");
             static AssetType assetType = Quelos::GetAssetType<Scene>();
             return assetType;
         }

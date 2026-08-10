@@ -56,14 +56,15 @@ namespace Quelos {
 
             byte* materials = static_cast<byte*>(mapped);
             for (uint32_t i = 0; i < m_CpuMaterials.size(); i++) {
-                const AssetRef<Material>& cpuMaterial = m_CpuMaterials[i];
-
-                if (!cpuMaterial) {
+                const auto& cpuMaterialOptional = m_CpuMaterials[i].TryGet();
+                if (!cpuMaterialOptional) {
                     continue;
                 }
 
-                const Vec<MaterialPropertySpec>& specs = cpuMaterial->GetMaterialProperties();
-                const Vec<MaterialPropertyValue>& values = cpuMaterial->GetMaterialPropertyValues();
+                const auto& material = cpuMaterialOptional->get();
+
+                const Vec<MaterialPropertySpec>& specs = material.GetMaterialProperties();
+                const Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
 
                 if (specs.size() != values.size()) {
                     continue;
@@ -108,14 +109,16 @@ namespace Quelos {
 
             byte* materials = static_cast<byte*>(mapped);
             for (uint32_t i = 0; i < m_CpuMaterials.size(); i++) {
-                const AssetRef<Material>& cpuMaterial = m_CpuMaterials[i];
-
-                if (!cpuMaterial) {
+                const auto& cpuMaterialOptional = m_CpuMaterials[i].TryGet();
+                if (!cpuMaterialOptional) {
                     continue;
                 }
 
-                const Vec<MaterialPropertySpec>& specs = cpuMaterial->GetMaterialProperties();
-                const Vec<MaterialPropertyValue>& values = cpuMaterial->GetMaterialPropertyValues();
+                const auto& material = cpuMaterialOptional->get();
+
+                const Vec<MaterialPropertySpec>& specs = material.GetMaterialProperties();
+                const Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
+
 
                 if (specs.size() != values.size()) {
                     continue;
@@ -982,7 +985,7 @@ namespace Quelos {
         ) {
             if (!meshRenderer.Mesh
                 || !meshRenderer.Material
-                || meshRenderer.Material->GetShader().GetAssetID() != pipelineStateComponent.ShaderID
+                || meshRenderer.Material.Get().GetShader().GetAssetID() != pipelineStateComponent.ShaderID
             ) {
                 entity.target<PipelineOf>().remove<CheckedMeshRenderer>();
                 entity.destruct();
@@ -1018,7 +1021,7 @@ namespace Quelos {
             GraphicsShader& shader = material.GetShader().Get();
             const auto it = m_PipelineStates.find(shader.GetAssetID());
             if (it != m_PipelineStates.end()) {
-                if (Renderer::IsAlive(it->second.Pipelines.front().PSO)) {
+                if (!it->second.Pipelines.empty() && Renderer::IsAlive(it->second.Pipelines.front().PSO)) {
                     for (const WeakPipelineData& pipeline : it->second.Pipelines) {
                         flecs::entity pipelineHandle = m_World->entity()
                               .add<PipelineOf>(entity)

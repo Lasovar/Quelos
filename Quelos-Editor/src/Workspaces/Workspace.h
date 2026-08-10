@@ -33,6 +33,7 @@ namespace QuelosEditor {
     protected:
         UndoSystem& m_UndoSystem;
         std::string m_WorkspaceName;
+        String m_WorkspaceNameHash{Allocator::Persistent};
         ImGuiID m_WorkspaceID;
         ImGuiWindowClass m_WorkspaceClass;
         ImGuiCond_ m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;

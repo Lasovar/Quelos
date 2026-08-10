@@ -1,0 +1,6 @@
+[Material]
+assetId = 0c26d27b-aa30-48eb-982a-46ac02443597
+shader = 2ed33623-5f39-4f32-a26c-4d125e9a13c9
+
+@properties
+Color = (Color,(1,0,0,1))
