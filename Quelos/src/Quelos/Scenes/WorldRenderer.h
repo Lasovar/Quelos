@@ -304,8 +304,27 @@ namespace Quelos {
         };
 
         struct PipelineInfo {
+            using allocator_type = std::pmr::polymorphic_allocator<>;
+
             Vec<WeakPipelineData> Pipelines{Allocator::Persistent};
             MaterialRegistry MaterialRegistry;
+
+            PipelineInfo(
+                Vec<WeakPipelineData>&& pipelines,
+                Quelos::MaterialRegistry&& materialRegistry,
+                const allocator_type allocator
+            ) : Pipelines(std::move(pipelines), allocator), MaterialRegistry(std::move(materialRegistry)) {}
+
+            PipelineInfo(const PipelineInfo&) = delete;
+            PipelineInfo& operator=(const PipelineInfo&) = delete;
+            PipelineInfo(PipelineInfo&&) = default;
+            PipelineInfo& operator=(PipelineInfo&&) = default;
+
+            PipelineInfo(PipelineInfo&& other, const allocator_type allocator)
+                : Pipelines(std::move(other.Pipelines), allocator),
+                  MaterialRegistry(std::move(other.MaterialRegistry))
+            {
+            }
         };
 
         void CreatePerViewResources(const UniquePtr<WorldRendererView>& view, const MaterialRegistry& materialRegistry, const WeakPipelineData& pipeline) const;

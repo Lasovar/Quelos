@@ -443,14 +443,15 @@ namespace QuelosEditor {
             const AssetMetadata& meshMetadata
         ) {
             // Load the parent model and extract the mesh
-            AssetRef<Model> model(meshMetadata.ParentId);
+            AssetRef<Model> modelAsset(meshMetadata.ParentId);
+            const auto& model = modelAsset.TryGet();
             if (!model) {
                 return false;
             }
 
-            for (MeshData& mesh : model->GetMeshes()) {
+            for (MeshData& mesh : model->get().GetMeshes()) {
                 if (mesh.AssetId == meshMetadata.Handle) {
-                    new (dataSlot) Mesh(std::move(model), &mesh);
+                    new (dataSlot) Mesh(std::move(modelAsset), &mesh);
                     return true;
                 }
             }

@@ -18,7 +18,7 @@ namespace Quelos {
 		// (I think? cases where you're formatting more than once in a single line for some reason)
 		constexpr int k_BufferCount = 4;
 		thread_local fmt::memory_buffer buffers[k_BufferCount];
-		thread_local uint32_t index = 0;
+		thread_local uint64_t index = 0;
 
 		auto& buffer = buffers[index++ % k_BufferCount];
 		buffer.clear();

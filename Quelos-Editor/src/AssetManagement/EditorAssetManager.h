@@ -21,7 +21,8 @@ namespace QuelosEditor {
         [[nodiscard]] bool IsAssetHandleValid(const AssetID& handle) const override;
         [[nodiscard]] bool IsAssetPathValid(std::string_view path) const;
 
-        [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type) const override;
+        [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type, AllocatorType allocatorType) const override;
+        [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type, std::pmr::polymorphic_allocator<> allocator) const override;
         void RenameAsset(AssetID handle, std::string_view newPath);
 
         [[nodiscard]] static bool IsAssetSupported(std::string_view path);
@@ -32,7 +33,8 @@ namespace QuelosEditor {
 
         void FlushReimportQueue();
 
-        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath);
+        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath, std::pmr::polymorphic_allocator<> allocator);
+        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath, AllocatorType allocatorType);
 
         template <typename T>
         requires (std::is_base_of_v<Asset, T>)

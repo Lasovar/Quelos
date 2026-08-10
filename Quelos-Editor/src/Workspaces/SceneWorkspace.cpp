@@ -17,6 +17,7 @@ namespace QuelosEditor {
           m_InspectorPanel(*this, undoSystem),
           m_EntityHierarchyPanel(*this, undoSystem)
     {
+        m_WorkspaceNameHash = assetMetadata.Handle.ToString();
         ComponentRegistry::RegisterBuiltinTypes(m_EditorWorld);
         ComponentRegistry::RegisterBuiltinTypes(m_RuntimeWorld);
 
@@ -73,7 +74,7 @@ namespace QuelosEditor {
         m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView", { 1, 1 }));
         m_SceneViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("SceneView", { 1, 1 }));
 
-        m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_Dockspace").c_str());
+        m_WorkspaceID = ImHashStr((m_ActiveScene->GetName() + "_SceneDockspace").c_str());
         m_DefaultWorkspaceDockingCondition = ImGuiCond_Appearing;
         m_ShouldDock = true;
 
@@ -983,8 +984,16 @@ namespace QuelosEditor {
             return;
         }
 
-        Vec<InstanceData> maskInstances(Allocator::Temp);
+        const Optional<Ref<Mesh>> meshOptional = m_SelectedEntity.Get<MeshRenderer>().Mesh.TryGet();
+        if (!meshOptional.has_value()) {
+            return;
+        }
 
+        const auto& mesh = meshOptional.value().get();
+
+        static Vec<InstanceData> maskInstances(Allocator::Persistent);
+
+        maskInstances.clear();
         maskInstances.push_back(InstanceData {
             .Transform = m_SelectedEntity.Get<WorldTransform>().Value,
             .MaterialId = 0,
@@ -1010,12 +1019,10 @@ namespace QuelosEditor {
 
         passAttribs.ClearColors = clearValues;
 
-        const Mesh* mesh = m_SelectedEntity.Get<MeshRenderer>().Mesh.TryGet();
-
         DrawIndexedAttribs attribs;
         attribs.Flags = DrawFlags::VerifyAll;
         attribs.IndexType = ValueType::UInt16;
-        attribs.NumIndices = mesh->GetIndices().size();
+        attribs.NumIndices = mesh.GetIndices().size();
         attribs.NumInstances = 1;
         attribs.FirstInstanceLocation = 0;
 
@@ -1029,8 +1036,8 @@ namespace QuelosEditor {
 
             Renderer::BeginRenderPass(passAttribs);
 
-            Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
-            Renderer::BindIndexBuffer(mesh->GetIndexBuffer());
+            Renderer::BindVertexBuffer(mesh.GetVertexBuffer(), 0);
+            Renderer::BindIndexBuffer(mesh.GetIndexBuffer());
 
             Renderer::DrawIndexed(attribs);
 
@@ -1047,8 +1054,8 @@ namespace QuelosEditor {
 
             Renderer::BeginRenderPass(passAttribs);
 
-            Renderer::BindVertexBuffer(mesh->GetVertexBuffer(), 0);
-            Renderer::BindIndexBuffer(mesh->GetIndexBuffer());
+            Renderer::BindVertexBuffer(mesh.GetVertexBuffer(), 0);
+            Renderer::BindIndexBuffer(mesh.GetIndexBuffer());
 
             Renderer::DrawIndexed(attribs);
 

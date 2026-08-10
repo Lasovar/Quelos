@@ -1,0 +1,19 @@
+[actor guid=11948737FAE776E6 state=added]
+name = "Camera"
+parent = root
+order = 0x0000000100000000
+
+#Quelos.CameraComponent
+projection = Perspective
+lens.fov = 60
+lens.near = 0.01
+lens.far = 1000
+ortho.size = 10
+ortho.near = -100
+ortho.far = 100
+clearColor = (0.52282155,0.2841893,0.43271565,1)
+
+#Quelos.LocalTransform
+position = (-3.616035,2.3892841,-5.585162)
+rotation = (0.12111488,0.26803008,-0.03398625,0.9551629)
+scale = (0.9999998,0.9999999,0.9999999)

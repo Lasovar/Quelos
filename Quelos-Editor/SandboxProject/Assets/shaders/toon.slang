@@ -52,7 +52,7 @@ FragmentOut fragmentMain(VertexOut v) {
     shadow = min(shadow, step(0.001, ndotl));
     shadow = clamp(shadow, 0.3, 1.0);
 
-    float ToonLevels = 4.0;
+    constexpr float ToonLevels = 4.0;
     float shade = floor(ndotl * ToonLevels) / ToonLevels;
     shade = lerp(0.35, 1.0, shade) * shadow;
 

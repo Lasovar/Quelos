@@ -10,8 +10,14 @@ namespace Quelos {
     namespace AssetManager {
         template<typename T>
         requires std::is_base_of_v<Asset, T>
-        static Vec<const AssetMetadata*> FindAssetsOfType() {
-            return Project::GetAssetManager()->FindAssetsOfType(T::GetStaticType());
+        static Vec<const AssetMetadata*> FindAssetsOfType(AllocatorType allocatorType) {
+            return Project::GetAssetManager()->FindAssetsOfType(T::GetStaticType(), allocatorType);
+        }
+
+        template<typename T>
+        requires std::is_base_of_v<Asset, T>
+        static Vec<const AssetMetadata*> FindAssetsOfType(std::pmr::polymorphic_allocator<> allocator) {
+            return Project::GetAssetManager()->FindAssetsOfType(T::GetStaticType(), allocator);
         }
 
         template <typename T>

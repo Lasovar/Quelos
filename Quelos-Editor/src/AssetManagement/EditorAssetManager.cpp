@@ -67,8 +67,8 @@ namespace QuelosEditor {
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
     }
 
-    Vec<const AssetMetadata*> EditorAssetManager::ProcessAssetRegistration(const std::string_view assetPath) {
-        Vec<const AssetMetadata*> registeredAssets;
+    Vec<const AssetMetadata*> EditorAssetManager::ProcessAssetRegistration(const std::string_view assetPath, const std::pmr::polymorphic_allocator<> allocator) {
+        Vec<const AssetMetadata*> registeredAssets(allocator);
 
         const AssetMetadata* mainAsset = AddAssetToRegistry(assetPath);
         if (!mainAsset) {
@@ -87,6 +87,13 @@ namespace QuelosEditor {
         }
 
         return registeredAssets;
+    }
+
+    Vec<const AssetMetadata *> EditorAssetManager::ProcessAssetRegistration(
+        const std::string_view assetPath,
+        const AllocatorType allocatorType
+    ) {
+        return ProcessAssetRegistration(assetPath, GetAllocator(allocatorType));
     }
 
     void EditorAssetManager::RemoveAssetFromRegistry(const AssetID& assetHandle) {
@@ -276,8 +283,12 @@ namespace QuelosEditor {
         return m_AssetRegistry.IsAssetPathValid(path);
     }
 
-    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetTypeID type) const {
-        Vec<const AssetMetadata*> results;
+    Vec<const AssetMetadata *> EditorAssetManager::FindAssetsOfType(const AssetTypeID type, const AllocatorType allocatorType) const {
+        return FindAssetsOfType(type, GetAllocator(allocatorType));
+    }
+
+    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetTypeID type, const std::pmr::polymorphic_allocator<> allocator) const {
+        Vec<const AssetMetadata*> results(allocator);
 
         const HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
         for (const AssetMetadata& metadata : assetsMetadata | std::views::values) {
