@@ -1,14 +1,14 @@
 [actor guid=9941330D0A5FE99B state=added]
-name = "Cube"
+name = "Suzane"
 parent = root
 order = 0x0000000200000000
 
 #Quelos.LocalTransform
-position = (0,0,0)
-rotation = (0,0,0,1)
-scale = (1,1,1)
+position = (-4.598384,1.6492572,-0.84198177)
+rotation = (0.88357794,0,0,0.46828416)
+scale = (3,3.0000038,3.0000038)
 
 #Quelos.MeshRenderer
-mesh = 34f0b084-42c2-4c26-87d5-366a344b13cd
-material = 0c26d27b-aa30-48eb-982a-46ac02443597
+mesh = f968c60b-fc11-47c3-ac9a-117c6ba16fdc
+material = 63c7792b-f400-40d5-a795-3fcf79d8547e
 castShadows = 1

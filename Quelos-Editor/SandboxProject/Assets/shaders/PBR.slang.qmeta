@@ -1,0 +1,13 @@
+[Shader]
+assetId = b2d9aff7-2764-43d8-997f-bcb7c1da8e97
+
+#MaterialProperties
+BaseColor = (Texture2D,0,4)
+NormalMap = (Texture2D,4,4)
+MetallicRoughness = (Texture2D,8,4)
+AOTexIdx = (Texture2D,12,4)
+BaseColorFactor = (Color,16,16)
+MetallicFactor = (Float,32,4)
+RoughnessFactor = (Float,36,4)
+UVTiling = (Float2,40,8)
+UVOffset = (Float2,48,8)

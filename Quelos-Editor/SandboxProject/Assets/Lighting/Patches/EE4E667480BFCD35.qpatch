@@ -1,0 +1,14 @@
+[actor guid=EE4E667480BFCD35 state=added]
+name = "Sphere"
+parent = root
+order = 0x0000000500000000
+
+#Quelos.LocalTransform
+position = (11.6179085,4.9865866,8.749361)
+rotation = (0,0,0,1)
+scale = (5,5,5)
+
+#Quelos.MeshRenderer
+mesh = 2c1167d0-270b-4b79-a8c5-5099c6fa8a71
+material = 0c26d27b-aa30-48eb-982a-46ac02443597
+castShadows = 1

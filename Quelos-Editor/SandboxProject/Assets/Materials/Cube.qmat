@@ -1,5 +1,5 @@
 [Material]
-assetId = 0c26d27b-aa30-48eb-982a-46ac02443597
+assetId = 6efb52eb-5dae-452a-a91a-92bebdba3782
 shader = b2d9aff7-2764-43d8-997f-bcb7c1da8e97
 
 @properties
@@ -7,8 +7,8 @@ BaseColor = (Texture2D,null)
 NormalMap = (Texture2D,null)
 MetallicRoughness = (Texture2D,null)
 AOTexIdx = (Texture2D,null)
-BaseColorFactor = (Color,(1,0.67219913,0,1))
-MetallicFactor = (Float,1)
-RoughnessFactor = (Float,0.696)
+BaseColorFactor = (Color,(1,1,1,1))
+MetallicFactor = (Float,0)
+RoughnessFactor = (Float,1)
 UVTiling = (Float2,(1,1))
 UVOffset = (Float2,(0,0))

@@ -159,9 +159,16 @@ namespace Quelos {
         bool DepthWrite;
     };
 
+    struct QS_API DirectionalLightData {
+        pfloat4 Direction; // XYZ + PAD
+        pfloat3 Color;
+        float IlluminanceLux;
+    };
+
     struct QS_API alignas(16) Globals {
         pfloat4x4 ViewProjection;
-        pfloat4 LightDirection;
+        DirectionalLightData DirectionalLightData;
+        pfloat4 CameraPosition;
     };
 
     constexpr uint32_t k_NumCascades = 4;

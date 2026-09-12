@@ -422,6 +422,10 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
+            if (!module) {
+                return None;
+            }
+
             slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
             if (diagnostics) {
                 QS_CORE_ERROR_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));

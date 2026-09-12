@@ -14,6 +14,8 @@ namespace Quelos {
         layout.Add(VertexAttribute::Position, ValueType::Float3);
         layout.Add(VertexAttribute::Normal, ValueType::Float3);
         layout.Add(VertexAttribute::Tangent, ValueType::Float3);
+        layout.Add(VertexAttribute::Bitangent, ValueType::Float3);
+        layout.Add(VertexAttribute::SmoothNormal, ValueType::Float3);
         layout.Add(VertexAttribute::TexCoord0, ValueType::Float2);
 
         m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(meshData->Vertices)), layout);

@@ -43,7 +43,7 @@ FragmentOut fragmentMain(VertexOut v) {
     ToonMaterial mat = GetMaterial(v.instanceID);
 
     float3 N = normalize(v.normal);
-    float3 L = normalize(-global.LightDirection.xyz);
+    float3 L = normalize(-global.Sun.Direction.xyz);
 
     float ndotl = saturate(dot(N, L));
 

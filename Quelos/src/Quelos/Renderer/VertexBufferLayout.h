@@ -120,6 +120,7 @@ namespace Quelos {
         Normal,
         Tangent,
         Bitangent,
+        SmoothNormal,
 
         Color0,
         Color1,
