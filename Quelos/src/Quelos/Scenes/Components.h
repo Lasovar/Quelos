@@ -60,12 +60,12 @@ namespace Quelos {
 
     struct QS_API DirectionalLight {
         Color Color;
-        float Intensity = 0.0f;
+        float IlluminanceLux = 1.0f;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, DirectionalLight& data) {
             archive.Field("color", data.Color);
-            archive.Field("intensity", data.Intensity);
+            archive.Field("intensity", data.IlluminanceLux);
         }
     };
 

@@ -56,9 +56,99 @@ namespace QuelosEditor {
 
                     break;
                 }
-                case MaterialPropertyType::Float2:
-                case MaterialPropertyType::Float3:
-                case MaterialPropertyType::Float4:
+                case MaterialPropertyType::Float2: {
+                    static float2 startValue;
+                    static bool startedEditing = false;
+
+                    const float2* value = material.GetProperty<float2>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    float2 temp = *value;
+                    if (UI::EditFloat2(materialProperty.Name, temp)) {
+                        if (!startedEditing) {
+                            startedEditing = true;
+                            startValue = *value;
+                        }
+
+                        material.SetProperty(materialProperty.Offset, temp);
+                    }
+
+                    if (ImGui::IsItemDeactivatedAfterEdit()) {
+                        m_UndoSystem.Push<SetMaterialProperty<float2>>(
+                            m_Material,
+                            materialProperty.Offset,
+                            startValue,
+                            temp
+                        );
+
+                        startedEditing = false;
+                    }
+                    break;
+                }
+                case MaterialPropertyType::Float3: {
+                    static float3 startValue;
+                    static bool startedEditing = false;
+
+                    const float3* value = material.GetProperty<float3>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    float3 temp = *value;
+                    if (UI::EditFloat3(materialProperty.Name, temp)) {
+                        if (!startedEditing) {
+                            startedEditing = true;
+                            startValue = *value;
+                        }
+
+                        material.SetProperty(materialProperty.Offset, temp);
+                    }
+
+                    if (ImGui::IsItemDeactivatedAfterEdit()) {
+                        m_UndoSystem.Push<SetMaterialProperty<float3>>(
+                            m_Material,
+                            materialProperty.Offset,
+                            startValue,
+                            temp
+                        );
+
+                        startedEditing = false;
+                    }
+                    break;
+                }
+                case MaterialPropertyType::Float4: {
+                    static float4 startValue;
+                    static bool startedEditing = false;
+
+                    const float4* value = material.GetProperty<float4>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    float4 temp = *value;
+                    if (UI::EditFloat4(materialProperty.Name, temp)) {
+                        if (!startedEditing) {
+                            startedEditing = true;
+                            startValue = *value;
+                        }
+
+                        material.SetProperty(materialProperty.Offset, temp);
+                    }
+
+                    if (ImGui::IsItemDeactivatedAfterEdit()) {
+                        m_UndoSystem.Push<SetMaterialProperty<float4>>(
+                            m_Material,
+                            materialProperty.Offset,
+                            startValue,
+                            temp
+                        );
+
+                        startedEditing = false;
+                    }
+                    break;
+                }
                 case MaterialPropertyType::Color: {
                     static Color startValue;
                     static bool startedEditing = false;
@@ -90,7 +180,6 @@ namespace QuelosEditor {
                     }
                     break;
                 }
-                case MaterialPropertyType::Unknown:
                 case MaterialPropertyType::Int:
                 case MaterialPropertyType::Int2:
                 case MaterialPropertyType::Int3:
@@ -116,6 +205,8 @@ namespace QuelosEditor {
                 case MaterialPropertyType::UInt2:
                 case MaterialPropertyType::UInt3:
                 case MaterialPropertyType::UInt4:
+                    break;
+                case MaterialPropertyType::Unknown:
                     break;
                 }
             }

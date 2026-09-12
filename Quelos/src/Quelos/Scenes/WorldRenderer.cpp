@@ -440,12 +440,13 @@ namespace Quelos {
         gfx.DepthStencilSpec.DepthEnable = true;
         gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
 
-        LayoutElementBuilder<5> layoutBuilder{
+        LayoutElementBuilder<6> layoutBuilder{
             LayoutElement{0, 0, ValueType::Float3},
             LayoutElement{1, 0, ValueType::Float3},
             LayoutElement{2, 0, ValueType::Float3},
             LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float2}
+            LayoutElement{4, 0, ValueType::Float3},
+            LayoutElement{5, 0, ValueType::Float2}
         };
 
         gfx.InputLayout.LayoutElements = layoutBuilder;
@@ -539,12 +540,13 @@ namespace Quelos {
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
 
-        LayoutElementBuilder<5> layoutBuilder{
+        LayoutElementBuilder<6> layoutBuilder{
             LayoutElement{0, 0, ValueType::Float3},
             LayoutElement{1, 0, ValueType::Float3},
             LayoutElement{2, 0, ValueType::Float3},
             LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float2}
+            LayoutElement{4, 0, ValueType::Float3},
+            LayoutElement{5, 0, ValueType::Float2}
         };
 
         gfx.InputLayout.LayoutElements = layoutBuilder;
@@ -990,6 +992,7 @@ namespace Quelos {
                 entity.target<PipelineOf>().remove<CheckedMeshRenderer>();
                 entity.destruct();
                 isDirty = true;
+                return;
             }
 
             if (!Renderer::IsAlive(pipelineStateComponent.PSO.GetHandle())) {
@@ -1088,12 +1091,13 @@ namespace Quelos {
 
                 pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-                LayoutElementBuilder<5> layoutBuilder{
+                LayoutElementBuilder<6> layoutBuilder{
                     LayoutElement{0, 0, ValueType::Float3},
                     LayoutElement{1, 0, ValueType::Float3},
                     LayoutElement{2, 0, ValueType::Float3},
                     LayoutElement{3, 0, ValueType::Float3},
-                    LayoutElement{4, 0, ValueType::Float2}
+                    LayoutElement{4, 0, ValueType::Float3},
+                    LayoutElement{5, 0, ValueType::Float2}
                 };
 
                 pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
@@ -1271,7 +1275,17 @@ namespace Quelos {
 
         Globals globals{};
         globals.ViewProjection = viewProjection;
-        globals.LightDirection = float4(lightDirection, 0);
+        globals.CameraPosition = float4(renderViewParams.CameraPosition, 0);
+
+        m_DirectionalLightQuery.each([&](const WorldTransform& transform, const DirectionalLight& directionalLight) {
+            lightDirection = transform.Value[2].xyz;
+
+            globals.DirectionalLightData = {
+                .Direction = float4(lightDirection, 0.0f),
+                .Color = float3(directionalLight.Color.xyz),
+                .IlluminanceLux = directionalLight.IlluminanceLux
+            };
+        });
 
         Renderer::UpdateBuffer(
             m_GlobalBuffer,
@@ -1356,7 +1370,6 @@ namespace Quelos {
 
         m_DirectionalLightSMQuery.each([&](const WorldTransform& transform, const EntityID& entityId) {
             const DirectionalLightShadowMap& shadowMap = m_ShadowMaps.at(entityId);
-            lightDirection = transform.Value[2].xyz;
 
             float3 up = fabsf(math::dot(lightDirection, float3(0, 1, 0))) > 0.99f
                             ? float3(0, 0, 1)
@@ -1546,7 +1559,6 @@ namespace Quelos {
                 clear[0].Color = Color::White();
                 shadowMaskPassAttribs.ClearColors = clear;
 
-                // LoadOp = Load, so no clear value needed
                 Renderer::BeginRenderPass(shadowMaskPassAttribs);
 
                 // No vertex buffer, shader generates the triangle from SV_VertexID

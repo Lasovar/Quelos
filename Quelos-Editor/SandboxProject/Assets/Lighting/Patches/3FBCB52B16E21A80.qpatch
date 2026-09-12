@@ -1,0 +1,14 @@
+[actor guid=3FBCB52B16E21A80 state=added]
+name = "Floor"
+parent = root
+order = 0x0000000400000000
+
+#Quelos.LocalTransform
+position = (0,0,0)
+rotation = (0.7071068,0,0,0.7071068)
+scale = (25,25,10)
+
+#Quelos.MeshRenderer
+mesh = 7454a857-a0d2-464c-a711-6ca3088cfd5e
+material = 967e0c1b-b299-4f99-9d04-544183fdd48c
+castShadows = 1

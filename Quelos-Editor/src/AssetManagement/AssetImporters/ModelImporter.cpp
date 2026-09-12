@@ -209,6 +209,7 @@ namespace QuelosEditor {
 
                     if (mesh->HasTangentsAndBitangents()) {
                         vertex.Tangent = ToFloat3(mesh->mTangents[vertexIndex]);
+                        vertex.Bitangent = ToFloat3(mesh->mBitangents[vertexIndex]);
                     }
 
                     if (mesh->HasTextureCoords(0)) {

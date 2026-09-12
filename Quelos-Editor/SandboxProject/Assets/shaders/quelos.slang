@@ -2,13 +2,16 @@ struct VertexIn {
     float3 position : ATTRIB0;
     float3 normal : ATTRIB1;
     float3 tangent : ATTRIB2;
-    float3 SmoothNormal : ATTRIB3;
-    float2 texcoord0 : ATTRIB4;
+    float3 Bitangent : ATTRIB3;
+    float3 SmoothNormal : ATTRIB4;
+    float2 texcoord0 : ATTRIB5;
 };
 
 struct VertexOut {
     float4 position : SV_Position;
     float3 normal : NORMAL;
+    float3 Tangent : NORMAL;
+    float3 Bitangent : NORMAL;
     float2 uv : TEXCOORD0;
     uint instanceID : SV_InstanceID;
 };
@@ -62,9 +65,16 @@ struct ColorAttribute {}
 [__AttributeUsage(_AttributeTargets.Var)]
 struct Texture2DAttribute {}
 
+__extern_cpp struct DirectionalLightData {
+    float4 Direction;
+    float3 Color;
+    float IlluminanceLux;
+}
+
 __extern_cpp struct GlobalUniforms {
     float4x4 viewProj;
-    float4 LightDirection;
+    DirectionalLightData Sun;
+    float4 CameraPosition;
 };
 
 // Data accessed per instance from the Instances StructuredBuffer with SV_InstanceID

@@ -56,12 +56,12 @@ namespace Quelos {
         const auto& sceneCamera = camera.Camera;
 
         return {
-            sceneCamera.GetProjection(),
-            mathExt::view(transform.Value),
-            transform.Value[3].xyz,
-            camera.ClearColor,
-            sceneCamera.GetNearClip(),
-            sceneCamera.GetFarClip()
+            .Projection = sceneCamera.GetProjection(),
+            .View = mathExt::view(transform.Value),
+            .CameraPosition = transform.Value[3].xyz,
+            .SceneColorClear = camera.ClearColor,
+            .NearClip = sceneCamera.GetNearClip(),
+            .FarClip = sceneCamera.GetFarClip()
         };
     }
 

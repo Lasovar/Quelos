@@ -151,7 +151,7 @@ namespace QuelosEditor {
         fbDesc.Name = "ActorIDFrameBuffer";
         fbDesc.RenderPassHandle = m_ActorIDRenderPass.GetHandle();
         fbDesc.Attachments = idFbAttachments;
-        fbDesc.Size = { 1, 1 };
+        fbDesc.Size = { .Width = 1, .Height = 1 };
 
         m_IDFrameBuffer = Renderer::CreateFrameBuffer(fbDesc);
 
@@ -174,12 +174,13 @@ namespace QuelosEditor {
 
         pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x1;
 
-        LayoutElementBuilder<5> layoutBuilder{
+        LayoutElementBuilder<6> layoutBuilder{
             LayoutElement{0, 0, ValueType::Float3},
             LayoutElement{1, 0, ValueType::Float3},
             LayoutElement{2, 0, ValueType::Float3},
             LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float2}
+            LayoutElement{4, 0, ValueType::Float3},
+            LayoutElement{5, 0, ValueType::Float2}
         };
 
         pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
@@ -224,6 +225,7 @@ namespace QuelosEditor {
 
         m_RuntimeWorld.system<LocalTransform&>()
                       .kind<SimulationPhase>()
+                      .with<MeshRenderer>()
                       .each([](const flecs::iter& it, size_t, LocalTransform& transform) {
                           transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
                       });
@@ -335,13 +337,14 @@ namespace QuelosEditor {
                 Renderer::FrameBufferResize(m_CompositeFrameBuffer.GetHandle(), size.x, size.y);
             }
 
-            RenderViewParams sceneViewParams;
-            sceneViewParams.View = m_EditorCamera.GetViewMatrix();
-            sceneViewParams.Projection = m_EditorCamera.GetProjection();
-            sceneViewParams.SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f};
-            sceneViewParams.CameraPosition = m_EditorCamera.GetPosition();
-            sceneViewParams.NearClip = m_EditorCamera.GetNearClip();
-            sceneViewParams.FarClip = m_EditorCamera.GetFarClip();
+            RenderViewParams sceneViewParams {
+                .Projection = m_EditorCamera.GetProjection(),
+                .View = m_EditorCamera.GetViewMatrix(),
+                .CameraPosition = m_EditorCamera.GetPosition(),
+                .SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f},
+                .NearClip = m_EditorCamera.GetNearClip(),
+                .FarClip = m_EditorCamera.GetFarClip()
+            };
 
             m_WorldRenderer.Render(
                 m_SceneViewportPanel.GetWorldRendererView(),
@@ -670,12 +673,13 @@ namespace QuelosEditor {
             fullMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
-            LayoutElementBuilder<5> layoutBuilder{
+            LayoutElementBuilder<6> layoutBuilder{
                 LayoutElement{0, 0, ValueType::Float3},
                 LayoutElement{1, 0, ValueType::Float3},
                 LayoutElement{2, 0, ValueType::Float3},
                 LayoutElement{3, 0, ValueType::Float3},
-                LayoutElement{4, 0, ValueType::Float2}
+                LayoutElement{4, 0, ValueType::Float3},
+                LayoutElement{5, 0, ValueType::Float2}
             };
 
             fullMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
@@ -795,12 +799,13 @@ namespace QuelosEditor {
             visibleMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
             // No input layout, vertex shader generates positions
-            LayoutElementBuilder<5> layoutBuilder{
+            LayoutElementBuilder<6> layoutBuilder{
                 LayoutElement{0, 0, ValueType::Float3},
                 LayoutElement{1, 0, ValueType::Float3},
                 LayoutElement{2, 0, ValueType::Float3},
-                LayoutElement{4, 0, ValueType::Float3},
-                LayoutElement{3, 0, ValueType::Float2}
+                LayoutElement{3, 0, ValueType::Float3},
+                LayoutElement{5, 0, ValueType::Float3},
+                LayoutElement{6, 0, ValueType::Float2}
             };
 
             visibleMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
