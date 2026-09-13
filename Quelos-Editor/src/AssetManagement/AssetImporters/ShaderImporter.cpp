@@ -376,10 +376,14 @@ namespace QuelosEditor {
 
             slang::TargetDesc targetDesc;
             switch (Renderer::GetRendererAPI()) {
-            case RendererAPI::Direct3D11:
+            case RendererAPI::Direct3D11: {
+                targetDesc.format = SLANG_HLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
+                break;
+            }
             case RendererAPI::Direct3D12: {
                 targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("sm_5_1");
+                targetDesc.profile = s_GlobalSession->findProfile("sm_6_5");
                 break;
             }
             case RendererAPI::Vulkan: {
