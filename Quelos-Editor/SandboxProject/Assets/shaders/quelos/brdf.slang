@@ -15,9 +15,11 @@ float V_SmithGGXCorrelated(float NdotL, float NdotV, float alpha) {
     return 0.5 / max(GGXV + GGXL, 1e-5);
 }
 
-float3 F_Schlick(float VdotH, float3 F0) {
-    float f = pow(1.0 - VdotH, 5.0);
-    return F0 + (1.0 - F0) * f;
+float3 F_Schlick(float cosTheta, float3 F0) {
+    float f = saturate(1.0 - cosTheta);
+    float f5 = f * f * f * f * f; // no pow() - avoids NaN from a
+                                    // near-zero-but-negative base
+    return F0 + (1.0 - F0) * f5;
 }
 
 // Standard metallic-workflow Cook-Torrance, returns outgoing radiance
@@ -30,7 +32,6 @@ float3 EvaluateBRDF(
     float NdotH,
     float VdotH
 ) {
-    // clamp, never let alpha hit 0 - D_GGX and V_Smith both degenerate there
     float alpha = max(roughness * roughness, 0.0045);
 
     float3 F0 = lerp(float3(0.04), albedo, metallic);
@@ -40,7 +41,11 @@ float3 EvaluateBRDF(
     float Vis = V_SmithGGXCorrelated(NdotL, NdotV, alpha);
     float3 F = F_Schlick(VdotH, F0);
 
+    float3 F_view  = F_Schlick(NdotV, F0);
+    float3 F_light = F_Schlick(NdotL, F0);
+
     float3 specular = D * Vis * F;
+    //float3 diffuse = diffuseColor * (1.0 - F_view) * (1.0 - F_light) * (1.0 / k_Pi);
     float3 diffuse = diffuseColor * (1.0 - F) * (1.0 / k_Pi);
 
     return diffuse + specular;

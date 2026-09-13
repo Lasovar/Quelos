@@ -169,14 +169,14 @@ namespace Quelos {
 
     WorldRenderer::WorldRenderer() {
         RenderPassAttachmentSpec attachments[3];
-        attachments[0].Format = ImageFormat::RGBA8UNorm;
+        attachments[0].Format = ImageFormat::RGBA16Float;
         attachments[0].SampleCount = 4;
         attachments[0].LoadOp = AttachmentLoadOp::Clear;
         attachments[0].StoreOp = AttachmentStoreOp::Discard;
         attachments[0].InitialState = ResourceState::RenderTarget;
         attachments[0].FinalState = ResourceState::RenderTarget;
 
-        attachments[1].Format = ImageFormat::RGBA8UNorm;
+        attachments[1].Format = ImageFormat::RGBA16Float;
         attachments[1].SampleCount = 1;
         attachments[1].LoadOp = AttachmentLoadOp::Clear;
         attachments[1].StoreOp = AttachmentStoreOp::Store;
@@ -695,7 +695,7 @@ namespace Quelos {
             msaaColorSpec.Width = size.Width;
             msaaColorSpec.Height = size.Height;
 
-            msaaColorSpec.Format = ImageFormat::RGBA8UNorm;
+            msaaColorSpec.Format = ImageFormat::RGBA16Float;
             msaaColorSpec.SamplerWrap = WrapMode::Clamp;
 
             msaaColorSpec.BindFlags = Bind::RenderTarget;
@@ -707,7 +707,7 @@ namespace Quelos {
             sceneColor.Width = size.Width;
             sceneColor.Height = size.Height;
 
-            sceneColor.Format = ImageFormat::RGBA8UNorm;
+            sceneColor.Format = ImageFormat::RGBA16Float;
             sceneColor.SamplerWrap = WrapMode::Repeat;
 
             sceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
@@ -1573,7 +1573,7 @@ namespace Quelos {
         });
 
         ClearValue clearValues[3];
-        clearValues[0].Format = ImageFormat::RGBA8UNorm;
+        clearValues[0].Format = ImageFormat::RGBA16Float;
         clearValues[0].Color = renderViewParams.SceneColorClear;
 
         clearValues[1] = {};
