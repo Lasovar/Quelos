@@ -866,7 +866,7 @@ namespace QuelosEditor {
 
         // Composite Pass
         RenderPassAttachmentSpec compositeAttachment;
-        compositeAttachment.Format = ImageFormat::RGBA8UNorm;
+        compositeAttachment.Format = ImageFormat::RGBA16Float;
         compositeAttachment.SampleCount = 1;
         compositeAttachment.LoadOp = AttachmentLoadOp::Load; // reads+writes scene color
         compositeAttachment.StoreOp = AttachmentStoreOp::Store;
