@@ -10,8 +10,8 @@ struct VertexIn {
 struct VertexOut {
     float4 position : SV_Position;
     float3 normal : NORMAL;
-    float3 Tangent : NORMAL;
-    float3 Bitangent : NORMAL;
+    float3 Tangent : TANGENT;
+    float3 Bitangent : BITANGENT;
     float2 uv : TEXCOORD0;
     uint instanceID : SV_InstanceID;
 };

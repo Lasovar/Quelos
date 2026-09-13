@@ -804,8 +804,8 @@ namespace QuelosEditor {
                 LayoutElement{1, 0, ValueType::Float3},
                 LayoutElement{2, 0, ValueType::Float3},
                 LayoutElement{3, 0, ValueType::Float3},
-                LayoutElement{5, 0, ValueType::Float3},
-                LayoutElement{6, 0, ValueType::Float2}
+                LayoutElement{4, 0, ValueType::Float3},
+                LayoutElement{5, 0, ValueType::Float2}
             };
 
             visibleMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
