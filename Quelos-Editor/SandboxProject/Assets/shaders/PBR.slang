@@ -91,7 +91,7 @@ FragmentOut fragmentMain(VertexOut input) {
     float3 brdf = EvaluateBRDF(albedo, metallic, roughness, NdotL, NdotV, NdotH, VdotH);
 
 
-    float shadow = clamp(GetShadowMask(input.position), 0.3, 1.0);
+    float shadow = 1.0f;// clamp(GetShadowMask(input.position), 0.3, 1.0);
     float3 sunRadiance = global.Sun.Color * global.Sun.IlluminanceLux;
 
     float3 Lo = brdf * sunRadiance * NdotL * shadow;
