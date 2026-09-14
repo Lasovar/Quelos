@@ -323,7 +323,7 @@ namespace QuelosEditor {
             for (const auto& sceneName : m_PlayingScenes | std::views::values) {
                 ImGui::SameLine();
                 ImGui::AlignTextToFramePadding();
-                ImGui::TextUnformatted(sceneName.c_str());
+                ImGui::TextUnformatted(FormatTemp("{} ", sceneName));
             }
             ImGui::PopStyleVar();
         }

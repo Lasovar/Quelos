@@ -51,25 +51,23 @@ float3 EvaluateBRDF(
     float NdotL,
     float NdotV,
     float NdotH,
-    float VdotH
+    float LdotH
 ) {
     float alpha = max(roughness * roughness, 0.0045);
 
     float3 F0 = lerp(float3(0.04), albedo, metallic);
-    float3 F90 = saturate(50.0 * dot(F0, 0.33));
+    float3 F90 = float3(1.0);
 
     float3 diffuseColor = albedo * (1.0 - metallic);
 
+    // Specular BRDF
     float D = D_GGX(NdotH, alpha);
     float Vis = V_SmithGGXCorrelated(NdotL, NdotV, alpha);
-    float3 F = F_Schlick(F0, F90.r, VdotH);
+    float3 F = F_Schlick(F0, F90.r, LdotH);
+    float3 Fr = D * Vis * F / k_Pi;
 
-    float3 F_view  = F_Schlick(F0, F90.r, NdotV);
-    float3 F_light = F_Schlick(F0, F90.r, NdotL);
+    // Diffuse BRDF
+    float3 Fd = diffuseColor * (Fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness) / k_Pi);
 
-    float3 specular = D * Vis * F;
-    //float3 diffuse = diffuseColor * (1.0 - F_view) * (1.0 - F_light) * (1.0 / k_Pi);
-    float3 diffuse = diffuseColor * (1.0 - F) * (1.0 / k_Pi);
-
-    return diffuse + specular;
+    return Fd + Fr;
 }
