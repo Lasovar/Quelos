@@ -182,6 +182,7 @@ namespace Quelos {
 
     struct QS_API alignas(16) CascadeShadowData {
         pfloat4x4 LightViewProj[k_NumCascades];
+        pfloat4 CascadeParams[k_NumCascades];
         pfloat4 SplitDepths; // view-space Z end per cascade
         pfloat4x4 InvViewProjection;
         pfloat4x4 View;
@@ -234,11 +235,20 @@ namespace Quelos {
         ResourceRef<ShaderResourceBinding> ShadowMaskSRB;
         bool ShadowMapsBound = false;
 
-        bool ReductionReadbackReady = false;
-        ResourceRef<GpuBuffer> ReductionStagingBuffer;
-        uint64_t ReductionStagingFenceValue = 0;
+        static constexpr uint32_t k_ReductionReadbackRing = 3;
+
+        struct ReductionReadbackSlot {
+            ResourceRef<GpuBuffer> ReductionStagingBuffer;
+            uint64_t FenceValue = 0;
+            bool IsPending = false;
+        };
+
+        Array<ReductionReadbackSlot, k_ReductionReadbackRing> ReductionReadbackSlots;
+        uint32_t ReductionWriteIndex = 0;
+        uint64_t ReductionFenceCounter = 0;
         ResourceRef<Fence> ReductionStagingFence;
         ResourceRef<ShaderResourceBinding> ShadowComputeSRB;
+        bool ReductionReadbackReady = false;
 
         float LastMinNDC = 0.0f;
         float LastMaxNDC = 1.0f;

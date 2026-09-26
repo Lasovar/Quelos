@@ -91,8 +91,8 @@ namespace QuelosEditor {
 
             ModelMetadata modelMetadata{
                 AssetID(),
-                Vec<MeshMetadata>(Allocator::Temp),
-                Vec<MaterialMetadata>(Allocator::Temp)
+                Vec<MeshMetadata>(Allocator::Frame),
+                Vec<MaterialMetadata>(Allocator::Frame)
             };
 
             MeshMetadata meshMetadata;
@@ -227,7 +227,7 @@ namespace QuelosEditor {
                     }
                 }
 
-                HashMap<uint64_t, float3> smoothMap(Allocator::Temp);
+                HashMap<uint64_t, float3> smoothMap(Allocator::Frame);
 
                 auto hashPos = [](const pfloat3 p) -> uint64_t { return Hash::Fnv1a64(&p, sizeof(pfloat3)); };
 

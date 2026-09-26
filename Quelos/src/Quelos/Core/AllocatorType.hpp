@@ -29,8 +29,8 @@ namespace Quelos {
 
     enum class Allocator {
         None,
-        Temp,
-        TempJob,
+        Frame,
+        Job,
         Persistent
     };
 
@@ -52,7 +52,11 @@ namespace Quelos {
     }
 
     class ArenaMemoryResource;
-    QS_API ArenaMemoryResource& GetTempAllocator();
+
+    /// An allocator that's valid for the current frame
+    /// Could be used in the future for buffered frames (process next frame before current is rendered)
+    /// The allocated data will be valid until the current frame fully finished being rendered
+    QS_API ArenaMemoryResource& GetFrameAllocator();
 
     QS_API std::pmr::memory_resource* GetAllocator(Allocator allocatorType);
 }

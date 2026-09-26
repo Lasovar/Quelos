@@ -83,6 +83,8 @@ namespace Quelos {
         using hlslpp::projection;
 
         namespace zclip = hlslpp::zclip;
+        namespace zdirection = hlslpp::zdirection;
+        namespace zplane = hlslpp::zplane;
 
         using hlslpp::radians;
         constexpr float radians(const float f) { return f * (f_pi / 180.0f); }

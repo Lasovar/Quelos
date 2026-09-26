@@ -475,6 +475,11 @@ namespace QuelosEditor {
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
 
         if (ImGui::Begin("ShadowMask")) {
+            float nearFar[2];
+            nearFar[0] = m_SceneViewportPanel.GetWorldRendererView()->LastMinNDC;
+            nearFar[1] = m_SceneViewportPanel.GetWorldRendererView()->LastMaxNDC;
+
+            ImGui::DragFloat2("Near/Far", nearFar, 1, 0, 0, "%.4f", ImGuiSliderFlags_ReadOnly);
             if (m_SceneViewportPanel.ShouldDraw()) {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
 

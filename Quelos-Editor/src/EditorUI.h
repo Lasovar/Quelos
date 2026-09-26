@@ -110,7 +110,7 @@ namespace QuelosEditor {
             // Search button
             if (ImGui::Button("...", ImVec2(buttonSize, buttonSize))) {
                 searchAssetMetadata.clear();
-                searchAssetMetadata.append_range(AssetManager::FindAssetsOfType<T>(Allocator::Temp));
+                searchAssetMetadata.append_range(AssetManager::FindAssetsOfType<T>(Allocator::Frame));
                 ImGui::OpenPopup("AssetSearchPopup");
             }
 
@@ -122,7 +122,7 @@ namespace QuelosEditor {
                     double Score = 0.0f;
                 };
 
-                Vec<AssetSearchResult> results(AllocatorType::Temp);
+                Vec<AssetSearchResult> results(AllocatorType::Frame);
 
                 if (ImGui::IsWindowAppearing()) {
                     ImGui::SetKeyboardFocusHere();

@@ -327,9 +327,9 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
-            HashMap<String, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Temp};
-            Vec<MaterialPropertySpec> MaterialProperties{Allocator::Temp};
-            HashSet<std::string> Variables{Allocator::Temp};
+            HashMap<String, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Frame};
+            Vec<MaterialPropertySpec> MaterialProperties{Allocator::Frame};
+            HashSet<std::string> Variables{Allocator::Frame};
             uint64_t MaterialSize = 0;
         };
 
@@ -502,10 +502,10 @@ namespace QuelosEditor {
             };
 
             HashMap<String, SortedVec<ShaderInfo, ShaderInfo::Compare>, TransparentStringHash, TransparentStringEqual>
-            passMap{Allocator::Temp};
+            passMap{Allocator::Frame};
 
             for (int i = 0; i < module->getDefinedEntryPointCount(); i++) {
-                ShaderInfo shaderInfo(Allocator::Temp);
+                ShaderInfo shaderInfo(Allocator::Frame);
 
                 module->getDefinedEntryPoint(i, shaderInfo.EntryPoint.writeRef());
 
@@ -555,7 +555,7 @@ namespace QuelosEditor {
                     passName = "GBuffer";
                 }
 
-                passMap.try_emplace(String(passName, Allocator::Temp)).first->second.emplace(std::move(shaderInfo));
+                passMap.try_emplace(String(passName, Allocator::Frame)).first->second.emplace(std::move(shaderInfo));
             }
 
             if (diagnostics) {
@@ -568,7 +568,7 @@ namespace QuelosEditor {
                 diagnostics = nullptr;
             }
 
-            Vec<slang::IComponentType*> components(Allocator::Temp);
+            Vec<slang::IComponentType*> components(Allocator::Frame);
             components.push_back(module);
             for (const auto& shaders : passMap | std::views::values) {
                 std::ranges::transform(
@@ -597,7 +597,7 @@ namespace QuelosEditor {
             }
 
             for (auto& [passName, shaders] : passMap) {
-                result.Passes.try_emplace(passName.clone(Allocator::Temp));
+                result.Passes.try_emplace(passName.clone(Allocator::Frame));
 
                 for (uint32_t i = 0; i < shaders.size(); i++) {
                     ShaderInfo& shader = shaders[i];
@@ -665,14 +665,14 @@ namespace QuelosEditor {
             createInfo.MaterialProperties = shaderMetadata->MaterialProperties;
 
             uint32_t numOfParameters = reader.Read<uint32_t>().value_or(0);
-            createInfo.Variables.init(Allocator::Temp);
+            createInfo.Variables.init(Allocator::Frame);
             createInfo.Variables.reserve(numOfParameters);
             for (uint32_t parameterIndex = 0; parameterIndex < numOfParameters; parameterIndex++) {
                 createInfo.Variables.emplace_back(reader.ReadString().value_or(""));
             }
 
             uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
-            createInfo.Passes.init(Allocator::Temp);
+            createInfo.Passes.init(Allocator::Frame);
             createInfo.Passes.reserve(numOfPasses);
             for (uint32_t passIndex = 0; passIndex < numOfPasses; passIndex++) {
                 std::string_view passName = reader.ReadString().value_or("");
@@ -685,7 +685,7 @@ namespace QuelosEditor {
                     shader.Type = reader.Read<ShaderType>().value_or(ShaderType::Unknown);
                     shader.Order = reader.Read<int32_t>().value_or(0);
 
-                    shader.PipelineOptions = Vec<Pair<PipelineOption, PipelineOptionValue>>(Allocator::Temp);
+                    shader.PipelineOptions = Vec<Pair<PipelineOption, PipelineOptionValue>>(Allocator::Frame);
                     shader.PipelineOptions.resize(reader.Read<uint32_t>().value_or(0));
                     for (auto& option : shader.PipelineOptions) {
                         option.first = reader.Read<PipelineOption>().value_or(PipelineOption::None);
@@ -775,7 +775,7 @@ namespace QuelosEditor {
 
             shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
 
-            Vec64<byte> buffer(Allocator::Temp);
+            Vec64<byte> buffer(Allocator::Frame);
             Serialization::BinaryWriter writer(buffer);
 
             writer.Write(compiledShaders.MaterialSize);

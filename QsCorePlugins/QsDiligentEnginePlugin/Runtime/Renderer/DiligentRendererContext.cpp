@@ -522,7 +522,7 @@ namespace Quelos {
 
             desc.Name = spec.Name.data();
 
-            Vec<ImmutableSamplerDesc> samplers(Allocator::Temp);
+            Vec<ImmutableSamplerDesc> samplers(Allocator::Frame);
             samplers.reserve(spec.ImmutableSamplers.size());
             for (const ImmutableSamplerSpec& immutableSampler : spec.ImmutableSamplers) {
                 samplers.push_back(GetImmutableSampler(immutableSampler));
@@ -531,7 +531,7 @@ namespace Quelos {
             desc.ImmutableSamplers = samplers.data();
             desc.NumImmutableSamplers = samplers.size();
 
-            Vec<PipelineResourceDesc> resources(Allocator::Temp);
+            Vec<PipelineResourceDesc> resources(Allocator::Frame);
             resources.reserve(spec.Resources.size());
             for (const PipelineResourceSpec& resource : spec.Resources) {
                 resources.push_back(GetPipelineResourceDesc(resource));
@@ -962,7 +962,7 @@ namespace Quelos {
     }
 
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
-        SmallVec<OptimizedClearValue, 2> clearValues(Allocator::Temp);
+        SmallVec<OptimizedClearValue, 2> clearValues(Allocator::Frame);
         clearValues.reserve(beginRenderPassAttrib.ClearColors.size());
         for (const ClearValue& clearColor : beginRenderPassAttrib.ClearColors) {
             OptimizedClearValue optimizedClearValue;
@@ -1624,14 +1624,14 @@ namespace Quelos {
         spec.SubPasses = slot->SubPasses;
         spec.Attachments = slot->Attachments;
 
-        SmallVec<RenderPassAttachmentDesc, 3> attachments(Allocator::Temp);
+        SmallVec<RenderPassAttachmentDesc, 3> attachments(Allocator::Frame);
 
         for (const RenderPassAttachmentSpec& attachment : spec.Attachments) {
             attachments.push_back(Utils::GetRenderPassAttachmentDesc(attachment));
         }
 
-        SmallVec<SubpassDesc, 2> subpasses(Allocator::Temp);
-        SmallVec<Diligent::AttachmentReference, 3> attachmentRefs(Allocator::Temp);
+        SmallVec<SubpassDesc, 2> subpasses(Allocator::Frame);
+        SmallVec<Diligent::AttachmentReference, 3> attachmentRefs(Allocator::Frame);
 
         uint32_t totalAttachmentRefCount = 0;
         for (const SubPassSpec& pass : spec.SubPasses) {
@@ -1708,7 +1708,7 @@ namespace Quelos {
         FrameBufferSpec& spec = slot->Specification;
         spec = {slot->Name, slot->Attachments, frameBufferSpec.RenderPassHandle, frameBufferSpec.NumArraySlices, frameBufferSpec.Size};
 
-        SmallVec<ITextureView*, 2> textureAttachments(Allocator::Temp);
+        SmallVec<ITextureView*, 2> textureAttachments(Allocator::Frame);
         textureAttachments.reserve(spec.Attachments.size());
         for (const TextureViewHandle attachment : spec.Attachments) {
             textureAttachments.push_back(m_TextureViewTable.At(attachment)->TextureView);
@@ -1755,7 +1755,7 @@ namespace Quelos {
         QFrameBufferData* data = m_FrameBufferTable.At(frameBufferHandle);
         data->Specification.Size = {width, height};
 
-        SmallVec<ITextureView*, 2> textureViews(Allocator::Temp);
+        SmallVec<ITextureView*, 2> textureViews(Allocator::Frame);
         for (const TextureViewHandle attachment : data->Attachments) {
             const TextureViewData* textureViewData = m_TextureViewTable.At(attachment);
             textureViews.push_back(textureViewData->TextureView);
@@ -2010,7 +2010,7 @@ namespace Quelos {
 
         PSOCreateInfo.GraphicsPipeline.BlendDesc = Utils::GetBlendStateSpec(gpSpec.BlendSpec);
 
-        Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout, Allocator::Temp);
+        Utils::DiligentInputLayoutDesc inputLayoutDesc(gpSpec.InputLayout, Allocator::Frame);
 
         PSOCreateInfo.GraphicsPipeline.InputLayout = inputLayoutDesc.Desc;
 
@@ -2023,7 +2023,7 @@ namespace Quelos {
         }
 
         // Define variable type that will be used by default
-        Vec<ShaderResourceVariableDesc> variables(Allocator::Temp);
+        Vec<ShaderResourceVariableDesc> variables(Allocator::Frame);
         variables.resize(slot->Variables.size());
         for (uint32_t i = 0; i < variables.size(); i++) {
             const ShaderResourceVariableSpec& variable = slot->Variables[i];
@@ -2038,7 +2038,7 @@ namespace Quelos {
         PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
         PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
 
-        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Temp);
+        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Frame);
         immutableSamplers.resize(slot->ImmutableSamplers.size());
         for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
             const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];
@@ -2107,7 +2107,7 @@ namespace Quelos {
         PSOCreateInfo.pCS = m_ShaderTable.At(pipelineStateCreateInfo.ComputeShader)->Shader;
 
         // Define variable type that will be used by default
-        Vec<ShaderResourceVariableDesc> variables(Allocator::Temp);
+        Vec<ShaderResourceVariableDesc> variables(Allocator::Frame);
         variables.resize(slot->Variables.size());
         for (uint32_t i = 0; i < variables.size(); i++) {
             const ShaderResourceVariableSpec& variable = slot->Variables[i];
@@ -2122,7 +2122,7 @@ namespace Quelos {
         PSOCreateInfo.PSODesc.ResourceLayout.Variables = variables.data();
         PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = variables.size();
 
-        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Temp);
+        Vec<ImmutableSamplerDesc> immutableSamplers(Allocator::Frame);
         immutableSamplers.resize(slot->ImmutableSamplers.size());
         for (uint32_t i = 0; i < immutableSamplers.size(); i++) {
             const ImmutableSamplerSpec& immutableSampler = slot->ImmutableSamplers[i];

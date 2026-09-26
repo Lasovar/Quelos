@@ -36,8 +36,8 @@ namespace Quelos {
             m_Projection = mathExt::perspective(
                 math::radians(m_PerspectiveFOV),
                 m_AspectRatio,
-                m_PerspectiveFar,
-                m_PerspectiveNear
+                m_PerspectiveNear,
+                m_PerspectiveFar
             );
         }
         else {
@@ -51,8 +51,8 @@ namespace Quelos {
                 orthoRight,
                 orthoBottom,
                 orthoTop,
-                m_OrthographicFar,
-                m_OrthographicNear
+                m_OrthographicNear,
+                m_OrthographicFar
             );
         }
     }
