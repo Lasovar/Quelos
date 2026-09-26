@@ -474,7 +474,6 @@ namespace QuelosEditor {
         m_SceneViewportPanel.SetFrame(m_SelectedEntity, m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection());
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
 
-        /*
         if (ImGui::Begin("ShadowMask")) {
             if (m_SceneViewportPanel.ShouldDraw()) {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
@@ -486,14 +485,14 @@ namespace QuelosEditor {
                 size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
-                    TextureHandle(m_FullMaskResolvedTexture.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView()->ShadowMask.GetHandle()).GetNativeHandle(),
                     {size.x, size.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
                 );
             }
         }
-        ImGui::End();*/
+        ImGui::End();
 
         m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
