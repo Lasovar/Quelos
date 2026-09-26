@@ -438,7 +438,7 @@ namespace Quelos {
         gfx.DepthStencilSpec.DepthEnable = true;
         gfx.DepthStencilSpec.DepthWriteEnable = true;
         gfx.DepthStencilSpec.DepthEnable = true;
-        gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
+        gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
 
         LayoutElementBuilder<6> layoutBuilder{
             LayoutElement{0, 0, ValueType::Float3},
@@ -537,6 +537,7 @@ namespace Quelos {
         gfx.RasterizerSpec.DepthBias = 2;
         gfx.RasterizerSpec.SlopeScaledDepthBias = 40.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
+        gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
 
@@ -610,7 +611,7 @@ namespace Quelos {
         samplers[0].SamplerOrTextureName = "ShadowMaps";
         samplers[0].Specification = samplerSpec;
         samplers[0].ShaderStages = ShaderType::Fragment;
-        samplers[0].Specification.ComparisonFunc = ComparisonFunc::LessEqual;
+        samplers[0].Specification.ComparisonFunc = ComparisonFunc::GreaterEqual;
 
         psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
 
@@ -1068,7 +1069,7 @@ namespace Quelos {
                 pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
                 pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
-                pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
+                pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
 
                 bool depthWrite = true;
                 for (const auto & pipelineOption : pipelineData.PipelineOptions) {
@@ -1310,7 +1311,7 @@ namespace Quelos {
             depthPrepassAttribs.RenderPassHandle = m_DepthPrepass.GetHandle();
 
             ClearValue clear[2];
-            clear[0].DepthStencil.Depth = 1.0f;
+            clear[0].DepthStencil.Depth = 0.0f;
             clear[1].Color = { 0.5f, 0.5f, 0.5f, 0.0f };
 
             depthPrepassAttribs.ClearColors = clear;
@@ -1457,7 +1458,7 @@ namespace Quelos {
                 // Pull near plane back to catch shadow casters behind camera
                 lsMin.z -= 50.0f; // needs to be tuned to scene scale, might add a UI slider
 
-                float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMin.z, lsMax.z);
+                float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMax.z, lsMin.z);
                 shadowData.LightViewProj[c] = math::mul(lightView, lightProj);
             }
 
@@ -1477,7 +1478,7 @@ namespace Quelos {
                 passAttribs.RenderPassHandle = m_ShadowRenderPass;
 
                 ClearValue clear[1];
-                clear->DepthStencil.Depth = 1.0f;
+                clear->DepthStencil.Depth = 0.0f;
                 passAttribs.ClearColors = clear;
 
                 Renderer::BeginRenderPass(passAttribs);
@@ -1579,7 +1580,7 @@ namespace Quelos {
         clearValues[1] = {};
 
         clearValues[2].Format = ImageFormat::Depth32Float;
-        clearValues[2].DepthStencil.Depth = 1.0f;
+        clearValues[2].DepthStencil.Depth = 0.0f;
 
         BeginRenderPassAttribs gBufferPassAttribs;
         gBufferPassAttribs.ClearColors = clearValues;
