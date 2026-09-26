@@ -435,7 +435,6 @@ namespace Quelos {
         gfx.RasterizerSpec.CullMode = CullMode::Back;
         gfx.RasterizerSpec.FrontCounterClockwise = true;
         gfx.SampleSpec.Count = SampleCount::x4;
-        gfx.DepthStencilSpec.DepthEnable = true;
         gfx.DepthStencilSpec.DepthWriteEnable = true;
         gfx.DepthStencilSpec.DepthEnable = true;
         gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
@@ -534,10 +533,10 @@ namespace Quelos {
         GraphicsPipelineSpec& gfx = psoCI.GraphicsPipeline;
         gfx.RenderPass = m_ShadowRenderPass;
         gfx.RasterizerSpec.CullMode = CullMode::Front;
-        gfx.RasterizerSpec.DepthBias = 2;
-        gfx.RasterizerSpec.SlopeScaledDepthBias = 40.0f;
+        gfx.RasterizerSpec.DepthBias = 0;
+        gfx.RasterizerSpec.SlopeScaledDepthBias = 0.0f;
         gfx.RasterizerSpec.DepthBiasClamp = 0.0f;
-        gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
+        gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
 
@@ -611,7 +610,7 @@ namespace Quelos {
         samplers[0].SamplerOrTextureName = "ShadowMaps";
         samplers[0].Specification = samplerSpec;
         samplers[0].ShaderStages = ShaderType::Fragment;
-        samplers[0].Specification.ComparisonFunc = ComparisonFunc::GreaterEqual;
+        samplers[0].Specification.ComparisonFunc = ComparisonFunc::LessEqual;
 
         psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
 
@@ -839,14 +838,19 @@ namespace Quelos {
 
         {
             GpuBufferSpec stagingSpec;
-            stagingSpec.Name = "ReductionStaging";
             stagingSpec.Size = sizeof(uint64_t);
             stagingSpec.Mode = GpuBufferMode::Raw;
             stagingSpec.BindFlags = Bind::None;
             stagingSpec.Usage = Usage::Staging;
             stagingSpec.CpuAccessFlags = CpuAccess::Read;
 
-            view->ReductionStagingBuffer = Renderer::CreateBuffer(stagingSpec, {});
+            String reductionStagingName(Allocator::Frame);
+            for (uint32_t i = 0; i < WorldRendererView::k_ReductionReadbackRing; i++) {
+                reductionStagingName = FormatTemp("ReductionStaging_{}", i);
+                stagingSpec.Name = reductionStagingName;
+                view->ReductionReadbackSlots[i].ReductionStagingBuffer = Renderer::CreateBuffer(stagingSpec, {});
+            }
+
             FenceSpec fenceSpec;
             fenceSpec.Name = "DepthReductionStagingFence";
             fenceSpec.Type = FenceType::CpuWaitOnly;
@@ -964,7 +968,7 @@ namespace Quelos {
                 TextureViewHandle dsv = Renderer::TextureCreateView(shadowMap, dsvSpec);
 
                 FrameBufferSpec fbSpec;
-                thread_local std::string name;
+                String name(Allocator::Frame);
                 name = FormatTemp("CascadeShadowMap_{}", i);
                 fbSpec.Name = name;
                 fbSpec.Size = { 2048, 2048 };
@@ -1053,7 +1057,7 @@ namespace Quelos {
                 return;
             }
 
-            Vec<WeakPipelineData> worldPipelines(Allocator::Temp);
+            Vec<WeakPipelineData> worldPipelines(Allocator::Frame);
 
             bool hasShadowMaps = false;
             for (const GraphicsShaderPipelineData& pipelineData : shaderPass->Pipelines) {
@@ -1256,17 +1260,28 @@ namespace Quelos {
 
         auto& view = *m_ActiveViews[worldRendererView->GetViewID()];
 
-        if (
-            view.ReductionReadbackReady
-            && Renderer::FenceGetCompletedValue(view.ReductionStagingFence.GetHandle()) >=  view.ReductionStagingFenceValue
-        ) {
+        const uint64_t completed = Renderer::FenceGetCompletedValue(view.ReductionStagingFence.GetHandle());
+        WorldRendererView::ReductionReadbackSlot* latestReadbackSlot = nullptr;
+        for (auto& slot : view.ReductionReadbackSlots) {
+            if (slot.IsPending && slot.FenceValue <= completed) {
+                if (!latestReadbackSlot || slot.FenceValue > latestReadbackSlot->FenceValue) {
+                    latestReadbackSlot = &slot;
+                }
+
+                slot.IsPending = false;
+            }
+        }
+
+        if (latestReadbackSlot) {
             void* mapped;
-            Renderer::Map(view.ReductionStagingBuffer.GetHandle(), Map::Read, MapFlags::DoNotWait, mapped);
+            Renderer::Map(latestReadbackSlot->ReductionStagingBuffer.GetHandle(), Map::Read, MapFlags::DoNotWait, mapped);
             if (mapped) {
                 auto readback = static_cast<uint32_t*>(mapped);
                 view.LastMinNDC = std::bit_cast<float>(readback[0]);
                 view.LastMaxNDC = std::bit_cast<float>(readback[1]);
-                Renderer::Unmap(view.ReductionStagingBuffer.GetHandle(), Map::Read);
+                Renderer::Unmap(latestReadbackSlot->ReductionStagingBuffer.GetHandle(), Map::Read);
+
+                view.ReductionReadbackReady = true;
             }
         }
 
@@ -1382,16 +1397,20 @@ namespace Quelos {
 
             CascadeShadowData shadowData{};
 
-            // Depth Reduction Compute (Uses depth of frame N - 1)
-            float minNDC = view.ReductionReadbackReady ? view.LastMinNDC : 0.0f;
-            float maxNDC = view.ReductionReadbackReady ? view.LastMaxNDC : 1.0f;
+            const bool validReduction = view.ReductionReadbackReady
+                                     && view.LastMaxNDC > 0.0f
+                                     && view.LastMinNDC <= view.LastMaxNDC;
+
+            float nearNDC = validReduction ? view.LastMaxNDC : 1.0f;
+            float farNDC  = validReduction ? view.LastMinNDC : 0.0f;
 
             // Linearize (Vulkan depth [0,1])
             auto linearize = [&](const float d) {
-                return nearZ * farZ / (farZ - d * (farZ - nearZ));
+                return (farZ * nearZ) / (d * (farZ - nearZ) + nearZ);
             };
-            float minView = linearize(minNDC);
-            float maxView = linearize(maxNDC);
+
+            float minView = linearize(nearNDC);
+            float maxView = linearize(farNDC);
 
             // Logarithmic splits within tight range
             float ratio = maxView / minView;
@@ -1409,10 +1428,10 @@ namespace Quelos {
             view.SmoothedSplits = targetSplits;//math::lerp(smoothedSplits, targetSplits, 0.15f);
 
             Array<float3, 8> frustumCorners = {
-                // near plane (z=0)
-                float3{-1, -1, 0}, { 1, -1, 0}, { 1,  1, 0}, {-1,  1, 0},
-                // far plane (z=1)
-                {-1, -1, 1}, { 1, -1, 1}, { 1,  1, 1}, {-1,  1, 1},
+                // near plane (z = 1)
+                float3{-1, -1, 1}, { 1, -1, 1}, { 1,  1, 1}, {-1,  1, 1},
+                // far plane (z = 0)
+                {-1, -1, 0}, { 1, -1, 0}, { 1,  1, 0}, {-1,  1, 0},
             };
 
             auto transformPoint = [](const float3& point, const float4x4& v) -> float3 {
@@ -1430,10 +1449,11 @@ namespace Quelos {
 
                 Array<float3, 8> corners = frustumCorners;
 
+                const float range = farZ - nearZ;
                 for (int i = 0; i < 4; i++) {
                     float3 ray = corners[i + 4] - corners[i];
-                    corners[i + 4] = corners[i] + ray * (splitFar / farZ);
-                    corners[i] = corners[i] + ray * (splitNear / farZ);
+                    corners[i + 4] = corners[i] + ray * ((splitFar - nearZ) / range);
+                    corners[i] = corners[i] + ray * ((splitNear - nearZ) / range);
                 }
 
                 // compute light-space AABB from these 8 corners
@@ -1458,7 +1478,26 @@ namespace Quelos {
                 // Pull near plane back to catch shadow casters behind camera
                 lsMin.z -= 50.0f; // needs to be tuned to scene scale, might add a UI slider
 
-                float4x4 lightProj = mathExt::orthographic(lsMin.x, lsMax.x, lsMin.y, lsMax.y, lsMax.z, lsMin.z);
+                const float texelWorld = math::max(unitsPerTexelX, unitsPerTexelY);
+                const float depthRange = lsMax.z - lsMin.z;
+                shadowData.CascadeParams[c] = float4(texelWorld, 1.0f / depthRange, 0.0f, 0.0f);
+
+                const math::frustum cameraFrustum(
+                    lsMin.x,
+                    lsMax.x,
+                    lsMin.y,
+                    lsMax.y,
+                    lsMin.z,
+                    lsMax.z
+                );
+
+                float4x4 lightProj = float4x4::orthographic(
+                    math::projection(
+                        cameraFrustum,
+                        Renderer::HomogenousDepth() ? math::zclip::zero : math::zclip::minus_one
+                    )
+                );
+
                 shadowData.LightViewProj[c] = math::mul(lightView, lightProj);
             }
 
@@ -1478,7 +1517,7 @@ namespace Quelos {
                 passAttribs.RenderPassHandle = m_ShadowRenderPass;
 
                 ClearValue clear[1];
-                clear->DepthStencil.Depth = 0.0f;
+                clear->DepthStencil.Depth = 1.0f;
                 passAttribs.ClearColors = clear;
 
                 Renderer::BeginRenderPass(passAttribs);
@@ -1663,38 +1702,46 @@ namespace Quelos {
         Renderer::EndRenderPass();
 
         // Depth Reduction
-        Renderer::UpdateBuffer(
-            m_ReductionOutBuffer.GetHandle(),
-            0,
-            std::as_bytes(Span(k_ReductionClear))
-        );
+        auto& slot = view.ReductionReadbackSlots[view.ReductionWriteIndex];
+        if (!slot.IsPending) {
+            Renderer::UpdateBuffer(
+                m_ReductionOutBuffer.GetHandle(),
+                0,
+                std::as_bytes(Span(k_ReductionClear))
+            );
 
-        Renderer::BindPipelineState(m_ShadowComputePSO.GetHandle());
-        Renderer::CommitShaderResources(view.ShadowComputeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+            Renderer::BindPipelineState(m_ShadowComputePSO.GetHandle());
+            Renderer::CommitShaderResources(view.ShadowComputeSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 
-        const auto& groupSize = m_DepthReductionCompute->GetThreadGroupSize();
-        const uint32_t groupsX = (view.Size.Width  + groupSize[0] - 1) / groupSize[0];
-        const uint32_t groupsY = (view.Size.Height + groupSize[1] - 1) / groupSize[1];
+            const auto& groupSize = m_DepthReductionCompute->GetThreadGroupSize();
+            const uint32_t groupsX = (view.Size.Width  + groupSize[0] - 1) / groupSize[0];
+            const uint32_t groupsY = (view.Size.Height + groupSize[1] - 1) / groupSize[1];
 
-        DispatchComputeAttribs dispatchComputeAttribs;
-        dispatchComputeAttribs.ThreadGroupCountX = groupsX;
-        dispatchComputeAttribs.ThreadGroupCountY = groupsY;
-        dispatchComputeAttribs.ThreadGroupCountZ = 1;
+            DispatchComputeAttribs dispatchComputeAttribs;
+            dispatchComputeAttribs.ThreadGroupCountX = groupsX;
+            dispatchComputeAttribs.ThreadGroupCountY = groupsY;
+            dispatchComputeAttribs.ThreadGroupCountZ = 1;
 
-        Renderer::DispatchCompute(dispatchComputeAttribs);
+            Renderer::DispatchCompute(dispatchComputeAttribs);
 
-        Renderer::CopyBuffer(
-            m_ReductionOutBuffer.GetHandle(),
-            0,
-            ResourceStateTransitionMode::Transition,
-            view.ReductionStagingBuffer.GetHandle(),
-            0,
-            sizeof(uint64_t),
-            ResourceStateTransitionMode::Transition
-        );
-        Renderer::EnqueueSignal(view.ReductionStagingFence.GetHandle(), ++view.ReductionStagingFenceValue);
 
-        view.ReductionReadbackReady = true;
+            Renderer::CopyBuffer(
+                m_ReductionOutBuffer.GetHandle(),
+                0,
+                ResourceStateTransitionMode::Transition,
+                slot.ReductionStagingBuffer.GetHandle(),
+                0,
+                sizeof(uint64_t),
+                ResourceStateTransitionMode::Transition
+            );
+
+            slot.FenceValue = ++view.ReductionFenceCounter;
+            slot.IsPending = true;
+
+            Renderer::EnqueueSignal(view.ReductionStagingFence.GetHandle(), slot.FenceValue);
+
+            view.ReductionWriteIndex = (view.ReductionWriteIndex + 1) % WorldRendererView::k_ReductionReadbackRing;
+        }
     }
 
     void WorldRenderer::End() {

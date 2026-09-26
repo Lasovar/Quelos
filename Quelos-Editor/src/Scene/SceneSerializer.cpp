@@ -418,7 +418,7 @@ namespace Quelos {
         }
 
         const size_t fileSize = file.tellg();
-        Vec64<byte> buffer(fileSize, Allocator::Temp);
+        Vec64<byte> buffer(fileSize, Allocator::Frame);
 
         file.seekg(0);
         file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
@@ -560,7 +560,7 @@ namespace Quelos {
         const HashMap<ComponentID, RuntimeID>& componentsMap = m_Scene->GetWorld().get<ComponentIDsMap>().Value;
 
         std::filesystem::path patchesFolder = m_ScenePath / ScenePatchesFolder;
-        HashSet<std::string_view> fieldsToWrite{Allocator::Temp};
+        HashSet<std::string_view> fieldsToWrite{Allocator::Frame};
         for (auto& [actorId, patch] : m_Actors) {
             if (!actorId) {
                 continue;
@@ -803,7 +803,7 @@ namespace Quelos {
         flecs::world& world = m_Scene->GetWorld();
         const auto& types = ComponentRegistry::GetSerializableComponents();
 
-        Vec64<byte> buffer(Allocator::Temp);
+        Vec64<byte> buffer(Allocator::Frame);
         BinaryWriter writer(buffer);
 
         Entity sceneRoot = m_Scene->GetSceneRoot();
@@ -815,7 +815,7 @@ namespace Quelos {
 
         writer.Write(header);
 
-        Vec<EntityID> rootActors(Allocator::Temp);
+        Vec<EntityID> rootActors(Allocator::Frame);
         rootActors.reserve(header.EntityCount);
 
         sceneRoot.GetInternalID().children([&rootActors](const flecs::entity child) {

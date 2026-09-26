@@ -9,7 +9,7 @@
 
 namespace Quelos {
     EditorCamera::EditorCamera(const float fov, const float aspectRatio, const float nearClip, const float farClip)
-        : Camera(mathExt::perspective(math::radians(fov), aspectRatio, farClip, nearClip)),
+        : Camera(mathExt::perspective(math::radians(fov), aspectRatio, nearClip, farClip)),
           m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip) {
         UpdateView();
         MousePan(float2{0.01f});
@@ -21,8 +21,8 @@ namespace Quelos {
         m_Projection = mathExt::perspective(
             math::radians(m_FOV),
             m_AspectRatio,
-            m_FarClip,
-            m_NearClip
+            m_NearClip,
+            m_FarClip
         );
     }
 

@@ -19,7 +19,9 @@ namespace Quelos::mathExt {
         return float4x4::orthographic(
             projection(
                 cameraFrustum,
-                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one
+                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one,
+                zdirection::reverse,
+                zplane::finite
             )
         );
     }
@@ -31,7 +33,9 @@ namespace Quelos::mathExt {
         return float4x4::perspective(
             projection(
                 cameraFrustum,
-                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one
+                Renderer::HomogenousDepth() ? zclip::zero : zclip::minus_one,
+                zdirection::reverse,
+                zplane::finite
             )
         );
     }
