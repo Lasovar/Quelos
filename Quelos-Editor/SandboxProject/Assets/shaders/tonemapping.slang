@@ -19,6 +19,12 @@ float3 RRTAndODTFit(float3 v) {
     return a / b;
 }
 
+float3 ACESFitted(float3 c) {
+    c = mul(ACESInput, c);
+    c = RRTAndODTFit(c);
+    return saturate(mul(ACESOutput, c));
+}
+
 float3 PBRNeutral(float3 color) {
     const float startCompression = 0.8 - 0.04;
     const float desaturation     = 0.15;
