@@ -118,6 +118,8 @@ namespace Quelos {
         using hlslpp::floor;
         using hlslpp::round;
 
+        using hlslpp::pow;
+
         constexpr long lround(const float f) { return std::lround(f); }
         constexpr long lround(const double f) { return std::lround(f); }
 
@@ -159,7 +161,7 @@ namespace Quelos {
             return all(abs(a - b) < epsilon);
         }
 
-        inline float roll(const quaternion& q) {
+        inline float1 roll(const quaternion& q) {
             const float1 y = 2.0f * (q.x * q.y + q.w * q.z);
             const float1 x = q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z;
 
@@ -171,7 +173,7 @@ namespace Quelos {
             return atan2(y, x);
         }
 
-        inline float pitch(const quaternion& q) {
+        inline float1 pitch(const quaternion& q) {
             const float1 y = 2.0f * (q.y * q.z + q.w * q.x);
             const float1 x = q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z;
 
@@ -183,7 +185,7 @@ namespace Quelos {
             return atan2(y, x);
         }
 
-        inline float yaw(const quaternion& q) {
+        inline float1 yaw(const quaternion& q) {
             return asin(clamp(-2.0f * (q.x * q.z - q.w * q.y), float1(-1.0f), float1(1.0f)));
         }
 
@@ -198,14 +200,14 @@ namespace Quelos {
         inline void decompose(const float4x4& m, float3& position, quaternion& rotation, float3& scale) {
             position = m[3].xyz;
 
-            float4 col0 = m[0];
-            float4 col1 = m[1];
-            float4 col2 = m[2];
+            const float4& col0 = m[0];
+            const float4& col1 = m[1];
+            const float4& col2 = m[2];
 
             // Scale length of each basis column
-            float sx = length(col0);
-            float sy = length(col1);
-            float sz = length(col2);
+            float1 sx = length(col0);
+            float1 sy = length(col1);
+            float1 sz = length(col2);
             scale = float3(sx, sy, sz);
 
             // Normalize columns to get pure rotation
@@ -217,7 +219,7 @@ namespace Quelos {
             // avoids trig, numerically stable
             float trace = r0.x + r1.y + r2.z;
 
-            float qx, qy, qz, qw;
+            float1 qx, qy, qz, qw;
 
             if (trace > 0.0f) {
                 float s = 0.5f / sqrtf(trace + 1.0f);

@@ -231,7 +231,7 @@ namespace Quelos {
         whiteSpec.BindFlags = Bind::ShaderResource;
         whiteSpec.Width = 1;
         whiteSpec.Height = 1;
-        whiteSpec.Format = ImageFormat::RGBA8UNorm;
+        whiteSpec.Format = ImageFormat::SRGBA;
         whiteSpec.SampleCount = SampleCount::x1;
         whiteSpec.Type = TextureType::Texture2D;
 
@@ -335,6 +335,30 @@ namespace Quelos {
         shadowMaskPassSpec.SubPasses = Span32(&shadowMaskSubpass, 1);
 
         m_ShadowMaskRenderPass = Renderer::CreateRenderPass(shadowMaskPassSpec);
+
+        // Tone Mapping Pass
+        RenderPassAttachmentSpec toneMappingAttachment;
+        toneMappingAttachment.Format = ImageFormat::RGBA8UNorm;
+        toneMappingAttachment.SampleCount = 1;
+        toneMappingAttachment.LoadOp = AttachmentLoadOp::Discard;
+        toneMappingAttachment.StoreOp = AttachmentStoreOp::Store;
+        toneMappingAttachment.InitialState = ResourceState::RenderTarget;
+        toneMappingAttachment.FinalState = ResourceState::ShaderResource;
+
+        AttachmentReference finalSceneColorAttachmentReference {
+            .AttachmentIndex = 0,
+            .State = ResourceState::RenderTarget
+        };
+
+        SubPassSpec toneMappingSubpass{};
+        toneMappingSubpass.RenderTargetAttachments = Span32(&finalSceneColorAttachmentReference, 1);
+
+        RenderPassSpec toneMappingPassSpec{};
+        toneMappingPassSpec.Name = "ToneMappingPass";
+        toneMappingPassSpec.Attachments = Span32(&toneMappingAttachment, 1);
+        toneMappingPassSpec.SubPasses = Span32(&toneMappingSubpass, 1);
+
+        m_ToneMappingRenderPass = Renderer::CreateRenderPass(toneMappingPassSpec);
     }
 
     void WorldRenderer::SetWorld(const flecs::world& world) {
@@ -624,6 +648,33 @@ namespace Quelos {
         );
     }
 
+    void WorldRenderer::SetToneMappingShader(const GraphicsShader* toneMappingShader) {
+        const GraphicsShaderPass* pass = toneMappingShader->GetShaderPass("ToneMapping");
+
+        GraphicsPipelineStateCreateInfo psoCI{};
+        psoCI.Name = "ToneMapping";
+        psoCI.GraphicsPipeline.RenderPass = m_ToneMappingRenderPass.GetHandle();
+
+        psoCI.VertexShader = pass->Pipelines.front().VertexShader;
+        psoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
+
+        // No input layout, vertex shader generates positions
+        psoCI.GraphicsPipeline.InputLayout.LayoutElements = {};
+
+        psoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::None; // no culling on fullscreen tri
+
+        // No depth
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
+
+        constexpr ShaderResourceVariableSpec vars[1] = {
+            {"_SceneColor", ShaderType::Fragment, ShaderResourceVariableType::Mutable},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        m_ToneMappingPSO = Renderer::CreatePipelineState(psoCI);
+    }
+
     void WorldRenderer::CreatePerViewResources(
         const UniquePtr<WorldRendererView>& view,
         const MaterialRegistry& materialRegistry,
@@ -718,6 +769,21 @@ namespace Quelos {
             view->SceneColorRTV = Renderer::TextureGetDefaultView(view->SceneColor.GetHandle(), TextureViewType::RenderTarget);
             view->SceneColorSRV = Renderer::TextureGetDefaultView(view->SceneColor.GetHandle(), TextureViewType::ShaderResource);
 
+            TextureSpecification finalSceneColor;
+            finalSceneColor.Width = size.Width;
+            finalSceneColor.Height = size.Height;
+
+            finalSceneColor.Format = ImageFormat::RGBA8UNorm;
+            finalSceneColor.SamplerWrap = WrapMode::Repeat;
+
+            finalSceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
+            finalSceneColor.SampleCount = SampleCount::x1;
+
+            view->FinalSceneColor = Renderer::CreateTexture(finalSceneColor);
+
+            view->FinalSceneColorRTV = Renderer::TextureGetDefaultView(view->FinalSceneColor.GetHandle(), TextureViewType::RenderTarget);
+            view->FinalSceneColorSRV = Renderer::TextureGetDefaultView(view->FinalSceneColor.GetHandle(), TextureViewType::ShaderResource);
+
             TextureSpecification msaaDepthSpec;
             msaaDepthSpec.Width  = size.Width;
             msaaDepthSpec.Height = size.Height;
@@ -774,6 +840,35 @@ namespace Quelos {
             spec.Size = size;
 
             view->SceneFB = Renderer::CreateFrameBuffer(spec);
+        }
+
+        {
+            const TextureViewHandle attachments[] = {
+                view->FinalSceneColorRTV,
+            };
+
+            String fbName(Allocator::Frame);
+            fbName = FormatTemp("{}_ToneMapping", name);
+            FrameBufferSpec spec;
+            spec.Attachments = attachments;
+            spec.Name = fbName;
+            spec.RenderPassHandle = m_ToneMappingRenderPass.GetHandle();
+            spec.Size = size;
+
+            view->ToneMappingFB = Renderer::CreateFrameBuffer(spec);
+
+            view->ToneMappingSRB = Renderer::CreateShaderResourceBinding(
+                m_ToneMappingPSO.GetHandle(),
+                true
+            );
+
+            Renderer::BindVariableByName(
+                ShaderType::Fragment,
+                view->ToneMappingSRB.GetHandle(),
+                "_SceneColor",
+                view->SceneColorSRV,
+                SetShaderResourceFlag::None
+            );
         }
 
         {
@@ -886,13 +981,29 @@ namespace Quelos {
 
         Renderer::TextureResize(view->SceneColorMSAA.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneColor.GetHandle(), size.Width, size.Height);
+        Renderer::TextureResize(view->FinalSceneColor.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneDepthMSAA.GetHandle(), size.Width, size.Height);
         Renderer::TextureResize(view->SceneNormalMSAA.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view->SceneFB.GetHandle(), size.Width, size.Height);
+        Renderer::FrameBufferResize(view->ToneMappingFB.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view->DepthPrepassFB.GetHandle(), size.Width, size.Height);
 
         Renderer::TextureResize(view->ShadowMask.GetHandle(), size.Width, size.Height);
         Renderer::FrameBufferResize(view->ShadowMaskFB.GetHandle(), size.Width, size.Height);
+
+        view->ToneMappingSRB = Renderer::CreateShaderResourceBinding(m_ToneMappingPSO.GetHandle(), true);
+        view->ToneMappingSRB = Renderer::CreateShaderResourceBinding(
+            m_ToneMappingPSO.GetHandle(),
+            true
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            view->ToneMappingSRB.GetHandle(),
+            "_SceneColor",
+            view->SceneColorSRV,
+            SetShaderResourceFlag::None
+        );
 
         view->ShadowComputeSRB = Renderer::CreateShaderResourceBinding(m_ShadowComputePSO.GetHandle(), true);
 
@@ -1434,7 +1545,7 @@ namespace Quelos {
                 {-1, -1, 0}, { 1, -1, 0}, { 1,  1, 0}, {-1,  1, 0},
             };
 
-            auto transformPoint = [](const float3& point, const float4x4& v) -> float3 {
+            static constexpr auto transformPoint = [](const float3& point, const float4x4& v) -> float3 {
                 const float4 p = mul(float4(point, 1.0f), v);
                 return p.xyz / p.w;  // perspective divide
             };
@@ -1700,6 +1811,25 @@ namespace Quelos {
         }
 
         Renderer::EndRenderPass();
+
+        // Tone Mapping
+        {
+            Renderer::BindPipelineState(m_ToneMappingPSO.GetHandle());
+            Renderer::CommitShaderResources(view.ToneMappingSRB.GetHandle(), ResourceStateTransitionMode::Transition);
+
+            BeginRenderPassAttribs toneMappingPassAttribs;
+            toneMappingPassAttribs.FrameBufferHandle = view.ToneMappingFB.GetHandle();
+            toneMappingPassAttribs.RenderPassHandle = m_ToneMappingRenderPass.GetHandle();
+
+            Renderer::BeginRenderPass(toneMappingPassAttribs);
+
+            DrawAttribs draw{};
+            draw.NumVertices = 3;
+
+            Renderer::Draw(draw);
+
+            Renderer::EndRenderPass();
+        }
 
         // Depth Reduction
         auto& slot = view.ReductionReadbackSlots[view.ReductionWriteIndex];

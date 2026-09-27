@@ -64,7 +64,7 @@ namespace QuelosEditor {
                                    : */float4(0.0f, 0.0f, 1.0f, 1.0f);
 
                 ImGui::Image(
-                    TextureHandle(m_WorldRendererView->SceneColor.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_WorldRendererView->FinalSceneColor.GetHandle()).GetNativeHandle(),
                     {m_ViewportSize.x, m_ViewportSize.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}

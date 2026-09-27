@@ -158,14 +158,32 @@ namespace QuelosEditor {
                         break;
                     }
 
-                    Color temp = *value;
+                    static constexpr auto SRGBToLinear = [](float1 c) {
+                        c = math::max(c, float1(0.0f));
+                        return c <= float1(0.04045f) ? c / 12.92f : math::pow((c + 0.055f) / 1.055f, 2.4f);
+                    };
+
+                    static constexpr auto toLinear = [](const Color& color) {
+                        return Color(SRGBToLinear(color.r), SRGBToLinear(color.g), SRGBToLinear(color.b), color.a);
+                    };
+
+                    static constexpr auto LinearToSRGB = [](float c) {
+                        c = std::max(c, 0.0f);
+                        return c <= 0.0031308f ? c * 12.92f : 1.055f * std::pow(c, 1.0f / 2.4f) - 0.055f;
+                    };
+
+                    static constexpr auto toSRGB = [](const Color& color) {
+                        return Color(LinearToSRGB(color.r), LinearToSRGB(color.g), LinearToSRGB(color.b), color.a);
+                    };
+
+                    Color temp = toSRGB(*value);
                     if (UI::EditColor4(materialProperty.Name, temp)) {
                         if (!startedEditing) {
                             startedEditing = true;
                             startValue = *value;
                         }
 
-                        material.SetProperty(materialProperty.Offset, temp);
+                        material.SetProperty(materialProperty.Offset, toLinear(temp));
                     }
 
                     if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -173,7 +191,7 @@ namespace QuelosEditor {
                             m_Material,
                             materialProperty.Offset,
                             startValue,
-                            temp
+                            toLinear(temp)
                         );
 
                         startedEditing = false;
