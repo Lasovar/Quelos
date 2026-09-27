@@ -65,6 +65,11 @@ struct ColorAttribute {}
 [__AttributeUsage(_AttributeTargets.Var)]
 struct Texture2DAttribute {}
 
+// Allows you to request a scene color to be bound to this variable
+// usage: [SceneColor] Texture2D<float4> _SceneColor;
+[__AttributeUsage(_AttributeTargets.Var)]
+struct SceneColorAttribute {}
+
 __extern_cpp struct DirectionalLightData {
     float4 Direction;
     float3 Color;

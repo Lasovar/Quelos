@@ -12,6 +12,7 @@ namespace Quelos {
     GraphicsShader::GraphicsShader(const GraphicsShaderCreateInfo& createInfo)
         : m_Name(createInfo.Name),
           m_MaterialProperties(createInfo.MaterialProperties.begin(), createInfo.MaterialProperties.end(), Allocator::Persistent),
+          m_RequestedParameters(createInfo.RequestedParameters.begin(), createInfo.RequestedParameters.end(), Allocator::Persistent),
           m_MaterialSize(createInfo.MaterialSize)
     {
         for (const auto& [passName, shaders] : createInfo.Passes) {

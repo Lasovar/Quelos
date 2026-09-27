@@ -210,12 +210,17 @@ namespace Quelos {
         Extent2D Size;
 
         ResourceRef<Texture> SceneColorMSAA;
-        ResourceRef<Texture> SceneColor;
+        ResourceRef<Texture> SceneColor; // RGBA16F
         ResourceRef<Texture> SceneDepthMSAA;
         ResourceRef<Texture> SceneNormalMSAA;
 
+        ResourceRef<Texture> FinalSceneColor; // RGBA8UNorm
+
         TextureViewHandle SceneColorRTV;
         TextureViewHandle SceneColorSRV;
+
+        TextureViewHandle FinalSceneColorRTV;
+        TextureViewHandle FinalSceneColorSRV;
 
         TextureViewHandle SceneDepthSRV;
         TextureViewHandle SceneDepthDSV;
@@ -225,9 +230,12 @@ namespace Quelos {
 
         ResourceRef<FrameBuffer> SceneFB;
         ResourceRef<FrameBuffer> DepthPrepassFB;
+        ResourceRef<FrameBuffer> ToneMappingFB;
 
         /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMask)
         HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs{Allocator::Persistent};
+
+        ResourceRef<ShaderResourceBinding> ToneMappingSRB;
 
         // Shadow mask
         ResourceRef<Texture> ShadowMask;
@@ -288,6 +296,8 @@ namespace Quelos {
         void SetDepthReductionCompute(ComputeShader* computeShader);
         void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
+
+        void SetToneMappingShader(const GraphicsShader* toneMappingShader);
 
         [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
@@ -390,6 +400,10 @@ namespace Quelos {
         ResourceRef<GpuBuffer> m_CascadeShadowDataBuffer;
         ResourceRef<RenderPass> m_ShadowMaskRenderPass;
         ResourceRef<PipelineStateObject> m_ShadowMaskPSO;
+
+        ResourceRef<RenderPass> m_ToneMappingRenderPass;
+        ResourceRef<PipelineStateObject> m_ToneMappingPSO;
+
         flecs::entity m_WorldRendererPipeline;
     };
 }

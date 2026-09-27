@@ -329,6 +329,7 @@ namespace QuelosEditor {
         struct ShaderCompilationResult {
             HashMap<String, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Frame};
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Frame};
+            Vec<Pair<PipelineOption, PipelineOptionValue>> RequestedParameters{Allocator::Frame};
             HashSet<std::string> Variables{Allocator::Frame};
             uint64_t MaterialSize = 0;
         };
@@ -440,19 +441,30 @@ namespace QuelosEditor {
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
-                if (strcmp(parameter->getName(), "Materials") != 0) {
-                    continue;
-                }
+                std::string_view parameterName = parameter->getName();
+                if (parameterName == "Materials") {
+                    slang::TypeLayoutReflection* type = parameter->getTypeLayout()->getElementTypeLayout();
 
-                slang::TypeLayoutReflection* type = parameter->getTypeLayout()->getElementTypeLayout();
+                    result.MaterialSize = type->getSize();
+                    for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
+                        slang::VariableLayoutReflection* field = type->getFieldByIndex(typeFieldIndex);
+                        MaterialPropertyType propertyType = GetMaterialProperty(field);
+                        const uint64_t fieldSize = field->getTypeLayout()->getSize();
 
-                result.MaterialSize = type->getSize();
-                for (uint32_t typeFieldIndex = 0; typeFieldIndex < type->getFieldCount(); typeFieldIndex++) {
-                    slang::VariableLayoutReflection* field = type->getFieldByIndex(typeFieldIndex);
-                    MaterialPropertyType propertyType = GetMaterialProperty(field);
-                    const uint64_t fieldSize = field->getTypeLayout()->getSize();
-
-                    result.MaterialProperties.emplace_back(field->getName(), propertyType, field->getOffset(), fieldSize);
+                        result.MaterialProperties.emplace_back(field->getName(),
+                                                               propertyType,
+                                                               field->getOffset(),
+                                                               fieldSize);
+                    }
+                } else {
+                    slang::VariableReflection* variableReflection = parameter->getVariable();
+                    for (uint32_t i = 0; i < variableReflection->getUserAttributeCount(); i++) {
+                        slang::Attribute* attribute = variableReflection->getUserAttributeByIndex(i);
+                        std::string_view attributeName = attribute->getName();
+                        if (attributeName == "SceneColor") {
+                            result.RequestedParameters.emplace_back(PipelineOption::SceneColor, std::string(parameterName));
+                        }
+                    }
                 }
             }
 
@@ -671,6 +683,17 @@ namespace QuelosEditor {
                 createInfo.Variables.emplace_back(reader.ReadString().value_or(""));
             }
 
+            createInfo.RequestedParameters = Vec<Pair<PipelineOption, PipelineOptionValue>>(Allocator::Frame);
+            createInfo.RequestedParameters.resize(reader.Read<uint32_t>().value_or(0));
+            for (auto& option : createInfo.RequestedParameters) {
+                option.first = reader.Read<PipelineOption>().value_or(PipelineOption::None);
+                if (uint8_t valueIndex = reader.Read<uint8_t>().value_or(0); valueIndex == 0) {
+                    option.second = reader.Read<int32_t>().value_or(0);
+                } else {
+                    option.second = std::string(reader.ReadString().value_or(""));
+                }
+            }
+
             uint32_t numOfPasses = reader.Read<uint32_t>().value_or(0);
             createInfo.Passes.init(Allocator::Frame);
             createInfo.Passes.reserve(numOfPasses);
@@ -782,6 +805,17 @@ namespace QuelosEditor {
             writer.Write(static_cast<uint32_t>(compiledShaders.Variables.size()));
             for (const std::string& variable : compiledShaders.Variables) {
                 writer.WriteString(variable);
+            }
+
+            writer.Write(static_cast<uint32_t>(compiledShaders.RequestedParameters.size()));
+            for (const auto& option : compiledShaders.RequestedParameters) {
+                writer.Write(option.first);
+                writer.Write(static_cast<uint8_t>(option.second.index()));
+                if (option.second.index() == 0) {
+                    writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
+                } else {
+                    writer.WriteString(std::get<std::string>(option.second));
+                }
             }
 
             writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
