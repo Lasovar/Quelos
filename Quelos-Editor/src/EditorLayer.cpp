@@ -130,12 +130,12 @@ namespace QuelosEditor {
     	String name(Allocator::Persistent);
     	name = "Attack";
 
-    	String name2(std::move(name), Allocator::Temp);
+    	String name2(std::move(name), Allocator::Frame);
 
     	QS_INFO("{}", name.view());
     	QS_INFO("{}", name2.view());
 
-    	HashMap<uint64_t, uint64_t> map(Allocator::Temp);
+    	HashMap<uint64_t, uint64_t> map(Allocator::Frame);
     	map[1] = 1;
     	map[2] = 2;
     	map[3] = 3;
@@ -147,7 +147,7 @@ namespace QuelosEditor {
 
     	linearArena.Reset();
 
-    	Vec<String> str(Allocator::Temp);
+    	Vec<String> str(Allocator::Frame);
     	str.emplace_back("Hello world!");
 
     	static constexpr auto printExpected = [](const auto& expected) {

@@ -71,6 +71,16 @@ namespace QuelosEditor {
 
         m_WorldRenderer.SetShadowMaskShader(GetShadowMaskShader());
 
+        AssetMetadata toneMappingShaderMetadata;
+        toneMappingShaderMetadata.FilePath = "Assets/shaders/tonemapping.slang";
+        toneMappingShaderMetadata.Type = GraphicsShader::GetStaticType();
+        toneMappingShaderMetadata.Handle = AssetID("e0843df7-6b12-4fa5-8cd9-31be76a942ef");
+
+        ShaderImporter::Cook(toneMappingShaderMetadata);
+        ShaderImporter::Import(GetToneMappingShader(), toneMappingShaderMetadata);
+
+        m_WorldRenderer.SetToneMappingShader(GetToneMappingShader());
+
         m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView", { 1, 1 }));
         m_SceneViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("SceneView", { 1, 1 }));
 
@@ -170,6 +180,7 @@ namespace QuelosEditor {
         pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
         pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
         pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+        pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
         pipelineStateCreateInfo.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = true;
 
         pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x1;
@@ -359,7 +370,7 @@ namespace QuelosEditor {
                 idClearValues[0].Color = {clearAsFloat};
 
                 idClearValues[1].Format = ImageFormat::Depth32Float;
-                idClearValues[1].DepthStencil.Depth = 1.0f;
+                idClearValues[1].DepthStencil.Depth = 0.0f;
 
                 BeginRenderPassAttribs attribs;
                 attribs.FrameBufferHandle = m_IDFrameBuffer.GetHandle();
@@ -476,6 +487,11 @@ namespace QuelosEditor {
 
         /*
         if (ImGui::Begin("ShadowMask")) {
+            float nearFar[2];
+            nearFar[0] = m_SceneViewportPanel.GetWorldRendererView()->LastMinNDC;
+            nearFar[1] = m_SceneViewportPanel.GetWorldRendererView()->LastMaxNDC;
+
+            ImGui::DragFloat2("Near/Far", nearFar, 1, 0, 0, "%.4f", ImGuiSliderFlags_ReadOnly);
             if (m_SceneViewportPanel.ShouldDraw()) {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
 
@@ -486,14 +502,15 @@ namespace QuelosEditor {
                 size.y = availableSize.x / aspectRatio;
 
                 ImGui::Image(
-                    TextureHandle(m_FullMaskResolvedTexture.GetHandle()).GetNativeHandle(),
+                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView()->ShadowMask.GetHandle()).GetNativeHandle(),
                     {size.x, size.y},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
                 );
             }
         }
-        ImGui::End();*/
+        ImGui::End();
+        */
 
         m_EntityHierarchyPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
         m_InspectorPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
@@ -816,7 +833,7 @@ namespace QuelosEditor {
             // No depth
             visibleMaskPsoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
             visibleMaskPsoCI.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
-            visibleMaskPsoCI.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::LessEqual;
+            visibleMaskPsoCI.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
 
             visibleMaskPsoCI.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
@@ -866,7 +883,7 @@ namespace QuelosEditor {
 
         // Composite Pass
         RenderPassAttachmentSpec compositeAttachment;
-        compositeAttachment.Format = ImageFormat::RGBA16Float;
+        compositeAttachment.Format = ImageFormat::RGBA8UNorm;
         compositeAttachment.SampleCount = 1;
         compositeAttachment.LoadOp = AttachmentLoadOp::Load; // reads+writes scene color
         compositeAttachment.StoreOp = AttachmentStoreOp::Store;
@@ -884,7 +901,7 @@ namespace QuelosEditor {
         compositePassSpec.SubPasses = Span32(&compositeSubpass, 1);
         m_CompositeRenderPass = Renderer::CreateRenderPass(compositePassSpec);
 
-        TextureViewHandle compositeColorView = m_SceneViewportPanel.GetWorldRendererView()->SceneColorRTV;
+        TextureViewHandle compositeColorView = m_SceneViewportPanel.GetWorldRendererView()->FinalSceneColorRTV;
 
         FrameBufferSpec fbDesc;
         fbDesc.Name = "SelectionCompositeFB";

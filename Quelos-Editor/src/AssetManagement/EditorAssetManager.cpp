@@ -372,7 +372,7 @@ namespace QuelosEditor {
         StringQuelWriter writer(buffer);
 
         auto& assetRegistry = m_AssetRegistry.GetAssetsMetadata();
-        Vec<AssetMetadata> assets(Allocator::Temp);
+        Vec<AssetMetadata> assets(Allocator::Frame);
         assets.reserve(assetRegistry.size());
 
         std::vector<AssetMetadata> s;

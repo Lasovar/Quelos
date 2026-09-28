@@ -18,15 +18,15 @@ namespace Quelos {
         QS_CORE_ASSERT(false, "Uninitialized Memory Allocator!");
     }
 
-    ArenaMemoryResource& GetTempAllocator() {
+    ArenaMemoryResource& GetFrameAllocator() {
         return Application::GetTempAllocator();
     }
 
     std::pmr::memory_resource* GetAllocator(const Allocator allocatorType) {
         switch (allocatorType) {
         case Allocator::None: return &GetInvalidAllocator();
-        case Allocator::Temp:
-        case Allocator::TempJob: return &GetTempAllocator();
+        case Allocator::Frame:
+        case Allocator::Job: return &GetFrameAllocator();
         case Allocator::Persistent: return std::pmr::get_default_resource();
         }
 

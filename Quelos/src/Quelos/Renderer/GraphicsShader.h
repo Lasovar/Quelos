@@ -58,7 +58,8 @@ namespace Quelos {
         None,
         DepthEnable,
         DepthWriteEnable,
-        CullMode
+        CullMode,
+        SceneColor
     };
 
     using PipelineOptionValue = std::variant<int32_t, std::string>;
@@ -77,7 +78,9 @@ namespace Quelos {
         std::string_view Name;
         HashMap<std::string, SmallVec<ShaderData, 2>> Passes;
         Vec<std::string> Variables;
+
         Span<const MaterialPropertySpec> MaterialProperties;
+        Vec<Pair<PipelineOption, PipelineOptionValue>> RequestedParameters;
         uint64_t MaterialSize = 0;
     };
 
@@ -130,6 +133,8 @@ namespace Quelos {
         [[nodiscard]] const Vec<MaterialPropertySpec>& GetMaterialProperties() const { return m_MaterialProperties; }
         [[nodiscard]] uint64_t GetMaterialSize() const { return m_MaterialSize; }
 
+        [[nodiscard]] Span32<const Pair<PipelineOption,PipelineOptionValue>> GetRequestedMaterials() const { return m_RequestedParameters; }
+
     private:
         std::string m_Name;
 
@@ -137,6 +142,7 @@ namespace Quelos {
 
         Vec<PipelineStateHandle> m_PipelineStates{Allocator::Persistent};
         Vec<MaterialPropertySpec> m_MaterialProperties;
+        Vec<Pair<PipelineOption, PipelineOptionValue>> m_RequestedParameters;
 
         uint64_t m_MaterialSize;
 
