@@ -56,7 +56,7 @@ namespace Quelos {
             textureSpecs.Format = ImageFormat::RGB;
             break;
         case 4:
-            textureSpecs.Format = ImageFormat::RGBA8UNorm;
+            textureSpecs.Format = ImageFormat::SRGBA;
             break;
         default:
             QS_CORE_ERROR_TAG(

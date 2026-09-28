@@ -172,5 +172,10 @@ namespace QuelosEditor {
         [[nodiscard]] const GraphicsShader* GetShadowMaskShader() const { return reinterpret_cast<const GraphicsShader*>(m_ShadowMaskShader); }
         [[nodiscard]] GraphicsShader* GetShadowMaskShader() { return reinterpret_cast<GraphicsShader*>(m_ShadowMaskShader); }
         alignas(GraphicsShader) byte m_ShadowMaskShader[sizeof(GraphicsShader)]{};
+
+        // TODO: Move to render pass declaration
+        GraphicsShader* GetToneMappingShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_ToneMappingShaderStorage)); }
+        [[nodiscard]] const GraphicsShader* GetToneMappingShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_ToneMappingShaderStorage)); }
+        alignas(GraphicsShader) byte m_ToneMappingShaderStorage[sizeof(GraphicsShader)]{};
     };
 }

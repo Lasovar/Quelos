@@ -64,7 +64,7 @@ namespace Quelos {
 
         writer.Write(header);
 
-        Vec<EntityID> rootActors(Allocator::Temp);
+        Vec<EntityID> rootActors(Allocator::Frame);
         rootActors.reserve(header.EntityCount);
 
         sceneRoot.GetInternalID().children([&rootActors](const flecs::entity child) {

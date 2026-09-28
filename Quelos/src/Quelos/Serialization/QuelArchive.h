@@ -37,11 +37,11 @@ namespace Quelos::Serialization {
     struct TextArchiveValue;
 
     struct QS_API TupleValue {
-        Vec<size_t> Elements{Allocator::Temp};
+        Vec<size_t> Elements{Allocator::Frame};
     };
 
     struct QS_API ArrayValue {
-        Vec<size_t> Elements{Allocator::Temp};
+        Vec<size_t> Elements{Allocator::Frame};
     };
 
     struct QS_API TextArchiveValue {
@@ -729,7 +729,7 @@ namespace Quelos::Serialization {
             Serialization::Component* currentComponent = nullptr;
             Serialization::FieldMap* currentFieldMap = nullptr;
             std::string_view currentField;
-            Vec<AutoTextArchiveValue*> containerStack{Allocator::Temp};
+            Vec<AutoTextArchiveValue*> containerStack{Allocator::Frame};
 
             for (auto& parseEvent : reader.Parse()) {
                 std::visit(

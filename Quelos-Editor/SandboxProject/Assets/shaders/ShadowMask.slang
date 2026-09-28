@@ -7,6 +7,7 @@ __extern_cpp SamplerComparisonState ShadowMaps_sampler;
 
 struct CascadeShadowData {
     row_major float4x4 LightViewProj[4];
+    float4 CascadeParams[4];
     float4 SplitDepths;
     row_major float4x4 InvViewProj;
     row_major float4x4 View;
@@ -35,7 +36,7 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
     float2 ndc = uv * float2(2, -2) + float2(-1, 1);
     float depth = SceneDepth.Load(uint2(svPos.xy), 0);
 
-    if (depth >= 1.0) {
+    if (depth <= 0.0) {
         return float4(1.0, 0, 0, 0);
     }
 
@@ -66,29 +67,25 @@ float4 PSMain(float4 svPos : SV_Position) : SV_Target {
         }
     }
 
-    float4 lsPos = mul(float4(worldPos, 1.0), CascadeData.LightViewProj[c]);
+    float texelWorld = CascadeData.CascadeParams[c].x;
+    float invRange = CascadeData.CascadeParams[c].y;
+
+    const float NormalOffsetTexels = 1.0;
+    const float DepthBiasTexels = 2.0;
+
+    // Normal offset: move the receiver off the surface along its normal,
+    // more at grazing angles where acne is worst
+    float NdotLc   = saturate(NdotL);
+    float sinTheta = sqrt(1.0 - NdotLc * NdotLc);
+    float3 offsetPos = worldPos + N * (NormalOffsetTexels * texelWorld * sinTheta);
+
+    float4 lsPos = mul(float4(offsetPos, 1.0), CascadeData.LightViewProj[c]);
     lsPos.xyz /= lsPos.w;
     float2 shadowUV = float2(lsPos.x * 0.5 + 0.5, 0.5 - lsPos.y * 0.5);
 
-    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z);
-
-    /*
-    float shadow = 0.0;
-    float2 texelSize = 1.0 / float2(CascadeData.LightDirectionAndShadowMapSize.w);
-
-    [unroll]
-    for (int x = -1; x <= 1; x++) {
-        [unroll]
-        for (int y = -1; y <= 1; y++) {
-            shadow += ShadowMaps.SampleCmpLevelZero(
-                ShadowMaps_sampler,
-                float3(shadowUV + float2(x, y) * texelSize, float(c)),
-                lsPos.z
-            );
-        }
-    }
-    shadow /= 9.0;
-    */
+    // Constant depth bias: specified in texels, converted to this cascade's light-NDC depth
+    float depthBias = DepthBiasTexels * texelWorld * invRange;
+    float shadow = ShadowMaps.SampleCmpLevelZero(ShadowMaps_sampler, float3(shadowUV, float(c)), lsPos.z - depthBias);
 
     return float4(shadow * terminatorMask, 0, 0, 0);
 }

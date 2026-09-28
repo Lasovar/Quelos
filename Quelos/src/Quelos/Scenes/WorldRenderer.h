@@ -182,6 +182,7 @@ namespace Quelos {
 
     struct QS_API alignas(16) CascadeShadowData {
         pfloat4x4 LightViewProj[k_NumCascades];
+        pfloat4 CascadeParams[k_NumCascades];
         pfloat4 SplitDepths; // view-space Z end per cascade
         pfloat4x4 InvViewProjection;
         pfloat4x4 View;
@@ -209,12 +210,17 @@ namespace Quelos {
         Extent2D Size;
 
         ResourceRef<Texture> SceneColorMSAA;
-        ResourceRef<Texture> SceneColor;
+        ResourceRef<Texture> SceneColor; // RGBA16F
         ResourceRef<Texture> SceneDepthMSAA;
         ResourceRef<Texture> SceneNormalMSAA;
 
+        ResourceRef<Texture> FinalSceneColor; // RGBA8UNorm
+
         TextureViewHandle SceneColorRTV;
         TextureViewHandle SceneColorSRV;
+
+        TextureViewHandle FinalSceneColorRTV;
+        TextureViewHandle FinalSceneColorSRV;
 
         TextureViewHandle SceneDepthSRV;
         TextureViewHandle SceneDepthDSV;
@@ -224,9 +230,12 @@ namespace Quelos {
 
         ResourceRef<FrameBuffer> SceneFB;
         ResourceRef<FrameBuffer> DepthPrepassFB;
+        ResourceRef<FrameBuffer> ToneMappingFB;
 
         /// Data bound to each pipeline state that needs to be unique per view (e.g ShadowMask)
         HashMap<PipelineStateHandle, ResourceRef<ShaderResourceBinding>> ViewSRBs{Allocator::Persistent};
+
+        ResourceRef<ShaderResourceBinding> ToneMappingSRB;
 
         // Shadow mask
         ResourceRef<Texture> ShadowMask;
@@ -234,11 +243,20 @@ namespace Quelos {
         ResourceRef<ShaderResourceBinding> ShadowMaskSRB;
         bool ShadowMapsBound = false;
 
-        bool ReductionReadbackReady = false;
-        ResourceRef<GpuBuffer> ReductionStagingBuffer;
-        uint64_t ReductionStagingFenceValue = 0;
+        static constexpr uint32_t k_ReductionReadbackRing = 3;
+
+        struct ReductionReadbackSlot {
+            ResourceRef<GpuBuffer> ReductionStagingBuffer;
+            uint64_t FenceValue = 0;
+            bool IsPending = false;
+        };
+
+        Array<ReductionReadbackSlot, k_ReductionReadbackRing> ReductionReadbackSlots;
+        uint32_t ReductionWriteIndex = 0;
+        uint64_t ReductionFenceCounter = 0;
         ResourceRef<Fence> ReductionStagingFence;
         ResourceRef<ShaderResourceBinding> ShadowComputeSRB;
+        bool ReductionReadbackReady = false;
 
         float LastMinNDC = 0.0f;
         float LastMaxNDC = 1.0f;
@@ -278,6 +296,8 @@ namespace Quelos {
         void SetDepthReductionCompute(ComputeShader* computeShader);
         void SetShadowDepthShader(const GraphicsShader* shaderDepthShader);
         void SetShadowMaskShader(const GraphicsShader* graphicsShader);
+
+        void SetToneMappingShader(const GraphicsShader* toneMappingShader);
 
         [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
@@ -380,6 +400,10 @@ namespace Quelos {
         ResourceRef<GpuBuffer> m_CascadeShadowDataBuffer;
         ResourceRef<RenderPass> m_ShadowMaskRenderPass;
         ResourceRef<PipelineStateObject> m_ShadowMaskPSO;
+
+        ResourceRef<RenderPass> m_ToneMappingRenderPass;
+        ResourceRef<PipelineStateObject> m_ToneMappingPSO;
+
         flecs::entity m_WorldRendererPipeline;
     };
 }
