@@ -34,7 +34,9 @@ namespace Quelos {
             }
 
             GpuBufferSpec desc{};
-            const std::string name = m_PipelineName + " Material buffer";
+            String name(Allocator::Temp);
+            name = FormatTemp("{} Material buffer", m_PipelineName);
+
             desc.Name = name;
             desc.Size = m_MaterialSize * m_GPUCapacity;
             desc.Usage = Usage::Dynamic;
