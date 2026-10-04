@@ -1,10 +1,10 @@
 [Quelos.Scene]
-handle = 009bd427-eec8-4038-829b-4b49be965a3a
-path = "Assets/Sandbox"
-
-[Quelos.Scene]
 handle = be91e72f-6179-4910-8578-21a507111fa8
 path = "Assets/Lighting"
+
+[Quelos.Scene]
+handle = 009bd427-eec8-4038-829b-4b49be965a3a
+path = "Assets/Sandbox"
 
 [Quelos.Mesh]
 handle = 34f0b084-42c2-4c26-87d5-366a344b13cd
@@ -55,20 +55,20 @@ handle = 63c7792b-f400-40d5-a795-3fcf79d8547e
 path = "Assets/Materials/Ball.qmat"
 
 [Quelos.Material]
-handle = 967e0c1b-b299-4f99-9d04-544183fdd48c
-path = "Assets/Materials/Floor.qmat"
-
-[Quelos.Material]
-handle = 0c26d27b-aa30-48eb-982a-46ac02443597
-path = "Assets/Materials/Lighting.qmat"
+handle = 8fc22766-715e-400d-bd33-51c6eb05e3a8
+path = "Assets/Materials/DefaultMat.qmat"
 
 [Quelos.Material]
 handle = d96a38ab-74c7-49f3-a7c1-cac9e6d18c14
 path = "Assets/Materials/Unlit.qmat"
 
 [Quelos.Material]
-handle = 8fc22766-715e-400d-bd33-51c6eb05e3a8
-path = "Assets/Materials/DefaultMat.qmat"
+handle = 0c26d27b-aa30-48eb-982a-46ac02443597
+path = "Assets/Materials/Lighting.qmat"
+
+[Quelos.Material]
+handle = 967e0c1b-b299-4f99-9d04-544183fdd48c
+path = "Assets/Materials/Floor.qmat"
 
 [Quelos.Material]
 handle = ca12b8a3-0ebd-4b87-991f-4367f4f3c395
