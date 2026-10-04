@@ -22,44 +22,48 @@ float4 fragmentMain(float4 pos: SV_Position) : SV_Target {
     uint width, height;
     FullMask.GetDimensions(width, height);
     float2 texelSize = 1.0 / float2(width, height);
-    float2 uv = (pos.xy + 0.5) / float2(width, height);
+    float2 uv = pos.xy * texelSize;
 
     float thickness = Settings.ViewportAndThickness.z;
     float center = FullMask.Sample(FullMask_sampler, uv).r;
 
-    const int k_Samples = 16;
-    float maxNeighbor = 0.0;
+    const int k_Directions = 16;
+    const int k_MaxSteps = 8;
+    int steps = clamp(int(ceil(thickness)), 1, k_MaxSteps); // apprx. 1px per ring
+    float stepSize = thickness / float(steps);
 
-    [unroll]
-    for (int i = 0; i < k_Samples; i++) {
-        float angle = (float(i) / float(k_Samples)) * 6.28318530718;
-        float2 dir = float2(cos(angle), sin(angle));
-        float2 sampleUV = uv + dir * thickness * texelSize;
-        maxNeighbor = max(maxNeighbor, FullMask.Sample(FullMask_sampler, sampleUV).r);
+    float maxFull = 0.0;
+    float nearestVisible = 0.0;
+    bool found = false;
+
+    for (int step = 1; step <= steps; step++) {
+        float r = step * stepSize;
+        float ringFull = 0.0;
+        float ringVisible = 0.0;
+
+        [unroll]
+        for (int i = 0; i < k_Directions; i++) {
+            float angle = (float(i) / float(k_Directions)) * 6.28318530718;
+            float2 dir = float2(cos(angle), sin(angle));
+            float2 sampleUV = uv + dir * thickness * texelSize;
+            float full =  FullMask.Sample(FullMask_sampler, sampleUV).r;
+            float visible = VisibleMask.Sample(VisibleMask_sampler, sampleUV).r;
+            ringFull += full;
+            ringVisible += visible;
+            maxFull = max(maxFull, full);
+        }
+
+        if (!found && ringFull > 0.25) {
+            nearestVisible = saturate(ringVisible / ringFull);
+            found = true;
+        }
     }
 
-    float outline = saturate(maxNeighbor - center) * 2.0;
+    float outline = saturate((maxFull - center) * 2.0);
     if (outline < 0.01) {
         discard;
     }
 
-    const int k_VisSamples = 8;
-    float visibleSum = 0.0;
-    float visThickness = thickness * 2.0; // wider radius softens the visible/occluded boundary
-
-    [unroll]
-    for (int i = 0; i < k_VisSamples; i++) {
-        float angle = (float(i) / float(k_VisSamples)) * 6.28318530718;
-        float2 dir = float2(cos(angle), sin(angle));
-        float2 sampleUV = uv + dir * visThickness * texelSize;
-        visibleSum += VisibleMask.Sample(VisibleMask_sampler, sampleUV).r;
-    }
-    visibleSum += VisibleMask.Sample(VisibleMask_sampler, uv).r; // include center
-    float avgVisible = visibleSum / float(k_VisSamples + 1);
-
-    // Smooth transition instead of hard lerp
-    float alpha = smoothstep(0.0, 1.0, avgVisible);
-    alpha = lerp(0.3, 1.0, alpha);
-
-    return float4(Settings.Color.rgb, outline * alpha);
+    float alpha = lerp(0.3, 1.0, nearestVisible);
+    return float4(Settings.Color.rgb, saturate(outline * alpha));
 }

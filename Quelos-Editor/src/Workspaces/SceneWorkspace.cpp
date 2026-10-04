@@ -938,10 +938,14 @@ namespace QuelosEditor {
         // No depth
         compositePsoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
 
-        compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].BlendEnable = true;
-        compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].SrcBlend = BlendFactor::SrcAlpha;
-        compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].DestBlend = BlendFactor::InvSrcAlpha;
-        compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0].BlendOp = BlendOperation::Add;
+        RenderTargetBlendSpec& renderTargetBlendSpec = compositePsoCI.GraphicsPipeline.BlendSpec.RenderTargets[0];
+        renderTargetBlendSpec.BlendEnable = true;
+        renderTargetBlendSpec.SrcBlend = BlendFactor::SrcAlpha;
+        renderTargetBlendSpec.DestBlend = BlendFactor::InvSrcAlpha;
+        renderTargetBlendSpec.BlendOp = BlendOperation::Add;
+        renderTargetBlendSpec.SrcBlendAlpha = BlendFactor::Zero;
+        renderTargetBlendSpec.DestBlendAlpha = BlendFactor::One;
+        renderTargetBlendSpec.BlendOpAlpha = BlendOperation::Add;
 
         SmallVec<ShaderResourceVariableSpec, 3> vars = {
             {"Settings", ShaderType::Fragment, ShaderResourceVariableType::Static},
@@ -1088,7 +1092,7 @@ namespace QuelosEditor {
         {
             OutlineSettings settings = {
                 .Color = Color{ 1.0, 0.62, 0.0, 1.0 },
-                .ViewportSizeAndThickness = float4(m_SceneViewportPanel.GetViewportSize(), 3.0f, 0.0f),
+                .ViewportSizeAndThickness = float4(m_SceneViewportPanel.GetViewportSize(), 2.0f, 0.0f),
             };
 
             Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));

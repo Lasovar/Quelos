@@ -26,6 +26,7 @@ namespace QuelosEditor {
         );
 
         ImGuizmo::SetOrthographic(false);
+        ImGuizmo::AllowAxisFlip(false);
         ImGuizmo::SetDrawlist();
 
         if (ImGui::IsKeyPressed(ImGuiKey_W, false)) {
