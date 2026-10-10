@@ -76,7 +76,7 @@ namespace Quelos {
         for (const auto& actorId : rootActors) {
             EntitySnapshot entitySnapshot = EntitySnapshot::Create(scene, actorId);
             writer.Write<uint32_t>(entitySnapshot.Data.size());
-            writer.WriteBytes(Span(entitySnapshot.Data));
+            writer.WriteBytes(Span64(entitySnapshot.Data));
         }
 
         return snapshot;

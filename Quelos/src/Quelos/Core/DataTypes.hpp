@@ -44,11 +44,17 @@ namespace Quelos {
     template <typename T>
     using Deque = std::deque<T>;
 
-    template <typename T>
-    using Span = std::span<T>;
+    template <typename T, uint64_t Extent = k_DynamicExtent64>
+    using Span64 = SpanT<T, uint64_t, Extent>;
 
-    using BufferView = Span<const byte>;
-    using MutBufferView = Span<byte>;
+    template <typename T, uint32_t Extent = k_DynamicExtent32>
+    using Span32 = SpanT<T, uint32_t, Extent>;
+
+    template <typename T, uint32_t Extent = k_DynamicExtent32>
+    using Span = Span32<T, Extent>;
+
+    using BufferView = Span64<const byte>;
+    using MutBufferView = Span64<byte>;
 
     using OsPath = std::filesystem::path;
 }

@@ -185,16 +185,7 @@ namespace QuelosEditor {
 
         pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x1;
 
-        LayoutElementBuilder<6> layoutBuilder{
-            LayoutElement{0, 0, ValueType::Float3},
-            LayoutElement{1, 0, ValueType::Float3},
-            LayoutElement{2, 0, ValueType::Float3},
-            LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float3},
-            LayoutElement{5, 0, ValueType::Float2}
-        };
-
-        pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+        pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
         const GraphicsShaderPass* pass = shader->GetShaderPass("EditorEntityID");
         pipelineStateCreateInfo.VertexShader = pass->Pipelines.front().VertexShader;
@@ -689,17 +680,7 @@ namespace QuelosEditor {
             fullMaskPsoCI.VertexShader = pass->Pipelines.front().VertexShader;
             fullMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
-            // No input layout, vertex shader generates positions
-            LayoutElementBuilder<6> layoutBuilder{
-                LayoutElement{0, 0, ValueType::Float3},
-                LayoutElement{1, 0, ValueType::Float3},
-                LayoutElement{2, 0, ValueType::Float3},
-                LayoutElement{3, 0, ValueType::Float3},
-                LayoutElement{4, 0, ValueType::Float3},
-                LayoutElement{5, 0, ValueType::Float2}
-            };
-
-            fullMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+            fullMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
             fullMaskPsoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
             fullMaskPsoCI.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
@@ -815,17 +796,7 @@ namespace QuelosEditor {
             visibleMaskPsoCI.VertexShader = pass->Pipelines.front().VertexShader;
             visibleMaskPsoCI.FragmentShader = pass->Pipelines.front().FragmentShader;
 
-            // No input layout, vertex shader generates positions
-            LayoutElementBuilder<6> layoutBuilder{
-                LayoutElement{0, 0, ValueType::Float3},
-                LayoutElement{1, 0, ValueType::Float3},
-                LayoutElement{2, 0, ValueType::Float3},
-                LayoutElement{3, 0, ValueType::Float3},
-                LayoutElement{4, 0, ValueType::Float3},
-                LayoutElement{5, 0, ValueType::Float2}
-            };
-
-            visibleMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+            visibleMaskPsoCI.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
             visibleMaskPsoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::Back;
             visibleMaskPsoCI.GraphicsPipeline.RasterizerSpec.FrontCounterClockwise = true;
@@ -1095,7 +1066,7 @@ namespace QuelosEditor {
                 .ViewportSizeAndThickness = float4(m_SceneViewportPanel.GetViewportSize(), 2.0f, 0.0f),
             };
 
-            Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span(&settings, 1)));
+            Renderer::UpdateBuffer(m_OutlineSettingsUB.GetHandle(), 0, std::as_bytes(Span64(&settings, 1)));
 
             // Bind ID buffer into composite SRB
 

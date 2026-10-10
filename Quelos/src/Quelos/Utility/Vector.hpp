@@ -143,7 +143,7 @@ namespace Quelos {
         template <typename InputIt>
             requires std::input_iterator<InputIt>
         VectorT(InputIt first, InputIt last, const allocator_type allocator)
-            : VectorT(first, last, allocator) {}
+            : VectorT(first, last, allocator.resource()) {}
 
         template <typename InputIt>
             requires std::input_iterator<InputIt>
@@ -155,6 +155,14 @@ namespace Quelos {
 
         VectorT(std::initializer_list<T> ilist, const AllocatorType allocatorType)
             : VectorT(ilist.begin(), ilist.end(), GetAllocator(allocatorType)) {}
+
+        VectorT(std::initializer_list<T> ilist, const allocator_type allocator)
+            : VectorT(ilist.begin(), ilist.end(), GetAllocator(allocator.resource())) {}
+
+        template <std::ranges::input_range R>
+            requires std::convertible_to<std::ranges::range_reference_t<R>, T>
+        VectorT(std::from_range_t, R&& range, std::pmr::memory_resource* resource)
+            : VectorT(std::ranges::begin(range), std::ranges::end(range), resource) {}
 
         VectorT(const VectorT&) = delete;
         VectorT& operator=(const VectorT&) = delete;
@@ -174,10 +182,8 @@ namespace Quelos {
         VectorT(VectorT&& other, std::pmr::memory_resource* memoryResource) noexcept
             : m_Resource(memoryResource)
         {
-            if (this == &other) {
-                return;
-            }
-
+            assert(&other != this);
+            
             if (m_Resource == other.m_Resource) {
                 m_Data = other.m_Data;
                 m_Size = other.m_Size;
@@ -714,23 +720,17 @@ namespace Quelos {
         }
     };
 
-    template<typename T, typename SizeType = uint32_t>
-    VectorT(std::initializer_list<T>) -> VectorT<T, SizeType>;
+    template <std::input_iterator It, std::unsigned_integral S = uint32_t>
+    VectorT(It, It, std::pmr::memory_resource*) -> VectorT<std::iter_value_t<It>, S>;
 
-    template<typename T, typename SizeType = uint32_t>
-    VectorT(std::initializer_list<T>, std::pmr::memory_resource*) -> VectorT<T, SizeType>;
+    template <std::input_iterator It, typename U, std::unsigned_integral S = uint32_t>
+    VectorT(It, It, std::pmr::polymorphic_allocator<U>) -> VectorT<std::iter_value_t<It>, S>;
 
-    template<std::input_iterator It, typename SizeType = uint32_t>
-    VectorT(It, It) -> VectorT<std::iter_value_t<It>, SizeType>;
+    template <std::input_iterator It, std::unsigned_integral S = uint32_t>
+    VectorT(It, It, AllocatorType) -> VectorT<std::iter_value_t<It>, S>;
 
-    template<std::input_iterator It, typename SizeType = uint32_t>
-    VectorT(It, It, std::pmr::memory_resource*) -> VectorT<std::iter_value_t<It>, SizeType>;
-
-    template<std::ranges::input_range R, typename SizeType = uint32_t>
-    VectorT(R&&) -> VectorT<std::ranges::range_value_t<R>, SizeType>;
-
-    template<std::ranges::input_range R, typename SizeType = uint32_t>
-    VectorT(R&&, std::pmr::memory_resource*) -> VectorT<std::ranges::range_value_t<R>, SizeType>;
+    template <std::ranges::input_range R, std::unsigned_integral S = uint32_t>
+    VectorT(std::from_range_t, R&&, std::pmr::memory_resource*) -> VectorT<std::ranges::range_value_t<R>, S>;
 
     template <typename T, typename SizeType, typename Pred>
     typename VectorT<T, SizeType>::size_type erase_if(VectorT<T, SizeType>& vec, Pred&& predicate) {

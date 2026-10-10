@@ -242,7 +242,7 @@ namespace Quelos {
         VertexBufferHandle CreateVertexBuffer(BufferView vertices, VertexLayout bufferLayout) override;
         void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) override;
         void Destroy(VertexBufferHandle vertexBufferHandle) override;
-        IndexBufferHandle CreateIndexBuffer(Span<uint16_t> indices) override;
+        IndexBufferHandle CreateIndexBuffer(Span64<uint16_t> indices) override;
         void BindIndexBuffer(IndexBufferHandle indexBufferHandle) override;
         void Destroy(IndexBufferHandle indexBufferHandle) override;
         UniformBufferHandle

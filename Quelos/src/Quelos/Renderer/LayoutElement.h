@@ -67,8 +67,8 @@ namespace Quelos {
         /// in the buffer by one element.
         uint32_t InstanceDataStepRate = 1;
 
-        LayoutElement() = default;
-        LayoutElement(
+        constexpr LayoutElement() = default;
+        constexpr LayoutElement(
             const uint32_t inputIndex,
             const uint32_t bufferSlot,
             const ValueType type,
