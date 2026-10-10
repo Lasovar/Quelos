@@ -2409,7 +2409,7 @@ namespace Quelos {
         );
     }
 
-    IndexBufferHandle DiligentRendererContext::CreateIndexBuffer(const Span<uint16_t> indices) {
+    IndexBufferHandle DiligentRendererContext::CreateIndexBuffer(const Span64<uint16_t> indices) {
         BufferView data = std::as_bytes(indices);
         BufferDesc indBuffDesc;
         indBuffDesc.Name = "IndexBuffer";

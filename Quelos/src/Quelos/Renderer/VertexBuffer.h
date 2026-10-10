@@ -1,4 +1,5 @@
 #pragma once
+#include "LayoutElement.h"
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
@@ -24,6 +25,19 @@ namespace Quelos {
 		pfloat3 Bitangent;
 		pfloat3 SmoothNormal;
 		pfloat2 UV;
+
+		static constexpr Span32<const LayoutElement, 6> GetLayoutElements() {
+			static constexpr auto layoutElements = LayoutElementBuilder<6> {
+				LayoutElement{0, 0, ValueType::Float3},
+				LayoutElement{1, 0, ValueType::Float3},
+				LayoutElement{2, 0, ValueType::Float3},
+				LayoutElement{3, 0, ValueType::Float3},
+				LayoutElement{4, 0, ValueType::Float3},
+				LayoutElement{5, 0, ValueType::Float2}
+			};
+
+			return layoutElements.Elements;
+		}
 	};
 
 	class QS_API VertexBuffer;

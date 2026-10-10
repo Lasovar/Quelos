@@ -18,7 +18,7 @@ namespace Quelos {
         layout.Add(VertexAttribute::SmoothNormal, ValueType::Float3);
         layout.Add(VertexAttribute::TexCoord0, ValueType::Float2);
 
-        m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span(meshData->Vertices)), layout);
+        m_VertexBuffer = Renderer::CreateVertexBuffer(std::as_bytes(Span64(meshData->Vertices)), layout);
         m_IndexBuffer = Renderer::CreateIndexBuffer(meshData->Indices);
 
         SetAssetID(meshData->AssetId);

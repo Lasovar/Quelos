@@ -96,7 +96,7 @@ namespace Quelos::Serialization {
 
         void WriteString(const std::string_view string) {
             Write(static_cast<uint64_t>(string.size()));
-            WriteBytes(std::as_bytes(Span(string.data(), string.size())));
+            WriteBytes(std::as_bytes(Span64(string.data(), string.size())));
         }
 
         void WriteBytes(BufferView bytes) const {

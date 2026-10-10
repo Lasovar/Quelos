@@ -79,7 +79,7 @@ namespace Quelos {
         HashMap<std::string, SmallVec<ShaderData, 2>> Passes;
         Vec<std::string> Variables;
 
-        Span<const MaterialPropertySpec> MaterialProperties;
+        Span32<const MaterialPropertySpec> MaterialProperties;
         Vec<Pair<PipelineOption, PipelineOptionValue>> RequestedParameters;
         uint64_t MaterialSize = 0;
     };

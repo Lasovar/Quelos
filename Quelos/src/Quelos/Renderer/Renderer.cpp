@@ -313,7 +313,7 @@ namespace Quelos {
         s_RendererContext->Destroy(vertexBufferHandle);
     }
 
-    IndexBufferHandle Renderer::CreateIndexBuffer(const Span<uint16_t> indices) {
+    IndexBufferHandle Renderer::CreateIndexBuffer(const Span64<uint16_t> indices) {
         return s_RendererContext->CreateIndexBuffer(indices);
     }
 

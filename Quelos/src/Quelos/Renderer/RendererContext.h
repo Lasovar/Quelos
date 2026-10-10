@@ -340,7 +340,7 @@ namespace Quelos {
         virtual void BindVertexBuffer(VertexBufferHandle vertexBufferHandle, uint32_t stream) = 0;
         virtual void Destroy(VertexBufferHandle vertexBufferHandle) = 0;
 
-        virtual IndexBufferHandle CreateIndexBuffer(Span<uint16_t> vertices) = 0;
+        virtual IndexBufferHandle CreateIndexBuffer(Span64<uint16_t> vertices) = 0;
         virtual void BindIndexBuffer(IndexBufferHandle indexBufferHandle) = 0;
         virtual void Destroy(IndexBufferHandle indexBufferHandle) = 0;
 

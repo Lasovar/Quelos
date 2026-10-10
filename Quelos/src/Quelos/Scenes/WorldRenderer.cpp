@@ -34,7 +34,7 @@ namespace Quelos {
             }
 
             GpuBufferSpec desc{};
-            String name(Allocator::Temp);
+            String name(Allocator::Frame);
             name = FormatTemp("{} Material buffer", m_PipelineName);
 
             desc.Name = name;
@@ -238,7 +238,7 @@ namespace Quelos {
         whiteSpec.Type = TextureType::Texture2D;
 
         uint32_t whiteColor = 0xFFFFFFFF;
-        m_WhiteTexture = Renderer::CreateTexture(whiteSpec, std::as_bytes(Span(&whiteColor, 1)));
+        m_WhiteTexture = Renderer::CreateTexture(whiteSpec, std::as_bytes(Span64(&whiteColor, 1)));
 
         Renderer::TransitionResource(m_WhiteTexture, ResourceState::ShaderResource);
 
@@ -252,7 +252,7 @@ namespace Quelos {
         magentaSpec.Type = TextureType::Texture2D;
 
         uint32_t magentaColor = 0xFF00FFFF;
-        m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::as_bytes(Span(&magentaColor, 1)));
+        m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::as_bytes(Span64(&magentaColor, 1)));
 
         Renderer::TransitionResource(m_MagentaTexture, ResourceState::ShaderResource);
 
@@ -464,17 +464,7 @@ namespace Quelos {
         gfx.DepthStencilSpec.DepthWriteEnable = true;
         gfx.DepthStencilSpec.DepthEnable = true;
         gfx.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
-
-        LayoutElementBuilder<6> layoutBuilder{
-            LayoutElement{0, 0, ValueType::Float3},
-            LayoutElement{1, 0, ValueType::Float3},
-            LayoutElement{2, 0, ValueType::Float3},
-            LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float3},
-            LayoutElement{5, 0, ValueType::Float2}
-        };
-
-        gfx.InputLayout.LayoutElements = layoutBuilder;
+        gfx.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
         const GraphicsShaderPipelineData& shaderPipeline = shader->GetShaderPass("ShadowDepth")->Pipelines.front();
         psoCI.VertexShader = shaderPipeline.VertexShader;
@@ -566,16 +556,7 @@ namespace Quelos {
         //gfx.RasterizerSpec.DepthClipEnable = false; // Not enable by default? TODO: maybe check enable the feature conditionally
         gfx.DepthStencilSpec.DepthEnable = true;
 
-        LayoutElementBuilder<6> layoutBuilder{
-            LayoutElement{0, 0, ValueType::Float3},
-            LayoutElement{1, 0, ValueType::Float3},
-            LayoutElement{2, 0, ValueType::Float3},
-            LayoutElement{3, 0, ValueType::Float3},
-            LayoutElement{4, 0, ValueType::Float3},
-            LayoutElement{5, 0, ValueType::Float2}
-        };
-
-        gfx.InputLayout.LayoutElements = layoutBuilder;
+        gfx.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
         psoCI.VertexShader = shaderDepthShader->GetShaderPass("ShadowDepth")->Pipelines.front().VertexShader;
 
@@ -1204,21 +1185,15 @@ namespace Quelos {
                         pipelineStateCreateInfo.GraphicsPipeline.RasterizerSpec.CullMode =
                             static_cast<CullMode>(std::get<int32_t>(pipelineOption.second));
                     break;
+                    case PipelineOption::SceneColor:
+                        // TODO
+                        break;
                     }
                 }
 
                 pipelineStateCreateInfo.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
 
-                LayoutElementBuilder<6> layoutBuilder{
-                    LayoutElement{0, 0, ValueType::Float3},
-                    LayoutElement{1, 0, ValueType::Float3},
-                    LayoutElement{2, 0, ValueType::Float3},
-                    LayoutElement{3, 0, ValueType::Float3},
-                    LayoutElement{4, 0, ValueType::Float3},
-                    LayoutElement{5, 0, ValueType::Float2}
-                };
-
-                pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = layoutBuilder;
+                pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
                 SmallVec<ShaderResourceVariableSpec, 5> vars = {
                     {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
@@ -1419,7 +1394,7 @@ namespace Quelos {
         Renderer::UpdateBuffer(
             m_GlobalBuffer,
             0,
-            std::as_bytes(Span(&globals, 1))
+            std::as_bytes(Span64(&globals, 1))
         );
 
         // Depth Prepass
@@ -1427,7 +1402,7 @@ namespace Quelos {
             Renderer::UpdateBuffer(
                 m_ViewProjectionBuffer.GetHandle(),
                 0,
-                std::as_bytes(Span(&viewProjection, 1))
+                std::as_bytes(Span64(&viewProjection, 1))
             );
 
             Renderer::BindPipelineState(m_DepthPrepassPSO.GetHandle());
@@ -1620,7 +1595,7 @@ namespace Quelos {
                 Renderer::UpdateBuffer(
                     m_ViewProjectionBuffer.GetHandle(),
                     0,
-                    std::as_bytes(Span(&lightViewProjection, 1))
+                    std::as_bytes(Span64(&lightViewProjection, 1))
                 );
 
                 Renderer::CommitShaderResources(m_ShadowDepthSRB.GetHandle(), ResourceStateTransitionMode::Transition);
@@ -1686,7 +1661,7 @@ namespace Quelos {
                 Renderer::UpdateBuffer(
                     m_CascadeShadowDataBuffer.GetHandle(),
                     0,
-                    std::as_bytes(Span(&shadowData, 1))
+                    std::as_bytes(Span64(&shadowData, 1))
                 );
 
                 Renderer::BindPipelineState(m_ShadowMaskPSO.GetHandle());
@@ -1839,7 +1814,7 @@ namespace Quelos {
             Renderer::UpdateBuffer(
                 m_ReductionOutBuffer.GetHandle(),
                 0,
-                std::as_bytes(Span(k_ReductionClear))
+                std::as_bytes(Span64(k_ReductionClear))
             );
 
             Renderer::BindPipelineState(m_ShadowComputePSO.GetHandle());

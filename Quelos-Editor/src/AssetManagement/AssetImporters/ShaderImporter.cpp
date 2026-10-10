@@ -839,7 +839,7 @@ namespace QuelosEditor {
                     }
 
                     if (shader.Type == ShaderType::Compute) {
-                        writer.WriteBytes(std::as_bytes(Span(shader.ThreadGroupSize)));
+                        writer.WriteBytes(std::as_bytes(Span64(shader.ThreadGroupSize)));
                     }
 
                     writer.WriteBytesWithSize(shader.Code);
