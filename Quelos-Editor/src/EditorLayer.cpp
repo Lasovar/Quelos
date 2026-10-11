@@ -122,6 +122,8 @@ namespace QuelosEditor {
     	m_CurrentTheme = 1;
 
         ImGuizmo::Create();
+
+        m_EditorAssetManager->RefreshAssetDatabase();
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {

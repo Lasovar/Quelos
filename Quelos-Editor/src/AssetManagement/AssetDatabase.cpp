@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS Assets (
     SourceModTime INTEGER,
     SourceHash    BLOB    CHECK (SourceHash   IS NULL OR length(SourceHash)   = 16),
     ImporterVersion INTEGER,
-    SettingsHash  BLOB    CHECK (SettingsHash IS NULL OR length(SettingsHash) = 16),
+    SettingsHash  BLOB    CHECK (SettingsHash IS NULL OR length(SettingsHash) = 16)
 ) STRICT, WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS IdxAssetsParent ON Assets(ParentAssetID);
@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS AssetArtifacts (
     ArtifactPath TEXT NOT NULL UNIQUE,
     PRIMARY KEY (AssetID, ArtifactPath)
 ) STRICT, WITHOUT ROWID;
+
+PRAGMA user_version = 1;
 )";
 
         auto result = m_Database.Execute(databaseInitialization);
