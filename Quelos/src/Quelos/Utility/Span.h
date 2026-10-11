@@ -13,6 +13,9 @@
 #include <array>
 #include <type_traits>
 
+#include "Quelos/Utility/Vector.hpp"
+#include "Quelos/Utility/SmallVec.hpp"
+
 namespace Quelos {
     template <std::unsigned_integral SizeType>
     inline constexpr SizeType k_DynamicExtent = std::numeric_limits<SizeType>::max();
