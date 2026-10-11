@@ -1,13 +1,21 @@
 #pragma once
 
+#include "AssetDatabase.hpp"
 #include "EditorAssetImporter.h"
 #include "Quelos/AssetManager/AssetManagerBase.h"
 #include "Quelos/AssetManager/AssetRegistry.h"
 
 #include "efsw/FileWatcherGeneric.hpp"
+#include "SQLite/SQLite.hpp"
 
 namespace QuelosEditor {
     using namespace Quelos;
+
+    enum class SourceCheck {
+        Unchanged,
+        StampOnly,
+        NeedsReimport
+    };
 
     class EditorAssetManager : public AssetManagerBase, efsw::FileWatchListener {
     public:
@@ -71,10 +79,16 @@ namespace QuelosEditor {
         // File watch listener implementation
         void handleFileAction(efsw::WatchID watchId, const std::string& dir, const std::string& filename,
                               efsw::Action action, std::string oldFilename) override;
+
+        void RefreshAssetDatabase();
+        static SourceCheck CheckSource(const SourceRecord& rec, const ScannedSource& src);
+
     private:
 
         bool Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata);
         const AssetMetadata* AddAssetToRegistry(std::string_view assetPath);
+
+        Expected<void, String> AddAssetToDatabase(const DatabaseAssetRecord& record) const;
 
         template <typename T, typename... Args>
         void Reconstruct(const AssetHandle<T>& handle, Args&&... args) {
@@ -99,6 +113,7 @@ namespace QuelosEditor {
 
     private:
         AssetRegistry m_AssetRegistry;
+        AssetDatabase m_Database;
         AssetMap m_LoadedAssets{Allocator::Persistent};
         AssetPools m_AssetPools{Allocator::Persistent};
 
@@ -107,6 +122,6 @@ namespace QuelosEditor {
 
         HashSet<AssetID> m_ReimportQueue{Allocator::Persistent};
 
-        efsw::WatchID m_WatchID;
+        efsw::WatchID m_WatchID{};
     };
 }

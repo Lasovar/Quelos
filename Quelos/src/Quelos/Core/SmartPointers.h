@@ -3,8 +3,8 @@
 #include <memory>
 
 namespace Quelos {
-    template <typename T>
-    using UniquePtr = std::unique_ptr<T>;
+    template <typename T, typename Deleter = std::default_delete<T>>
+    using UniquePtr = std::unique_ptr<T, Deleter>;
 
     template <typename T, typename... Args>
     constexpr UniquePtr<T> CreateUnique(Args&&... args) {

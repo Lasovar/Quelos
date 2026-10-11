@@ -19,5 +19,6 @@ namespace Quelos {
         QS_API bool IsAssetSupported(std::string_view path);
         QS_API const AssetType& GetAssetType(std::string_view path);
         QS_API bool ImportAsset(void* data, const AssetMetadata& metadata);
+        QS_API uint32_t GetVersion(AssetTypeID assetTypeId);
     }
 }
