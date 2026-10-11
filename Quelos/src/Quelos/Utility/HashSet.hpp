@@ -42,6 +42,14 @@ namespace Quelos {
 
         explicit HashSet(const allocator_type allocator) noexcept : m_Resource(allocator.resource()) {}
 
+        template <typename InputIterator>
+        HashSet(InputIterator first, InputIterator last, std::pmr::memory_resource* resource) noexcept
+            : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator()), m_Table(TableType(first, last, 0, m_Resource)) {}
+
+        template <typename InputIterator>
+        HashSet(InputIterator first, InputIterator last, const AllocatorType allocatorType) noexcept
+            : HashSet(first, last, GetAllocator(allocatorType)) {}
+
         HashSet(std::initializer_list<typename TableType::value_type> ilist, std::pmr::memory_resource* resource) noexcept
             : m_Resource(resource != nullptr ? resource : &GetInvalidAllocator()), m_Table(TableType(ilist, m_Resource)) {}
 

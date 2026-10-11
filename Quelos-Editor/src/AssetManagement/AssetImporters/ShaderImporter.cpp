@@ -331,7 +331,7 @@ namespace QuelosEditor {
 
             Vec<AssetDependency> dependencies(memoryResource);
             for (int32_t i = 0; i < module->getDependencyFileCount(); i++) {
-                dependencies.emplace_back(module->getDependencyFilePath(i));
+                dependencies.push_back(String(module->getDependencyFilePath(i), memoryResource));
             }
 
             return dependencies;

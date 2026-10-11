@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Quelos/AssetManager/AssetImporter.h"
-
 #include <variant>
+
+#include "Quelos/AssetManager/AssetImporter.h"
+#include "Quelos/Utility/String.hpp"
 
 namespace QuelosEditor {
     using namespace Quelos;

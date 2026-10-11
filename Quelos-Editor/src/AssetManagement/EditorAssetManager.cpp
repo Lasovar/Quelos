@@ -620,7 +620,8 @@ namespace QuelosEditor {
         // path -> {ID, Size, ModTime, Hash, ImporterVersion, ...}
         auto knownResult = m_Database.LoadSourceRecords(Allocator::Frame);
         if (!knownResult) {
-            QS_ASSERT(knownResult, "Unable to load existing database records: {}", knownResult.error());
+            QS_ERROR_TAG(Tag, "Unable to load existing database records: {}", knownResult.error());
+            QS_ASSERT(false);
             return;
         }
 
@@ -644,7 +645,7 @@ namespace QuelosEditor {
 
             if (ec) {
                 QS_ERROR_TAG(
-                    "EditorAssetManager::RefreshAssetDatabase",
+                    Tag,
                     "Failed to recurse through the assets directory: {}",
                     ec.message()
                 );
@@ -653,18 +654,19 @@ namespace QuelosEditor {
             }
 
             const OsPath& absoluteEntryPath = it->path();
+
+            if (!IsAssetSupported(absoluteEntryPath.generic_string())) {
+                continue;
+            }
+
             String relativeAssetPath(std::filesystem::relative(absoluteEntryPath, Project::GetProjectPath())
                               .lexically_normal()
                               .generic_string(), Allocator::Frame);
 
-            if (!IsAssetSupported(relativeAssetPath)) {
-                continue;
-            }
-
             ScannedSource src {
                 .Path = String(relativeAssetPath, Allocator::Frame),
-                .Size = static_cast<int64_t>(it->file_size()),
-                .ModTime = it->last_write_time().time_since_epoch().count()
+                .Size = static_cast<int64_t>(it->file_size(ec)),
+                .ModTime = it->last_write_time(ec).time_since_epoch().count()
             };
 
             if (ec) {
@@ -706,8 +708,11 @@ namespace QuelosEditor {
                 RenameAsset(existing, relativeAssetPath);
 
                 const SourceRecord& record = *knownByID.at(existing);
-                if (CheckSource(record, src) == SourceCheck::NeedsReimport) {
+                SourceCheck movedCheck = CheckSource(record, src);
+                if (movedCheck == SourceCheck::NeedsReimport) {
                     toImport.insert(existing);
+                } else if (movedCheck == SourceCheck::StampOnly) {
+                    stampUpdates.emplace_back(existing, src.Size, src.ModTime);
                 }
 
                 continue;
@@ -742,6 +747,19 @@ namespace QuelosEditor {
             }
         }
 
+        if (toImport.empty()) {
+            return;
+        }
+
+        static auto GetRootAsset = [&](const AssetID id) -> AssetID {
+            auto* metadata = GetAssetMetadata(id);
+            if (!metadata) {
+                return {};
+            }
+
+            return metadata->ParentId ? metadata->ParentId : id;
+        };
+
         HashSet<AssetID> withDependents = toImport.clone(Allocator::Frame);
         for (Vec<AssetID> dependents(Allocator::Frame); const AssetID& id : toImport) {
             dependents.clear();
@@ -756,7 +774,7 @@ namespace QuelosEditor {
             }
 
             for (const AssetID& dep : dependents) {
-                withDependents.insert(dep);
+                withDependents.insert(GetRootAsset(dep));
             }
         }
 
@@ -772,14 +790,48 @@ namespace QuelosEditor {
             return;
         }
 
+        HashSet<Pair<AssetID, AssetID>> edgeSet(edges->begin(), edges->end(), Allocator::Frame);
         for (auto& id : toImport) {
             auto* metadata = GetAssetMetadata(id);
             if (!metadata) {
-                return;
+                continue;
             }
 
             for (const AssetDependency& dependency : EditorAssetImporter::GetAssetDependencies(*metadata, GetAllocator(Allocator::Frame))) {
-                    
+                AssetID assetId = std::visit(
+                    Overloaded {
+                        [&](const AssetID& dependencyId) -> AssetID {
+                            return dependencyId;
+                        },
+                        [&](const String& path) -> AssetID {
+                            auto* md = GetAssetMetadata(path);
+                            if (!md) {
+                                return {};
+                            }
+
+                            return md->Handle;
+                        }
+                    },
+                    dependency
+                );
+
+                if (!assetId) {
+                    continue;
+                }
+
+                AssetID target = GetRootAsset(assetId);
+
+                if (assetId == target) {
+                    continue;
+                }
+
+                if (!withDependents.contains(target)) {
+                    continue; // not being reimported
+                }
+
+                if (edgeSet.insert({id, target}).second) {
+                    edges->push_back({id, target});
+                }
             }
         }
 
@@ -787,15 +839,15 @@ namespace QuelosEditor {
 
         TopoSortResult sorted = TopologicalSort(graph, GetAllocator(Allocator::Frame));
         for (const auto cyclicIdIndex : sorted.Cyclic) {
-            QS_CORE_ERROR_TAG(
-                "EditorAssetManager::RefreshAssetDatabase",
+            QS_ERROR_TAG(
+                Tag,
                 "Cyclic asset({}) dependency detected! can't reimport, skipping...",
-                nodes[cyclicIdIndex].ToString()
+                graph.Nodes[cyclicIdIndex].ToString()
             );
         }
 
         for (const auto idIndex : sorted.Order) {
-            Reimport(nodes[idIndex]);
+            Reimport(graph.Nodes[idIndex]);
         }
     }
 
