@@ -64,7 +64,24 @@ namespace QuelosEditor {
             assetType
         };
 
-        return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
+        const AssetMetadata& metadata1 = m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata;
+
+        const OsPath& absolute = Project::GetProjectPath() / assetPath;
+        Vec<AssetDependency> dependencies = EditorAssetImporter::GetAssetDependencies(metadata1, &GetFrameAllocator());
+        QS_VERIFY(m_Database.AddAssetToDatabase(DatabaseAssetRecord {
+            .ID = metadata1.Handle,
+            .Path = metadata1.FilePath,
+            .TypeName = metadata1.Type.GetName(),
+            .ParentID = metadata1.ParentId ? Optional(metadata1.ParentId) : None,
+            .SourceSize = std::filesystem::file_size(absolute),
+            .SourceModTime = std::filesystem::last_write_time(absolute).time_since_epoch().count(),
+            .SourceHash = Hash::File(absolute.generic_string()),
+            .ImporterVersion = None,
+            .SettingsHash =None,
+            .Dependencies =
+        }));
+
+        return &metadata1;
     }
 
 
@@ -76,6 +93,7 @@ namespace QuelosEditor {
         if (!mainAsset) {
             return registeredAssets;
         }
+
         registeredAssets.push_back(mainAsset);
 
         const Vec<AssetMetadata> additionalAssets = AssetRegistryExtensions::ProcessAssetRegistration(
@@ -85,6 +103,19 @@ namespace QuelosEditor {
         for (const auto& additionalAsset : additionalAssets) {
             const AssetMetadata* addedMetadata = &(m_AssetRegistry.GetAssetsMetadata()[additionalAsset.Handle] =
                 additionalAsset);
+
+            QS_VERIFY(m_Database.AddAssetToDatabase(DatabaseAssetRecord {
+                .ID = addedMetadata->Handle,
+                .Path = addedMetadata->FilePath,
+                .TypeName = addedMetadata->Type.GetName(),
+                .ParentID = addedMetadata->ParentId ? Optional(addedMetadata->ParentId) : None,
+                .SourceSize = std::filesystem::file_size(addedMetadata->FilePath),
+                .SourceModTime = std::filesystem::last_write_time(addedMetadata->FilePath).time_since_epoch().count(),
+                .SourceHash = Hash::File(addedMetadata->FilePath),
+                .ImporterVersion = None,
+                .SettingsHash =None
+            }));
+
             registeredAssets.push_back(addedMetadata);
         }
 
