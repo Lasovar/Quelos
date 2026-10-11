@@ -2,8 +2,12 @@
 
 #include "Quelos/AssetManager/AssetImporter.h"
 
+#include <variant>
+
 namespace QuelosEditor {
     using namespace Quelos;
+
+    using AssetDependency = std::variant<AssetID, String>;
 
     struct EditorAssetImporterConfig {
         AssetType Type = {};
@@ -18,6 +22,7 @@ namespace QuelosEditor {
         using WriteHandleFn = bool(*)(std::string_view assetPath, const AssetID& handle);
         using CookAssetFn = bool(*)(const AssetMetadata& metadata);
         using AssetHashFn = uint64_t(*)(const AssetMetadata& metadata);
+        using GetDependenciesFn = Vec<AssetDependency>(*)(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource);
 
         // Path is passed into the Read/Write function as relative path to the Project root
         ReadHandleFn ReadAssetHandle = nullptr;
@@ -28,6 +33,9 @@ namespace QuelosEditor {
 
         // Optional - cooked asset should be stored in the Project::CookedAssetsPath and loaded on LoadAsset
         CookAssetFn CookAsset = nullptr;
+
+        // Optional
+        GetDependenciesFn GetDependencies = nullptr;
     };
 
     namespace EditorAssetImporter {
@@ -41,5 +49,7 @@ namespace QuelosEditor {
         AssetID ReadAssetHandle(std::string_view assetPath);
         bool WriteAssetHandle(std::string_view assetPath, const AssetID& handle);
         void TryReimportAsset(void* dataSlot, const AssetMetadata* assetMetadata);
+
+        Vec<AssetDependency> GetAssetDependencies(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource);
     }
 }

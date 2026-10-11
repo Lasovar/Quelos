@@ -2,6 +2,7 @@
 
 #include "EditorLayer.h"
 
+#include "Quelos/Core/DataTypes.hpp"
 #include "Quelos/Utility/FileSystem.h"
 #include "Quelos/Utility/QuelosUtil.h"
 #include "slang.h"
@@ -256,6 +257,86 @@ namespace QuelosEditor {
             return assetId;
         }
 
+        static Slang::ComPtr<slang::ISession> CreateSession(std::string_view shaderPath) {
+            slang::SessionDesc sessionDesc;
+
+            SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
+
+            compilerOptions.push_back({
+                slang::CompilerOptionName::GenerateWholeProgram,
+                { slang::CompilerOptionValueKind::Int, 1 }
+            });
+
+            slang::TargetDesc targetDesc;
+            switch (Renderer::GetRendererAPI()) {
+            case RendererAPI::Direct3D11: {
+                targetDesc.format = SLANG_HLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
+                break;
+            }
+            case RendererAPI::Direct3D12: {
+                targetDesc.format = SLANG_HLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("sm_6_5");
+                break;
+            }
+            case RendererAPI::Vulkan: {
+                targetDesc.format = SLANG_SPIRV;
+                targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
+
+                compilerOptions.push_back({slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}});
+                compilerOptions.push_back({slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}});
+                break;
+            }
+            case RendererAPI::OpenGL: {
+                targetDesc.format = SLANG_GLSL;
+                targetDesc.profile = s_GlobalSession->findProfile("glsl_450");
+                break;
+            }
+            default:
+                QS_CORE_ASSERT(false, "Unsupported renderer API");
+                break;
+            }
+
+            targetDesc.compilerOptionEntries = compilerOptions.data();
+            targetDesc.compilerOptionEntryCount = compilerOptions.size();
+
+            sessionDesc.targets = &targetDesc;
+            sessionDesc.targetCount = 1;
+
+            std::string parentPath = (Project::GetProjectPath() / shaderPath).parent_path().generic_string();
+            const char* searchPaths[] = {parentPath.c_str()};
+            sessionDesc.searchPaths = searchPaths;
+            sessionDesc.searchPathCount = 1;
+
+            Slang::ComPtr<slang::ISession> session;
+            s_GlobalSession->createSession(sessionDesc, session.writeRef());
+
+            return session;
+        }
+
+        Vec<AssetDependency> GetDependencies(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource) {
+            auto session = CreateSession(assetMetadata.FilePath);
+
+            const std::string moduleName(FS::Stem(assetMetadata.FilePath));
+            Slang::ComPtr<slang::IBlob> diagnostics;
+            slang::IModule* module = session->loadModule(moduleName.c_str(), diagnostics.writeRef());
+            if (diagnostics) {
+                QS_CORE_TRACE_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
+                diagnostics = nullptr;
+            }
+
+            if (!module) {
+                return {};
+            }
+
+            Vec<AssetDependency> dependencies(memoryResource);
+            for (int32_t i = 0; i < module->getDependencyFileCount(); i++) {
+                dependencies.emplace_back(module->getDependencyFilePath(i));
+            }
+
+            return dependencies;
+        }
+
         static MaterialPropertyType GetMaterialProperty(slang::VariableLayoutReflection* variableLayout) {
             slang::TypeReflection* fieldType = variableLayout->getType();
             switch (fieldType->getKind()) {
@@ -366,58 +447,7 @@ namespace QuelosEditor {
             QS_PROFILE_TEXT_F("compiling shader %s", shaderPath.c_str());
 #endif
 
-            slang::SessionDesc sessionDesc;
-
-            SmallVec<slang::CompilerOptionEntry, 3> compilerOptions;
-
-            compilerOptions.push_back({
-                slang::CompilerOptionName::GenerateWholeProgram,
-                { slang::CompilerOptionValueKind::Int, 1 }
-            });
-
-            slang::TargetDesc targetDesc;
-            switch (Renderer::GetRendererAPI()) {
-            case RendererAPI::Direct3D11: {
-                targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("sm_5_0");
-                break;
-            }
-            case RendererAPI::Direct3D12: {
-                targetDesc.format = SLANG_HLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("sm_6_5");
-                break;
-            }
-            case RendererAPI::Vulkan: {
-                targetDesc.format = SLANG_SPIRV;
-                targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
-
-                compilerOptions.push_back({slang::CompilerOptionName::VulkanUseEntryPointName, {slang::CompilerOptionValueKind::Int, 1}});
-                compilerOptions.push_back({slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1}});
-                break;
-            }
-            case RendererAPI::OpenGL: {
-                targetDesc.format = SLANG_GLSL;
-                targetDesc.profile = s_GlobalSession->findProfile("glsl_450");
-                break;
-            }
-            default:
-                QS_CORE_ASSERT(false, "Unsupported renderer API");
-                break;
-            }
-
-            targetDesc.compilerOptionEntries = compilerOptions.data();
-            targetDesc.compilerOptionEntryCount = compilerOptions.size();
-
-            sessionDesc.targets = &targetDesc;
-            sessionDesc.targetCount = 1;
-
-            std::string parentPath = (Project::GetProjectPath() / shaderPath).parent_path().generic_string();
-            const char* searchPaths[] = {parentPath.c_str()};
-            sessionDesc.searchPaths = searchPaths;
-            sessionDesc.searchPathCount = 1;
-
-            Slang::ComPtr<slang::ISession> session;
-            s_GlobalSession->createSession(sessionDesc, session.writeRef());
+            auto session = CreateSession(shaderPath);
 
             const std::string moduleName(FS::Stem(shaderPath));
             Slang::ComPtr<slang::IBlob> diagnostics;
@@ -880,7 +910,8 @@ namespace QuelosEditor {
                 nullptr,
                 ReadAssetHandle,
                 WriteAssetHandle,
-                Cook
+                Cook,
+                GetDependencies
             };
         }
 

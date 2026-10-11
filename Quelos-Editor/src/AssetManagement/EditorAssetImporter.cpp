@@ -101,4 +101,16 @@ namespace QuelosEditor {
             }
         }
     }
+
+    Vec<AssetDependency> EditorAssetImporter::GetAssetDependencies(
+        const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource
+    ) {
+        if (const auto it = s_EditorAssetLoaders.find(assetMetadata.Type); it != s_EditorAssetLoaders.end()) {
+            if (it->second.GetDependencies) {
+                return it->second.GetDependencies(assetMetadata, memoryResource);
+            }
+        }
+
+        return {};
+    }
 }
