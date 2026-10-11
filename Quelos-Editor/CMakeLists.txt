@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 4.1.2)
 project(Quelos-Editor LANGUAGES CXX)
 
 add_subdirectory(vendor/efsw)
+add_subdirectory(vendor/SQLiteCpp/sqlite3)
 
 add_executable(Quelos-Editor)
 
@@ -262,6 +263,7 @@ target_link_libraries(Quelos-Editor
         assimp
         efsw-static
         slang
+        sqlite3
 )
 
 if (WIN32)

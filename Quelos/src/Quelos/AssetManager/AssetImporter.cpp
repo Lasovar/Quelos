@@ -29,6 +29,10 @@ namespace Quelos {
         return it->second.ImportAsset(data, metadata);
     }
 
+    uint32_t AssetImporter::GetVersion(AssetTypeID assetTypeId) {
+        return 0;
+    }
+
     bool AssetImporter::IsAssetSupported(const std::string_view path) {
         return std::ranges::any_of(s_AssetLoaders | std::views::values,
             [&path](const AssetImporterConfig& importerConfig) {

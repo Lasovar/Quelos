@@ -3,7 +3,23 @@
 #include <cstdint>
 #include <string_view>
 
+#include "Optional.hpp"
+#include "Quelos/Utility/Span.h"
+
 namespace Quelos {
+    struct Hash128 {
+        [[nodiscard]] std::byte* data() { return m_Data.data(); }
+        [[nodiscard]] const std::byte* data() const { return m_Data.data(); }
+        [[nodiscard]] size_t size() const { return m_Data.size(); }
+        [[nodiscard]] BufferView view() const { return m_Data; }
+        [[nodiscard]] MutBufferView mut_view() { return m_Data; }
+
+        auto operator<=>(const Hash128&) const = default;
+
+    private:
+        std::array<std::byte, 16> m_Data{};
+    };
+
     namespace Hash {
         inline constexpr uint32_t k_Fnv1a32_Offset = 2166136261u;
         inline constexpr uint32_t k_Fnv1a32_Prime = 16777619u;
@@ -68,5 +84,7 @@ namespace Quelos {
 
             return hash;
         }
+
+        Optional<Hash128> File(std::string_view path);
     }
 }

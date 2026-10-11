@@ -69,7 +69,7 @@ namespace Quelos {
             init(allocator.resource());
         }
 
-        [[nodiscard]] HashSet clone(std::pmr::memory_resource* resource = nullptr) const {
+        [[nodiscard]] HashSet clone(std::pmr::memory_resource* resource) const {
             HashSet result(resource != nullptr ? resource : m_Resource);
             if (m_Table.has_value()) {
                 result.EnsureBound();
@@ -79,6 +79,14 @@ namespace Quelos {
                 }
             }
             return result;
+        }
+
+        [[nodiscard]] HashSet clone(const AllocatorType allocatorType) const {
+            return clone(GetAllocator(allocatorType));
+        }
+
+        [[nodiscard]] HashSet clone(const allocator_type allocator) const {
+            return clone(allocator.resource());
         }
 
         [[nodiscard]] std::pmr::memory_resource* get_allocator() const noexcept { return m_Resource; }

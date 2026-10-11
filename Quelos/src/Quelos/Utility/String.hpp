@@ -98,7 +98,20 @@ namespace Quelos {
         explicit StringT(const char* cstr, std::pmr::memory_resource* resource)
             : StringT(StringView(cstr), resource) {}
 
-        StringT(const char* cstr, const AllocatorType allocatorType) : StringT(StringView(cstr), allocatorType) {}
+        explicit StringT(const char* cstr, allocator_type allocator)
+            : StringT(cstr, allocator.resource()) {}
+
+        StringT(const char* cstr, const AllocatorType allocatorType)
+            : StringT(cstr, GetAllocator(allocatorType)) {}
+
+        explicit StringT(const char* cstr, SizeType size, std::pmr::memory_resource* resource)
+            : StringT(StringView(cstr, size), resource) {}
+
+        explicit StringT(const char* cstr, SizeType size, allocator_type allocator)
+            : StringT(cstr, size, allocator.resource()) {}
+
+        explicit StringT(const char* cstr, SizeType size, const AllocatorType allocatorType)
+            : StringT(cstr, size, GetAllocator(allocatorType)) {}
 
         StringT& operator=(const StringT& other) {
             assign(other.view());

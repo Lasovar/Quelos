@@ -76,6 +76,24 @@ namespace Quelos {
         ) {
             assert(end >= begin);
         }
+
+        template <Detail::ArrayConvertible<T> U, std::unsigned_integral USizeType, USizeType UExtent>
+            requires (!std::same_as<USizeType, SizeType>)
+            && (IsDynamic
+                || UExtent == k_DynamicExtent<USizeType>
+                || static_cast<uint64_t>(UExtent) == static_cast<uint64_t>(Extent)
+            )
+        // Explicit if the other's max size is larger
+        constexpr explicit(
+            std::numeric_limits<USizeType>::max() > std::numeric_limits<SizeType>::max()
+            || (!IsDynamic && UExtent == k_DynamicExtent<USizeType>)
+        )
+        SpanT(const SpanT<U, USizeType, UExtent>& span) noexcept
+            : m_Data(span.data()), m_Size(static_cast<SizeType>(span.size()))
+        {
+            assert(span.size() <= std::numeric_limits<SizeType>::max());
+        }
+
         template <Detail::ArrayConvertible<T> U, size_t N>
             requires (IsDynamic || N == Extent)
         constexpr SpanT(U (&arr)[N]) noexcept : m_Data(arr), m_Size(static_cast<SizeType>(N)) {}
@@ -305,6 +323,19 @@ namespace Quelos {
 
     template <typename T, typename VS, std::unsigned_integral S = VS>
     SpanT(const VectorT<T, VS>&) -> SpanT<const T, S>;
+
+
+    template <typename T, uint64_t Extent = k_DynamicExtent64>
+    using Span64 = SpanT<T, uint64_t, Extent>;
+
+    template <typename T, uint32_t Extent = k_DynamicExtent32>
+    using Span32 = SpanT<T, uint32_t, Extent>;
+
+    template <typename T, uint32_t Extent = k_DynamicExtent32>
+    using Span = Span32<T, Extent>;
+
+    using BufferView = Span64<const std::byte>;
+    using MutBufferView = Span64<std::byte>;
 }
 
 // Compatibility

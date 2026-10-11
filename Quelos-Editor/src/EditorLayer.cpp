@@ -122,45 +122,6 @@ namespace QuelosEditor {
     	m_CurrentTheme = 1;
 
         ImGuizmo::Create();
-
-    	PagePool pagePool;
-    	LinearArena linearArena(pagePool);
-    	ArenaMemoryResource arenaMemoryResource(linearArena);
-
-    	String name(Allocator::Persistent);
-    	name = "Attack";
-
-    	String name2(std::move(name), Allocator::Frame);
-
-    	QS_INFO("{}", name.view());
-    	QS_INFO("{}", name2.view());
-
-    	HashMap<uint64_t, uint64_t> map(Allocator::Frame);
-    	map[1] = 1;
-    	map[2] = 2;
-    	map[3] = 3;
-    	map[4] = 4;
-    	map[5] = 4;
-    	map[6] = 4;
-    	map[7] = 4;
-    	map[8] = 4;
-
-    	linearArena.Reset();
-
-    	Vec<String> str(Allocator::Frame);
-    	str.emplace_back("Hello world!");
-
-    	static constexpr auto printExpected = [](const auto& expected) {
-    		if (expected) {
-    			QS_INFO("{}", expected->get());
-    		} else {
-    			const IndexOutOfRange& error = expected.error();
-    			QS_ERROR("Index '{}' is out of range '{}'", error.Index, error.Size);
-    		}
-    	};
-
-    	printExpected(str.at(10));
-    	printExpected(str.at(0));
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {

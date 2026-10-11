@@ -67,6 +67,8 @@ namespace QuelosEditor {
         return &(m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata);
     }
 
+
+
     Vec<const AssetMetadata*> EditorAssetManager::ProcessAssetRegistration(const std::string_view assetPath, const std::pmr::polymorphic_allocator<> allocator) {
         Vec<const AssetMetadata*> registeredAssets(allocator);
 
@@ -502,5 +504,325 @@ namespace QuelosEditor {
         default:
             break;
         }
+    }
+
+    struct DependencyGraph {
+        Vec<AssetID> Nodes; // index -> ID
+        Vec<uint32_t> InDegree; // per node
+        Vec<uint32_t> Offsets; // size N+1; dependents of i are [Offsets[i], Offsets[i+1])
+        Vec<uint32_t> Dependents; // size E, node indices
+    };
+
+    static DependencyGraph BuildGraph(
+        const Span<const GUID128> nodes,
+        const Span<const Pair<AssetID, AssetID>> edges,
+        std::pmr::memory_resource* memoryResource
+    ) {
+        DependencyGraph graph {
+            .Nodes = Vec(nodes.begin(), nodes.end(), memoryResource),
+            .InDegree = Vec<uint32_t>(nodes.size(), 0, memoryResource),
+            .Offsets = Vec<uint32_t>(nodes.size() + 1, 0, memoryResource),
+            .Dependents = Vec<uint32_t>(memoryResource)
+        };
+
+        HashMap<AssetID, uint32_t> index(Allocator::Frame);
+        index.reserve(nodes.size());
+        for (uint32_t i = 0; i < nodes.size(); i++) {
+            index.emplace(nodes[i], i);
+        }
+
+        // Convert edges to indices once
+        Vec<Pair<uint32_t, uint32_t>> e(Allocator::Frame);   // (dependsOn, asset)
+        e.reserve(edges.size());
+        for (const auto& [asset, dependsOn] : edges) {
+            if (asset == dependsOn) {
+                continue;
+            }
+
+            e.emplace_back(index.at(dependsOn), index.at(asset));
+        }
+
+        // Counting pass: how many dependents per node, and in-degrees
+        for (auto [from, to] : e) {
+            ++graph.Offsets[from + 1];
+            ++graph.InDegree[to];
+        }
+
+        for (size_t i = 1; i < graph.Offsets.size(); ++i) {
+            graph.Offsets[i] += graph.Offsets[i - 1];
+        }
+
+        // Fill pass
+        graph.Dependents.resize(e.size());
+        Vec<uint32_t> cursor(graph.Offsets.begin(), graph.Offsets.end() - 1, Allocator::Frame);
+        for (auto [from, to] : e) {
+            graph.Dependents[cursor[from]++] = to;
+        }
+
+        return graph;
+    }
+
+    struct TopoSortResult {
+        Vec<uint32_t> Order; // node indices, dependency order
+        Vec<uint32_t> Cyclic; // node indices that couldn't be ordered
+    };
+
+    static TopoSortResult TopologicalSort(const DependencyGraph& graph, std::pmr::memory_resource* memoryResource) {
+        const uint32_t n = graph.Nodes.size();
+
+        Vec<uint32_t> remaining(graph.InDegree.begin(), graph.InDegree.end(), Allocator::Frame);
+        Vec<uint32_t> ready(Allocator::Frame);
+        ready.reserve(n);
+
+        for (uint32_t i = 0; i < n; i++) {
+            if (remaining[i] == 0) {
+                ready.push_back(i);
+            }
+        }
+
+        TopoSortResult result {
+            .Order = Vec<uint32_t>(memoryResource),
+            .Cyclic = Vec<uint32_t>(memoryResource)
+        };
+
+        result.Order.reserve(n);
+
+        while (!ready.empty()) {
+            const uint32_t current = ready.back();
+            ready.pop_back();
+            result.Order.push_back(current);
+
+            for (uint32_t k = graph.Offsets[current]; k < graph.Offsets[current + 1]; k++) {
+                const uint32_t dep = graph.Dependents[k];
+                if (--remaining[dep] == 0) {
+                    ready.push_back(dep);
+                }
+            }
+        }
+
+        if (result.Order.size() != n) {
+            for (uint32_t i = 0; i < n; i++) {
+                if (remaining[i] <= 0) {
+                    continue;
+                }
+
+                result.Cyclic.push_back(i);
+            }
+        }
+
+        return result;
+    }
+
+    void EditorAssetManager::RefreshAssetDatabase() {
+        constexpr auto Tag = "EditorAssetManager::RefreshAssetDatabase";
+        QS_PROFILE_SCOPED();
+
+        // path -> {ID, Size, ModTime, Hash, ImporterVersion, ...}
+        auto knownResult = m_Database.LoadSourceRecords(Allocator::Frame);
+        if (!knownResult) {
+            QS_ASSERT(knownResult, "Unable to load existing database records: {}", knownResult.error());
+            return;
+        }
+
+        auto& known = *knownResult;
+        HashMap<AssetID, const SourceRecord*> knownByID(Allocator::Frame);
+        knownByID.reserve(known.size());
+        for (const auto& rec : known | std::views::values) {
+            knownByID.emplace(rec.ID, &rec);
+        }
+
+        HashSet<AssetID> toImport(Allocator::Frame);
+        HashSet<AssetID> seenIDs(Allocator::Frame);
+        Vec<SourceStamp> stampUpdates(Allocator::Frame);
+
+        const OsPath& assetsDirectory = Project::GetAssetsPath();
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(assetsDirectory, ec);
+             it != std::filesystem::recursive_directory_iterator();
+             it.increment(ec)
+        ) {
+
+            if (ec) {
+                QS_ERROR_TAG(
+                    "EditorAssetManager::RefreshAssetDatabase",
+                    "Failed to recurse through the assets directory: {}",
+                    ec.message()
+                );
+
+                continue;
+            }
+
+            const OsPath& absoluteEntryPath = it->path();
+            String relativeAssetPath(std::filesystem::relative(absoluteEntryPath, Project::GetProjectPath())
+                              .lexically_normal()
+                              .generic_string(), Allocator::Frame);
+
+            if (!IsAssetSupported(relativeAssetPath)) {
+                continue;
+            }
+
+            ScannedSource src {
+                .Path = String(relativeAssetPath, Allocator::Frame),
+                .Size = static_cast<int64_t>(it->file_size()),
+                .ModTime = it->last_write_time().time_since_epoch().count()
+            };
+
+            if (ec) {
+                // vanished or locked mid-scan, next refresh catches it
+                ec.clear();
+                continue;
+            }
+
+            if (auto found = known.find(relativeAssetPath); found != known.end()) {
+                auto& record = found->second;
+                seenIDs.insert(record.ID);
+
+                switch (CheckSource(record, src)) {
+                case SourceCheck::Unchanged:
+                    break;
+                case SourceCheck::StampOnly:
+                    stampUpdates.push_back({.ID = record.ID, .Size = src.Size, .ModTime = src.ModTime});
+                    break;
+                case SourceCheck::NeedsReimport:
+                    toImport.insert(record.ID);
+                    break;
+                }
+
+                continue;
+            }
+
+            if (AssetID existing = EditorAssetImporter::ReadAssetHandle(relativeAssetPath);
+                existing && knownByID.contains(existing)
+            ) {
+                seenIDs.insert(existing);
+                if (auto r = m_Database.UpdateAssetPath(existing, relativeAssetPath); !r) {
+                    QS_ERROR_TAG(
+                        Tag,
+                        "Failed to record move of {}: {}",
+                        relativeAssetPath, r.error()
+                    );
+                }
+
+                RenameAsset(existing, relativeAssetPath);
+
+                const SourceRecord& record = *knownByID.at(existing);
+                if (CheckSource(record, src) == SourceCheck::NeedsReimport) {
+                    toImport.insert(existing);
+                }
+
+                continue;
+            }
+
+            Vec<AssetID> registered(Allocator::Frame); {
+                Vec<const AssetMetadata*> registeredMetadata = ProcessAssetRegistration(relativeAssetPath, Allocator::Frame);
+                registered.resize(registeredMetadata.size());
+                for (uint32_t i = 0; i < registeredMetadata.size(); i++) {
+                    registered[i] = registeredMetadata[i]->Handle;
+                }
+            }
+
+            if (registered.empty()) {
+                continue;
+            }
+
+            // main asset only, sub-assets come from its import
+            seenIDs.insert(registered.front());
+            toImport.insert(registered.front());
+        }
+
+        for (const auto& rec : known | std::views::values) {
+            if (!seenIDs.contains(rec.ID)) {
+                // TODO: HandleMissingSource(rec);
+            }
+        }
+
+        if (!stampUpdates.empty()) {
+            if (auto r = m_Database.UpdateSourceStamps(stampUpdates); !r) {
+                QS_WARN_TAG(Tag, "Failed to update source stamps: {}", r.error()); // harmless, rehashed next time
+            }
+        }
+
+        HashSet<AssetID> withDependents = toImport.clone(Allocator::Frame);
+        for (Vec<AssetID> dependents(Allocator::Frame); const AssetID& id : toImport) {
+            dependents.clear();
+            if (auto r = m_Database.GetTransitiveDependents(id, dependents); !r) {
+                QS_ERROR_TAG(
+                    Tag,
+                    "Failed to find dependents of '{}', they may be stale: {}",
+                    id.ToString(), r.error()
+                );
+
+                continue;
+            }
+
+            for (const AssetID& dep : dependents) {
+                withDependents.insert(dep);
+            }
+        }
+
+        Vec nodes(withDependents.begin(), withDependents.end(), Allocator::Frame);
+        auto edges = m_Database.GetDependencyEdges(nodes, Allocator::Frame);
+        if (!edges) {
+            QS_ERROR_TAG(
+                Tag,
+                "Failed to load dependency edges: {}",
+                edges.error()
+            );
+
+            return;
+        }
+
+        DependencyGraph graph = BuildGraph(nodes, *edges, GetAllocator(Allocator::Frame));
+
+        TopoSortResult sorted = TopologicalSort(graph, GetAllocator(Allocator::Frame));
+        for (const auto cyclicIdIndex : sorted.Cyclic) {
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager::RefreshAssetDatabase",
+                "Cyclic asset({}) dependency detected! can't reimport, skipping...",
+                nodes[cyclicIdIndex].ToString()
+            );
+        }
+
+        for (const auto idIndex : sorted.Order) {
+            Reimport(nodes[idIndex]);
+        }
+    }
+
+    SourceCheck EditorAssetManager::CheckSource(const SourceRecord& rec, const ScannedSource& src) {
+        if (rec.ImporterVersion != AssetImporter::GetVersion(Hash::Fnv1a32(rec.TypeName))) {
+            return SourceCheck::NeedsReimport;
+        }
+
+        /*
+        TODO:
+        if (rec.SettingsHash != LoadImportSettingsHash(src.Path)) {
+            return SourceCheck::NeedsReimport;
+        }
+        */
+
+        /*
+        TODO:
+        if (!ArtifactsExist(rec.ID)) {
+            return SourceCheck::NeedsReimport;   // library folder deleted
+        }
+        */
+
+        if (rec.Size == src.Size && rec.ModTime == src.ModTime) {
+            return SourceCheck::Unchanged;  // fast path
+        }
+
+        // Metadata changed: confirm with the content hash
+        const Optional<Hash128> hash = Hash::File(src.Path);
+        if (hash == rec.Hash) {
+            /*
+            if (Expected<void, String> r = m_Database.UpdateSourceStamp(rec.ID, src.Size, src.ModTime); !r) {
+                QS_CORE_ERROR_TAG("EditorAssetManager::NeedsReimport", "Failed to update source stamp: {}", r.error());
+            }
+            */
+
+            return SourceCheck::StampOnly;
+        }
+
+        return SourceCheck::NeedsReimport;
     }
 }
