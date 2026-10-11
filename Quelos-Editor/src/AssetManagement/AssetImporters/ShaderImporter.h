@@ -18,6 +18,8 @@ namespace QuelosEditor {
 
         bool HandlesAssetType(const AssetType& type, void* userData);
 
+        Vec<AssetDependency> GetDependencies(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource);
+
         EditorAssetImporterConfig GetImporterConfig();
 
         void Initialize();

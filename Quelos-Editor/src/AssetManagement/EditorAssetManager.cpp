@@ -772,6 +772,17 @@ namespace QuelosEditor {
             return;
         }
 
+        for (auto& id : toImport) {
+            auto* metadata = GetAssetMetadata(id);
+            if (!metadata) {
+                return;
+            }
+
+            for (const AssetDependency& dependency : EditorAssetImporter::GetAssetDependencies(*metadata, GetAllocator(Allocator::Frame))) {
+                    
+            }
+        }
+
         DependencyGraph graph = BuildGraph(nodes, *edges, GetAllocator(Allocator::Frame));
 
         TopoSortResult sorted = TopologicalSort(graph, GetAllocator(Allocator::Frame));
