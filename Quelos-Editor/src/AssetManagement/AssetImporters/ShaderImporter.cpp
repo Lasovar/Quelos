@@ -330,7 +330,7 @@ namespace QuelosEditor {
             }
 
             Vec<AssetDependency> dependencies(memoryResource);
-            for (int32_t i = 0; i < module->getDependencyFileCount(); i++) {
+            for (int32_t i = 1; i < module->getDependencyFileCount(); i++) {
                 dependencies.push_back(String(module->getDependencyFilePath(i), memoryResource));
             }
 
@@ -891,7 +891,7 @@ namespace QuelosEditor {
             const OsPath path = GetMetadataPath(assetPath);
             std::optional<ShaderMetadata> metadata = DeserializeShaderMetadata(path);
             if (!metadata) {
-                return false;
+                metadata = ShaderMetadata {.AssetId = handle};
             }
 
             metadata.value().AssetId = handle;
