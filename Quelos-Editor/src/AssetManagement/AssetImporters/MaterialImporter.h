@@ -6,6 +6,7 @@
 
 #include <variant>
 
+#include "Quelos/AssetManager/AssetImporter.h"
 #include "Quelos/Renderer/Material.h"
 
 namespace QuelosEditor {
@@ -53,7 +54,7 @@ namespace QuelosEditor {
         AssetID CreateDefaultMaterialAsset(std::string_view materialPath);
 
         bool IsAssetSupported(std::string_view materialPath);
-        bool LoadAsset(void* slot, const AssetMetadata& assetMetadata);
+        bool LoadAsset(const LoadContext& loadContext);
         AssetID ReadAssetID(std::string_view materialPath);
         bool WriteAssetID(std::string_view materialPath, const AssetID& assetId);
 

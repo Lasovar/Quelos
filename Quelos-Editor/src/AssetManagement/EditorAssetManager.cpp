@@ -4,6 +4,8 @@
 #include "AssetImporters/ModelImporter.h"
 #include "AssetImporters/SceneImporter.h"
 #include "EditorAssetImporter.h"
+#include "ImportContext.hpp"
+#include "xxhash.h"
 #include "AssetImporters/MaterialImporter.h"
 #include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
@@ -15,9 +17,9 @@
 namespace QuelosEditor {
     static const OsPath k_AssetRegistryFilename = "AssetRegistry.quel";
 
-    const AssetMetadata* EditorAssetManager::AddAssetToRegistry(const std::string_view assetPath) {
+    AssetID EditorAssetManager::AddAssetToRegistry(const std::string_view assetPath) {
         if (const AssetMetadata* metadata = m_AssetRegistry.GetAssetMetadata(assetPath)) {
-            return metadata;
+            return metadata->Handle;
         }
 
         OsPath asset(assetPath);
@@ -31,10 +33,11 @@ namespace QuelosEditor {
         if (!assetType) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
-                "Failed to add asset '{}' to registry: unknown asset type!", assetPath
+                "Failed to add asset '{}' to registry: unknown asset type!",
+                assetPath
             );
 
-            return nullptr;
+            return {};
         }
 
         AssetID handle;
@@ -44,7 +47,8 @@ namespace QuelosEditor {
             QS_CORE_INFO_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
                 "Using existing asset handle {} for '{}'",
-                handle.ToString(), assetPath
+                handle.ToString(),
+                assetPath
             );
         }
         else {
@@ -52,7 +56,8 @@ namespace QuelosEditor {
             QS_CORE_INFO_TAG(
                 "EditorAssetManager::AddAssetToRegistry",
                 "Generated new asset handle {} for '{}'",
-                handle.ToString(), assetPath
+                handle.ToString(),
+                assetPath
             );
 
             EditorAssetImporter::WriteAssetHandle(relativePath, handle);
@@ -64,32 +69,34 @@ namespace QuelosEditor {
             assetType
         };
 
-        const AssetMetadata& metadata1 = m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata;
 
-        const OsPath& absolute = Project::GetProjectPath() / assetPath;
-        Vec<AssetDependency> dependencies = EditorAssetImporter::GetAssetDependencies(metadata1, &GetFrameAllocator());
-        QS_VERIFY(m_Database.AddAssetToDatabase(DatabaseAssetRecord {
-            .ID = metadata1.Handle,
-            .Path = metadata1.FilePath,
-            .TypeName = metadata1.Type.GetName(),
-            .ParentID = metadata1.ParentId ? Optional(metadata1.ParentId) : None,
-            .SourceSize = std::filesystem::file_size(absolute),
-            .SourceModTime = std::filesystem::last_write_time(absolute).time_since_epoch().count(),
-            .SourceHash = Hash::File(absolute.generic_string()),
-            .ImporterVersion = None,
-            .SettingsHash =None,
-            .Dependencies =
-        }));
+        if (Expected<void, String> r = m_Database.RegisterAsset(
+                handle,
+                relativePath,
+                assetType.GetName(),
+                None
+            ); !r
+        ) {
+            QS_ERROR_TAG(
+                "EditorAssetManager::AddAssetToRegistry",
+                "Failed to register '{}': {}",
+                relativePath,
+                r.error()
+            );
 
-        return &metadata1;
+            return {};
+        }
+
+        m_AssetRegistry.GetAssetsMetadata()[handle] = assetMetadata;
+        return handle;
     }
 
+    Vec<AssetID> EditorAssetManager::ProcessAssetRegistration(
+        const std::string_view assetPath, const std::pmr::polymorphic_allocator<> allocator
+    ) {
+        Vec<AssetID> registeredAssets(allocator);
 
-
-    Vec<const AssetMetadata*> EditorAssetManager::ProcessAssetRegistration(const std::string_view assetPath, const std::pmr::polymorphic_allocator<> allocator) {
-        Vec<const AssetMetadata*> registeredAssets(allocator);
-
-        const AssetMetadata* mainAsset = AddAssetToRegistry(assetPath);
+        AssetID mainAsset = AddAssetToRegistry(assetPath);
         if (!mainAsset) {
             return registeredAssets;
         }
@@ -97,32 +104,38 @@ namespace QuelosEditor {
         registeredAssets.push_back(mainAsset);
 
         const Vec<AssetMetadata> additionalAssets = AssetRegistryExtensions::ProcessAssetRegistration(
-            assetPath, *mainAsset
+            assetPath,
+            *GetAssetMetadata(mainAsset)
         );
 
+        Vec<AssetMetadata> subAssets(Allocator::Frame);
+        subAssets.reserve(additionalAssets.size());
+
         for (const auto& additionalAsset : additionalAssets) {
-            const AssetMetadata* addedMetadata = &(m_AssetRegistry.GetAssetsMetadata()[additionalAsset.Handle] =
-                additionalAsset);
+            if (auto r = m_Database.RegisterAsset(
+                additionalAsset.Handle,
+                additionalAsset.FilePath,
+                additionalAsset.Type.GetName(),
+                mainAsset
+            ); !r) {
+                QS_ERROR_TAG(
+                    "EditorAssetManager::ProcessAssetRegistration",
+                    "Failed to register sub-asset '{}': {}",
+                    additionalAsset.FilePath, r.error()
+                );
 
-            QS_VERIFY(m_Database.AddAssetToDatabase(DatabaseAssetRecord {
-                .ID = addedMetadata->Handle,
-                .Path = addedMetadata->FilePath,
-                .TypeName = addedMetadata->Type.GetName(),
-                .ParentID = addedMetadata->ParentId ? Optional(addedMetadata->ParentId) : None,
-                .SourceSize = std::filesystem::file_size(addedMetadata->FilePath),
-                .SourceModTime = std::filesystem::last_write_time(addedMetadata->FilePath).time_since_epoch().count(),
-                .SourceHash = Hash::File(addedMetadata->FilePath),
-                .ImporterVersion = None,
-                .SettingsHash =None
-            }));
+                continue;
+            }
 
-            registeredAssets.push_back(addedMetadata);
+            subAssets.push_back(additionalAsset);
+            registeredAssets.push_back(additionalAsset.Handle);
         }
 
+        SyncSubAssetsToRegistry(mainAsset, subAssets);
         return registeredAssets;
     }
 
-    Vec<const AssetMetadata *> EditorAssetManager::ProcessAssetRegistration(
+    Vec<AssetID> EditorAssetManager::ProcessAssetRegistration(
         const std::string_view assetPath,
         const AllocatorType allocatorType
     ) {
@@ -134,42 +147,18 @@ namespace QuelosEditor {
         m_WatchedAssets.erase(assetHandle);
     }
 
-    void EditorAssetManager::Reimport(const AssetID assetId) {
+    void EditorAssetManager::QueueReimport(const AssetID assetId) {
         m_ReimportQueue.emplace(assetId);
     }
 
     void EditorAssetManager::FlushReimportQueue() {
-        for (const AssetID& assetId : m_ReimportQueue) {
-            const AssetMetadata* metadata = GetAssetMetadata(assetId);
-            if (!metadata) [[unlikely]] {
-                QS_CORE_ERROR_TAG(
-                    "EditorAssetManager",
-                    "Failed to reimport asset! couldn't find asset metadata with AssetID {}",
-                    assetId.ToString()
-                );
-
-                continue;
-            }
-
-            const auto assetLoaded = m_LoadedAssets.find(assetId);
-            if (assetLoaded != m_LoadedAssets.end()) {
-                const auto assetHandle = assetLoaded->second;
-                const auto poolIt = m_AssetPools.find(assetHandle.Type);
-                if (poolIt == m_AssetPools.end()) {
-                    continue;
-                }
-
-                if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
-                    pool.ReleaseAt(pool.Data, assetHandle);
-                    Import(pool, assetHandle, *metadata);
-                }
-            }
-        }
-
+        ReimportWithDependents(m_ReimportQueue);
         m_ReimportQueue.clear();
     }
 
-    bool EditorAssetManager::Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata) {
+    bool EditorAssetManager::Import(
+        const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata
+    ) {
         const AssetID assetId = metadata.Handle;
         void* slotData = pool.GetSlotData(pool.Data, assetHandle);
 
@@ -183,18 +172,20 @@ namespace QuelosEditor {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::Acquire",
                 "Failed to resolve sub-asset {} with parent {}",
-                assetId.ToString(), metadata.ParentId.ToString()
+                assetId.ToString(),
+                metadata.ParentId.ToString()
             );
 
             pool.DestroyAt(pool.Data, assetHandle);
             return false;
         }
 
-        if (!EditorAssetImporter::ImportAsset(slotData, metadata)) {
+        if (!EditorAssetImporter::LoadAsset(LoadContext(metadata, slotData))) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::Acquire",
                 "Failed to load asset with handle {}, path: '{}'",
-                assetId.ToString(), metadata.FilePath
+                assetId.ToString(),
+                metadata.FilePath
             );
 
             pool.DestroyAt(pool.Data, assetHandle);
@@ -208,7 +199,7 @@ namespace QuelosEditor {
 
     UntypedAssetHandle EditorAssetManager::Acquire(const AssetID assetId) {
         if (!IsAssetHandleValid(assetId)) {
-            QS_CORE_ERROR_TAG("AssetManager", "Invalid asset handle {}", assetId.ToString());
+            QS_CORE_ASSERT(false, "[EditorAssetManager::Acquire] Invalid asset handle {}", assetId.ToString());
             return {};
         }
 
@@ -293,15 +284,7 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::CleanupAssetMap() {
-        // TODO: Is this even safe??
-        for (auto it = m_LoadedAssets.begin(); it != m_LoadedAssets.end();) {
-            if (!IsAlive(it->second)) {
-                it = m_LoadedAssets.erase(it);
-            }
-            else {
-                ++it;
-            }
-        }
+        std::erase_if(m_LoadedAssets, [&] (const auto& it){ return !IsAlive(it.second); });
     }
 
     bool EditorAssetManager::IsAssetHandleValid(const AssetID& handle) const {
@@ -316,11 +299,15 @@ namespace QuelosEditor {
         return m_AssetRegistry.IsAssetPathValid(path);
     }
 
-    Vec<const AssetMetadata *> EditorAssetManager::FindAssetsOfType(const AssetTypeID type, const AllocatorType allocatorType) const {
+    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(
+        const AssetTypeID type, const AllocatorType allocatorType
+    ) const {
         return FindAssetsOfType(type, GetAllocator(allocatorType));
     }
 
-    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(const AssetTypeID type, const std::pmr::polymorphic_allocator<> allocator) const {
+    Vec<const AssetMetadata*> EditorAssetManager::FindAssetsOfType(
+        const AssetTypeID type, const std::pmr::polymorphic_allocator<> allocator
+    ) const {
         Vec<const AssetMetadata*> results(allocator);
 
         const HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
@@ -410,9 +397,10 @@ namespace QuelosEditor {
 
         std::vector<AssetMetadata> s;
         assets.append_range(assetRegistry | std::views::values);
-        std::ranges::sort(assets, [](const AssetMetadata& a, const AssetMetadata& b) {
-            return a.Type < b.Type;
-        });
+        std::ranges::sort(assets,
+                          [](const AssetMetadata& a, const AssetMetadata& b) {
+                              return a.Type < b.Type;
+                          });
 
         for (auto& metadata : assets) {
             writer.Write(SectionEvent{metadata.Type.GetName()});
@@ -466,35 +454,36 @@ namespace QuelosEditor {
         HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
         for (auto&& parserEvent : reader.Parse()) {
             std::visit([&]<typename TEvent>(const TEvent& e) {
-                using T = std::decay_t<TEvent>;
+                           using T = std::decay_t<TEvent>;
 
-                if constexpr (std::is_same_v<T, SectionEvent>) {
-                    if (metadata.Handle) {
-                        assetsMetadata[metadata.Handle] = metadata;
-                        metadata = {};
-                    }
+                           if constexpr (std::is_same_v<T, SectionEvent>) {
+                               if (metadata.Handle) {
+                                   assetsMetadata[metadata.Handle] = metadata;
+                                   metadata = {};
+                               }
 
-                    if (const AssetType assetTypeResult = GetAssetType(std::string(e.Name))) {
-                        metadata.Type = assetTypeResult;
-                    }
-                }
-                else if constexpr (std::is_same_v<T, FieldEvent>) {
-                    currentField = e.Path;
-                }
-                else if constexpr (std::is_same_v<T, ValueEvent>) {
-                    if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
-                        if (currentField == "handle") {
-                            metadata.Handle = AssetID(*valueResult);
-                        }
-                        else if (currentField == "path") {
-                            metadata.FilePath = *valueResult;
-                        }
-                        else if (currentField == "parent") {
-                            metadata.ParentId = AssetID(*valueResult);
-                        }
-                    }
-                }
-            }, parserEvent);
+                               if (const AssetType assetTypeResult = GetAssetType(std::string(e.Name))) {
+                                   metadata.Type = assetTypeResult;
+                               }
+                           }
+                           else if constexpr (std::is_same_v<T, FieldEvent>) {
+                               currentField = e.Path;
+                           }
+                           else if constexpr (std::is_same_v<T, ValueEvent>) {
+                               if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
+                                   if (currentField == "handle") {
+                                       metadata.Handle = AssetID(*valueResult);
+                                   }
+                                   else if (currentField == "path") {
+                                       metadata.FilePath = *valueResult;
+                                   }
+                                   else if (currentField == "parent") {
+                                       metadata.ParentId = AssetID(*valueResult);
+                                   }
+                               }
+                           }
+                       },
+                       parserEvent);
         }
 
         if (metadata.Handle) {
@@ -510,9 +499,11 @@ namespace QuelosEditor {
         m_FileWatcher.watch();
     }
 
-    void EditorAssetManager::handleFileAction(const efsw::WatchID watchId, const std::string& dir,
-                                              const std::string& filename, const efsw::Action action,
-                                              std::string oldFilename) {
+    void EditorAssetManager::handleFileAction(
+        const efsw::WatchID watchId, const std::string& dir,
+        const std::string& filename, const efsw::Action action,
+        std::string oldFilename
+    ) {
         switch (action) {
         case efsw::Action::Add:
         case efsw::Action::Delete:
@@ -549,7 +540,7 @@ namespace QuelosEditor {
         const Span<const Pair<AssetID, AssetID>> edges,
         std::pmr::memory_resource* memoryResource
     ) {
-        DependencyGraph graph {
+        DependencyGraph graph{
             .Nodes = Vec(nodes.begin(), nodes.end(), memoryResource),
             .InDegree = Vec<uint32_t>(nodes.size(), 0, memoryResource),
             .Offsets = Vec<uint32_t>(nodes.size() + 1, 0, memoryResource),
@@ -563,7 +554,7 @@ namespace QuelosEditor {
         }
 
         // Convert edges to indices once
-        Vec<Pair<uint32_t, uint32_t>> e(Allocator::Frame);   // (dependsOn, asset)
+        Vec<Pair<uint32_t, uint32_t>> e(Allocator::Frame); // (dependsOn, asset)
         e.reserve(edges.size());
         for (const auto& [asset, dependsOn] : edges) {
             if (asset == dependsOn) {
@@ -611,7 +602,7 @@ namespace QuelosEditor {
             }
         }
 
-        TopoSortResult result {
+        TopoSortResult result{
             .Order = Vec<uint32_t>(memoryResource),
             .Cyclic = Vec<uint32_t>(memoryResource)
         };
@@ -644,141 +635,116 @@ namespace QuelosEditor {
         return result;
     }
 
-    void EditorAssetManager::RefreshAssetDatabase() {
-        constexpr auto Tag = "EditorAssetManager::RefreshAssetDatabase";
-        QS_PROFILE_SCOPED();
+    void EditorAssetManager::SyncSubAssetsToRegistry(const AssetID& parentId, const Span<const AssetMetadata> produced) {
+        auto& assets = m_AssetRegistry.GetAssetsMetadata();
 
-        // path -> {ID, Size, ModTime, Hash, ImporterVersion, ...}
-        auto knownResult = m_Database.LoadSourceRecords(Allocator::Frame);
-        if (!knownResult) {
-            QS_ERROR_TAG(Tag, "Unable to load existing database records: {}", knownResult.error());
-            QS_ASSERT(false);
-            return;
+        // Existing children of this parent
+        HashSet<AssetID> stale(Allocator::Frame);
+
+        for (const auto& [id, meta] : assets) {
+            if (meta.ParentId == parentId) {
+                stale.insert(id);
+            }
         }
 
-        auto& known = *knownResult;
-        HashMap<AssetID, const SourceRecord*> knownByID(Allocator::Frame);
-        knownByID.reserve(known.size());
-        for (const auto& rec : known | std::views::values) {
-            knownByID.emplace(rec.ID, &rec);
+        for (const AssetMetadata& sub : produced) {
+            stale.erase(sub.Handle);
+            assets[sub.Handle] = sub;
         }
 
-        HashSet<AssetID> toImport(Allocator::Frame);
-        HashSet<AssetID> seenIDs(Allocator::Frame);
-        Vec<SourceStamp> stampUpdates(Allocator::Frame);
-
-        const OsPath& assetsDirectory = Project::GetAssetsPath();
-        std::error_code ec;
-        for (auto it = std::filesystem::recursive_directory_iterator(assetsDirectory, ec);
-             it != std::filesystem::recursive_directory_iterator();
-             it.increment(ec)
-        ) {
-
-            if (ec) {
-                QS_ERROR_TAG(
-                    Tag,
-                    "Failed to recurse through the assets directory: {}",
-                    ec.message()
+        // Children no longer produced by the source
+        for (const AssetID& id : stale) {
+            if (m_LoadedAssets.contains(id)) {
+                QS_WARN_TAG(
+                    "EditorAssetManager::SyncSubAssetsToRegistry",
+                    "Sub-asset {} was removed from its source but is still loaded",
+                    id.ToString(Allocator::Frame)
                 );
-
-                continue;
             }
 
-            const OsPath& absoluteEntryPath = it->path();
+            RemoveAssetFromRegistry(id);
+        }
+    }
 
-            if (!IsAssetSupported(absoluteEntryPath.generic_string())) {
-                continue;
-            }
+    struct DirectoryEntryStamp {
+        String RelativePath;
+        int64_t Size = 0;
+        int64_t ModTime = 0;
+    };
 
-            String relativeAssetPath(std::filesystem::relative(absoluteEntryPath, Project::GetProjectPath())
-                              .lexically_normal()
-                              .generic_string(), Allocator::Frame);
-
-            ScannedSource src {
-                .Path = String(relativeAssetPath, Allocator::Frame),
-                .Size = static_cast<int64_t>(it->file_size(ec)),
-                .ModTime = it->last_write_time(ec).time_since_epoch().count()
-            };
-
+    static Vec<DirectoryEntryStamp> ListDirectory(const OsPath& dir, const Allocator allocator) {
+        Vec<DirectoryEntryStamp> entries(allocator);
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(dir, ec);
+             it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
             if (ec) {
-                // vanished or locked mid-scan, next refresh catches it
                 ec.clear();
                 continue;
             }
 
-            if (auto found = known.find(relativeAssetPath); found != known.end()) {
-                auto& record = found->second;
-                seenIDs.insert(record.ID);
-
-                switch (CheckSource(record, src)) {
-                case SourceCheck::Unchanged:
-                    break;
-                case SourceCheck::StampOnly:
-                    stampUpdates.push_back({.ID = record.ID, .Size = src.Size, .ModTime = src.ModTime});
-                    break;
-                case SourceCheck::NeedsReimport:
-                    toImport.insert(record.ID);
-                    break;
-                }
-
+            if (!it->is_regular_file(ec) || ec) {
+                ec.clear();
                 continue;
             }
 
-            if (AssetID existing = EditorAssetImporter::ReadAssetHandle(relativeAssetPath);
-                existing && knownByID.contains(existing)
-            ) {
-                seenIDs.insert(existing);
-                if (auto r = m_Database.UpdateAssetPath(existing, relativeAssetPath); !r) {
-                    QS_ERROR_TAG(
-                        Tag,
-                        "Failed to record move of {}: {}",
-                        relativeAssetPath, r.error()
-                    );
-                }
+            // TODO: if (IsIgnoredFile(it->path())) continue;   // sidecars, editor temp/swap files, .DS_Store
 
-                RenameAsset(existing, relativeAssetPath);
-
-                const SourceRecord& record = *knownByID.at(existing);
-                SourceCheck movedCheck = CheckSource(record, src);
-                if (movedCheck == SourceCheck::NeedsReimport) {
-                    toImport.insert(existing);
-                } else if (movedCheck == SourceCheck::StampOnly) {
-                    stampUpdates.emplace_back(existing, src.Size, src.ModTime);
-                }
-
+            const int64_t size = static_cast<int64_t>(it->file_size(ec));
+            const int64_t modTime = it->last_write_time(ec).time_since_epoch().count();
+            if (ec) {
+                ec.clear();
                 continue;
             }
 
-            Vec<AssetID> registered(Allocator::Frame); {
-                Vec<const AssetMetadata*> registeredMetadata = ProcessAssetRegistration(relativeAssetPath, Allocator::Frame);
-                registered.resize(registeredMetadata.size());
-                for (uint32_t i = 0; i < registeredMetadata.size(); i++) {
-                    registered[i] = registeredMetadata[i]->Handle;
-                }
-            }
-
-            if (registered.empty()) {
-                continue;
-            }
-
-            // main asset only, sub-assets come from its import
-            seenIDs.insert(registered.front());
-            toImport.insert(registered.front());
+            entries.emplace_back(
+                String(it->path().lexically_relative(dir).generic_string(), allocator),
+                size,
+                modTime
+            );
         }
 
-        for (const auto& rec : known | std::views::values) {
-            if (!seenIDs.contains(rec.ID)) {
-                // TODO: HandleMissingSource(rec);
-            }
+        // Directory iteration order is unspecified; sorting makes the hash deterministic
+        std::ranges::sort(entries, {}, &DirectoryEntryStamp::RelativePath);
+        return entries;
+    }
+
+    static uint64_t HashListing(const Span<const DirectoryEntryStamp> entries) {
+        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
+        XXH3_64bits_reset(state.get());
+
+        for (const auto& e : entries) {
+            XXH3_64bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
+            XXH3_64bits_update(state.get(), &e.Size, sizeof(e.Size));
+            XXH3_64bits_update(state.get(), &e.ModTime, sizeof(e.ModTime));
         }
 
-        if (!stampUpdates.empty()) {
-            if (auto r = m_Database.UpdateSourceStamps(stampUpdates); !r) {
-                QS_WARN_TAG(Tag, "Failed to update source stamps: {}", r.error()); // harmless, rehashed next time
-            }
+        return XXH3_64bits_digest(state.get());
+    }
+
+    static Optional<Hash128> HashDirectoryContents(const OsPath& dir, const Span<const DirectoryEntryStamp> entries) {
+        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
+        XXH3_128bits_reset(state.get());
+        for (const auto& e : entries) {
+            XXH3_128bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
+            auto fileHash = Hash::File((dir / e.RelativePath.view()).generic_string());
+            if (!fileHash) return {};                 // vanished or locked mid-hash
+            XXH3_128bits_update(state.get(), &*fileHash, sizeof(*fileHash));
         }
 
-        if (toImport.empty()) {
+        XXH128_canonical_t canonical;
+        XXH128_canonicalFromHash(&canonical, XXH3_128bits_digest(state.get()));
+
+        Hash128 result;
+        static_assert(sizeof(result) == sizeof(canonical));
+        std::memcpy(&result, &canonical, sizeof(result));
+
+        return { result };
+    }
+
+    void EditorAssetManager::ReimportWithDependents(const HashSet<AssetID>& changed) {
+        static constexpr auto Tag = "EditorAssetManager::ReimportWithDependents";
+
+        if (changed.empty()) {
             return;
         }
 
@@ -791,14 +757,15 @@ namespace QuelosEditor {
             return metadata->ParentId ? metadata->ParentId : id;
         };
 
-        HashSet<AssetID> withDependents = toImport.clone(Allocator::Frame);
-        for (Vec<AssetID> dependents(Allocator::Frame); const AssetID& id : toImport) {
+        HashSet<AssetID> withDependents = changed.clone(Allocator::Frame);
+        for (Vec<AssetID> dependents(Allocator::Frame); const AssetID& id : changed) {
             dependents.clear();
             if (auto r = m_Database.GetTransitiveDependents(id, dependents); !r) {
                 QS_ERROR_TAG(
                     Tag,
                     "Failed to find dependents of '{}', they may be stale: {}",
-                    id.ToString(), r.error()
+                    id.ToString(),
+                    r.error()
                 );
 
                 continue;
@@ -822,15 +789,17 @@ namespace QuelosEditor {
         }
 
         HashSet<Pair<AssetID, AssetID>> edgeSet(edges->begin(), edges->end(), Allocator::Frame);
-        for (auto& id : toImport) {
+        for (auto& id : changed) {
             auto* metadata = GetAssetMetadata(id);
             if (!metadata) {
                 continue;
             }
 
-            for (const AssetDependency& dependency : EditorAssetImporter::GetAssetDependencies(*metadata, GetAllocator(Allocator::Frame))) {
+            for (const AssetDependency& dependency : EditorAssetImporter::GetAssetDependencies(
+                     *metadata,
+                     GetAllocator(Allocator::Frame))) {
                 AssetID assetId = std::visit(
-                    Overloaded {
+                    Overloaded{
                         [&](const AssetID& dependencyId) -> AssetID {
                             return dependencyId;
                         },
@@ -880,6 +849,159 @@ namespace QuelosEditor {
         for (const auto idIndex : sorted.Order) {
             Reimport(graph.Nodes[idIndex]);
         }
+
+        static constexpr auto DependentsOf = [](const DependencyGraph& graph, uint32_t node) -> Span<const uint32_t> {
+            const uint32_t begin = graph.Offsets[node];
+            const uint32_t end   = graph.Offsets[node + 1];
+            return { graph.Dependents.data() + begin, end - begin };
+        };
+
+        // Skip anything downstream of a failed import
+        Vec<bool> failed(graph.Nodes.size(), false, Allocator::Frame);
+        for (uint32_t i : sorted.Order) {
+            if (failed[i]) {
+                QS_WARN_TAG(Tag, "Skipping '{}': a dependency failed to import", graph.Nodes[i].ToString());
+            }
+            else if (Reimport(graph.Nodes[i])) {
+                continue;
+            }
+
+            for (uint32_t d : DependentsOf(graph, i)) {
+                failed[d] = true;
+            }
+        }
+    }
+
+    void EditorAssetManager::RefreshAssetDatabase() {
+        static constexpr auto Tag = "EditorAssetManager::RefreshAssetDatabase";
+        QS_PROFILE_SCOPED();
+
+        // path -> {ID, Size, ModTime, Hash, ImporterVersion, ...}
+        auto knownResult = m_Database.LoadSourceRecords(Allocator::Frame);
+        if (!knownResult) {
+            QS_ERROR_TAG(Tag, "Unable to load existing database records: {}", knownResult.error());
+            QS_ASSERT(false);
+            return;
+        }
+
+        auto& known = *knownResult;
+        HashMap<AssetID, const SourceRecord*> knownByID(Allocator::Frame);
+        knownByID.reserve(known.size());
+        for (const auto& rec : known | std::views::values) {
+            knownByID.emplace(rec.ID, &rec);
+        }
+
+        HashSet<AssetID> toImport(Allocator::Frame);
+        HashSet<AssetID> seenIDs(Allocator::Frame);
+        Vec<SourceStamp> stampUpdates(Allocator::Frame);
+
+        const OsPath& assetsDirectory = Project::GetAssetsPath();
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(assetsDirectory, ec);
+             it != std::filesystem::recursive_directory_iterator();
+             it.increment(ec)
+        ) {
+            if (ec) {
+                QS_ERROR_TAG(
+                    Tag,
+                    "Failed to recurse through the assets directory: {}",
+                    ec.message()
+                );
+
+                continue;
+            }
+
+            const OsPath& absoluteEntryPath = it->path();
+
+            if (!IsAssetSupported(absoluteEntryPath.generic_string())) {
+                continue;
+            }
+
+            String relativeAssetPath(std::filesystem::relative(absoluteEntryPath, Project::GetProjectPath())
+                                     .lexically_normal()
+                                     .generic_string(),
+                                     Allocator::Frame);
+
+            ScannedSource src{
+                .Path = String(relativeAssetPath, Allocator::Frame),
+                .Size = static_cast<int64_t>(it->file_size(ec)),
+                .ModTime = it->last_write_time(ec).time_since_epoch().count()
+            };
+
+            if (ec) {
+                // vanished or locked mid-scan, next refresh catches it
+                ec.clear();
+                continue;
+            }
+
+            if (auto found = known.find(relativeAssetPath); found != known.end()) {
+                auto& record = found->second;
+                seenIDs.insert(record.ID);
+
+                switch (CheckSource(record, src)) {
+                case SourceCheck::Unchanged:
+                    break;
+                case SourceCheck::StampOnly:
+                    stampUpdates.push_back({.ID = record.ID, .Size = src.Size, .ModTime = src.ModTime});
+                    break;
+                case SourceCheck::NeedsReimport:
+                    toImport.insert(record.ID);
+                    break;
+                }
+
+                continue;
+            }
+
+            if (AssetID existing = EditorAssetImporter::ReadAssetHandle(relativeAssetPath);
+                existing && knownByID.contains(existing)
+            ) {
+                seenIDs.insert(existing);
+                if (auto r = m_Database.UpdateAssetPath(existing, relativeAssetPath); !r) {
+                    QS_ERROR_TAG(
+                        Tag,
+                        "Failed to record move of {}: {}",
+                        relativeAssetPath,
+                        r.error()
+                    );
+                }
+
+                RenameAsset(existing, relativeAssetPath);
+
+                const SourceRecord& record = *knownByID.at(existing);
+                SourceCheck movedCheck = CheckSource(record, src);
+                if (movedCheck == SourceCheck::NeedsReimport) {
+                    toImport.insert(existing);
+                }
+                else if (movedCheck == SourceCheck::StampOnly) {
+                    stampUpdates.emplace_back(existing, src.Size, src.ModTime);
+                }
+
+                continue;
+            }
+
+            Vec<AssetID> registered = ProcessAssetRegistration(relativeAssetPath, Allocator::Frame);
+            if (registered.empty()) {
+                continue;
+            }
+
+            // main asset only, sub-assets come from its import
+            seenIDs.insert(registered.front());
+            toImport.insert(registered.front());
+        }
+
+        for (const auto& rec : known | std::views::values) {
+            if (!seenIDs.contains(rec.ID)) {
+                // TODO: HandleMissingSource(rec);
+            }
+        }
+
+        if (!stampUpdates.empty()) {
+            if (auto r = m_Database.UpdateSourceStamps(stampUpdates); !r) {
+                QS_WARN_TAG(Tag, "Failed to update source stamps: {}", r.error()); // harmless, rehashed next time
+            }
+        }
+
+        ReimportWithDependents(toImport);
     }
 
     SourceCheck EditorAssetManager::CheckSource(const SourceRecord& rec, const ScannedSource& src) {
@@ -902,11 +1024,20 @@ namespace QuelosEditor {
         */
 
         if (rec.Size == src.Size && rec.ModTime == src.ModTime) {
-            return SourceCheck::Unchanged;  // fast path
+            return SourceCheck::Unchanged; // fast path
         }
 
         // Metadata changed: confirm with the content hash
-        const Optional<Hash128> hash = Hash::File(src.Path);
+        const OsPath& absolutePath =  Project::GetProjectPath() / src.Path.view();
+        Optional<Hash128> hash = None;
+
+        if (std::filesystem::is_directory(absolutePath)) {
+            auto listing = ListDirectory(absolutePath, Allocator::Frame);
+            hash = HashDirectoryContents(absolutePath, listing);
+        } else {
+            hash = Hash::File(absolutePath.generic_string());
+        }
+
         if (hash == rec.Hash) {
             /*
             if (Expected<void, String> r = m_Database.UpdateSourceStamp(rec.ID, src.Size, src.ModTime); !r) {
@@ -918,5 +1049,173 @@ namespace QuelosEditor {
         }
 
         return SourceCheck::NeedsReimport;
+    }
+
+    bool EditorAssetManager::Reload(const AssetID& assetId) {
+        const AssetMetadata* metadata = GetAssetMetadata(assetId);
+        if (!metadata) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "EditorAssetManager",
+                "Failed to reload asset! couldn't find asset metadata with AssetID {}",
+                assetId.ToString()
+            );
+
+            return false;
+        }
+
+        const auto assetLoaded = m_LoadedAssets.find(assetId);
+        if (assetLoaded != m_LoadedAssets.end()) {
+            const auto assetHandle = assetLoaded->second;
+            const auto poolIt = m_AssetPools.find(assetHandle.Type);
+            if (poolIt == m_AssetPools.end()) {
+                return false;
+            }
+
+            if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
+                pool.ReleaseAt(pool.Data, assetHandle);
+                return Import(pool, assetHandle, *metadata);
+            }
+        }
+
+        return false;
+    }
+
+    static Vec<String> ArtifactsNotIn(const Span<const String> previous, const Span<const String> current, const Allocator allocator) {
+        const HashSet<std::string_view> keep(current.begin(), current.end(), Allocator::Frame);
+
+        Vec<String> stale(allocator);
+        for (const String& path : previous) {
+            if (!keep.contains(path)) {
+                stale.push_back(path);
+            }
+        }
+
+        return stale;
+    }
+
+    static void DeleteArtifacts(const Span<const String> artifacts) {
+        std::error_code ec;
+        for (const auto& artifact : artifacts) {
+            ec.clear();
+            const OsPath& root = Project::GetLibraryPath();
+            std::filesystem::remove(root / artifact.view(), ec);
+            if (ec) {
+                QS_CORE_WARN_TAG(
+                    "EditorAssetManager::Reimport",
+                    "Failed to remove failed import artifact at location '{}': {}",
+                    artifact, ec.message()
+                );
+            }
+        }
+    }
+
+    bool EditorAssetManager::Reimport(const AssetID& assetId) {
+        const AssetMetadata* meta = m_AssetRegistry.GetAssetMetadata(assetId);
+        if (!meta) {
+            QS_ERROR_TAG(
+                "EditorAssetManager::Reimport",
+                "Failed to reimport asset with id '{}'",
+                assetId.ToString(Allocator::Frame)
+            );
+
+            return false;
+        }
+
+        const OsPath absolute = Project::GetProjectPath() / meta->FilePath;
+        const std::string absoluteStr = absolute.generic_string();
+
+        // Stamp BEFORE importing: if the file changes during the import,
+        // the next refresh sees a newer mod time and reimports again.
+        int64_t size = 0;
+        int64_t modTime = 0;
+        Optional<Hash128> hash;
+
+        if (std::filesystem::is_directory(absolute)) {
+            auto listings = ListDirectory(absolute, Allocator::Frame);
+            modTime = static_cast<int64_t>(HashListing(listings));
+            for (const auto& listing : listings) {
+                size += listing.Size;
+            }
+
+            hash = HashDirectoryContents(absolute, listings);
+        } else {
+            std::error_code ec;
+            size = static_cast<int64_t>(std::filesystem::file_size(absolute, ec));
+            modTime = std::filesystem::last_write_time(absolute, ec).time_since_epoch().count();
+            if (ec) {
+                QS_ERROR_TAG(
+                    "EditorAssetManager::Reimport",
+                    "Failed to read source file during reimport for asset(path: '{}', id: '{}'): {}",
+                    absoluteStr, assetId.ToString(Allocator::Frame), ec.message()
+                );
+
+                return false;
+            }
+
+            hash = Hash::File(absoluteStr);
+        }
+
+        if (!hash) {
+            QS_ERROR_TAG(
+                "EditorAssetManager::Reimport",
+                "Failed to hash source file content during reimport for asset(path: '{}', id: '{}')",
+                absoluteStr, assetId.ToString(Allocator::Frame)
+            );
+
+            return false;
+        }
+
+        ImportContext ctx(*meta, m_AssetRegistry, GetAllocator(Allocator::Frame));
+        if (!EditorAssetImporter::Import(ctx)) {
+            QS_ERROR_TAG("EditorAssetManager::Reimport", "Import failed for '{}'", meta->FilePath);
+            DeleteArtifacts(ctx.GetArtifacts());
+
+            return false;
+        }
+
+        // Artifacts from the previous import that this one didn't produce
+        auto previous = m_Database.GetArtifacts(assetId, GetAllocator(Allocator::Frame));
+
+        const ImportResult result {
+            .ID = assetId,
+            .Path = meta->FilePath,
+            .TypeName = meta->Type.GetName(),
+            .SourceSize = size,
+            .SourceModTime = modTime,
+            .SourceHash = *hash,
+            .ImporterVersion = AssetImporter::GetVersion(meta->Type),
+            .SettingsHash = None/*TODO: LoadImportSettingsHash(meta->FilePath)*/,
+            .Dependencies = ctx.GetDependencies(),
+            .Artifacts = ctx.GetArtifacts(),
+        };
+
+        if (auto r = m_Database.CommitImport(result); !r) {
+            QS_ERROR_TAG(
+                "EditorAssetManager::Reimport",
+                "Failed to record import of '{}': {}",
+                meta->FilePath, r.error()
+            );
+
+            return false;
+        }
+
+        if (previous) {
+            DeleteArtifacts(ArtifactsNotIn(*previous, ctx.GetArtifacts(), Allocator::Frame));
+        }
+
+        SyncSubAssetsToRegistry(assetId, ctx.GetSubAssets());
+
+        // Hot reload loaded asset
+        if (m_LoadedAssets.contains(assetId)) {
+            Reload(assetId);
+        }
+
+        for (const auto& [childId, metadata] : m_AssetRegistry.GetAssetsMetadata()) {
+            if (metadata.ParentId == assetId && m_LoadedAssets.contains(childId)) {
+                Reload(childId);
+            }
+        }
+
+        return true;
     }
 }

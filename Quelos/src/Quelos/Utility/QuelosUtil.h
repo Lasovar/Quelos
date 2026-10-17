@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Quelos/Core/DataTypes.hpp"
+#include "Quelos/Core/Buffer.h"
+
 namespace Quelos::Utility {
     /// @param filePath file path
     /// @param relative whether the passed path is relative to the Project path

@@ -88,18 +88,18 @@ namespace QuelosEditor {
 
             if (!asset.IsImportable && ImGui::MenuItem("Reimport")) {
                 if (asset.Metadata.Handle) {
-                    m_AssetManager->Reimport(asset.Metadata.Handle);
+                    m_AssetManager->QueueReimport(asset.Metadata.Handle);
                     m_QueueDirectoryTreeRebuild = true;
                 }
             }
 
             if (asset.IsImportable && ImGui::MenuItem("Import")) {
-                const Vec<const AssetMetadata*> assetsMetadata = m_AssetManager->ProcessAssetRegistration(
+                const Vec<AssetID> assetsMetadata = m_AssetManager->ProcessAssetRegistration(
                     asset.Metadata.FilePath, Allocator::Frame
                 );
 
-                if (!assetsMetadata.empty() && assetsMetadata[0] && assetsMetadata[0]->Handle) {
-                    asset.Metadata = *assetsMetadata[0];
+                if (!assetsMetadata.empty() && assetsMetadata[0]) {
+                    asset.Metadata = *m_AssetManager->GetAssetMetadata(assetsMetadata[0]);
                     asset.IsImportable = false;
                     m_QueueDirectoryTreeRebuild = true;
                 }

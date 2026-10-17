@@ -1,6 +1,9 @@
 #pragma once
+
 #include "Asset.h"
 #include "AssetMetadata.h"
+
+#include "Quelos/Utility/HashMap.hpp"
 
 namespace Quelos {
     class QS_API AssetRegistry {
@@ -16,7 +19,7 @@ namespace Quelos {
 
         void RemoveAsset(AssetID assetHandle);
 
-        HashMap<AssetID, AssetMetadata>& GetAssetsMetadata() {return m_AssetMetadata; }
+        HashMap<AssetID, AssetMetadata>& GetAssetsMetadata() { return m_AssetMetadata; }
         [[nodiscard]] const HashMap<AssetID, AssetMetadata>& GetAssetsMetadata() const {return m_AssetMetadata; }
 
     private:

@@ -37,12 +37,12 @@ namespace QuelosEditor {
 
         [[nodiscard]] bool IsAssetLoaded(const AssetID& handle) const override;
         void RemoveAssetFromRegistry(const AssetID& assetHandle);
-        void Reimport(AssetID assetId);
+        void QueueReimport(AssetID assetId);
 
         void FlushReimportQueue();
 
-        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath, std::pmr::polymorphic_allocator<> allocator);
-        Vec<const AssetMetadata*> ProcessAssetRegistration(std::string_view assetPath, AllocatorType allocatorType);
+        Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, std::pmr::polymorphic_allocator<> allocator);
+        Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, AllocatorType allocatorType);
 
         template <typename T>
         requires (std::is_base_of_v<Asset, T>)
@@ -80,15 +80,19 @@ namespace QuelosEditor {
         void handleFileAction(efsw::WatchID watchId, const std::string& dir, const std::string& filename,
                               efsw::Action action, std::string oldFilename) override;
 
+        void SyncSubAssetsToRegistry(const AssetID& parentId, Span<const AssetMetadata> produced);
         void RefreshAssetDatabase();
         static SourceCheck CheckSource(const SourceRecord& rec, const ScannedSource& src);
 
     private:
 
+        bool Reload(const AssetID& assetId);
+        bool Reimport(const AssetID& assetId);
         bool Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata);
-        const AssetMetadata* AddAssetToRegistry(std::string_view assetPath);
+        AssetID AddAssetToRegistry(std::string_view assetPath);
+        void ReimportWithDependents(const HashSet<AssetID>& changed);
 
-        Expected<void, String> AddAssetToDatabase(const DatabaseAssetRecord& record) const;
+        Expected<void, String> AddAssetToDatabase(const ImportResult& record) const;
 
         template <typename T, typename... Args>
         void Reconstruct(const AssetHandle<T>& handle, Args&&... args) {
@@ -102,13 +106,6 @@ namespace QuelosEditor {
             obj->~T();
 
             new(obj) T(std::forward<Args>(args)...);
-        }
-
-    private:
-        template <typename T>
-        requires (std::is_base_of_v<Asset, T>)
-        static void ReimportAsset(T* asset, const AssetMetadata* assetMetadata) {
-            EditorAssetImporter::TryReimportAsset(reinterpret_cast<void*>(asset), assetMetadata);
         }
 
     private:

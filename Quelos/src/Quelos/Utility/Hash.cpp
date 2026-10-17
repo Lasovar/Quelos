@@ -46,6 +46,6 @@ namespace Quelos::Hash {
         static_assert(sizeof(result) == sizeof(canonical));
         std::memcpy(&result, &canonical, sizeof(result));
 
-        return Optional(result);
+        return { result };
     }
 }

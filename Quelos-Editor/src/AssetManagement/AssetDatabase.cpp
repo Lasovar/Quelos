@@ -59,7 +59,25 @@ PRAGMA user_version = 1;
 
     }
 
-    Expected<void, String> AssetDatabase::AddAssetToDatabase(const DatabaseAssetRecord& record) const {
+    Expected<void, String> AssetDatabase::RegisterAsset(
+        const AssetID& id,
+        const Optional<std::string_view>& path,
+        const std::string_view typeName,
+        const Optional<AssetID>& parent
+    ) const {
+        static constexpr std::string_view sql = R"(
+INSERT INTO Assets (AssetID, AssetPath, AssetTypeName, ParentAssetID)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT (AssetID) DO UPDATE SET
+    AssetPath     = excluded.AssetPath,
+    AssetTypeName = excluded.AssetTypeName,
+    ParentAssetID = excluded.ParentAssetID;
+        )";
+
+        return m_Database.Execute(sql, id, path, typeName, parent);
+    }
+
+    Expected<void, String> AssetDatabase::CommitImport(const ImportResult& record) const {
         if (auto r = m_Database.Execute("BEGIN IMMEDIATE;"); !r) {
             return r;
         }
@@ -165,7 +183,7 @@ PRAGMA user_version = 1;
         }
 
         return m_Database.Execute("COMMIT;");
-    }
+    };
 
     Expected<HashMap<String, SourceRecord>, String> AssetDatabase::LoadSourceRecords(
         std::pmr::memory_resource* memoryResource
@@ -174,7 +192,7 @@ PRAGMA user_version = 1;
         SELECT AssetPath, AssetID, AssetTypeName,
                SourceSize, SourceModTime, SourceHash, ImporterVersion, SettingsHash
         FROM Assets
-        WHERE AssetPath IS NOT NULL;)"
+        WHERE ParentAssetID IS NULL;)"
         );
 
         if (!query) {
@@ -329,6 +347,41 @@ PRAGMA user_version = 1;
         }
 
         return edges;
+    }
+
+    Expected<Vec<String>, String> AssetDatabase::GetArtifacts(
+        const AssetID& id,
+        std::pmr::memory_resource* memoryResource
+    ) const {
+        static constexpr std::string_view sql = R"(
+SELECT ArtifactPath FROM AssetArtifacts WHERE AssetID = ?;
+)";
+        Expected<SQLiteStatement, String> statement = m_Database.CreateStatement(sql);
+        if (!statement) {
+            return Unexpected(std::move(statement).error());
+        }
+
+        if (auto r = statement->BindAll(id); !r) {
+            return Unexpected(std::move(r).error());
+        }
+
+        Vec<String> artifacts(memoryResource);
+        while (true) {
+            auto row = statement->Step();
+            if (!row) {
+                return Unexpected(std::move(row).error());
+            }
+
+            if (!*row) {
+                break;
+            }
+
+            if (auto path = statement->GetText(0, Allocator::Frame)) {
+                artifacts.push_back(std::move(*path));
+            }
+        }
+
+        return artifacts;
     }
 
     Expected<void, String> AssetDatabase::UpdateSourceStamp(const AssetID& id, const int64_t size, const int64_t modTime) const {

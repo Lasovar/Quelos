@@ -6,7 +6,7 @@
 
 namespace Quelos {
     namespace TextureImporter {
-        QS_API bool ImportTexture2D(void* dataSlot, const AssetMetadata& metadata);
+        QS_API bool ImportTexture2D(const LoadContext& loadContext);
         QS_API bool IsAssetSupported(std::string_view path);
 
         inline AssetImporterConfig GetImporterConfig() {

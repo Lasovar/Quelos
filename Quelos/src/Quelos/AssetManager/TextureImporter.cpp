@@ -18,7 +18,8 @@ namespace Quelos {
         return s_ImportableExtensions.find(FS::Extension(path)) != s_ImportableExtensions.end();
     }
 
-    bool TextureImporter::ImportTexture2D(void* dataSlot, const AssetMetadata& metadata) {
+    bool TextureImporter::ImportTexture2D(const LoadContext& loadContext) {
+        const auto& metadata = loadContext.GetAssetMetadata();
         int width, height, channels;
 
         const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
@@ -68,7 +69,7 @@ namespace Quelos {
             return false;
         }
 
-        auto* texture = new(dataSlot) Texture2D(textureSpecs, dataBuffer.view());
+        auto* texture = new(loadContext.GetLoadSlot()) Texture2D(textureSpecs, dataBuffer.view());
         texture->SetAssetID(metadata.Handle);
 
         return true;
