@@ -42,7 +42,7 @@ namespace QuelosEditor {
     };
 
     template <>
-    struct SetMaterialProperty<AssetRef<Texture2D>> {
+    struct SetMaterialProperty<SoftRef<Texture2D>> {
         AssetRef<Material> MaterialAsset;
         uint64_t PropertyOffset = 0;
 
@@ -61,7 +61,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty(PropertyOffset, AssetRef<Texture2D>(After));
+            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture2D>(After));
         }
 
         void Revert() const {
@@ -69,7 +69,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty(PropertyOffset, AssetRef<Texture2D>(Before));
+            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture2D>(Before));
         }
     };
 
@@ -83,7 +83,7 @@ namespace QuelosEditor {
         SetMaterialShader(const AssetRef<Material>& materialAsset, const AssetID newShader)
             : MaterialAsset(materialAsset), After(newShader)
         {
-            const Material& material = MaterialAsset.Get();
+            Material& material = MaterialAsset.Get();
             Before = material.GetShader().GetAssetID();
             BeforeValues = material.GetMaterialPropertyValues().clone(Allocator::Persistent);
         }

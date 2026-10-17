@@ -700,6 +700,7 @@ namespace QuelosEditor {
                 return false;
             }
 
+            bool isComputeShader = false;
             GraphicsShaderCreateInfo createInfo;
             createInfo.Name = FS::Stem(metadata.FilePath);
 
@@ -757,14 +758,23 @@ namespace QuelosEditor {
 
                     shader.Code = reader.ReadBytesWithSize();
 
+                    // TODO: Temp until proper asset type handling through import
+                    if (shader.Type == ShaderType::Compute) {
+                        isComputeShader = true;
+                    }
+
                     createInfo.Passes[std::string(passName)].push_back(std::move(shader));
                 }
             }
 
-            if (metadata.Type == GraphicsShader::GetStaticType()) {
+            // TODO:
+            // Add a way so that importing also determines the asset type, so a shader can be either
+            // A GraphicsShader or a ComputeShader using the same importer
+            // The issue metadata right now always returns a GraphicsShader for the type
+            if (!isComputeShader) {
                 auto* shader = new(loadContext.GetLoadSlot()) GraphicsShader(createInfo);
                 shader->SetAssetID(metadata.Handle);
-            } else if (metadata.Type == ComputeShader::GetStaticType()) {
+            } else {
                 ComputeShaderCreateInfo computeShaderCreateInfo;
                 computeShaderCreateInfo.Name = FS::Stem(metadata.FilePath);
 

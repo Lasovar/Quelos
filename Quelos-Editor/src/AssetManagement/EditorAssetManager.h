@@ -21,6 +21,7 @@ namespace QuelosEditor {
     public:
         EditorAssetManager();
 
+        void Initialize();
         void UnloadAsset(AssetID assetHandle) override;
 
         [[nodiscard]] const AssetMetadata* GetAssetMetadata(std::string_view path) const;
@@ -72,10 +73,6 @@ namespace QuelosEditor {
 
         void CleanupAssetMap();
 
-        void SerializeAssetRegistry();
-        void DeserializeAssetRegistry();
-
-
         // File watch listener implementation
         void handleFileAction(efsw::WatchID watchId, const std::string& dir, const std::string& filename,
                               efsw::Action action, std::string oldFilename) override;
@@ -91,6 +88,7 @@ namespace QuelosEditor {
         bool Import(const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata);
         AssetID AddAssetToRegistry(std::string_view assetPath);
         void ReimportWithDependents(const HashSet<AssetID>& changed);
+        bool LoadAssetRegistry();
 
         Expected<void, String> AddAssetToDatabase(const ImportResult& record) const;
 
