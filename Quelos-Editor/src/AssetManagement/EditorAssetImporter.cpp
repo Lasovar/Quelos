@@ -8,12 +8,12 @@ namespace QuelosEditor {
 
     void EditorAssetImporter::RegisterAssetImporter(const EditorAssetImporterConfig& config) {
         s_EditorAssetLoaders[config.Type] = config;
-        
+
         // Also register with runtime AssetImporter for game builds
         const AssetImporterConfig runtimeConfig = {
-            config.Type,
-            config.LoadAsset,
-            config.IsAssetSupported
+            .Type = config.Type,
+            .LoadAsset = config.LoadAsset,
+            .IsAssetSupported = config.IsAssetSupported
         };
 
         AssetImporter::RegisterAssetImporter(runtimeConfig);
@@ -41,19 +41,13 @@ namespace QuelosEditor {
         return AssetImporter::GetAssetType(path);
     }
 
-    bool EditorAssetImporter::ImportAsset(void* dataSlot, const AssetMetadata& metadata) {
-        const auto it = s_EditorAssetLoaders.find(metadata.Type);
+    bool EditorAssetImporter::LoadAsset(const LoadContext& loadContext) {
+        const auto it = s_EditorAssetLoaders.find(loadContext.GetAssetMetadata().Type);
         if (it == s_EditorAssetLoaders.end()) {
-            return AssetImporter::ImportAsset(dataSlot, metadata);
+            return AssetImporter::LoadAsset(loadContext);
         }
 
-        if (it->second.CookAsset) {
-            if (!it->second.CookAsset(metadata)) {
-                return false;
-            }
-        }
-
-        return it->second.LoadAsset(dataSlot, metadata);
+        return it->second.LoadAsset(loadContext);
     }
 
     AssetID EditorAssetImporter::ReadAssetHandle(const std::string_view assetPath) {
@@ -70,7 +64,7 @@ namespace QuelosEditor {
         return {};
     }
 
-    bool EditorAssetImporter::WriteAssetHandle(std::string_view assetPath, const AssetID& handle) {
+    bool EditorAssetImporter::WriteAssetHandle(const std::string_view assetPath, const AssetID& handle) {
         const AssetType type = GetAssetType(assetPath);
         if (!type) {
             return false;
@@ -84,22 +78,19 @@ namespace QuelosEditor {
         return false;
     }
 
-    void EditorAssetImporter::TryReimportAsset(void* dataSlot, const AssetMetadata* assetMetadata) {
-        if (!assetMetadata) {
-            return;
-        }
-
-        if (const auto it = s_EditorAssetLoaders.find(assetMetadata->Type); it != s_EditorAssetLoaders.end()) {
-            if (it->second.CookAsset) {
-                if (!it->second.CookAsset(*assetMetadata)) {
-                    return;
-                }
+    bool EditorAssetImporter::Import(ImportContext& importContext) {
+        const AssetMetadata& metadata = importContext.GetAssetMetadata();
+        if (const auto it = s_EditorAssetLoaders.find(metadata.Type); it != s_EditorAssetLoaders.end()) {
+            if (!it->second.ImportAsset) {
+                return true;
             }
 
-            if (it->second.ReimportAsset) {
-                it->second.ReimportAsset(dataSlot, *assetMetadata);
+            if (!it->second.ImportAsset(importContext)) {
+                return false;
             }
         }
+
+        return true;
     }
 
     Vec<AssetDependency> EditorAssetImporter::GetAssetDependencies(

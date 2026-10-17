@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "ImportContext.hpp"
 #include "Quelos/AssetManager/AssetImporter.h"
 #include "Quelos/Utility/String.hpp"
 
@@ -16,12 +17,9 @@ namespace QuelosEditor {
         IsAssetSupportedFn IsAssetSupported;
 
         // From here on Editor-only
-        using ReimportFn = bool(*)(void* asset, const AssetMetadata& metadata);
-        ReimportFn ReimportAsset = nullptr;
-
         using ReadHandleFn = AssetID(*)(std::string_view assetPath);
         using WriteHandleFn = bool(*)(std::string_view assetPath, const AssetID& handle);
-        using CookAssetFn = bool(*)(const AssetMetadata& metadata);
+        using ImportAssetFn = bool(*)(ImportContext& importContext);
         using AssetHashFn = uint64_t(*)(const AssetMetadata& metadata);
         using GetDependenciesFn = Vec<AssetDependency>(*)(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource);
 
@@ -33,7 +31,7 @@ namespace QuelosEditor {
         //AssetHashFn AssetHash = nullptr;
 
         // Optional - cooked asset should be stored in the Project::CookedAssetsPath and loaded on LoadAsset
-        CookAssetFn CookAsset = nullptr;
+        ImportAssetFn ImportAsset = nullptr;
 
         // Optional
         GetDependenciesFn GetDependencies = nullptr;
@@ -44,12 +42,12 @@ namespace QuelosEditor {
 
         bool IsAssetSupported(std::string_view path);
         const AssetType& GetAssetType(std::string_view path);
-        bool ImportAsset(void* dataSlot, const AssetMetadata& metadata);
+        bool LoadAsset(const LoadContext& loadContext);
         
         // Editor-only metadata handling
         AssetID ReadAssetHandle(std::string_view assetPath);
         bool WriteAssetHandle(std::string_view assetPath, const AssetID& handle);
-        void TryReimportAsset(void* dataSlot, const AssetMetadata* assetMetadata);
+        bool Import(ImportContext& importContext);
 
         Vec<AssetDependency> GetAssetDependencies(const AssetMetadata& assetMetadata, std::pmr::memory_resource* memoryResource);
     }

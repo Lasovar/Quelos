@@ -40,45 +40,23 @@ namespace QuelosEditor {
         // World renderer setup (a few of these need to be a render pass after the system for custom render pass is setup)
         m_WorldRenderer.SetWorld(m_EditorWorld);
 
-        AssetMetadata computeMetadata;
-        computeMetadata.FilePath = "Assets/shaders/DepthReduction.slang";
-        computeMetadata.Type = ComputeShader::GetStaticType();
-        computeMetadata.Handle = AssetID("8d4f6b7e-2d3c-4a9e-b6d5-7c9f18e2a4b1");
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
 
-        ShaderImporter::Cook(computeMetadata);
-        ShaderImporter::Import(GetDepthReductionCompute(), computeMetadata);
-
+        const AssetMetadata* computeMetadata = assetManager->GetAssetMetadata("Assets/shaders/DepthReduction.slang");
+        ShaderImporter::Load(LoadContext(*computeMetadata, GetDepthReductionCompute()));
         m_WorldRenderer.SetDepthReductionCompute(GetDepthReductionCompute());
 
-        AssetMetadata shadowDepthMetadata;
-        shadowDepthMetadata.FilePath = "Assets/shaders/ShadowDepth.slang";
-        shadowDepthMetadata.Type = GraphicsShader::GetStaticType();
-        shadowDepthMetadata.Handle = AssetID("f72b81c5-3d6e-4f98-a1c7-2be95d4a806f");
-
-        ShaderImporter::Cook(shadowDepthMetadata);
-        ShaderImporter::Import(GetShadowDepthShader(), shadowDepthMetadata);
-
+        const AssetMetadata* shadowDepthMetadata = assetManager->GetAssetMetadata("Assets/shaders/ShadowDepth.slang");
+        ShaderImporter::Load(LoadContext(*shadowDepthMetadata, GetShadowDepthShader()));
         m_WorldRenderer.SetShadowDepthShader(GetShadowDepthShader());
         m_WorldRenderer.SetDepthPrepassShader(GetShadowDepthShader());
 
-        AssetMetadata shadowMaskMetadata;
-        shadowMaskMetadata.FilePath = "Assets/shaders/ShadowMask.slang";
-        shadowMaskMetadata.Type = GraphicsShader::GetStaticType();
-        shadowMaskMetadata.Handle = AssetID("2f18c7b9-94d1-4e3a-a560-7dbcf8126e45");
-
-        ShaderImporter::Cook(shadowMaskMetadata);
-        ShaderImporter::Import(GetShadowMaskShader(), shadowMaskMetadata);
-
+        const AssetMetadata* shadowMaskMetadata = assetManager->GetAssetMetadata("Assets/shaders/ShadowMask.slang");
+        ShaderImporter::Load(LoadContext(*shadowMaskMetadata, GetShadowMaskShader()));
         m_WorldRenderer.SetShadowMaskShader(GetShadowMaskShader());
 
-        AssetMetadata toneMappingShaderMetadata;
-        toneMappingShaderMetadata.FilePath = "Assets/shaders/tonemapping.slang";
-        toneMappingShaderMetadata.Type = GraphicsShader::GetStaticType();
-        toneMappingShaderMetadata.Handle = AssetID("e0843df7-6b12-4fa5-8cd9-31be76a942ef");
-
-        ShaderImporter::Cook(toneMappingShaderMetadata);
-        ShaderImporter::Import(GetToneMappingShader(), toneMappingShaderMetadata);
-
+        const AssetMetadata* toneMappingShaderMetadata = assetManager->GetAssetMetadata("Assets/shaders/tonemapping.slang");
+        ShaderImporter::Load(LoadContext(*toneMappingShaderMetadata, GetToneMappingShader()));
         m_WorldRenderer.SetToneMappingShader(GetToneMappingShader());
 
         m_GameViewportPanel.SetWorldRendererView(m_WorldRenderer.CreateView("GameView", { 1, 1 }));
@@ -165,12 +143,8 @@ namespace QuelosEditor {
 
         m_IDFrameBuffer = Renderer::CreateFrameBuffer(fbDesc);
 
-        AssetMetadata metadata;
-        metadata.FilePath = "Assets/shaders/EntitySelection.slang";
-        metadata.Type = GraphicsShader::GetStaticType();
-
-        ShaderImporter::Cook(metadata);
-        ShaderImporter::Import(GetIDShader(), metadata);
+        const AssetMetadata* entitySelectionMetadata = assetManager->GetAssetMetadata("Assets/shaders/EntitySelection.slang");
+        ShaderImporter::Load(LoadContext(*entitySelectionMetadata, GetIDShader()));
 
         GraphicsShader* shader = GetIDShader();
         GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
@@ -602,15 +576,11 @@ namespace QuelosEditor {
     }
 
     void SceneWorkspace::CreateOutlineMaskResources() {
-        AssetMetadata selectedMaskMetadata;
-        selectedMaskMetadata.FilePath = "Assets/shaders/SelectedOutlineMask.slang";
-        selectedMaskMetadata.Handle = AssetID("deaddead-beaf-beef-dead-deadbeafbeef");
-        selectedMaskMetadata.Type = GraphicsShader::GetStaticType();
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
+        const AssetMetadata* selectedMaskMetadata = assetManager->GetAssetMetadata("Assets/shaders/SelectedOutlineMask.slang");
 
         GraphicsShader* shader = GetMaskShader();
-
-        ShaderImporter::Cook(selectedMaskMetadata);
-        ShaderImporter::Import(shader, selectedMaskMetadata);
+        ShaderImporter::Load(LoadContext(*selectedMaskMetadata, shader));
 
         const GraphicsShaderPass* pass = shader->GetShaderPass("SelectedOutlineMask");
 
@@ -882,15 +852,11 @@ namespace QuelosEditor {
 
         m_CompositeFrameBuffer = Renderer::CreateFrameBuffer(fbDesc);
 
-        AssetMetadata selectedCompositeMetadata;
-        selectedCompositeMetadata.FilePath = "Assets/shaders/SelectedOutlineComposite.slang";
-        selectedCompositeMetadata.Handle = AssetID("deadbeef-dead-beef-dead-beefdeadbeef");
-        selectedCompositeMetadata.Type = GraphicsShader::GetStaticType();
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
+        const AssetMetadata* selectedCompositeMetadata = assetManager->GetAssetMetadata("Assets/shaders/SelectedOutlineComposite.slang");
 
         GraphicsShader* shader = GetCompositeShader();
-
-        ShaderImporter::Cook(selectedCompositeMetadata);
-        ShaderImporter::Import(shader, selectedCompositeMetadata);
+        ShaderImporter::Load(LoadContext(*selectedCompositeMetadata, shader));
 
         const GraphicsShaderPass* pass = shader->GetShaderPass("GBuffer");
 

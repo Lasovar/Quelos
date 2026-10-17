@@ -25,16 +25,16 @@ namespace QuelosEditor {
         int64_t ModTime = 0;
     };
 
-    struct DatabaseAssetRecord {
+    struct ImportResult {
         AssetID ID;
         Optional<std::string_view> Path;
         std::string_view TypeName;
         Optional<AssetID> ParentID;
-        Optional<int64_t>   SourceSize;
-        Optional<int64_t>   SourceModTime;
-        Optional<Hash128>   SourceHash;
-        Optional<int64_t>   ImporterVersion;
-        Optional<Hash128>   SettingsHash;
+        Optional<int64_t> SourceSize;
+        Optional<int64_t> SourceModTime;
+        Optional<Hash128> SourceHash;
+        Optional<int64_t> ImporterVersion;
+        Optional<Hash128> SettingsHash;
         Span32<const AssetID> Dependencies;
         Span32<const String> Artifacts;
     };
@@ -52,8 +52,16 @@ namespace QuelosEditor {
     class AssetDatabase {
     public:
         AssetDatabase();
+        [[nodiscard]] Expected<void, String> RegisterAsset(
+            const AssetID& id,
+            const Optional<std::string_view>& path,
+            std::string_view typeName,
+            const Optional<AssetID>& parent
+        ) const;
 
-        [[nodiscard]] Expected<void, String> AddAssetToDatabase(const DatabaseAssetRecord& record) const;
+        // Called on a successful import
+        [[nodiscard]] Expected<void, String> CommitImport(const ImportResult& record) const;
+
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(std::pmr::memory_resource* memoryResource) const;
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(const AllocatorType allocatorType) const {
             return LoadSourceRecords(GetAllocator(allocatorType));
@@ -66,9 +74,13 @@ namespace QuelosEditor {
             return GetTransitiveDependents(id, result)
                 .transform([&] { return std::move(result); });
         }
+
         [[nodiscard]] Expected<Vec<GUID128>, String> GetTransitiveDependents(const AssetID& id, const AllocatorType allocatorType) const {
             return GetTransitiveDependents(id, GetAllocator(allocatorType));
         }
+
+        Expected<Vec<String>, String> GetArtifacts(const AssetID& id, std::pmr::memory_resource* memoryResource) const;
+
 
         [[nodiscard]] Expected<void, String> UpdateSourceStamp(const AssetID& id, int64_t size, int64_t modTime) const;
         [[nodiscard]] Expected<void, String> UpdateSourceStamps(Span32<const SourceStamp> stamps) const;

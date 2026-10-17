@@ -5,6 +5,8 @@
 #include "magic_enum/magic_enum.hpp"
 
 #include "Quelos/Core/Profiling.h"
+#include "Quelos/Project/Project.h"
+#include "Quelos/Utility/QuelosUtil.h"
 
 namespace Quelos {
     static HashMap<AssetTypeID, AssetImporterConfig> s_AssetLoaders{Allocator::Persistent};
@@ -13,20 +15,20 @@ namespace Quelos {
         s_AssetLoaders[config.Type] = config;
     }
 
-    bool AssetImporter::ImportAsset(void* data, const AssetMetadata& metadata) {
+    bool AssetImporter::LoadAsset(const LoadContext& loadContext) {
         QS_PROFILE_SCOPED_N("AssetImporter::ImportAsset");
 
-        const auto it = s_AssetLoaders.find(metadata.Type);
+        const auto it = s_AssetLoaders.find(loadContext.GetAssetMetadata().Type);
         if (it == s_AssetLoaders.end()) {
             QS_CORE_ERROR_TAG(
                 "AssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",
-                metadata.FilePath
+                loadContext.GetAssetMetadata().FilePath
             );
 
             return false;
         }
 
-        return it->second.ImportAsset(data, metadata);
+        return it->second.LoadAsset(loadContext);
     }
 
     uint32_t AssetImporter::GetVersion(AssetTypeID assetTypeId) {
@@ -49,5 +51,20 @@ namespace Quelos {
         }
 
         return AssetType::Invalid;
+    }
+
+    // TODO: Implementation is heavily Editor focused, should use the asset pack virtual load
+    // (Maybe Utility::ReadFile itself handles doing that)
+    Optional<Buffer> LoadContext::ReadArtifact(std::string_view name) const {
+        const OsPath& libraryPath = Project::GetLibraryPath();
+        String assetId = m_Metadata.Handle.ToString(Allocator::Frame);
+        const OsPath targetPath = libraryPath / FormatTemp("Artifacts/{}{}/{}/{}", assetId[0], assetId[1], assetId, name);
+
+        Buffer data = Utility::ReadFile(targetPath, false);
+        if (!data) {
+            return None;
+        }
+
+        return data;
     }
 }

@@ -91,6 +91,24 @@ namespace Quelos {
         m_UUID = uuid.value();
     }
 
+    String GUID128::ToString(std::pmr::memory_resource* memoryResource) const {
+        String uustr{uuids::detail::empty_guid<char>, memoryResource};
+
+        const std::span<const std::byte, 16> dataBytes = m_UUID.as_bytes();
+        const std::span<const uint8_t, 16> data(reinterpret_cast<const uint8_t*>(dataBytes.data()), dataBytes.size());
+
+        for (uint32_t i = 0, index = 0; i < 36; ++i) {
+            if (i == 8 || i == 13 || i == 18 || i == 23) {
+                continue;
+            }
+
+            uustr[i] = uuids::detail::guid_encoder<char>[data[index] >> 4 & 0x0f];
+            uustr[++i] = uuids::detail::guid_encoder<char>[data[index] & 0x0f];
+            index++;
+        }
+
+        return uustr;
+    }
     std::string GUID128::ToString() const { return uuids::to_string(m_UUID); }
 
     std::string GUID128::ToFormattedString() const {

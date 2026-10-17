@@ -408,6 +408,7 @@ namespace QuelosEditor {
         };
 
         struct ShaderCompilationResult {
+            Vec<String> Dependencies{Allocator::Frame};
             HashMap<String, SmallVec<CompiledShaderData, 2>> Passes{Allocator::Frame};
             Vec<MaterialPropertySpec> MaterialProperties{Allocator::Frame};
             Vec<Pair<PipelineOption, PipelineOptionValue>> RequestedParameters{Allocator::Frame};
@@ -439,7 +440,7 @@ namespace QuelosEditor {
             }
         }
 
-        Optional<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
+        static Optional<ShaderCompilationResult> CompileShader(const std::string& shaderPath) {
 #if QS_ENABLE_PROFILING
             QS_PROFILE_SCOPED();
             std::string_view shaderName = FS::Filename(shaderPath);
@@ -461,13 +462,17 @@ namespace QuelosEditor {
                 return None;
             }
 
+            ShaderCompilationResult result;
+
+            for (int32_t i = 1; i < module->getDependencyFileCount(); i++) {
+                result.Dependencies.emplace_back(std::string_view(module->getDependencyFilePath(i)));
+            }
+
             slang::ProgramLayout* layout = module->getLayout(0, diagnostics.writeRef());
             if (diagnostics) {
                 QS_CORE_ERROR_TAG("Slang", "{}", static_cast<const char*>(diagnostics->getBufferPointer()));
                 diagnostics = nullptr;
             }
-
-            ShaderCompilationResult result;
 
             for (uint32_t parameterIndex = 0; parameterIndex < layout->getParameterCount(); parameterIndex++) {
                 slang::VariableLayoutReflection* parameter = layout->getParameterByIndex(parameterIndex);
@@ -680,24 +685,20 @@ namespace QuelosEditor {
                 }
             }
 
-            if (result.Passes.empty()) {
-                return None;
-            }
-
             return result;
         }
 
-        bool Import(void* dataSlot, const AssetMetadata& metadata) {
+        bool Load(const LoadContext& loadContext) {
+            auto& metadata = loadContext.GetAssetMetadata();
             Optional<ShaderMetadata> shaderMetadata = DeserializeShaderMetadata(GetMetadataPath(metadata.FilePath));
             if (!shaderMetadata) {
                 return false;
             }
 
-            const OsPath cookedPath = GetCookedShadersPath();
-            const std::string handleStr = metadata.Handle.ToString();
-            const OsPath cookedShadersPath = cookedPath / handleStr;
-
-            const Buffer buffer = Utility::ReadFile(cookedShadersPath, false);
+            const Buffer buffer = loadContext.ReadArtifact(magic_enum::enum_name(Renderer::GetRendererAPI())).value_or({});
+            if (!buffer) {
+                return false;
+            }
 
             GraphicsShaderCreateInfo createInfo;
             createInfo.Name = FS::Stem(metadata.FilePath);
@@ -761,7 +762,7 @@ namespace QuelosEditor {
             }
 
             if (metadata.Type == GraphicsShader::GetStaticType()) {
-                auto* shader = new(dataSlot) GraphicsShader(createInfo);
+                auto* shader = new(loadContext.GetLoadSlot()) GraphicsShader(createInfo);
                 shader->SetAssetID(metadata.Handle);
             } else if (metadata.Type == ComputeShader::GetStaticType()) {
                 ComputeShaderCreateInfo computeShaderCreateInfo;
@@ -786,7 +787,7 @@ namespace QuelosEditor {
                     break;
                 }
 
-                auto* shader = new(dataSlot) ComputeShader(computeShaderCreateInfo);
+                auto* shader = new(loadContext.GetLoadSlot()) ComputeShader(computeShaderCreateInfo);
                 shader->SetAssetID(metadata.Handle);
             }
 
@@ -798,20 +799,9 @@ namespace QuelosEditor {
             return extension == ".slang";
         }
 
-        bool Cook(const AssetMetadata& metadata) {
-            const OsPath cookedPath = GetCookedShadersPath();
-            std::string handleStr = metadata.Handle.ToString();
-            const OsPath cookedShaderPath = cookedPath / handleStr;
-
-            namespace fs = std::filesystem;
-
-            // Check if cache is valid (exists and newer than source)
-            const auto srcTime = fs::last_write_time(Project::GetProjectPath() / metadata.FilePath);
-            if (fs::exists(cookedShaderPath) && fs::last_write_time(cookedShaderPath) >= srcTime) {
-                return true;
-            }
-
+        bool Import(ImportContext& importContext) {
             ShaderMetadata shaderMetadata;
+            const AssetMetadata& metadata = importContext.GetAssetMetadata();
             shaderMetadata.AssetId = metadata.Handle;
 
             Optional<ShaderCompilationResult> compilationResult = CompileShader(metadata.FilePath);
@@ -822,8 +812,9 @@ namespace QuelosEditor {
 
             ShaderCompilationResult& compiledShaders = compilationResult.value();
 
-            if (!std::filesystem::exists(cookedShaderPath.parent_path())) {
-                std::filesystem::create_directories(cookedShaderPath.parent_path());
+            const OsPath& projectPath = Project::GetProjectPath();
+            for (const auto& dependency : compiledShaders.Dependencies) {
+                importContext.DependOn(std::filesystem::relative(dependency.view(), projectPath).generic_string());
             }
 
             shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
@@ -876,7 +867,9 @@ namespace QuelosEditor {
                 }
             }
 
-            Utility::WriteFile(cookedShaderPath, buffer);
+            if (!importContext.WriteArtifact(magic_enum::enum_name(Renderer::GetRendererAPI()), buffer)) {
+                return false;
+            }
 
             SerializeShaderMetadata(GetMetadataPath(metadata.FilePath), shaderMetadata);
 
@@ -904,14 +897,13 @@ namespace QuelosEditor {
 
         EditorAssetImporterConfig GetImporterConfig() {
             return {
-                GraphicsShader::GetStaticType(),
-                Import,
-                IsAssetSupported,
-                nullptr,
-                ReadAssetHandle,
-                WriteAssetHandle,
-                Cook,
-                GetDependencies
+                .Type = GraphicsShader::GetStaticType(),
+                .LoadAsset = Load,
+                .IsAssetSupported = IsAssetSupported,
+                .ReadAssetHandle = ReadAssetHandle,
+                .WriteAssetHandle = WriteAssetHandle,
+                .ImportAsset = Import,
+                .GetDependencies = GetDependencies
             };
         }
 

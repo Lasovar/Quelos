@@ -122,7 +122,8 @@ namespace QuelosEditor {
             return FS::Extension(path) == k_MaterialExtension;
         }
 
-        bool LoadAsset(void* slot, const AssetMetadata& assetMetadata) {
+        bool LoadAsset(const LoadContext& loadContext) {
+            const auto& assetMetadata = loadContext.GetAssetMetadata();
             Optional<MaterialMetadata> materialMetadataResult = DeserializeMaterial(GetMetadataPath(assetMetadata.FilePath));
             if (!materialMetadataResult) {
                 return false;
@@ -130,7 +131,7 @@ namespace QuelosEditor {
 
             MaterialMetadata& materialMetadata = *materialMetadataResult;
 
-            Material* material = new(slot) Material();
+            Material* material = new(loadContext.GetLoadSlot()) Material();
             material->SetAssetID(assetMetadata.Handle);
             material->SetShader(materialMetadata.ShaderId);
 
@@ -177,14 +178,13 @@ namespace QuelosEditor {
             return SerializeMaterial(metadataPath, *materialMetadata);
         }
 
-        EditorAssetImporterConfig GetImporterConfig() {
+        static EditorAssetImporterConfig GetImporterConfig() {
             return {
-                Material::GetStaticType(),
-                LoadAsset,
-                IsAssetSupported,
-                nullptr,
-                ReadAssetID,
-                WriteAssetID
+                .Type = Material::GetStaticType(),
+                .LoadAsset = LoadAsset,
+                .IsAssetSupported = IsAssetSupported,
+                .ReadAssetHandle = ReadAssetID,
+                .WriteAssetHandle = WriteAssetID
             };
         }
 

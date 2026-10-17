@@ -60,6 +60,44 @@ namespace QuelosEditor {
             file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
         }
 
+        static void SerializeModelMetadata(const ModelMetadata& model, const OsPath& path) {
+            using namespace Serialization;
+
+            std::ofstream file(path, std::ios::binary);
+            if (!file) {
+                QS_CORE_ERROR_TAG(
+                    "ModelImporter::SerializeModelMetadata",
+                    "Failed to serialize model metadata at {}",
+                    path.generic_string()
+                );
+
+                return;
+            }
+
+            std::string buffer;
+            StringQuelWriter writer(buffer);
+            writer.Write(SectionEvent { "Model" });
+            writer.CloseSection();
+            writer.WriteField("handle", UnquotedString { model.ModelHandle.ToFormattedString() });
+
+            for (const auto& mesh : model.MeshesMetadata) {
+                writer.Write(SectionEvent { "Mesh" });
+                writer.CloseSection();
+                writer.WriteField("handle", UnquotedString { mesh.Handle.ToFormattedString() });
+                writer.WriteField("name", mesh.Name);
+            }
+
+            // TODO: Serialize materials when Model supports them
+            // for (auto& material : model->GetMaterials()) {
+            //     writer.Write(SectionEvent { "Material" });
+            //     writer.CloseSection();
+            //     writer.WriteField("handle", UnquotedString { material->GetAssetHandle().ToFormattedString() });
+            //     writer.WriteField("name", material->GetName());
+            // }
+
+            file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        }
+
         static ModelMetadata DeserializeModelMetadata(const OsPath& path) {
             using namespace Serialization;
 
@@ -156,12 +194,9 @@ namespace QuelosEditor {
             return extension == ".fbx" || extension == ".obj" || extension == ".gltf" || extension == ".glb";
         }
 
-        bool ImportModel(void* dataSlot, const AssetMetadata& metadata) {
-            const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
-            
-            Assimp::Importer importer;
+        static const aiScene* ReadScene(Assimp::Importer& importer, const OsPath& absolutePath) {
             const aiScene* scene = importer.ReadFile(
-                absolutePath.string().c_str(),
+                absolutePath.generic_string().c_str(),
                 aiProcess_CalcTangentSpace |
                 aiProcess_Triangulate |
                 aiProcess_JoinIdenticalVertices |
@@ -170,6 +205,20 @@ namespace QuelosEditor {
             );
 
             if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+                return nullptr;
+            }
+
+            return scene;
+        }
+
+        bool LoadModel(const LoadContext& loadContext) {
+            const auto& metadata = loadContext.GetAssetMetadata();
+
+            Assimp::Importer importer;
+            const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
+            auto* scene = ReadScene(importer, absolutePath);
+
+            if (!scene) {
                 QS_CORE_ERROR_TAG(
                     "MeshImporter::ImportMesh",
                     "Failed to import mesh ({},{}): {}",
@@ -181,7 +230,7 @@ namespace QuelosEditor {
                 return false;
             }
 
-            auto model = new(dataSlot) Model;
+            auto model = new(loadContext.GetLoadSlot()) Model;
             model->SetAssetID(metadata.Handle);
 
             Deque<MeshData>& meshes = model->GetMeshes();
@@ -273,6 +322,53 @@ namespace QuelosEditor {
             SerializeModelMetadata(*model, absolutePath.string() + ".quel");
 
             return model;
+        }
+
+        bool ImportModel(ImportContext& importContext) {
+            const auto& metadata = importContext.GetAssetMetadata();
+
+            Assimp::Importer importer;
+            const OsPath absolutePath = Project::GetProjectPath() / metadata.FilePath;
+            auto* scene = ReadScene(importer, absolutePath);
+
+            if (!scene) {
+                QS_CORE_ERROR_TAG(
+                    "MeshImporter::ImportMesh",
+                    "Failed to import mesh ({},{}): {}",
+                    metadata.FilePath,
+                    metadata.Handle.ToString(),
+                    importer.GetErrorString()
+                );
+
+                return false;
+            }
+
+            ModelMetadata oldMetadata = DeserializeModelMetadata(absolutePath.string() + ".quel");
+            ModelMetadata newMetadata{
+                .ModelHandle = AssetID (),
+                .MeshesMetadata = Vec<MeshMetadata> (Allocator::Frame),
+                .MaterialsMetadata = Vec<MaterialMetadata> (Allocator::Frame)
+            };
+
+            newMetadata.ModelHandle = metadata.Handle;
+
+            for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
+                const aiMesh* mesh = scene->mMeshes[i];
+                if (const auto it = std::ranges::find(
+                    oldMetadata.MeshesMetadata,
+                    std::string_view(mesh->mName.C_Str()),
+                    &MeshMetadata::Name); it != oldMetadata.MeshesMetadata.end()
+                ) {
+                    AssetID meshId = importContext.AddSubAsset(it->Name, it->Handle, Mesh::GetStaticType());
+                    newMetadata.MeshesMetadata.emplace_back(std::move(it->Name), meshId);
+                } else {
+                    AssetID meshId = importContext.AddSubAsset(it->Name, Mesh::GetStaticType());
+                    newMetadata.MeshesMetadata.emplace_back(mesh->mName.C_Str(), meshId);
+                }
+            }
+
+            SerializeModelMetadata(newMetadata, absolutePath.string() + ".quel");
+            return true;
         }
 
         AssetID ReadAssetHandle(std::string_view assetPath) {
@@ -492,21 +588,21 @@ namespace QuelosEditor {
         // Registration helpers
         EditorAssetImporterConfig GetImporterConfig() {
             return {
-                Model::GetStaticType(),
-                ImportModel,
-                IsAssetSupported,
-                ImportModel,
-                ReadAssetHandle,
-                WriteAssetHandle
+                .Type = Model::GetStaticType(),
+                .LoadAsset = LoadModel,
+                .IsAssetSupported = IsAssetSupported,
+                .ReadAssetHandle = ReadAssetHandle,
+                .WriteAssetHandle = WriteAssetHandle,
+                .ImportAsset = ImportModel
             };
         }
 
         AssetRegistryExtensionFunctions GetRegistryExtensionFunctions() {
             return {
-                RegisterAdditionalAssets,
-                ResolveSubAsset,
-                HandlesAssetType,
-                nullptr
+                .RegisterAdditionalAssets = RegisterAdditionalAssets,
+                .ResolveSubAsset = ResolveSubAsset,
+                .HandlesAssetType = HandlesAssetType,
+                .UserData = nullptr
             };
         }
 

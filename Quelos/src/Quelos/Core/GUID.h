@@ -3,6 +3,7 @@
 #include <stduuid/uuid.h>
 
 #include "Quelos/Core/Base.h"
+#include "Quelos/Utility/String.hpp"
 
 namespace Quelos {
     struct QS_API GUID64 {
@@ -42,6 +43,11 @@ namespace Quelos {
         operator bool() const { return IsValid(); }
         bool operator==(const GUID128& other) const noexcept { return m_UUID == other.m_UUID; }
         bool operator!=(const GUID128& other) const noexcept { return m_UUID != other.m_UUID; }
+
+        [[nodiscard]] String ToString(std::pmr::memory_resource* memoryResource) const;
+        [[nodiscard]] String ToString(const AllocatorType allocatorType) const {
+            return ToString(GetAllocator(allocatorType));
+        }
 
         [[nodiscard]] std::string ToString() const;
         [[nodiscard]] std::string ToFormattedString() const;
