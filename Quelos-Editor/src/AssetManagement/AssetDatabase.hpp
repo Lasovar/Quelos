@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Quelos/AssetManager/Asset.h"
+#include "Quelos/AssetManager/AssetMetadata.h"
 #include "Quelos/Utility/HashMap.hpp"
 #include "SQLite/SQLite.hpp"
 
@@ -37,6 +38,7 @@ namespace QuelosEditor {
         Optional<Hash128> SettingsHash;
         Span32<const AssetID> Dependencies;
         Span32<const String> Artifacts;
+        Span32<const AssetMetadata> SubAssets;
     };
 
     struct SourceRecord {
@@ -63,6 +65,11 @@ namespace QuelosEditor {
         [[nodiscard]] Expected<void, String> CommitImport(const ImportResult& record) const;
 
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(std::pmr::memory_resource* memoryResource) const;
+        [[nodiscard]] Expected<Vec<AssetMetadata>, String> LoadAssets(std::pmr::memory_resource* memoryResource) const;
+        [[nodiscard]] Expected<Vec<AssetMetadata>, String> LoadAssets(const AllocatorType allocatorType) const {
+            return LoadAssets(GetAllocator(allocatorType));
+        }
+
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(const AllocatorType allocatorType) const {
             return LoadSourceRecords(GetAllocator(allocatorType));
         }
@@ -99,6 +106,9 @@ namespace QuelosEditor {
 
     private:
         [[nodiscard]] Expected<void, String> FillTempIDTable(std::string_view table, Span<const AssetID> ids) const;
+
+        // Must be called inside an open transaction.
+        [[nodiscard]] Expected<void, String> SyncSubAssetRows(const ImportResult& record) const;
 
     private:
         SQLiteDatabase m_Database;

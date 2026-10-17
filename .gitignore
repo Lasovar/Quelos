@@ -430,4 +430,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
 .DS_Store
+
+/Quelos-Editor/SandboxProject/Library/

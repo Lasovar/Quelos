@@ -63,10 +63,10 @@ namespace Quelos {
                     continue;
                 }
 
-                const auto& material = cpuMaterialOptional->get();
+                auto& material = cpuMaterialOptional->get();
 
                 const Vec<MaterialPropertySpec>& specs = material.GetMaterialProperties();
-                const Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
+                Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
 
                 if (specs.size() != values.size()) {
                     continue;
@@ -74,8 +74,8 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry.GetID(*texture);
+                    if (auto* texture = std::get_if<SoftRef<Texture2D>>(&values[propertyIndex])) {
+                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,
@@ -116,10 +116,10 @@ namespace Quelos {
                     continue;
                 }
 
-                const auto& material = cpuMaterialOptional->get();
+                auto& material = cpuMaterialOptional->get();
 
                 const Vec<MaterialPropertySpec>& specs = material.GetMaterialProperties();
-                const Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
+                Vec<MaterialPropertyValue>& values = material.GetMaterialPropertyValues();
 
 
                 if (specs.size() != values.size()) {
@@ -128,8 +128,8 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (const auto* texture = std::get_if<AssetRef<Texture2D>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry.GetID(*texture);
+                    if (auto* texture = std::get_if<SoftRef<Texture2D>>(&values[propertyIndex])) {
+                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,

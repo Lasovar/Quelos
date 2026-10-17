@@ -5,5 +5,5 @@ shader = 7d9db084-abd4-4b88-8815-ba0b4f5735b3
 @properties
 Color = (Color,(1,1,1,1))
 Power = (Float,30)
-_MainTex = (Texture2D,70be76dd-f4c9-4ae0-ab85-5dab76194ef8)
+_MainTex = (Texture2D,null)
 _NormalTex = (Texture2D,null)

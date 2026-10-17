@@ -2,6 +2,7 @@
 
 #include "GraphicsShader.h"
 #include "Quelos/AssetManager/AssetRef.h"
+#include "Quelos/AssetManager/SoftRef.h"
 
 namespace Quelos {
     using MaterialPropertyValue = std::variant<
@@ -10,7 +11,7 @@ namespace Quelos {
         float3,
         float4,
         Color,
-        AssetRef<Texture2D>
+        SoftRef<Texture2D>
     >;
 
     class QS_API Material : public Asset {
@@ -33,7 +34,7 @@ namespace Quelos {
 
         [[nodiscard]] const AssetRef<GraphicsShader>& GetShader() const { return m_Shader; }
         [[nodiscard]] const Vec<MaterialPropertySpec>& GetMaterialProperties() const { return m_MaterialProperties; }
-        [[nodiscard]] const Vec<MaterialPropertyValue>& GetMaterialPropertyValues() const { return m_Values; }
+        [[nodiscard]] Vec<MaterialPropertyValue>& GetMaterialPropertyValues() { return m_Values; }
 
         template<typename T>
         void SetProperty(const uint64_t offset, const T& value) {
@@ -95,7 +96,7 @@ namespace Quelos {
             case MaterialPropertyType::Int3:
             case MaterialPropertyType::Int4:
             case MaterialPropertyType::Texture2D:
-                EnsureType<AssetRef<Texture2D>>(propertyValue);
+                EnsureType<SoftRef<Texture2D>>(propertyValue);
                 break;
             case MaterialPropertyType::UInt:
             case MaterialPropertyType::UInt2:

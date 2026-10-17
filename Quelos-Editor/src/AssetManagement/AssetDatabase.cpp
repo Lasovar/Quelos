@@ -5,6 +5,7 @@
 #include "qspch.h"
 #include "AssetDatabase.hpp"
 
+#include "Quelos/AssetManager/AssetImporter.h"
 #include "Quelos/Project/Project.h"
 
 namespace QuelosEditor {
@@ -77,6 +78,85 @@ ON CONFLICT (AssetID) DO UPDATE SET
         return m_Database.Execute(sql, id, path, typeName, parent);
     }
 
+    // Must be called inside an open transaction.
+    Expected<void, String> AssetDatabase::SyncSubAssetRows(const ImportResult& record) const {
+        // Existing children
+        auto selectChildren = m_Database.CreateStatement(
+            "SELECT AssetID FROM Assets WHERE ParentAssetID = ?;"
+        );
+
+        if (!selectChildren) {
+            return Unexpected(std::move(selectChildren).error());
+        }
+
+        if (auto r = selectChildren->BindAll(record.ID); !r) {
+            return r;
+        }
+
+        HashSet<AssetID> produced(Allocator::Frame);
+        for (const AssetMetadata& sub : record.SubAssets) {
+            produced.insert(sub.Handle);
+        }
+
+        Vec<AssetID> stale(Allocator::Frame);
+        while (true) {
+            auto row = selectChildren->Step();
+            if (!row) {
+                return Unexpected(std::move(row).error());
+            }
+
+            if (!*row) {
+                break;
+            }
+
+            if (auto child = selectChildren->GetGUID(0); child && !produced.contains(*child)) {
+                stale.push_back(*child);
+            }
+        }
+
+        // Delete children the import no longer produces.
+        // Before the upserts: AssetPath is UNIQUE and checked immediately, so a new child
+        // taking a removed child's path would conflict if the old row were still there.
+        for (const AssetID& id : stale) {
+            if (auto r = m_Database.Execute("DELETE FROM Assets WHERE AssetID = ?;", id); !r) {
+                return r;
+            }
+        }
+
+        // Upsert produced children. Identity columns only: no stamps, the parent's cover them.
+        auto upsertChild = m_Database.CreateStatement(R"(
+INSERT INTO Assets (AssetID, AssetPath, AssetTypeName, ParentAssetID)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT (AssetID) DO UPDATE SET
+    AssetPath     = excluded.AssetPath,
+    AssetTypeName = excluded.AssetTypeName,
+    ParentAssetID = excluded.ParentAssetID;
+)");
+
+        if (!upsertChild) {
+            return Unexpected(std::move(upsertChild).error());
+        }
+
+        for (const AssetMetadata& sub : record.SubAssets) {
+            if (auto r = upsertChild->BindAll(sub.Handle,
+                                              sub.FilePath,
+                                              sub.Type.GetName(),
+                                              record.ID
+                ); !r
+            ) {
+                return r;
+            }
+
+            if (auto r = upsertChild->Step(); !r) {
+                return Unexpected(std::move(r).error());
+            }
+
+            upsertChild->Reset();
+        }
+
+        return {};
+    }
+
     Expected<void, String> AssetDatabase::CommitImport(const ImportResult& record) const {
         if (auto r = m_Database.Execute("BEGIN IMMEDIATE;"); !r) {
             return r;
@@ -121,6 +201,10 @@ ON CONFLICT (AssetID) DO UPDATE SET
 
             if (auto r = upsert->Step(); !r) {
                 return Unexpected(std::move(r).error());
+            }
+
+            if (auto r = SyncSubAssetRows(record); !r) {
+                return r;
             }
 
             // Dependencies: replace the whole set
@@ -178,12 +262,19 @@ ON CONFLICT (AssetID) DO UPDATE SET
 
         if (!result) {
             [[maybe_unused]] const auto rollbackResult = m_Database.Execute("ROLLBACK;");
-            QS_ASSERT(rollbackResult, "Asset database rollback failed: {}", rollbackResult.error());
+            if (!rollbackResult) {
+                QS_ERROR_TAG(
+                       "AssetDatabase::CommitImport",
+                       "Asset database rollback failed: {}",
+                       rollbackResult.error()
+                   );
+            }
+
             return result;
         }
 
         return m_Database.Execute("COMMIT;");
-    };
+    }
 
     Expected<HashMap<String, SourceRecord>, String> AssetDatabase::LoadSourceRecords(
         std::pmr::memory_resource* memoryResource
@@ -231,6 +322,47 @@ ON CONFLICT (AssetID) DO UPDATE SET
         }
 
         return records;
+    }
+
+    Expected<Vec<AssetMetadata>, String> AssetDatabase::LoadAssets(std::pmr::memory_resource* memoryResource) const {
+        auto query = m_Database.CreateStatement(R"(
+        SELECT AssetID, AssetPath, AssetTypeName, ParentAssetID
+        FROM Assets
+        ORDER BY ParentAssetID IS NOT NULL;   -- main assets first, then sub-assets
+        )");
+
+        if (!query) {
+            return Unexpected(std::move(query).error());
+        }
+
+        Vec<AssetMetadata> rows(memoryResource);
+        while (true) {
+            auto row = query->Step();
+            if (!row) {
+                return Unexpected(std::move(row).error());
+            }
+
+            if (!*row) {
+                break;
+            }
+
+            auto id = query->GetGUID(0);
+            auto path = query->GetText(1, memoryResource);
+            auto typeName = query->GetText(2, memoryResource);
+
+            if (!id || !path || !typeName) {
+                continue; // malformed row
+            }
+
+            rows.emplace_back(
+                *id,
+                std::string(*path),
+                GetAssetType(std::string(*typeName)),
+                query->GetGUID(3).value_or({})
+            );
+        }
+
+        return rows;
     }
 
     Expected<void, String> AssetDatabase::GetTransitiveDependents(const AssetID& id, Vec<AssetID>& dependantsResult) const {

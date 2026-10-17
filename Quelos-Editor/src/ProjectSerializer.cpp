@@ -122,7 +122,7 @@ namespace QuelosEditor {
         Project::Load(config);
 
         m_AssetManager = CreateShared<EditorAssetManager>();
-        m_AssetManager->DeserializeAssetRegistry();
+        m_AssetManager->Initialize();
 
         Project::SetAssetManager(m_AssetManager);
     }
@@ -132,6 +132,6 @@ namespace QuelosEditor {
     }
 
     void ProjectSerializer::Serialize() const {
-        m_AssetManager->SerializeAssetRegistry();
+        //m_AssetManager->SerializeAssetRegistry();
     }
 }

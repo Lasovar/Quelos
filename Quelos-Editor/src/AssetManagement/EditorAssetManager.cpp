@@ -363,6 +363,22 @@ namespace QuelosEditor {
         RegisterType<Texture2D>();
     }
 
+    void EditorAssetManager::Initialize() {
+        if (!LoadAssetRegistry()) {
+            // Database unreadable; the refresh below rebuilds what it can from sidecars
+        }
+
+        RefreshAssetDatabase();
+
+        m_WatchID = m_FileWatcher.addWatch(
+            (Project::GetAssetsPath()).generic_string(),
+            this,
+            true
+        );
+
+        m_FileWatcher.watch();
+    }
+
     void EditorAssetManager::UnloadAsset(const AssetID assetHandle) {
         if (!IsAssetHandleValid(assetHandle)) {
             return;
@@ -383,120 +399,26 @@ namespace QuelosEditor {
         return m_AssetRegistry.GetAssetMetadata(assetHandle);
     }
 
-    void EditorAssetManager::SerializeAssetRegistry() {
-        using namespace Serialization;
+    bool EditorAssetManager::LoadAssetRegistry() {
+        constexpr auto Tag = "EditorAssetManager::LoadAssetRegistry";
 
-        OsPath assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
-
-        std::string buffer;
-        StringQuelWriter writer(buffer);
-
-        auto& assetRegistry = m_AssetRegistry.GetAssetsMetadata();
-        Vec<AssetMetadata> assets(Allocator::Frame);
-        assets.reserve(assetRegistry.size());
-
-        std::vector<AssetMetadata> s;
-        assets.append_range(assetRegistry | std::views::values);
-        std::ranges::sort(assets,
-                          [](const AssetMetadata& a, const AssetMetadata& b) {
-                              return a.Type < b.Type;
-                          });
-
-        for (auto& metadata : assets) {
-            writer.Write(SectionEvent{metadata.Type.GetName()});
-            writer.CloseSection();
-            writer.WriteField("handle", UnquotedString{metadata.Handle.ToString()});
-            if (metadata.IsSubAsset()) {
-                writer.WriteField("parent", UnquotedString{metadata.ParentId.ToFormattedString()});
-            }
-            writer.WriteField("path", metadata.FilePath);
+        auto rows = m_Database.LoadAssets(Allocator::Frame);
+        if (!rows) {
+            QS_ERROR_TAG(Tag, "Failed to load assets from the database: {}", rows.error());
+            return false;
         }
 
-        if (std::ofstream file(assetRegistryPath, std::ios::binary); file) {
-            file.write(buffer.c_str(), buffer.size());
-        }
-        else {
-            QS_CORE_ERROR_TAG(
-                "AssetManager::SerializeAssetRegistry",
-                "Failed to open registry file '{}'",
-                assetRegistryPath.string()
-            );
-        }
-    }
+        auto& assets = m_AssetRegistry.GetAssetsMetadata();
+        assets.clear();
+        assets.reserve(rows->size());
 
-    void EditorAssetManager::DeserializeAssetRegistry() {
-        using namespace Serialization;
-
-        OsPath assetRegistryPath = Project::GetProjectSettingsPath() / k_AssetRegistryFilename;
-        std::ifstream file(assetRegistryPath, std::ios::binary | std::ios::ate);
-        if (!file) {
-            QS_CORE_ERROR_TAG(
-                "AssetManager::DeserializeAssetRegistry",
-                "Failed to open registry file '{}'",
-                assetRegistryPath.string()
-            );
-
-            return;
+        for (const AssetMetadata& row : *rows) {
+            assets[row.Handle] = row;
         }
 
-        const size_t fileSize = file.tellg();
-        file.seekg(0);
+        QS_INFO_TAG(Tag, "Loaded {} assets from the database!", assets.size());
 
-        std::string assetRegistryBuffer;
-        assetRegistryBuffer.resize(fileSize);
-        file.read(assetRegistryBuffer.data(), fileSize);
-
-        QuelReader reader(assetRegistryBuffer);
-
-        AssetMetadata metadata;
-        std::string_view currentField;
-
-        HashMap<AssetID, AssetMetadata>& assetsMetadata = m_AssetRegistry.GetAssetsMetadata();
-        for (auto&& parserEvent : reader.Parse()) {
-            std::visit([&]<typename TEvent>(const TEvent& e) {
-                           using T = std::decay_t<TEvent>;
-
-                           if constexpr (std::is_same_v<T, SectionEvent>) {
-                               if (metadata.Handle) {
-                                   assetsMetadata[metadata.Handle] = metadata;
-                                   metadata = {};
-                               }
-
-                               if (const AssetType assetTypeResult = GetAssetType(std::string(e.Name))) {
-                                   metadata.Type = assetTypeResult;
-                               }
-                           }
-                           else if constexpr (std::is_same_v<T, FieldEvent>) {
-                               currentField = e.Path;
-                           }
-                           else if constexpr (std::is_same_v<T, ValueEvent>) {
-                               if (const std::string_view* valueResult = std::get_if<std::string_view>(&e.Value)) {
-                                   if (currentField == "handle") {
-                                       metadata.Handle = AssetID(*valueResult);
-                                   }
-                                   else if (currentField == "path") {
-                                       metadata.FilePath = *valueResult;
-                                   }
-                                   else if (currentField == "parent") {
-                                       metadata.ParentId = AssetID(*valueResult);
-                                   }
-                               }
-                           }
-                       },
-                       parserEvent);
-        }
-
-        if (metadata.Handle) {
-            assetsMetadata[metadata.Handle] = metadata;
-        }
-
-        m_WatchID = m_FileWatcher.addWatch(
-            (Project::GetAssetsPath()).generic_string(),
-            this,
-            true
-        );
-
-        m_FileWatcher.watch();
+        return true;
     }
 
     void EditorAssetManager::handleFileAction(
@@ -1187,6 +1109,7 @@ namespace QuelosEditor {
             .SettingsHash = None/*TODO: LoadImportSettingsHash(meta->FilePath)*/,
             .Dependencies = ctx.GetDependencies(),
             .Artifacts = ctx.GetArtifacts(),
+            .SubAssets = ctx.GetSubAssets()
         };
 
         if (auto r = m_Database.CommitImport(result); !r) {

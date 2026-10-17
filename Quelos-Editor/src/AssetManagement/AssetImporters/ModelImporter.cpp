@@ -359,11 +359,11 @@ namespace QuelosEditor {
                     std::string_view(mesh->mName.C_Str()),
                     &MeshMetadata::Name); it != oldMetadata.MeshesMetadata.end()
                 ) {
-                    AssetID meshId = importContext.AddSubAsset(it->Name, it->Handle, Mesh::GetStaticType());
+                    AssetID meshId = importContext.AddSubAsset(FormatTemp("Meshes/{}", it->Name), it->Handle, Mesh::GetStaticType());
                     newMetadata.MeshesMetadata.emplace_back(std::move(it->Name), meshId);
                 } else {
                     AssetID meshId = importContext.AddSubAsset(it->Name, Mesh::GetStaticType());
-                    newMetadata.MeshesMetadata.emplace_back(mesh->mName.C_Str(), meshId);
+                    newMetadata.MeshesMetadata.emplace_back(FormatTemp("Meshes/{}", mesh->mName.C_Str()), meshId);
                 }
             }
 
