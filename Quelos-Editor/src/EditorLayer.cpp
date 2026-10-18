@@ -122,9 +122,6 @@ namespace QuelosEditor {
     	m_CurrentTheme = 1;
 
         ImGuizmo::Create();
-
-    	QS_INFO_TAG(QS_FUNCTION_TAG, "A call with a tag");
-    	QS_INFO_TAG(QS_FUNCTION_TAG_ARGS, "A call with a tag and args");
     }
 
     void EditorLayer::RegisterShaderCompiler(const char* rendererName, const QS_ShaderCompiler compiler) {

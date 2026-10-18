@@ -730,7 +730,7 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::ReimportWithDependents(const HashSet<AssetID>& changed) {
-        static constexpr auto Tag = "EditorAssetManager::ReimportWithDependents";
+        static constexpr auto Tag = QS_FUNCTION_TAG;
 
         if (changed.empty()) {
             return;
@@ -818,7 +818,7 @@ namespace QuelosEditor {
                 }
 
                 if (edgeSet.insert({id, target}).second) {
-                    edges->push_back({id, target});
+                    edges->emplace_back(id, target);
                 }
             }
         }
@@ -861,7 +861,7 @@ namespace QuelosEditor {
     }
 
     void EditorAssetManager::RefreshAssetDatabase() {
-        static constexpr auto Tag = "EditorAssetManager::RefreshAssetDatabase";
+        static constexpr auto Tag = QS_FUNCTION_TAG;
         QS_PROFILE_SCOPED();
 
         // path -> {ID, Size, ModTime, Hash, ImporterVersion, ...}
@@ -951,7 +951,7 @@ namespace QuelosEditor {
                 case SourceCheck::Unchanged:
                     break;
                 case SourceCheck::StampOnly:
-                    stampUpdates.push_back({.ID = record.ID, .Size = src.Size, .ModTime = src.ModTime});
+                    stampUpdates.emplace_back(record.ID, src.Size, src.ModTime);
                     break;
                 case SourceCheck::NeedsReimport:
                     toImport.insert(record.ID);

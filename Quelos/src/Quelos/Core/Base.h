@@ -167,7 +167,7 @@ namespace Quelos {
         }
 
         // segments: how many trailing scopes to keep (2 = Class::Function, 0 = fully qualified)
-        constexpr std::string_view FunctionTag(
+        consteval std::string_view FunctionTag(
             const std::string_view signature,
             const std::size_t segments = 2,
             const bool withArguments = false
