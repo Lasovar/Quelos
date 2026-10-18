@@ -46,6 +46,13 @@ namespace Quelos {
         std::string assetTypeName = TypeNameDisplay<T>();
         return GetAssetType(std::move(assetTypeName));
     }
+
+    template <typename  T>
+    requires (std::is_base_of_v<Asset, T> && !std::same_as<std::remove_cvref_t<T>, Asset>)
+    consteval AssetTypeID GetAssetTypeID() {
+        std::string assetTypeName = TypeNameDisplay<T>();
+        return Hash::Fnv1a32(assetTypeName);
+    }
 }
 
 template<>

@@ -276,6 +276,38 @@ ON CONFLICT (AssetID) DO UPDATE SET
         return m_Database.Execute("COMMIT;");
     }
 
+    Expected<void, String> AssetDatabase::MoveAsset(
+        const AssetID& id,
+        const std::string_view oldPath,
+        const std::string_view newPath
+    ) const {
+        if (auto r = m_Database.Execute("BEGIN IMMEDIATE;"); !r) {
+            return r;
+        }
+
+        auto result = [&]() -> Expected<void, String> {
+            if (auto r = m_Database.Execute(
+                    "UPDATE Assets SET AssetPath = ?1 WHERE AssetID = ?2;", newPath, id
+                ); !r
+            ) {
+                return r;
+            }
+
+            // Children: replace the parent prefix of each virtual path
+            return m_Database.Execute(
+                "UPDATE Assets SET AssetPath = ?1 || substr(AssetPath, length(?2) + 1) WHERE ParentAssetID = ?3;",
+                newPath, oldPath, id
+            );
+        }();
+
+        if (!result) {
+            [[maybe_unused]] auto rollback = m_Database.Execute("ROLLBACK;");
+            return result;
+        }
+
+        return m_Database.Execute("COMMIT;");
+    }
+
     Expected<HashMap<String, SourceRecord>, String> AssetDatabase::LoadSourceRecords(
         std::pmr::memory_resource* memoryResource
     ) const {
@@ -363,6 +395,38 @@ ON CONFLICT (AssetID) DO UPDATE SET
         }
 
         return rows;
+    }
+
+    Expected<Vec<Pair<AssetID, String>>, String> AssetDatabase::LoadAllArtifacts(std::pmr::memory_resource* memoryResource) const {
+        auto query = m_Database.CreateStatement(R"(
+        SELECT COALESCE(a.ParentAssetID, x.AssetID), x.ArtifactPath
+        FROM AssetArtifacts x
+        JOIN Assets a ON a.AssetID = x.AssetID;
+    )");
+
+        if (!query) {
+            return Unexpected(std::move(query).error());
+        }
+
+        Vec<Pair<AssetID, String>> artifacts(memoryResource);
+        while (true) {
+            auto row = query->Step();
+            if (!row) {
+                return Unexpected(std::move(row).error());
+            }
+
+            if (!*row) {
+                break;
+            }
+
+            auto id   = query->GetGUID(0);
+            auto path = query->GetText(1, memoryResource);
+            if (id && path) {
+                artifacts.emplace_back(*id, std::move(*path));
+            }
+        }
+
+        return artifacts;
     }
 
     Expected<void, String> AssetDatabase::GetTransitiveDependents(const AssetID& id, Vec<AssetID>& dependantsResult) const {

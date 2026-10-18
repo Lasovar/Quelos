@@ -47,7 +47,11 @@ namespace QuelosEditor {
         // Though could just be the debugger not updating properly
         namePath += FS::Extension(asset.Metadata.FilePath);
 
-        m_AssetManager->RenameAsset(asset.Metadata.Handle, namePath);
+        if (auto r = m_AssetManager->RenameAsset(asset.Metadata.Handle, namePath); !r) {
+            QS_CORE_ERROR_TAGGED("Failed to rename asset to {}: {}", newName, r.error());
+            return;
+        }
+
         m_QueueDirectoryTreeRebuild = true;
     }
 

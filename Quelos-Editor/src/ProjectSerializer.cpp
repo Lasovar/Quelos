@@ -57,6 +57,7 @@ namespace QuelosEditor {
 
         ProjectConfig config;
         config.ProjectPath = absolutePath;
+        config.ProjectPathStr = String(config.ProjectPath.lexically_normal().generic_string(), Allocator::Persistent);
 
         for (auto&& parserEvent : reader.Parse()) {
             if (breakFlag) {
@@ -97,12 +98,14 @@ namespace QuelosEditor {
                     }
                     else if (currentField == "assets") {
                         config.AssetsPath = config.ProjectPath / value;
+                        config.AssetsPathStr = String(config.AssetsPath.lexically_normal().generic_string(), Allocator::Persistent);
                     }
                     else if (currentField == "source") {
                         config.SourcePath = config.ProjectPath / value;
                     }
                     else if (currentField == "library") {
                         config.LibraryPath = config.ProjectPath / value;
+                        config.LibraryPathStr = String(config.LibraryPath.lexically_normal().generic_string(), Allocator::Persistent);
                     }
                     else if (currentField == "projectSettings") {
                         config.ProjectSettingsPath = config.ProjectPath / value;
@@ -119,7 +122,7 @@ namespace QuelosEditor {
             }, parserEvent);
         }
 
-        Project::Load(config);
+        Project::Load(std::move(config));
 
         m_AssetManager = CreateShared<EditorAssetManager>();
         m_AssetManager->Initialize();

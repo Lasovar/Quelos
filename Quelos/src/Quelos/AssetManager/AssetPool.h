@@ -16,9 +16,7 @@ namespace Quelos {
             return Type != 0 && Index != ~0u && Generation != ~0u;
         }
 
-        bool operator==(const UntypedAssetHandle& other) const {
-            return Type == other.Type && Index == other.Index && Generation == other.Generation;
-        }
+        constexpr auto operator<=>(const UntypedAssetHandle&) const = default;
     };
 
     template <typename T>
@@ -38,7 +36,9 @@ namespace Quelos {
         requires std::is_base_of_v<Asset, T>
     struct AssetHandle : UntypedAssetHandle {
         AssetHandle() = default;
-        AssetHandle(const UntypedAssetHandle handle) : UntypedAssetHandle(handle) {}
+        AssetHandle(const UntypedAssetHandle handle) : UntypedAssetHandle(handle) {
+            assert(GetAssetTypeID<T>() == handle.Type && "Asset type mismatch!");
+        }
     };
 
     template <typename T>

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string_view>
+#include <ranges>
 
 #include "Generator.h"
 
@@ -87,6 +88,52 @@ namespace Quelos {
 
                 start = i + 1;
             }
+        }
+
+        /// Resolves "." and ".." lexically into `out`.
+        /// Returns false if a ".." climbs above the start of the path.
+        inline bool NormalizedParts(const std::string_view path, Vec<std::string_view>& out) {
+            out.clear();
+            for (const std::string_view part : Parts(path)) {
+                if (part.empty() || part == ".") {
+                    continue; // "a//b" and "a/./b" are both "a/b"
+                }
+
+                if (part == "..") {
+                    if (out.empty()) {
+                        return false;  // escapes the root it's relative to
+                    }
+
+                    out.pop_back();
+                    continue;
+                }
+
+                out.push_back(part);
+            }
+
+            return true;
+        }
+
+        /// True if `path` is inside `dir` (both relative to the same root).
+        /// With allowEqual, the directory itself also counts.
+        inline bool IsInsideDirectory(
+            const std::string_view path,
+            const std::string_view dir,
+            const bool allowEqual = false
+        ) {
+            Vec<std::string_view> pathParts(Allocator::Frame);
+            Vec<std::string_view> dirParts(Allocator::Frame);
+
+            if (!NormalizedParts(path, pathParts) || !NormalizedParts(dir, dirParts)) {
+                return false;
+            }
+
+            const uint32_t minSize = dirParts.size() + (allowEqual ? 0 : 1);
+            if (pathParts.size() < minSize) {
+                return false;
+            }
+
+            return std::ranges::equal(dirParts, pathParts | std::views::take(dirParts.size()));
         }
 
         struct FileStamp {

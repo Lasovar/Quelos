@@ -16,8 +16,8 @@ namespace QuelosEditor {
 
     struct ScannedSource {
         String Path;
-        int64_t Size;
-        int64_t ModTime;
+        int64_t Size = 0;
+        int64_t ModTime = 0;
     };
 
     struct SourceStamp {
@@ -63,9 +63,15 @@ namespace QuelosEditor {
 
         // Called on a successful import
         [[nodiscard]] Expected<void, String> CommitImport(const ImportResult& record) const;
+        [[nodiscard]] Expected<void, String> MoveAsset(const AssetID& id, std::string_view oldPath, std::string_view newPath) const;
 
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(std::pmr::memory_resource* memoryResource) const;
         [[nodiscard]] Expected<Vec<AssetMetadata>, String> LoadAssets(std::pmr::memory_resource* memoryResource) const;
+        [[nodiscard]] Expected<Vec<Pair<AssetID, String>>, String> LoadAllArtifacts(std::pmr::memory_resource* memoryResource) const;
+        [[nodiscard]] Expected<Vec<Pair<AssetID, String>>, String> LoadAllArtifacts(const AllocatorType allocatorType) const {
+            return LoadAllArtifacts(GetAllocator(allocatorType));
+        }
+
         [[nodiscard]] Expected<Vec<AssetMetadata>, String> LoadAssets(const AllocatorType allocatorType) const {
             return LoadAssets(GetAllocator(allocatorType));
         }

@@ -31,7 +31,7 @@ namespace Quelos {
     namespace AssetImporter {
         QS_API void RegisterAssetImporter(const AssetImporterConfig& config);
 
-        QS_API const AssetType& GetAssetType(AssetTypeID assetTypeId);
+        QS_API Optional<Ref<const AssetType>> GetAssetType(AssetTypeID assetTypeId);
         QS_API bool IsAssetSupported(std::string_view path);
         QS_API const AssetType& GetAssetType(std::string_view path);
         QS_API bool LoadAsset(const LoadContext& loadContext);

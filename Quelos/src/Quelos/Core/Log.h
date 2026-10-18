@@ -117,6 +117,7 @@ namespace Quelos {
 #define QS_INFO_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Info, tag, __VA_ARGS__)
 #define QS_WARN_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Warn, tag, __VA_ARGS__)
 #define QS_ERROR_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Error, tag, __VA_ARGS__)
+#define QS_ERROR_TAGGED(...) QS_ERROR_TAG(QS_FUNCTION_TAG, __VA_ARGS__)
 #define QS_CRITICAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Critical, tag, __VA_ARGS__)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -126,6 +127,7 @@ namespace Quelos {
 #define QS_CORE_INFO(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Info, __VA_ARGS__)
 #define QS_CORE_WARN(...)   ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Warn, __VA_ARGS__)
 #define QS_CORE_ERROR(...)  ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Error, __VA_ARGS__)
+#define QS_CORE_ERROR_TAGGED(...) QS_CORE_ERROR_TAG(QS_FUNCTION_TAG, __VA_ARGS__)
 #define QS_CORE_CRITICAL(...)  ::Quelos::Log::PrintMessage(::Quelos::Log::Type::Core, ::Quelos::Log::Level::Critical, __VA_ARGS__)
 
 // Client Logging

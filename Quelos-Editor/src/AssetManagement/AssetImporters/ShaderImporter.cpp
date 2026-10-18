@@ -827,58 +827,60 @@ namespace QuelosEditor {
                 importContext.DependOn(std::filesystem::relative(dependency.view(), projectPath).generic_string());
             }
 
-            shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
+            if (!compiledShaders.Passes.empty()) {
+                shaderMetadata.MaterialProperties = std::move(compiledShaders.MaterialProperties);
 
-            Vec64<byte> buffer(Allocator::Frame);
-            Serialization::BinaryWriter writer(buffer);
+                Vec64<byte> buffer(Allocator::Frame);
+                Serialization::BinaryWriter writer(buffer);
 
-            writer.Write(compiledShaders.MaterialSize);
-            writer.Write(static_cast<uint32_t>(compiledShaders.Variables.size()));
-            for (const std::string& variable : compiledShaders.Variables) {
-                writer.WriteString(variable);
-            }
-
-            writer.Write(static_cast<uint32_t>(compiledShaders.RequestedParameters.size()));
-            for (const auto& option : compiledShaders.RequestedParameters) {
-                writer.Write(option.first);
-                writer.Write(static_cast<uint8_t>(option.second.index()));
-                if (option.second.index() == 0) {
-                    writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
-                } else {
-                    writer.WriteString(std::get<std::string>(option.second));
+                writer.Write(compiledShaders.MaterialSize);
+                writer.Write(static_cast<uint32_t>(compiledShaders.Variables.size()));
+                for (const std::string& variable : compiledShaders.Variables) {
+                    writer.WriteString(variable);
                 }
-            }
 
-            writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
-            for (const auto& [passName, shaders] : compiledShaders.Passes) {
-                writer.WriteString(passName);
+                writer.Write(static_cast<uint32_t>(compiledShaders.RequestedParameters.size()));
+                for (const auto& option : compiledShaders.RequestedParameters) {
+                    writer.Write(option.first);
+                    writer.Write(static_cast<uint8_t>(option.second.index()));
+                    if (option.second.index() == 0) {
+                        writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
+                    } else {
+                        writer.WriteString(std::get<std::string>(option.second));
+                    }
+                }
 
-                writer.Write(shaders.size());
-                for (const auto& shader : shaders) {
-                    writer.WriteString(shader.EntryPoint);
-                    writer.Write(shader.Type);
-                    writer.Write(static_cast<int32_t>(shader.Order));
-                    writer.Write(shader.PipelineOptions.size());
-                    for (const auto& option : shader.PipelineOptions) {
-                        writer.Write(option.first);
-                        writer.Write(static_cast<uint8_t>(option.second.index()));
-                        if (option.second.index() == 0) {
-                            writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
-                        } else {
-                            writer.WriteString(std::get<std::string>(option.second));
+                writer.Write(static_cast<uint32_t>(compiledShaders.Passes.size()));
+                for (const auto& [passName, shaders] : compiledShaders.Passes) {
+                    writer.WriteString(passName);
+
+                    writer.Write(shaders.size());
+                    for (const auto& shader : shaders) {
+                        writer.WriteString(shader.EntryPoint);
+                        writer.Write(shader.Type);
+                        writer.Write(static_cast<int32_t>(shader.Order));
+                        writer.Write(shader.PipelineOptions.size());
+                        for (const auto& option : shader.PipelineOptions) {
+                            writer.Write(option.first);
+                            writer.Write(static_cast<uint8_t>(option.second.index()));
+                            if (option.second.index() == 0) {
+                                writer.Write(static_cast<int32_t>(std::get<int32_t>(option.second)));
+                            } else {
+                                writer.WriteString(std::get<std::string>(option.second));
+                            }
                         }
-                    }
 
-                    if (shader.Type == ShaderType::Compute) {
-                        writer.WriteBytes(std::as_bytes(Span64(shader.ThreadGroupSize)));
-                    }
+                        if (shader.Type == ShaderType::Compute) {
+                            writer.WriteBytes(std::as_bytes(Span64(shader.ThreadGroupSize)));
+                        }
 
-                    writer.WriteBytesWithSize(shader.Code);
+                        writer.WriteBytesWithSize(shader.Code);
+                    }
                 }
-            }
 
-            if (!importContext.WriteArtifact(magic_enum::enum_name(Renderer::GetRendererAPI()), buffer)) {
-                return false;
+                if (!importContext.WriteArtifact(magic_enum::enum_name(Renderer::GetRendererAPI()), buffer)) {
+                    return false;
+                }
             }
 
             SerializeShaderMetadata(GetMetadataPath(metadata.FilePath), shaderMetadata);

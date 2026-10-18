@@ -15,10 +15,10 @@ namespace Quelos {
         s_AssetLoaders[config.Type] = config;
     }
 
-    const AssetType& AssetImporter::GetAssetType(const AssetTypeID assetTypeId) {
+    Optional<Ref<const AssetType>> AssetImporter::GetAssetType(const AssetTypeID assetTypeId) {
         const auto it = s_AssetLoaders.find(assetTypeId);
         if (it == s_AssetLoaders.end()) {
-            return {};
+            return None;
         }
 
         return it->second.Type;

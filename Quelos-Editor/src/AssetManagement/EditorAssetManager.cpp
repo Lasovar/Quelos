@@ -320,18 +320,84 @@ namespace QuelosEditor {
         return results;
     }
 
-    void EditorAssetManager::RenameAsset(const AssetID handle, const std::string_view newPath) {
-        auto& metadata = m_AssetRegistry.GetAssetsMetadata();
-        const auto it = metadata.find(handle);
-        if (it == metadata.end()) {
-            return;
+    Expected<void, String> EditorAssetManager::RenameAsset(const AssetID& handle, const std::string_view newPath) {
+        const AssetMetadata* meta = m_AssetRegistry.GetAssetMetadata(handle);
+        if (!meta) {
+            return Unexpected(String("Unknown asset", Allocator::Persistent));
         }
 
-        const OsPath oldOsPath = Project::GetProjectPath() / it->second.FilePath;
-        const OsPath newOsPath = Project::GetProjectPath() / newPath;
+        if (meta->IsSubAsset()) {
+            return Unexpected(String("Sub-assets are renamed in their source file", Allocator::Persistent));
+        }
 
-        std::filesystem::rename(oldOsPath, newOsPath);
+        const String normalized(OsPath(newPath).lexically_normal().generic_string(), Allocator::Frame);
+        if (!FS::IsInsideDirectory(normalized, "Assets")) {
+            return Unexpected(String("Target is outside the assets directory", Allocator::Persistent));
+        }
+
+        const OsPath& root = Project::GetProjectPath();
+        const OsPath oldPath = root / meta->FilePath;
+        const OsPath target = root / normalized.view();
+
+        std::error_code ec;
+        // A case-only rename on a case-insensitive filesystem points at the same file; allow it
+        if (std::filesystem::exists(target, ec) && !std::filesystem::equivalent(oldPath, target, ec)) {
+            return Unexpected(String("An asset already exists at that path", Allocator::Persistent));
+        }
+
+        std::filesystem::create_directories(target.parent_path(), ec);
+        std::filesystem::rename(oldPath, target, ec);
+        if (ec) {
+            return Unexpected(String(ec.message(), Allocator::Persistent));
+        }
+
+        // The sidecar carries the ID; it has to move with the file
+        /*
+        TODO:
+        std::filesystem::rename(SidecarPath(oldPath), SidecarPath(target), ec);
+        if (ec) {
+            std::error_code undo;
+            std::filesystem::rename(target, oldPath, undo);   // put the file back so the two stay together
+            return Unexpected(String(ec.message(), Allocator::Frame));
+        }
+        */
+
+        return OnAssetMoved(handle, normalized);
+    }
+
+    // Bookkeeping only: the file is already at newPath. Safe to call more than once.
+    Expected<void, String> EditorAssetManager::OnAssetMoved(const AssetID& handle, const std::string_view newPath) {
+        auto& assets = m_AssetRegistry.GetAssetsMetadata();
+        const auto it = assets.find(handle);
+        if (it == assets.end()) {
+            return Unexpected(String("Unknown asset", Allocator::Persistent));
+        }
+
+        if (it->second.FilePath == newPath) {
+            return {}; // already recorded
+        }
+
+        const String oldPath(it->second.FilePath, Allocator::Frame);
+
+        // Database first: parent and children's virtual paths
+        if (auto r = m_Database.MoveAsset(handle, oldPath, newPath); !r) {
+            return r;
+        }
+
+        // registry
         it->second.FilePath = newPath;
+        for (auto& child : assets | std::views::values) {
+            if (child.ParentId != handle) {
+                continue;
+            }
+
+            const std::string_view suffix = std::string_view(child.FilePath).substr(oldPath.size()); // "/Meshes/Cube"
+            String updated(Allocator::Frame);
+            updated.append(newPath).append(suffix);
+            child.FilePath = updated;
+        }
+
+        return {};
     }
 
     bool EditorAssetManager::IsAssetSupported(const std::string_view path) {
@@ -807,10 +873,15 @@ namespace QuelosEditor {
         }
 
         auto& known = *knownResult;
-        HashMap<AssetID, const SourceRecord*> knownByID(Allocator::Frame);
+        struct KnownAsset {
+            std::string_view Path;
+            const SourceRecord* Record;
+        };
+
+        HashMap<AssetID, KnownAsset> knownByID(Allocator::Frame);
         knownByID.reserve(known.size());
-        for (const auto& rec : known | std::views::values) {
-            knownByID.emplace(rec.ID, &rec);
+        for (const auto& [path, rec] : known) {
+            knownByID.emplace(rec.ID, KnownAsset{ .Path = path.view(), .Record = &rec });
         }
 
         HashSet<AssetID> toImport(Allocator::Frame);
@@ -835,25 +906,41 @@ namespace QuelosEditor {
 
             const OsPath& absoluteEntryPath = it->path();
 
+            const bool isDirectory = it->is_directory(ec);
+            if (ec) {
+                ec.clear();
+                continue;
+            }
+
             if (!IsAssetSupported(absoluteEntryPath.generic_string())) {
                 continue;
             }
 
-            String relativeAssetPath(std::filesystem::relative(absoluteEntryPath, Project::GetProjectPath())
-                                     .lexically_normal()
-                                     .generic_string(),
-                                     Allocator::Frame);
+            if (isDirectory) {
+                it.disable_recursion_pending(); // the directory asset owns everything inside it
+            }
 
-            ScannedSource src{
-                .Path = String(relativeAssetPath, Allocator::Frame),
-                .Size = static_cast<int64_t>(it->file_size(ec)),
-                .ModTime = it->last_write_time(ec).time_since_epoch().count()
-            };
+            String relativeAssetPath(
+                absoluteEntryPath.lexically_relative(Project::GetProjectPath()).generic_string(),
+                Allocator::Frame
+            );
 
-            if (ec) {
-                // vanished or locked mid-scan, next refresh catches it
-                ec.clear();
-                continue;
+            ScannedSource src{ .Path = String(relativeAssetPath, Allocator::Frame) };
+            if (isDirectory) {
+                auto listing = ListDirectory(absoluteEntryPath, Allocator::Frame);
+                src.ModTime = static_cast<int64_t>(HashListing(listing));
+                for (const auto& entry : listing) {
+                    src.Size += entry.Size;
+                }
+            }
+            else {
+                src.Size = static_cast<int64_t>(it->file_size(ec));
+                src.ModTime = it->last_write_time(ec).time_since_epoch().count();
+
+                if (ec) {
+                    ec.clear();
+                    continue;
+                }
             }
 
             if (auto found = known.find(relativeAssetPath); found != known.end()) {
@@ -874,31 +961,36 @@ namespace QuelosEditor {
                 continue;
             }
 
-            if (AssetID existing = EditorAssetImporter::ReadAssetHandle(relativeAssetPath);
-                existing && knownByID.contains(existing)
-            ) {
-                seenIDs.insert(existing);
-                if (auto r = m_Database.UpdateAssetPath(existing, relativeAssetPath); !r) {
-                    QS_ERROR_TAG(
-                        Tag,
-                        "Failed to record move of {}: {}",
-                        relativeAssetPath,
-                        r.error()
-                    );
-                }
+            if (AssetID existing = EditorAssetImporter::ReadAssetHandle(relativeAssetPath)) {
+                if (auto knownIt = knownByID.find(existing); knownIt != knownByID.end()) {
+                    std::error_code existsEc;
+                    const bool oldPathStillExists = std::filesystem::exists(
+                        Project::GetProjectPath() / knownIt->second.Path,
+                        existsEc
+                    ) || existsEc;
 
-                RenameAsset(existing, relativeAssetPath);
+                    if (!oldPathStillExists && !seenIDs.contains(existing)) {
+                        // A real move: the file is gone from its old path and nothing else has claimed the ID
+                        seenIDs.insert(existing);
 
-                const SourceRecord& record = *knownByID.at(existing);
-                SourceCheck movedCheck = CheckSource(record, src);
-                if (movedCheck == SourceCheck::NeedsReimport) {
-                    toImport.insert(existing);
-                }
-                else if (movedCheck == SourceCheck::StampOnly) {
-                    stampUpdates.emplace_back(existing, src.Size, src.ModTime);
-                }
+                        if (auto r = OnAssetMoved(existing, relativeAssetPath); !r) {
+                            QS_ERROR_TAG(Tag, "Failed to record move of '{}': {}", relativeAssetPath, r.error());
+                        }
 
-                continue;
+                        switch (CheckSource(*knownIt->second.Record, src)) {
+                        case SourceCheck::Unchanged:     break;
+                        case SourceCheck::StampOnly:     stampUpdates.emplace_back(existing, src.Size, src.ModTime); break;
+                        case SourceCheck::NeedsReimport: toImport.insert(existing); break;
+                        }
+
+                        continue;
+                    }
+
+                    // A copy: the original still owns this ID. Give the copy a new one.
+                    QS_TRACE_TAG(Tag, "'{}' is a copy of '{}', assigning a new ID", relativeAssetPath, knownIt->second.Path);
+                    EditorAssetImporter::WriteAssetHandle(relativeAssetPath, AssetID::Generate());
+                    // fall through to registration as a new asset
+                }
             }
 
             Vec<AssetID> registered = ProcessAssetRegistration(relativeAssetPath, Allocator::Frame);
@@ -921,6 +1013,24 @@ namespace QuelosEditor {
             if (auto r = m_Database.UpdateSourceStamps(stampUpdates); !r) {
                 QS_WARN_TAG(Tag, "Failed to update source stamps: {}", r.error()); // harmless, rehashed next time
             }
+        }
+
+        if (auto artifacts = m_Database.LoadAllArtifacts(Allocator::Frame); artifacts) {
+            const OsPath& library = Project::GetLibraryPath();
+            for (const auto& [owner, path] : *artifacts) {
+                if (toImport.contains(owner) || !seenIDs.contains(owner)) {
+                    continue;
+                }
+
+                ec.clear();
+                if (!std::filesystem::exists(library / path.view(), ec) || ec) {
+                    QS_TRACE_TAG(Tag, "Artifact '{}' is missing, reimporting its asset", path);
+                    toImport.insert(owner);
+                }
+            }
+        }
+        else {
+            QS_WARN_TAG(Tag, "Couldn't check artifacts: {}", artifacts.error());
         }
 
         ReimportWithDependents(toImport);

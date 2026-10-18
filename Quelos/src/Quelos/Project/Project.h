@@ -12,9 +12,12 @@ namespace Quelos {
         std::string ProjectName;
 
         OsPath ProjectPath;
+        String ProjectPathStr;
         OsPath AssetsPath;
+        String AssetsPathStr;
         OsPath SourcePath;
         OsPath LibraryPath;
+        String LibraryPathStr;
         OsPath ProjectSettingsPath;
     };
 
@@ -26,12 +29,20 @@ namespace Quelos {
             return s_ActiveProject->m_Config.ProjectPath;
         }
 
+        static std::string_view GetProjectPathView() {
+            return s_ActiveProject->m_Config.ProjectPathStr;
+        }
+
         static const OsPath& GetProjectSettingsPath() {
             return s_ActiveProject->m_Config.ProjectSettingsPath;
         }
 
         static const OsPath& GetAssetsPath() {
             return s_ActiveProject->m_Config.AssetsPath;
+        }
+
+        static std::string_view GetAssetsPathView() {
+            return s_ActiveProject->m_Config.AssetsPathStr;
         }
 
         static const OsPath& GetSourcePath() {
@@ -43,6 +54,10 @@ namespace Quelos {
             return s_ActiveProject->m_Config.LibraryPath;
         }
 
+        static std::string_view GetLibraryPathView() {
+            return s_ActiveProject->m_Config.LibraryPathStr;
+        }
+
         // Accessible in runtime
         static const OsPath& GetCookedAssetsPath() {
             return s_ActiveProject->m_CookedAssetsPath;
@@ -50,8 +65,8 @@ namespace Quelos {
 
         static ProjectConfig& GetConfig() { return s_ActiveProject->m_Config; }
 
-        static SharedPtr<Project> Load(const ProjectConfig& projectConfig) {
-            s_ActiveProject = CreateShared<Project>(projectConfig);
+        static SharedPtr<Project> Load(ProjectConfig&& projectConfig) {
+            s_ActiveProject = CreateShared<Project>(std::move(projectConfig));
 
             if (!std::filesystem::exists(GetAssetsPath())) {
                 std::filesystem::create_directories(GetAssetsPath());

@@ -32,8 +32,9 @@ namespace QuelosEditor {
 
         [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type, AllocatorType allocatorType) const override;
         [[nodiscard]] Vec<const AssetMetadata*> FindAssetsOfType(AssetTypeID type, std::pmr::polymorphic_allocator<> allocator) const override;
-        void RenameAsset(AssetID handle, std::string_view newPath);
+        [[nodiscard]] Expected<void, String> RenameAsset(const AssetID& handle, std::string_view newPath);
 
+        Expected<void, String> OnAssetMoved(const AssetID& handle, std::string_view newPath);
         [[nodiscard]] static bool IsAssetSupported(std::string_view path);
 
         [[nodiscard]] bool IsAssetLoaded(const AssetID& handle) const override;
