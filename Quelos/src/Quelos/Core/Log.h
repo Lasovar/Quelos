@@ -114,8 +114,10 @@ namespace Quelos {
 
 // Client tag logging
 #define QS_TRACE_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Trace, tag, __VA_ARGS__)
+#define QS_TRACE_TAGGED(...) QS_TRACE_TAG(QS_FUNCTION_TAG, __VA_ARGS__)
 #define QS_INFO_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Info, tag, __VA_ARGS__)
 #define QS_WARN_TAG(tag, ...)  ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Warn, tag, __VA_ARGS__)
+#define QS_WARN_TAGGED(...) QS_WARN_TAG(QS_FUNCTION_TAG, __VA_ARGS__)
 #define QS_ERROR_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Error, tag, __VA_ARGS__)
 #define QS_ERROR_TAGGED(...) QS_ERROR_TAG(QS_FUNCTION_TAG, __VA_ARGS__)
 #define QS_CRITICAL_TAG(tag, ...) ::Quelos::Log::PrintMessageTag(::Quelos::Log::Type::Client, ::Quelos::Log::Level::Critical, tag, __VA_ARGS__)

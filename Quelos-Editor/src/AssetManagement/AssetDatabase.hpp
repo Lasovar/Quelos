@@ -14,16 +14,24 @@ namespace QuelosEditor {
 
     enum class SourceState : uint8_t { Unchanged, New, Modified, Missing };
 
+    struct SidecarStamp {
+        int64_t Size;
+        int64_t ModTime;
+    };
+
     struct ScannedSource {
         String Path;
         int64_t Size = 0;
         int64_t ModTime = 0;
+        Optional<SidecarStamp> Meta;
     };
 
     struct SourceStamp {
         AssetID ID;
         int64_t Size = 0;
         int64_t ModTime = 0;
+        Optional<int64_t> MetaSize = 0;
+        Optional<int64_t> MetaModTime = 0;
     };
 
     struct ImportResult {
@@ -31,11 +39,17 @@ namespace QuelosEditor {
         Optional<std::string_view> Path;
         std::string_view TypeName;
         Optional<AssetID> ParentID;
+
         Optional<int64_t> SourceSize;
         Optional<int64_t> SourceModTime;
         Optional<Hash128> SourceHash;
+
         Optional<int64_t> ImporterVersion;
-        Optional<Hash128> SettingsHash;
+
+        Optional<int64_t> MetaSize;
+        Optional<int64_t> MetaModTime;
+        Optional<Hash128> MetaHash;
+
         Span32<const AssetID> Dependencies;
         Span32<const String> Artifacts;
         Span32<const AssetMetadata> SubAssets;
@@ -48,7 +62,9 @@ namespace QuelosEditor {
         Optional<int64_t> ModTime;
         Optional<Hash128> Hash;
         Optional<int64_t> ImporterVersion;
-        Optional<Hash128> SettingsHash;
+        Optional<int64_t> MetaSize;
+        Optional<int64_t> MetaModTime;
+        Optional<Hash128> MetaHash;
     };
 
     class AssetDatabase {

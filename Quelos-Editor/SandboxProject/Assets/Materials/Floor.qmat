@@ -3,7 +3,7 @@ assetId = 967e0c1b-b299-4f99-9d04-544183fdd48c
 shader = b2d9aff7-2764-43d8-997f-bcb7c1da8e97
 
 @properties
-BaseColor = (Texture2D,f04b06a0-dc2e-4f42-a279-09e75b3b320b)
+BaseColor = (Texture2D,062f41eb-1cbe-4251-9317-ac4e29e59c70)
 NormalMap = (Texture2D,null)
 MetallicRoughness = (Texture2D,null)
 AOTexIdx = (Texture2D,null)

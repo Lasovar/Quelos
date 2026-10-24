@@ -724,8 +724,8 @@ namespace Quelos::Serialization {
         static constexpr bool IsSaving = false;
 
     public:
-        explicit QuelAutoReadArchive(QuelReader reader) {
-            Serialization::Section* currentSection = nullptr;
+        explicit QuelAutoReadArchive(QuelReader& reader) {
+            Serialization::Section* currentSection = &m_Map.emplace("", Serialization::Section()).first->second;
             Serialization::Component* currentComponent = nullptr;
             Serialization::FieldMap* currentFieldMap = nullptr;
             std::string_view currentField;
@@ -856,7 +856,15 @@ namespace Quelos::Serialization {
         QuelAutoReadArchive& operator=(QuelAutoReadArchive&&) = default;
         ~QuelAutoReadArchive() = default;
 
+        /// You can use an empty string to return to the global fields
         void Section(const std::string_view name) {
+            if (name.empty()) {
+                m_CurrentSection = nullptr;
+                m_CurrentComponent = nullptr;
+                m_CurrentFieldMap = nullptr;
+                m_CurrentFields = nullptr;
+            }
+
             const auto it = m_Map.find(name);
             if (it == m_Map.end()) {
                 return;

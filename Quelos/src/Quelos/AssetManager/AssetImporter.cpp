@@ -29,8 +29,8 @@ namespace Quelos {
 
         const auto it = s_AssetLoaders.find(loadContext.GetAssetMetadata().Type);
         if (it == s_AssetLoaders.end()) {
-            QS_CORE_ERROR_TAG(
-                "AssetImport::ImportAsset", "Failed to import asset '{}': No suitable importer",
+            QS_ERROR_TAGGED(
+                "Failed to import asset '{}': No suitable importer",
                 loadContext.GetAssetMetadata().FilePath
             );
 

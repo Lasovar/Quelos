@@ -40,6 +40,7 @@ namespace QuelosEditor {
     namespace EditorAssetImporter {
         void RegisterAssetImporter(const EditorAssetImporterConfig& config);
 
+        bool IsUsingSidecar(AssetTypeID assetTypeId);
         bool IsAssetSupported(std::string_view path);
         const AssetType& GetAssetType(std::string_view path);
         bool LoadAsset(const LoadContext& loadContext);

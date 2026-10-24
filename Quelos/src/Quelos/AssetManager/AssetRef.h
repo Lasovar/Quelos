@@ -15,7 +15,12 @@ namespace Quelos {
                 return;
             }
 
-            m_Handle = Project::GetAssetManager()->Acquire(assetId);
+            auto handle = Project::GetAssetManager()->Acquire(assetId);
+            if (!handle.IsValid()) {
+                return;
+            }
+
+            m_Handle = handle;
             Inc();
         }
 

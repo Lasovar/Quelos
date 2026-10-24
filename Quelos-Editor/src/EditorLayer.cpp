@@ -8,6 +8,7 @@
 
 #include "imgui_internal.h"
 #include "ProjectSerializer.h"
+#include "AssetManagement/SidecarHandler.hpp"
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
 #include "Quelos/Core/Allocators.hpp"
@@ -27,10 +28,6 @@ namespace QuelosEditor {
 	static void ImGuiDraculaStyle();
 	static void IaivyTheme();
 	static void SupremacyTheme();
-    struct CubePlayer {
-        float Speed = 2.0f;
-        float Timer = 0.0f;
-    };
 
     EditorLayer* EditorLayer::s_Instance = nullptr;
     HashMap<const char*, QS_ShaderCompiler> EditorLayer::s_ShaderCompilers{Allocator::Persistent};
@@ -41,62 +38,6 @@ namespace QuelosEditor {
         m_ProjectSerializer = ProjectSerializer(
             Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
         m_EditorAssetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
-
-        /*m_DefaultScene->GetWorld().each<CameraComponent>([](CameraComponent& cameraComponent) {
-            cameraComponent.Camera.SetOrthographic(15, -100, 100);
-        });*/
-
-        /*auto m_DefaultScene = CreateRef<Scene>("TestScene");
-        const Actor camera = m_DefaultScene->CreateActor("Camera");
-        camera.Set(CameraComponent{SceneCamera()});
-        camera.Set(LocalTransform{float3(0.0f, 0.0f, -15.0f), glm::identity<glm::quat>()});
-
-        MeshComponent cubeMesh;
-        cubeMesh.MeshData = CreateRef<Mesh>(cubeVertices, cubeTriList);
-        cubeMesh.MaterialData = CreateRef<Material>("vs_cubes.bin", "fs_cubes.bin");
-
-        const Actor floor = m_DefaultScene->CreateActor("Floor");
-        floor.Set(LocalTransform{glm::vec3(0, 0, 0), glm::identity<glm::quat>(), glm::vec3(5, 0.5f, 5)});
-        floor.Set(cubeMesh);
-
-        const Actor cube = m_DefaultScene->CreateActor("Cube");
-        cube.Set(LocalTransform{glm::vec3(-2.5f, 2.5f, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
-        cube.Set(cubeMesh);
-        cube.Set(CubePlayer());
-        cube.SetParent(floor);
-
-        const Actor cube2 = m_DefaultScene->CreateActor("Cube2");
-        cube2.Set(LocalTransform{glm::vec3(5.f, 2.5f, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
-        cube2.Set(cubeMesh);
-        cube2.Set(CubePlayer{-2});
-        cube2.SetParent(cube);
-
-        const Actor cube3 = m_DefaultScene->CreateActor("Cube3");
-        cube3.Set(LocalTransform{glm::vec3(0, 5, 0), glm::identity<glm::quat>(), glm::vec3(1.0f)});
-        cube3.Set(cubeMesh);
-        cube3.Set(CubePlayer{-10});
-        cube3.SetParent(floor);
-
-        const Actor cube4 = m_DefaultScene->CreateActor("Cube4");
-        cube4.Set(LocalTransform{glm::vec3(0, 5, 0)});
-        cube4.Set(cubeMesh);
-        cube4.Set(CubePlayer{-10});
-        cube4.SetParent(cube);
-
-        SceneSerializer serializer(m_DefaultScene, "Assets/TestScene");
-        serializer.BakePatches();*/
-
-        /*m_DefaultScene->System<TransformComponent, CubePlayer>(
-            [](const flecs::iter& it, size_t, TransformComponent& transform, CubePlayer& player) {
-                player.Timer += it.delta_time();
-                transform.Rotation = glm::quat({
-                    player.Timer * player.Speed,
-                    player.Timer * player.Speed,
-                    0
-                });
-            }, "RotatePlayer");*/
-
-        //AssetRef<GraphicsShader> compiledShader = AssetRef<GraphicsShader>(AssetID("7d9db084-abd4-4b88-8815-ba0b4f5735b3"));
 
         m_EditorLayerClass.ClassId = ImHashStr("EditorLayer");
         m_EditorLayerClass.DockingAllowUnclassed = false;

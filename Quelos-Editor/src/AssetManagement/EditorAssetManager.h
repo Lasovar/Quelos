@@ -12,9 +12,9 @@ namespace QuelosEditor {
     using namespace Quelos;
 
     enum class SourceCheck {
-        Unchanged,
-        StampOnly,
-        NeedsReimport
+        Unchanged = 0,
+        StampOnly = 1,
+        NeedsReimport = 2
     };
 
     class EditorAssetManager : public AssetManagerBase, efsw::FileWatchListener {

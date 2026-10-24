@@ -1,13 +1,21 @@
 #include "qspch.h"
 #include "EditorAssetImporter.h"
 
+#include "SidecarHandler.hpp"
+#include "Quelos/Scenes/Scene.h"
+
 namespace QuelosEditor {
     using namespace Quelos;
 
     static HashMap<AssetType, EditorAssetImporterConfig> s_EditorAssetLoaders{Allocator::Persistent};
+    static HashSet<AssetTypeID> s_NoSidecar{{GetAssetTypeID<Scene>()}, Allocator::Persistent};
 
     void EditorAssetImporter::RegisterAssetImporter(const EditorAssetImporterConfig& config) {
         s_EditorAssetLoaders[config.Type] = config;
+
+        if (config.ReadAssetHandle && config.WriteAssetHandle) {
+            s_NoSidecar.emplace(config.Type);
+        }
 
         // Also register with runtime AssetImporter for game builds
         const AssetImporterConfig runtimeConfig = {
@@ -17,6 +25,10 @@ namespace QuelosEditor {
         };
 
         AssetImporter::RegisterAssetImporter(runtimeConfig);
+    }
+
+    bool EditorAssetImporter::IsUsingSidecar(const AssetTypeID assetTypeId) {
+        return !s_NoSidecar.contains(assetTypeId);
     }
 
     bool EditorAssetImporter::IsAssetSupported(std::string_view path) {
@@ -55,12 +67,16 @@ namespace QuelosEditor {
         if (!type) {
             return {};
         }
-        
+
+        if (!s_NoSidecar.contains(type)) {
+            return SidecarHandler::ReadAssetID(type.GetName(), assetPath).value_or({});
+        }
+
         const auto it = s_EditorAssetLoaders.find(type);
         if (it != s_EditorAssetLoaders.end() && it->second.ReadAssetHandle) {
             return it->second.ReadAssetHandle(assetPath);
         }
-        
+
         return {};
     }
 
@@ -69,12 +85,21 @@ namespace QuelosEditor {
         if (!type) {
             return false;
         }
-        
+
+        if (!s_NoSidecar.contains(type)) {
+            if (auto r = SidecarHandler::WriteAssetID(type.GetName(), assetPath, handle); !r) {
+                QS_ERROR_TAGGED("Failed to write asset handle: {}", r.error());
+                return false;
+            }
+
+            return true;
+        }
+
         const auto it = s_EditorAssetLoaders.find(type);
         if (it != s_EditorAssetLoaders.end() && it->second.WriteAssetHandle) {
             return it->second.WriteAssetHandle(assetPath, handle);
         }
-        
+
         return false;
     }
 

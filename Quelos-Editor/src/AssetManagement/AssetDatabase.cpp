@@ -32,7 +32,9 @@ CREATE TABLE IF NOT EXISTS Assets (
     SourceModTime INTEGER,
     SourceHash    BLOB    CHECK (SourceHash   IS NULL OR length(SourceHash)   = 16),
     ImporterVersion INTEGER,
-    SettingsHash  BLOB    CHECK (SettingsHash IS NULL OR length(SettingsHash) = 16)
+    MetaSize    INTEGER,
+    MetaModTime INTEGER,
+    MetaHash  BLOB    CHECK (MetaHash IS NULL OR length(MetaHash) = 16)
 ) STRICT, WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS IdxAssetsParent ON Assets(ParentAssetID);
@@ -57,7 +59,6 @@ PRAGMA user_version = 1;
 
         auto result = m_Database.Execute(databaseInitialization);
         QS_ASSERT(result, "Failed to initialize database: {}", result.error());
-
     }
 
     Expected<void, String> AssetDatabase::RegisterAsset(
@@ -166,8 +167,8 @@ ON CONFLICT (AssetID) DO UPDATE SET
             // Asset row
             auto upsert = m_Database.CreateStatement(R"(
     INSERT INTO Assets (AssetID, AssetPath, AssetTypeName, ParentAssetID,
-                        SourceSize, SourceModTime, SourceHash, ImporterVersion, SettingsHash)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                        SourceSize, SourceModTime, SourceHash, ImporterVersion, MetaSize, MetaModTime, MetaHash)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
     ON CONFLICT (AssetID) DO UPDATE SET
         AssetPath       = excluded.AssetPath,
         AssetTypeName   = excluded.AssetTypeName,
@@ -176,7 +177,9 @@ ON CONFLICT (AssetID) DO UPDATE SET
         SourceModTime   = excluded.SourceModTime,
         SourceHash      = excluded.SourceHash,
         ImporterVersion = excluded.ImporterVersion,
-        SettingsHash    = excluded.SettingsHash;
+        MetaSize    = excluded.MetaSize,
+        MetaModTime    = excluded.MetaModTime,
+        MetaHash    = excluded.MetaHash;
 )");
 
             if (!upsert) {
@@ -192,7 +195,9 @@ ON CONFLICT (AssetID) DO UPDATE SET
                     record.SourceModTime,
                     record.SourceHash,
                     record.ImporterVersion,
-                    record.SettingsHash
+                    record.MetaSize,
+                    record.MetaModTime,
+                    record.MetaHash
                 );
                 !r)
             {
@@ -313,7 +318,7 @@ ON CONFLICT (AssetID) DO UPDATE SET
     ) const {
         auto query = m_Database.CreateStatement(R"(
         SELECT AssetPath, AssetID, AssetTypeName,
-               SourceSize, SourceModTime, SourceHash, ImporterVersion, SettingsHash
+               SourceSize, SourceModTime, SourceHash, ImporterVersion, MetaSize, MetaModTime, MetaHash
         FROM Assets
         WHERE ParentAssetID IS NULL;)"
         );
@@ -348,7 +353,9 @@ ON CONFLICT (AssetID) DO UPDATE SET
                     .ModTime = query->GetOptionalInt(4),
                     .Hash = query->GetHash(5),
                     .ImporterVersion = query->GetOptionalInt(6),
-                    .SettingsHash = query->GetHash(7),
+                    .MetaSize = query->GetOptionalInt(7),
+                    .MetaModTime = query->GetOptionalInt(8),
+                    .MetaHash = query->GetHash(9),
                 }
             );
         }
@@ -594,7 +601,7 @@ SELECT ArtifactPath FROM AssetArtifacts WHERE AssetID = ?;
 
         auto result = [&]() -> Expected<void, String> {
             Expected<SQLiteStatement, String> update = m_Database.CreateStatement(
-                "UPDATE Assets SET SourceSize = ?, SourceModTime = ? WHERE AssetID = ?;"
+                "UPDATE Assets SET SourceSize = ?, SourceModTime = ?, MetaSize = ?, MetaModTime = ? WHERE AssetID = ?;"
             );
 
             if (!update) {
@@ -602,7 +609,7 @@ SELECT ArtifactPath FROM AssetArtifacts WHERE AssetID = ?;
             }
 
             for (const SourceStamp& s : stamps) {
-                if (auto r = update->BindAll(s.Size, s.ModTime, s.ID); !r) {
+                if (auto r = update->BindAll(s.Size, s.ModTime, s.ID, s.MetaSize, s.MetaModTime); !r) {
                     return r;
                 }
 

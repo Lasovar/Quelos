@@ -5,6 +5,7 @@
 #include "AssetImporters/SceneImporter.h"
 #include "EditorAssetImporter.h"
 #include "ImportContext.hpp"
+#include "SidecarHandler.hpp"
 #include "xxhash.h"
 #include "AssetImporters/MaterialImporter.h"
 #include "AssetImporters/ShaderImporter.h"
@@ -199,7 +200,6 @@ namespace QuelosEditor {
 
     UntypedAssetHandle EditorAssetManager::Acquire(const AssetID assetId) {
         if (!IsAssetHandleValid(assetId)) {
-            QS_CORE_ASSERT(false, "[EditorAssetManager::Acquire] Invalid asset handle {}", assetId.ToString());
             return {};
         }
 
@@ -351,16 +351,14 @@ namespace QuelosEditor {
             return Unexpected(String(ec.message(), Allocator::Persistent));
         }
 
-        // The sidecar carries the ID; it has to move with the file
-        /*
-        TODO:
-        std::filesystem::rename(SidecarPath(oldPath), SidecarPath(target), ec);
-        if (ec) {
-            std::error_code undo;
-            std::filesystem::rename(target, oldPath, undo);   // put the file back so the two stay together
-            return Unexpected(String(ec.message(), Allocator::Frame));
+        if (EditorAssetImporter::IsUsingSidecar(meta->Type)) {
+            std::filesystem::rename(SidecarHandler::GetSidecarPath(oldPath), SidecarHandler::GetSidecarPath(target), ec);
+            if (ec) {
+                std::error_code undo;
+                std::filesystem::rename(target, oldPath, undo);   // put the file back so the two stay together
+                return Unexpected(String(ec.message(), Allocator::Persistent));
+            }
         }
-        */
 
         return OnAssetMoved(handle, normalized);
     }
@@ -860,6 +858,25 @@ namespace QuelosEditor {
         }
     }
 
+    static Optional<SidecarStamp> StatSidecar(const OsPath& assetPath) {
+        const OsPath metaPath = SidecarHandler::GetSidecarPath(assetPath);
+        std::error_code ec;
+        const auto size = std::filesystem::file_size(metaPath, ec);
+        if (ec) {
+            return None;
+        }
+
+        const auto time = std::filesystem::last_write_time(metaPath, ec);
+        if (ec) {
+            return None;
+        }
+
+        return SidecarStamp{
+            .Size = static_cast<int64_t>(size),
+            .ModTime = time.time_since_epoch().count(),
+        };
+    }
+
     void EditorAssetManager::RefreshAssetDatabase() {
         static constexpr auto Tag = QS_FUNCTION_TAG;
         QS_PROFILE_SCOPED();
@@ -942,16 +959,35 @@ namespace QuelosEditor {
                     continue;
                 }
             }
+            const AssetType& assetType = EditorAssetImporter::GetAssetType(relativeAssetPath);
+            const bool isUsingSidecar = EditorAssetImporter::IsUsingSidecar(assetType);
+            if (isUsingSidecar) {
+                src.Meta = StatSidecar(absoluteEntryPath);
+            }
 
             if (auto found = known.find(relativeAssetPath); found != known.end()) {
                 auto& record = found->second;
                 seenIDs.insert(record.ID);
 
+                if (isUsingSidecar && !src.Meta) {
+                    if (auto r = SidecarHandler::WriteAssetID(assetType.GetName(), relativeAssetPath, record.ID)) {
+                        QS_WARN_TAGGED("Restored missing '.qmeta' file for '{}', settings might have been lost!", relativeAssetPath);
+                    } else {
+                        QS_ERROR_TAGGED("Failed to restore meta file for '{}': {}", relativeAssetPath, r.error());
+                    }
+                }
+
                 switch (CheckSource(record, src)) {
                 case SourceCheck::Unchanged:
                     break;
                 case SourceCheck::StampOnly:
-                    stampUpdates.emplace_back(record.ID, src.Size, src.ModTime);
+                    stampUpdates.emplace_back(
+                        record.ID,
+                        src.Size,
+                        src.ModTime,
+                        src.Meta ? Optional(src.Meta->Size) : None,
+                        src.Meta ? Optional(src.Meta->ModTime) : None
+                    );
                     break;
                 case SourceCheck::NeedsReimport:
                     toImport.insert(record.ID);
@@ -978,9 +1014,20 @@ namespace QuelosEditor {
                         }
 
                         switch (CheckSource(*knownIt->second.Record, src)) {
-                        case SourceCheck::Unchanged:     break;
-                        case SourceCheck::StampOnly:     stampUpdates.emplace_back(existing, src.Size, src.ModTime); break;
-                        case SourceCheck::NeedsReimport: toImport.insert(existing); break;
+                        case SourceCheck::Unchanged:
+                            break;
+                        case SourceCheck::StampOnly:
+                            stampUpdates.emplace_back(
+                                existing,
+                                src.Size,
+                                src.ModTime,
+                                src.Meta ? Optional(src.Meta->Size) : None,
+                                src.Meta ? Optional(src.Meta->ModTime) : None
+                            );
+                            break;
+                        case SourceCheck::NeedsReimport:
+                            toImport.insert(existing);
+                            break;
                         }
 
                         continue;
@@ -1041,33 +1088,39 @@ namespace QuelosEditor {
             return SourceCheck::NeedsReimport;
         }
 
-        /*
-        TODO:
-        if (rec.SettingsHash != LoadImportSettingsHash(src.Path)) {
-            return SourceCheck::NeedsReimport;
-        }
-        */
+        Optional<OsPath> absolutePath;
 
-        /*
-        TODO:
-        if (!ArtifactsExist(rec.ID)) {
-            return SourceCheck::NeedsReimport;   // library folder deleted
+        SourceCheck sidecarCheck = SourceCheck::Unchanged;
+        if (src.Meta) {
+            auto& meta = *src.Meta;
+            if (rec.MetaModTime != meta.ModTime || rec.MetaSize != meta.Size) {
+                absolutePath = Project::GetProjectPath() / src.Path.view();
+
+                const auto hashResult = Hash::File(absolutePath->generic_string());
+                if (hashResult != rec.Hash) {
+                    return SourceCheck::NeedsReimport;
+                }
+
+                sidecarCheck = SourceCheck::StampOnly;
+            }
         }
-        */
 
         if (rec.Size == src.Size && rec.ModTime == src.ModTime) {
-            return SourceCheck::Unchanged; // fast path
+            return sidecarCheck;
         }
 
         // Metadata changed: confirm with the content hash
-        const OsPath& absolutePath =  Project::GetProjectPath() / src.Path.view();
         Optional<Hash128> hash = None;
 
-        if (std::filesystem::is_directory(absolutePath)) {
-            auto listing = ListDirectory(absolutePath, Allocator::Frame);
-            hash = HashDirectoryContents(absolutePath, listing);
+        if (!absolutePath) {
+            absolutePath = Project::GetProjectPath() / src.Path.view();
+        }
+
+        if (std::filesystem::is_directory(*absolutePath)) {
+            auto listing = ListDirectory(*absolutePath, Allocator::Frame);
+            hash = HashDirectoryContents(*absolutePath, listing);
         } else {
-            hash = Hash::File(absolutePath.generic_string());
+            hash = Hash::File(absolutePath->generic_string());
         }
 
         if (hash == rec.Hash) {
@@ -1197,6 +1250,28 @@ namespace QuelosEditor {
             return false;
         }
 
+        Optional<int64_t> sidecarSize = 0;
+        Optional<int64_t> sidecarModTime = 0;
+        Optional<Hash128> sidecarHash;
+
+        if (EditorAssetImporter::IsUsingSidecar(meta->Type)) {
+            OsPath sidecarPath = SidecarHandler::GetSidecarPath(absolute);
+            std::error_code ec;
+            sidecarSize = static_cast<int64_t>(std::filesystem::file_size(sidecarPath, ec));
+            sidecarModTime = std::filesystem::last_write_time(sidecarPath, ec).time_since_epoch().count();
+            if (ec) {
+                QS_ERROR_TAG(
+                    "EditorAssetManager::Reimport",
+                    "Failed to read '.qmeta' file during reimport for asset(path: '{}', id: '{}'): {}",
+                    sidecarPath.generic_string(), assetId.ToString(Allocator::Frame), ec.message()
+                );
+
+                return false;
+            }
+
+            sidecarHash = Hash::File(sidecarPath.generic_string());
+        }
+
         ImportContext ctx(*meta, m_AssetRegistry, GetAllocator(Allocator::Frame));
         if (!EditorAssetImporter::Import(ctx)) {
             QS_ERROR_TAG("EditorAssetManager::Reimport", "Import failed for '{}'", meta->FilePath);
@@ -1216,7 +1291,9 @@ namespace QuelosEditor {
             .SourceModTime = modTime,
             .SourceHash = *hash,
             .ImporterVersion = AssetImporter::GetVersion(meta->Type),
-            .SettingsHash = None/*TODO: LoadImportSettingsHash(meta->FilePath)*/,
+            .MetaSize = sidecarSize,
+            .MetaModTime = sidecarModTime,
+            .MetaHash = sidecarHash,
             .Dependencies = ctx.GetDependencies(),
             .Artifacts = ctx.GetArtifacts(),
             .SubAssets = ctx.GetSubAssets()
