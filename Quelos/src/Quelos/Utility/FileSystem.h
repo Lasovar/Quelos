@@ -90,6 +90,17 @@ namespace Quelos {
             }
         }
 
+        // "Assets/texture.png.qmeta" -> "Assets/texture.png"
+        constexpr std::string_view RemoveExtension(const std::string_view path) {
+            const size_t nameStart = path.find_last_of("/\\") + 1;
+            const size_t dot = path.rfind('.');
+            if (dot == std::string_view::npos || dot <= nameStart) {
+                return path; // no extension, or a dotfile like ".gitignore"
+            }
+
+            return path.substr(0, dot);
+        }
+
         /// Resolves "." and ".." lexically into `out`.
         /// Returns false if a ".." climbs above the start of the path.
         inline bool NormalizedParts(const std::string_view path, Vec<std::string_view>& out) {
@@ -121,8 +132,11 @@ namespace Quelos {
             const std::string_view dir,
             const bool allowEqual = false
         ) {
-            Vec<std::string_view> pathParts(Allocator::Frame);
-            Vec<std::string_view> dirParts(Allocator::Frame);
+            thread_local Vec<std::string_view> pathParts(Allocator::Persistent);
+            thread_local Vec<std::string_view> dirParts(Allocator::Persistent);
+
+            pathParts.clear();
+            dirParts.clear();
 
             if (!NormalizedParts(path, pathParts) || !NormalizedParts(dir, dirParts)) {
                 return false;

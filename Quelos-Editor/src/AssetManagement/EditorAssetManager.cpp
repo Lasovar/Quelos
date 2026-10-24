@@ -152,9 +152,62 @@ namespace QuelosEditor {
         m_ReimportQueue.emplace(assetId);
     }
 
+    Optional<AssetID> EditorAssetManager::ResolveOwningAsset(const std::string_view absolutePath) const {
+        const std::string relative = OsPath(absolutePath).lexically_relative(Project::GetProjectPath()).generic_string();
+
+        std::string_view path = relative;
+        if (FS::Extension(path) == ".qmeta") {
+            path = FS::RemoveExtension(path);
+        }
+
+        // A file inside a directory asset belongs to that directory
+        while (!path.empty() && FS::IsInsideDirectory(path, "Assets")) {
+            if (const AssetMetadata* meta = GetAssetMetadata(path); meta && !meta->IsSubAsset()) {
+                return meta->Handle;
+            }
+
+            path = FS::Parent(path);
+        }
+
+        return None;
+    }
+
     void EditorAssetManager::FlushReimportQueue() {
+        if (m_ReimportQueue.empty()) [[likely]] {
+            return;
+        }
+
         ReimportWithDependents(m_ReimportQueue);
         m_ReimportQueue.clear();
+    }
+
+    void EditorAssetManager::ProcessFileEvents() {
+        if (!m_HasFileEvents.exchange(false, std::memory_order_acquire)) {
+            return;
+        }
+
+        m_ProcessingPaths.clear();
+
+        bool fullRefresh;
+        {
+            std::scoped_lock lock(m_FileEventsMutex);
+            m_ProcessingPaths.swap(m_ModifiedPaths);
+            fullRefresh = std::exchange(m_RequestFullRefresh, false);
+        }
+
+        if (fullRefresh) {
+            RefreshAssetDatabase();   // covers the modified files too
+            return;
+        }
+
+        HashSet<AssetID> changed(Allocator::Frame);
+        for (const std::string& path : m_ProcessingPaths) {
+            if (const Optional<AssetID> owner = ResolveOwningAsset(path)) {
+                changed.insert(*owner);
+            }
+        }
+
+        ReimportWithDependents(changed);
     }
 
     bool EditorAssetManager::Import(
@@ -490,28 +543,26 @@ namespace QuelosEditor {
         const std::string& filename, const efsw::Action action,
         std::string oldFilename
     ) {
-        switch (action) {
-        case efsw::Action::Add:
-        case efsw::Action::Delete:
-            break;
-        case efsw::Action::Modified: {
-            const AssetMetadata* metadata = GetAssetMetadata(
-                std::filesystem::relative(
-                    FormatTemp("{}/{}", dir, filename),
-                    Project::GetProjectPath()
-                ).generic_string()
-            );
+        std::string absolute = (OsPath(dir) / filename).lexically_normal().generic_string();
 
-            if (!metadata || metadata->ParentId) {
+        {
+            std::scoped_lock lock(m_FileEventsMutex);
+            switch (action) {
+            case efsw::Action::Modified: {
+                m_ModifiedPaths.push_back(std::move(absolute));
                 break;
             }
+            case efsw::Action::Add:
+            case efsw::Action::Delete:
+            case efsw::Action::Moved:
+                m_RequestFullRefresh = true;
+                break;
+            default:
+                break;
+            }
+        }
 
-            m_ReimportQueue.emplace(metadata->Handle);
-            break;
-        }
-        default:
-            break;
-        }
+        m_HasFileEvents.store(true, std::memory_order_release);
     }
 
     struct DependencyGraph {

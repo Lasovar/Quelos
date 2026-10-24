@@ -6,6 +6,7 @@
 #include "Quelos/AssetManager/AssetRegistry.h"
 
 #include "efsw/FileWatcherGeneric.hpp"
+#include "Quelos/Utility/Request.h"
 #include "SQLite/SQLite.hpp"
 
 namespace QuelosEditor {
@@ -40,8 +41,10 @@ namespace QuelosEditor {
         [[nodiscard]] bool IsAssetLoaded(const AssetID& handle) const override;
         void RemoveAssetFromRegistry(const AssetID& assetHandle);
         void QueueReimport(AssetID assetId);
+        Optional<AssetID> ResolveOwningAsset(std::string_view absolutePath) const;
 
         void FlushReimportQueue();
+        void ProcessFileEvents();
 
         Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, std::pmr::polymorphic_allocator<> allocator);
         Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, AllocatorType allocatorType);
@@ -116,7 +119,13 @@ namespace QuelosEditor {
         efsw::FileWatcher m_FileWatcher;
         HashMap<efsw::WatchID, AssetID> m_WatchedAssets{Allocator::Persistent};
 
-        HashSet<AssetID> m_ReimportQueue{Allocator::Persistent};
+        std::atomic<bool> m_HasFileEvents = false;
+        std::mutex m_FileEventsMutex;
+        Vec<std::string> m_ModifiedPaths{Allocator::Persistent};
+        Vec<std::string> m_ProcessingPaths{Allocator::Persistent};
+        bool m_RequestFullRefresh;
+
+        HashSet<AssetID> m_ReimportQueue;
 
         efsw::WatchID m_WatchID{};
     };

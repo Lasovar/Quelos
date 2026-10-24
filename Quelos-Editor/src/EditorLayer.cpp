@@ -75,26 +75,28 @@ namespace QuelosEditor {
         }
 
         FlushOpenAssetWorkspace();
+
+        m_EditorAssetManager->ProcessFileEvents();
         m_EditorAssetManager->FlushReimportQueue();
     }
 
     void EditorLayer::ImGuiRender() {
         ImGuizmo::BeginFrame();
 
-        static ImGuiDockNodeFlags dockspace_flags =
-            ImGuiDockNodeFlags_NoSplit |
-            ImGuiDockNodeFlags_NoResize |
-            ImGuiDockNodeFlags_NoDockingOverOther;
+        static ImGuiDockNodeFlags dockspace_flags = 0
+	        | ImGuiDockNodeFlags_NoSplit
+	        | ImGuiDockNodeFlags_NoResize
+	        | ImGuiDockNodeFlags_NoDockingOverOther;
 
-        static ImGuiWindowFlags window_flags =
-            ImGuiWindowFlags_MenuBar |
-            ImGuiWindowFlags_NoDocking |
-            ImGuiWindowFlags_NoTitleBar |
-            ImGuiWindowFlags_NoCollapse |
-            ImGuiWindowFlags_NoNavFocus |
-            ImGuiWindowFlags_NoBringToFrontOnFocus |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoMove;
+        static ImGuiWindowFlags window_flags = 0
+	        | ImGuiWindowFlags_MenuBar
+	        | ImGuiWindowFlags_NoDocking
+	        | ImGuiWindowFlags_NoTitleBar
+	        | ImGuiWindowFlags_NoCollapse
+	        | ImGuiWindowFlags_NoNavFocus
+	        | ImGuiWindowFlags_NoBringToFrontOnFocus
+	        | ImGuiWindowFlags_NoResize
+	        | ImGuiWindowFlags_NoMove;
 
         const ImGuiID globalDockspaceID = ImGui::GetID("EditorLayer_Dockspace");
 
