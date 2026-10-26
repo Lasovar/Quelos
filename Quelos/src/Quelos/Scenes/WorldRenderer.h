@@ -26,7 +26,7 @@ namespace Quelos {
             m_IsDirty = true;
         }
 
-        uint32_t GetID(const AssetRef<Texture2D>& textureHandle) {
+        uint32_t GetID(const AssetRef<Texture>& textureHandle) {
             if (!textureHandle) {
                 return k_MaxTextures - 1;
             }
@@ -40,7 +40,7 @@ namespace Quelos {
             const uint64_t nativeHandle = textureHandle.Get().GetHandle().GetNativeHandle();
             const auto it = std::ranges::find_if(
                 m_Textures,
-                [&](const AssetRef<Texture2D>& texture) {
+                [&](const AssetRef<Texture>& texture) {
                     return texture.GetAssetID() == textureHandle.GetAssetID();
                 }
             );
@@ -73,7 +73,7 @@ namespace Quelos {
         }
 
     private:
-        Vec<AssetRef<Texture2D>> m_Textures{Allocator::Persistent};
+        Vec<AssetRef<Texture>> m_Textures{Allocator::Persistent};
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
         std::array<uint64_t, k_MaxTextures> m_TextureArray = {};

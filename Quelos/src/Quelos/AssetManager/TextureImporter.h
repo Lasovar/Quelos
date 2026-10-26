@@ -10,7 +10,7 @@ namespace Quelos {
         QS_API bool IsAssetSupported(std::string_view path);
 
         inline AssetImporterConfig GetImporterConfig() {
-            return {Texture2D::GetStaticType(), ImportTexture2D, IsAssetSupported};
+            return {Texture::GetStaticType(), ImportTexture2D, IsAssetSupported};
         }
     }
 }

@@ -74,7 +74,7 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (auto* texture = std::get_if<SoftRef<Texture2D>>(&values[propertyIndex])) {
+                    if (auto* texture = std::get_if<SoftRef<Texture>>(&values[propertyIndex])) {
                         uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
 
                         std::memcpy(
@@ -128,7 +128,7 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (auto* texture = std::get_if<SoftRef<Texture2D>>(&values[propertyIndex])) {
+                    if (auto* texture = std::get_if<SoftRef<Texture>>(&values[propertyIndex])) {
                         uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
 
                         std::memcpy(
@@ -171,21 +171,21 @@ namespace Quelos {
 
     WorldRenderer::WorldRenderer() {
         RenderPassAttachmentSpec attachments[3];
-        attachments[0].Format = ImageFormat::RGBA16Float;
+        attachments[0].Format = TextureFormat::RGBA16Float;
         attachments[0].SampleCount = 4;
         attachments[0].LoadOp = AttachmentLoadOp::Clear;
         attachments[0].StoreOp = AttachmentStoreOp::Discard;
         attachments[0].InitialState = ResourceState::RenderTarget;
         attachments[0].FinalState = ResourceState::RenderTarget;
 
-        attachments[1].Format = ImageFormat::RGBA16Float;
+        attachments[1].Format = TextureFormat::RGBA16Float;
         attachments[1].SampleCount = 1;
         attachments[1].LoadOp = AttachmentLoadOp::Clear;
         attachments[1].StoreOp = AttachmentStoreOp::Store;
         attachments[1].InitialState = ResourceState::ResolveDest;
         attachments[1].FinalState = ResourceState::ShaderResource;
 
-        attachments[2].Format = ImageFormat::Depth32Float;
+        attachments[2].Format = TextureFormat::Depth32Float;
         attachments[2].SampleCount = 4;
         attachments[2].LoadOp = AttachmentLoadOp::Load;
         attachments[2].StoreOp = AttachmentStoreOp::Store;
@@ -228,12 +228,12 @@ namespace Quelos {
         m_InstancesGpuBuffer = Renderer::CreateBuffer(instancesBufferSpec, {});
         m_InstancesBufferView = Renderer::GetDefaultBufferView(m_InstancesGpuBuffer, BufferViewType::ShaderResource);
 
-        TextureSpecification whiteSpec;
+        TextureSpec whiteSpec;
         whiteSpec.Name = "DefaultWhiteTexture";
         whiteSpec.BindFlags = Bind::ShaderResource;
         whiteSpec.Width = 1;
         whiteSpec.Height = 1;
-        whiteSpec.Format = ImageFormat::SRGBA;
+        whiteSpec.Format = TextureFormat::SRGBA;
         whiteSpec.SampleCount = SampleCount::x1;
         whiteSpec.Type = TextureType::Texture2D;
 
@@ -242,12 +242,12 @@ namespace Quelos {
 
         Renderer::TransitionResource(m_WhiteTexture, ResourceState::ShaderResource);
 
-        TextureSpecification magentaSpec;
+        TextureSpec magentaSpec;
         magentaSpec.Name = "UndefinedTexture";
         magentaSpec.BindFlags = Bind::ShaderResource;
         magentaSpec.Width = 1;
         magentaSpec.Height = 1;
-        magentaSpec.Format = ImageFormat::RGBA8UNorm;
+        magentaSpec.Format = TextureFormat::RGBA8UNorm;
         magentaSpec.SampleCount = SampleCount::x1;
         magentaSpec.Type = TextureType::Texture2D;
 
@@ -258,14 +258,14 @@ namespace Quelos {
 
         // Depth Render Pass
         RenderPassAttachmentSpec depthPassAttachment[2];
-        depthPassAttachment[0].Format = ImageFormat::Depth32Float;
+        depthPassAttachment[0].Format = TextureFormat::Depth32Float;
         depthPassAttachment[0].SampleCount = 4;
         depthPassAttachment[0].LoadOp = AttachmentLoadOp::Clear;
         depthPassAttachment[0].StoreOp = AttachmentStoreOp::Store;
         depthPassAttachment[0].InitialState = ResourceState::DepthWrite;
         depthPassAttachment[0].FinalState = ResourceState::DepthRead;
 
-        depthPassAttachment[1].Format = ImageFormat::RGBA16Float;
+        depthPassAttachment[1].Format = TextureFormat::RGBA16Float;
         depthPassAttachment[1].SampleCount = 4;
         depthPassAttachment[1].LoadOp = AttachmentLoadOp::Clear;
         depthPassAttachment[1].StoreOp = AttachmentStoreOp::Store;
@@ -288,7 +288,7 @@ namespace Quelos {
 
         // Shadow Render Pass
         RenderPassAttachmentSpec shadowPassAttachment[1];
-        shadowPassAttachment[0].Format = ImageFormat::Depth32Float;
+        shadowPassAttachment[0].Format = TextureFormat::Depth32Float;
         shadowPassAttachment[0].SampleCount = 1;
         shadowPassAttachment[0].LoadOp = AttachmentLoadOp::Clear;
         shadowPassAttachment[0].StoreOp = AttachmentStoreOp::Store;
@@ -319,7 +319,7 @@ namespace Quelos {
 
         // Shadow Mask Pass
         RenderPassAttachmentSpec shadowMaskAttachment;
-        shadowMaskAttachment.Format = ImageFormat::R8UNorm;
+        shadowMaskAttachment.Format = TextureFormat::R8UNorm;
         shadowMaskAttachment.SampleCount = 1;
         shadowMaskAttachment.LoadOp = AttachmentLoadOp::Clear;
         shadowMaskAttachment.StoreOp = AttachmentStoreOp::Store;
@@ -340,7 +340,7 @@ namespace Quelos {
 
         // Tone Mapping Pass
         RenderPassAttachmentSpec toneMappingAttachment;
-        toneMappingAttachment.Format = ImageFormat::RGBA8UNorm;
+        toneMappingAttachment.Format = TextureFormat::RGBA8UNorm;
         toneMappingAttachment.SampleCount = 1;
         toneMappingAttachment.LoadOp = AttachmentLoadOp::Discard;
         toneMappingAttachment.StoreOp = AttachmentStoreOp::Store;
@@ -725,11 +725,11 @@ namespace Quelos {
 
         {
             view->Size = size;
-            TextureSpecification msaaColorSpec;
+            TextureSpec msaaColorSpec;
             msaaColorSpec.Width = size.Width;
             msaaColorSpec.Height = size.Height;
 
-            msaaColorSpec.Format = ImageFormat::RGBA16Float;
+            msaaColorSpec.Format = TextureFormat::RGBA16Float;
             msaaColorSpec.SamplerWrap = WrapMode::Clamp;
 
             msaaColorSpec.BindFlags = Bind::RenderTarget;
@@ -737,11 +737,11 @@ namespace Quelos {
 
             view->SceneColorMSAA = Renderer::CreateTexture(msaaColorSpec);
 
-            TextureSpecification sceneColor;
+            TextureSpec sceneColor;
             sceneColor.Width = size.Width;
             sceneColor.Height = size.Height;
 
-            sceneColor.Format = ImageFormat::RGBA16Float;
+            sceneColor.Format = TextureFormat::RGBA16Float;
             sceneColor.SamplerWrap = WrapMode::Repeat;
 
             sceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
@@ -752,11 +752,11 @@ namespace Quelos {
             view->SceneColorRTV = Renderer::TextureGetDefaultView(view->SceneColor.GetHandle(), TextureViewType::RenderTarget);
             view->SceneColorSRV = Renderer::TextureGetDefaultView(view->SceneColor.GetHandle(), TextureViewType::ShaderResource);
 
-            TextureSpecification finalSceneColor;
+            TextureSpec finalSceneColor;
             finalSceneColor.Width = size.Width;
             finalSceneColor.Height = size.Height;
 
-            finalSceneColor.Format = ImageFormat::RGBA8UNorm;
+            finalSceneColor.Format = TextureFormat::RGBA8UNorm;
             finalSceneColor.SamplerWrap = WrapMode::Repeat;
 
             finalSceneColor.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
@@ -767,11 +767,11 @@ namespace Quelos {
             view->FinalSceneColorRTV = Renderer::TextureGetDefaultView(view->FinalSceneColor.GetHandle(), TextureViewType::RenderTarget);
             view->FinalSceneColorSRV = Renderer::TextureGetDefaultView(view->FinalSceneColor.GetHandle(), TextureViewType::ShaderResource);
 
-            TextureSpecification msaaDepthSpec;
+            TextureSpec msaaDepthSpec;
             msaaDepthSpec.Width  = size.Width;
             msaaDepthSpec.Height = size.Height;
 
-            msaaDepthSpec.Format = ImageFormat::Depth32Float;
+            msaaDepthSpec.Format = TextureFormat::Depth32Float;
             msaaDepthSpec.SamplerWrap = WrapMode::Repeat;
 
             msaaDepthSpec.BindFlags = Bind::DepthStencil | Bind::ShaderResource;
@@ -789,10 +789,10 @@ namespace Quelos {
             );
 
 
-            TextureSpecification sceneNormal;
+            TextureSpec sceneNormal;
             sceneNormal.Width = size.Width;
             sceneNormal.Height = size.Height;
-            sceneNormal.Format = ImageFormat::RGBA16Float;
+            sceneNormal.Format = TextureFormat::RGBA16Float;
             sceneNormal.SamplerWrap = WrapMode::Repeat;
             sceneNormal.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
             sceneNormal.SampleCount = SampleCount::x4;
@@ -871,9 +871,9 @@ namespace Quelos {
         }
 
         {
-            TextureSpecification shadowMaskSpec;
+            TextureSpec shadowMaskSpec;
             shadowMaskSpec.Type = TextureType::Texture2D;
-            shadowMaskSpec.Format = ImageFormat::R8UNorm;
+            shadowMaskSpec.Format = TextureFormat::R8UNorm;
             shadowMaskSpec.Width = size.Width;
             shadowMaskSpec.Height = size.Height;
             shadowMaskSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
@@ -1036,9 +1036,9 @@ namespace Quelos {
                 return;
             }
 
-            TextureSpecification spec;
+            TextureSpec spec;
             spec.Type = TextureType::Texture2DArray;
-            spec.Format = ImageFormat::Depth32Float;
+            spec.Format = TextureFormat::Depth32Float;
             spec.Width = spec.Height = 2048;
             spec.ArraySize = k_NumCascades;
             spec.SampleCount = SampleCount::x1;
@@ -1053,7 +1053,7 @@ namespace Quelos {
                 TextureViewSpec dsvSpec;
                 dsvSpec.ViewType = TextureViewType::DepthStencil;
                 dsvSpec.TextureType = TextureType::Texture2DArray;
-                dsvSpec.Format = ImageFormat::Depth32Float;
+                dsvSpec.Format = TextureFormat::Depth32Float;
                 dsvSpec.FirstArraySlice = i;
                 dsvSpec.NumArraySlices = 1;
                 dsvSpec.MostDetailedMip = 0;
@@ -1701,12 +1701,12 @@ namespace Quelos {
         });
 
         ClearValue clearValues[3];
-        clearValues[0].Format = ImageFormat::RGBA16Float;
+        clearValues[0].Format = TextureFormat::RGBA16Float;
         clearValues[0].Color = renderViewParams.SceneColorClear;
 
         clearValues[1] = {};
 
-        clearValues[2].Format = ImageFormat::Depth32Float;
+        clearValues[2].Format = TextureFormat::Depth32Float;
         clearValues[2].DepthStencil.Depth = 0.0f;
 
         BeginRenderPassAttribs gBufferPassAttribs;

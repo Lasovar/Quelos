@@ -10,7 +10,7 @@
 #include "Quelos/Utility/SlotMap.h"
 
 namespace Quelos {
-    enum class QS_API ImageFormat {
+    enum class QS_API TextureFormat {
         None = 0,
         R8UNorm,
         R8UInt,
@@ -21,6 +21,7 @@ namespace Quelos {
         RG16Float,
         RG32Float,
         RGB,
+        RGBA8Typeless,
         RGBA8UNorm,
         RGBA8SNorm,
         RGBA16Float,
@@ -45,18 +46,10 @@ namespace Quelos {
         TextureCube
     };
 
-    enum class QS_API RenderTargetMSAA {
-        None,
-        MSAA_X2,
-        MSAA_X4,
-        MSAA_X8,
-        MSAA_X16,
-    };
-
-    struct QS_API TextureSpecification {
+    struct QS_API TextureSpec {
         std::string Name;
 
-        ImageFormat Format = ImageFormat::RGBA8UNorm;
+        TextureFormat Format = TextureFormat::RGBA8UNorm;
         uint32_t Width = 1;
         uint32_t Height = 1;
         WrapMode SamplerWrap = WrapMode::Repeat;
@@ -64,7 +57,6 @@ namespace Quelos {
         TextureType Type = TextureType::Texture2D;
         Usage Usage = Usage::Default;
 
-        bool IsBlitDestination = false;
         BindFlags BindFlags = Bind::None;
         SampleCount SampleCount = SampleCount::x1;
         CpuAccessFlags CpuAccessFlags = CpuAccess::None;
@@ -92,57 +84,34 @@ namespace Quelos {
 
     class QS_API Texture : public Asset {
     public:
-        ~Texture() override = default;
+        Texture(const TextureSpec& spec, BufferView data);
+        Texture(const TextureHandle& textureHandle) : m_Handle(textureHandle) {}
 
-        virtual ImageFormat GetFormat() const = 0;
-        virtual uint32_t GetWidth() const = 0;
-        virtual uint32_t GetHeight() const = 0;
-        virtual uint2 GetSize() const = 0;
+        ~Texture() override;
+        /// Requires TextureType == Texture2D
+        void Resize(const uint2& size) const;
+        /// Requires TextureType == Texture2D
+        void Resize(uint32_t width, uint32_t height) const;
 
-        virtual bool IsVFlipped() const = 0;
+        [[nodiscard]] TextureFormat GetFormat() const;
+        [[nodiscard]] uint32_t GetWidth() const;
+        [[nodiscard]] uint32_t GetHeight() const;
+        [[nodiscard]] uint2 GetSize() const;
 
-        virtual TextureType GetType() const = 0;
+        [[nodiscard]] bool IsVFlipped() const;
+
+        [[nodiscard]] TextureType GetType() const;
+
+        [[nodiscard]] TextureHandle GetHandle() const { return m_Handle; }
 
         static const AssetType& GetStaticType() {
             static AssetType s_AssetType = Quelos::GetAssetType<Texture>();
             return s_AssetType;
         }
 
-        const AssetType& GetAssetType() const override { return GetStaticType(); }
+        [[nodiscard]] const AssetType& GetAssetType() const override { return GetStaticType(); }
 
-        virtual TextureHandle GetHandle() const = 0;
-    };
-
-    class QS_API Texture2D : public Texture {
-    public:
-        Texture2D(const TextureSpecification& spec, BufferView data);
-        Texture2D(const TextureHandle& handle) : m_Handle(handle) {}
-        ~Texture2D() override;
-
-        static SharedPtr<Texture2D> Create(const TextureSpecification& spec);
-        static SharedPtr<Texture2D> Create(const TextureSpecification& spec, BufferView data);
-        static SharedPtr<Texture2D> Create(const TextureSpecification& spec, const OsPath& texturePath);
-
-    public:
-        void Resize(const uint2& size) const;
-        void Resize(uint32_t width, uint32_t height) const;
-
-        static const AssetType& GetStaticType() {
-            static AssetType s_AssetType = Quelos::GetAssetType<Texture2D>();
-            return s_AssetType;
-        }
-
-        const AssetType& GetAssetType() const override { return GetStaticType(); }
-
-        TextureType GetType() const override { return TextureType::Texture2D; }
-        ImageFormat GetFormat() const override;
-        uint32_t GetWidth() const override;
-        uint32_t GetHeight() const override;
-        uint2 GetSize() const override;
-        bool IsVFlipped() const override;
-        TextureHandle GetHandle() const override { return m_Handle; }
-
-    private:
+    protected:
         TextureHandle m_Handle;
     };
 
@@ -204,7 +173,7 @@ namespace Quelos {
         /// The texture must be created with MISC_TEXTURE_FLAG_GENERATE_MIPS flag.
         AllowMipMapGeneration = 1u << 0,
 
-        TEXTURE_VIEW_FLAG_LAST = AllowMipMapGeneration
+        Last = AllowMipMapGeneration
     };
 
     struct TextureViewSpec {
@@ -215,7 +184,7 @@ namespace Quelos {
 
         /// If default value ImageFormat::None is provided,
         /// the view format will match the referenced texture format.
-        ImageFormat Format = ImageFormat::None;
+        TextureFormat Format = TextureFormat::None;
 
         union {
             /// For a texture array, first array slice to address in the view

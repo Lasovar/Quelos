@@ -351,15 +351,16 @@ namespace Quelos {
         virtual void Destroy(UniformBufferHandle uniformBufferHandle) = 0;
 
         // Texture
-        virtual TextureHandle CreateTexture(const TextureSpecification& spec) = 0;
-        virtual TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) = 0;
-        virtual TextureHandle CreateTexture(const TextureSpecification& spec, const OsPath& path) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpec& spec) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpec& spec, BufferView data) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpec& spec, const OsPath& path) = 0;
 
         virtual bool TextureIsVFlipped() = 0;
 
         virtual void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) = 0;
-        virtual const TextureSpecification* GetSpecification(TextureHandle textureHandle) = 0;
+        virtual const TextureSpec* GetSpecification(TextureHandle textureHandle) = 0;
         virtual uint64_t TextureGetNativeHandle(TextureHandle textureHandle) = 0;
+        virtual uint64_t TextureGetNativeHandle(TextureViewHandle textureHandle) = 0;
 
         virtual TextureHandle GetTexture(TextureViewHandle textureView) = 0;
 

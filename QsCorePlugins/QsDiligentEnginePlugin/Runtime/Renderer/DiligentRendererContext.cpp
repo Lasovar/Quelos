@@ -33,47 +33,49 @@ namespace Quelos {
             device->CreateFramebuffer(desc, &frameBuffer);
         }
 
-        static TEXTURE_FORMAT GetFormat(const ImageFormat imageFormat) {
+        static TEXTURE_FORMAT GetFormat(const TextureFormat imageFormat) {
             switch (imageFormat) {
-            case ImageFormat::None:
+            case TextureFormat::None:
                 return TEX_FORMAT_UNKNOWN;
-            case ImageFormat::R8UNorm:
+            case TextureFormat::R8UNorm:
                 return TEX_FORMAT_R8_UNORM;
-            case ImageFormat::R8UInt:
+            case TextureFormat::R8UInt:
                 return TEX_FORMAT_R8_UINT;
-            case ImageFormat::R16UInt:
+            case TextureFormat::R16UInt:
                 return TEX_FORMAT_R16_UINT;
-            case ImageFormat::R32UInt:
+            case TextureFormat::R32UInt:
                 return TEX_FORMAT_R32_UINT;
-            case ImageFormat::R32Float:
+            case TextureFormat::R32Float:
                 return TEX_FORMAT_R32_FLOAT;
-            case ImageFormat::RG8UNorm:
+            case TextureFormat::RG8UNorm:
                 return TEX_FORMAT_RG8_UNORM;
-            case ImageFormat::RG16Float:
+            case TextureFormat::RG16Float:
                 return TEX_FORMAT_RG16_FLOAT;
-            case ImageFormat::RG32Float:
+            case TextureFormat::RG32Float:
                 return TEX_FORMAT_RG32_FLOAT;
-            case ImageFormat::RGB:
+            case TextureFormat::RGB:
                 return TEX_FORMAT_ETC2_RGB8_UNORM;
-            case ImageFormat::RGBA8UNorm:
+            case TextureFormat::RGBA8Typeless:
+                return TEX_FORMAT_RGBA8_TYPELESS;
+            case TextureFormat::RGBA8UNorm:
                 return TEX_FORMAT_RGBA8_UNORM;
-            case ImageFormat::RGBA8SNorm:
+            case TextureFormat::RGBA8SNorm:
                 return TEX_FORMAT_RGBA8_SNORM;
-            case ImageFormat::RGBA16Float:
+            case TextureFormat::RGBA16Float:
                 return TEX_FORMAT_RGBA16_FLOAT;
-            case ImageFormat::RGBA32Float:
+            case TextureFormat::RGBA32Float:
                 return TEX_FORMAT_RGBA32_FLOAT;
-            case ImageFormat::B10R11G11Float:
+            case TextureFormat::B10R11G11Float:
                 return TEX_FORMAT_R11G11B10_FLOAT;
-            case ImageFormat::SRGB:
+            case TextureFormat::SRGB:
                 return TEX_FORMAT_BC7_UNORM_SRGB;
-            case ImageFormat::SRGBA:
+            case TextureFormat::SRGBA:
                 return TEX_FORMAT_RGBA8_UNORM_SRGB;
-            case ImageFormat::Depth32FloatStencil8UInt:
+            case TextureFormat::Depth32FloatStencil8UInt:
                 return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
-            case ImageFormat::Depth32Float:
+            case TextureFormat::Depth32Float:
                 return TEX_FORMAT_D32_FLOAT;
-            case ImageFormat::Depth24Stencil8:
+            case TextureFormat::Depth24Stencil8:
                 return TEX_FORMAT_D24_UNORM_S8_UINT;
             }
 
@@ -650,7 +652,7 @@ namespace Quelos {
         }
 
         static void CreateTexture(IRenderDevice* device, QTextureData& textureData, const TextureData* data) {
-            const TextureSpecification& spec = textureData.Specification;
+            const TextureSpec& spec = textureData.Specification;
 
             TextureDesc textureDesc;
             textureDesc.Name = spec.Name.c_str();
@@ -1371,7 +1373,7 @@ namespace Quelos {
         // TODO:
     }
 
-    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec) {
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpec& spec) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.At(handle);
         slot->Specification = spec;
@@ -1381,7 +1383,7 @@ namespace Quelos {
         return handle;
     }
 
-    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpecification& spec, const BufferView data) {
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpec& spec, const BufferView data) {
         const Handle<Texture> handle = m_TextureTable.Emplace();
         QTextureData* slot = m_TextureTable.At(handle);
         slot->Specification = spec;
@@ -1400,7 +1402,7 @@ namespace Quelos {
     }
 
     TextureHandle DiligentRendererContext::CreateTexture(
-        const TextureSpecification& spec,
+        const TextureSpec& spec,
         const std::filesystem::path& path
     ) {
         // TODO:
@@ -1420,7 +1422,7 @@ namespace Quelos {
         TextureUtil::Resize(m_pDevice, *m_TextureTable.At(textureHandle), width, height, m_TextureViewTable);
     }
 
-    const TextureSpecification* DiligentRendererContext::GetSpecification(const TextureHandle textureHandle) {
+    const TextureSpec* DiligentRendererContext::GetSpecification(const TextureHandle textureHandle) {
         const auto* data = m_TextureTable.At(textureHandle);
         if (!data) {
             return nullptr;
@@ -1432,6 +1434,11 @@ namespace Quelos {
     uint64_t DiligentRendererContext::TextureGetNativeHandle(const TextureHandle textureHandle) {
         const auto* data = m_TextureTable.At(textureHandle);
         return reinterpret_cast<uint64_t>(data->Texture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+    }
+
+    uint64_t DiligentRendererContext::TextureGetNativeHandle(const TextureViewHandle textureViewHandle) {
+        const auto* data = m_TextureViewTable.At(textureViewHandle);
+        return reinterpret_cast<uint64_t>(data->TextureView);
     }
 
     TextureHandle DiligentRendererContext::GetTexture(const TextureViewHandle textureView) {

@@ -26,7 +26,7 @@ namespace ImGui {
 	}
 
 	void Image(
-		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture>& texture,
 		const uint8_t flags,
 		const uint8_t mip,
 		const ImVec2& size,
@@ -39,7 +39,7 @@ namespace ImGui {
 	}
 
 	void Image(
-		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture>& texture,
 		const ImVec2& size,
 		const ImVec2& uv0,
 		const ImVec2& uv1,
@@ -50,7 +50,7 @@ namespace ImGui {
 	}
 
 	bool ImageButton(
-		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture>& texture,
 		const uint8_t flags,
 		const uint8_t mip,
 		const ImVec2& size,
@@ -63,7 +63,7 @@ namespace ImGui {
 	}
 
 	bool ImageButton(
-		const Quelos::SharedPtr<Quelos::Texture2D>& texture,
+		const Quelos::SharedPtr<Quelos::Texture>& texture,
 		const ImVec2& size,
 		const ImVec2& uv0,
 		const ImVec2& uv1,

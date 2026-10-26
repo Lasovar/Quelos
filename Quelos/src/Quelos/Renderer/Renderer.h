@@ -143,14 +143,15 @@ namespace Quelos {
         static void Destroy(UniformBufferHandle uniformBufferHandle);
 
         // Texture
-        static TextureHandle CreateTexture(const TextureSpecification& spec);
-        static TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data);
-        static TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path);
+        static TextureHandle CreateTexture(const TextureSpec& spec);
+        static TextureHandle CreateTexture(const TextureSpec& spec, BufferView data);
+        static TextureHandle CreateTexture(const TextureSpec& spec, const std::filesystem::path& path);
 
         static bool TextureIsVFlipped();
 
         static uint64_t TextureGetNativeHandle(TextureHandle handle);
-        static const TextureSpecification* GetSpecification(TextureHandle handle);
+        static uint64_t TextureGetNativeHandle(TextureViewHandle handle);
+        static const TextureSpec* GetSpecification(TextureHandle handle);
 
         static TextureHandle GetTexture(TextureViewHandle textureView);
 

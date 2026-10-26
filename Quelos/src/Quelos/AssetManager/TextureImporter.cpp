@@ -47,17 +47,17 @@ namespace Quelos {
         // SIZE * CHANNELS not sure if it's sufficient
         Buffer dataBuffer = Buffer::Adopt(data, width * height * channels, stbi_image_free);
 
-        TextureSpecification textureSpecs;
+        TextureSpec textureSpecs;
         textureSpecs.Width = width;
         textureSpecs.Height = height;
         textureSpecs.BindFlags = Bind::ShaderResource;
 
         switch (channels) {
         case 3:
-            textureSpecs.Format = ImageFormat::RGB;
+            textureSpecs.Format = TextureFormat::RGB;
             break;
         case 4:
-            textureSpecs.Format = ImageFormat::SRGBA;
+            textureSpecs.Format = TextureFormat::RGBA8Typeless;
             break;
         default:
             QS_CORE_ERROR_TAG(
@@ -69,7 +69,7 @@ namespace Quelos {
             return false;
         }
 
-        auto* texture = new(loadContext.GetLoadSlot()) Texture2D(textureSpecs, dataBuffer.view());
+        auto* texture = new(loadContext.GetLoadSlot()) Texture(textureSpecs, dataBuffer.view());
         texture->SetAssetID(metadata.Handle);
 
         return true;

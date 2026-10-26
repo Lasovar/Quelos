@@ -9,20 +9,26 @@
 
 namespace QuelosEditor::SidecarHandler {
     const char* GetSidecarPath(std::string_view assetPath) {
+        if (std::filesystem::is_directory(Project::GetProjectPath() / assetPath)) {
+            return FormatTemp("{}/.qmeta", assetPath);
+        }
+
         return FormatTemp("{}.qmeta", assetPath);
     }
 
     OsPath GetSidecarPath(const OsPath& assetPath) {
-        OsPath sidecarPath = assetPath;
-        sidecarPath.concat(".qmeta");
-        return sidecarPath;
+        if (std::filesystem::is_directory(Project::GetProjectPath() / assetPath)) {
+            return assetPath / ".qmeta";
+        }
+
+        return OsPath(assetPath).concat(".qmeta");
     }
 
     Optional<AssetID> ReadAssetID(const std::string_view assetTypeName, const std::string_view assetRelativePath) {
         using namespace Serialization;
-        String sidecarPath(FormatTemp("{}.qmeta", assetRelativePath), Allocator::Frame);
+        String sidecarPath(GetSidecarPath(assetRelativePath), Allocator::Frame);
 
-        if (!std::filesystem::exists(sidecarPath.view())) {
+        if (!std::filesystem::exists(Project::GetProjectPath() / sidecarPath.view())) {
             return None;
         }
 
@@ -95,7 +101,7 @@ importerVersion = 0
     ) {
         using namespace Serialization;
 
-        String sidecarPath(FormatTemp("{}.qmeta", assetRelativePath), Allocator::Frame);
+        String sidecarPath(GetSidecarPath(assetRelativePath), Allocator::Frame);
         OsPath sidecarAbsolutePath = Project::GetProjectPath() / sidecarPath.view();
 
         if (auto r = EnsureSidecarExists(assetTypeName, sidecarAbsolutePath); !r) {
@@ -174,7 +180,7 @@ importerVersion = 0
     }
 
     Expected<void, String> WriteSidecar(std::string_view assetRelativePath, const SidecarWriter& sidecarWriter) {
-        OsPath sidecarAbsolutePath = Project::GetProjectPath() / FormatTemp("{}.qmeta", assetRelativePath);
+        OsPath sidecarAbsolutePath = Project::GetProjectPath() / GetSidecarPath(assetRelativePath);
 
         const std::string_view data = sidecarWriter.GetData();
         if (!Utility::WriteFile(
@@ -189,7 +195,7 @@ importerVersion = 0
 
     Expected<SidecarReader, String> ReadSidecar(std::string_view assetTypeName, std::string_view assetRelativePath) {
         using namespace Serialization;
-        String sidecarPath(FormatTemp("{}.qmeta", assetRelativePath), Allocator::Frame);
+        String sidecarPath(GetSidecarPath(assetRelativePath), Allocator::Frame);
 
         Optional<Buffer> dataOpt = Utility::ReadFile(sidecarPath.view());
         if (!dataOpt) {

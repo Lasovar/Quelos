@@ -22,6 +22,7 @@
 #include "Quelos/Utility/String.hpp"
 
 #include "Workspaces/MaterialWorkspace/MaterialWorkspace.h"
+#include "Workspaces/TextureWorkspace/TextureWorkspace.hpp"
 
 namespace QuelosEditor {
 	static void CatppuccinTheme();
@@ -53,6 +54,11 @@ namespace QuelosEditor {
             [](UndoSystem& undoSystem, const AssetMetadata& metadata) -> UniquePtr<Workspace> {
                 return CreateUnique<MaterialWorkspace>(undoSystem, metadata);
             };
+
+    	m_WorkspaceFactories[Texture::GetStaticType()] =
+			[](UndoSystem& undoSystem, const AssetMetadata& metadata) -> UniquePtr<Workspace> {
+				return CreateUnique<TextureWorkspace>(undoSystem, metadata);
+    	};
 
         m_Themes.emplace_back("Catppuccin", CatppuccinTheme);
         m_Themes.emplace_back("Dracula", ImGuiDraculaStyle);

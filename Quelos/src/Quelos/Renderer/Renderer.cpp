@@ -343,15 +343,15 @@ namespace Quelos {
         s_RendererContext->Destroy(uniformBufferHandle);
     }
 
-    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec) {
+    TextureHandle Renderer::CreateTexture(const TextureSpec& spec) {
         return s_RendererContext->CreateTexture(spec);
     }
 
-    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const BufferView data) {
+    TextureHandle Renderer::CreateTexture(const TextureSpec& spec, const BufferView data) {
         return s_RendererContext->CreateTexture(spec, data);
     }
 
-    TextureHandle Renderer::CreateTexture(const TextureSpecification& spec, const OsPath& path) {
+    TextureHandle Renderer::CreateTexture(const TextureSpec& spec, const OsPath& path) {
         return s_RendererContext->CreateTexture(spec, path);
     }
 
@@ -367,7 +367,7 @@ namespace Quelos {
         return s_RendererContext->TextureCreateView(textureHandle, textureViewSpec);
     }
 
-    const TextureSpecification* Renderer::GetSpecification(const TextureHandle handle) {
+    const TextureSpec* Renderer::GetSpecification(const TextureHandle handle) {
         return s_RendererContext->GetSpecification(handle);
     }
 
@@ -376,6 +376,10 @@ namespace Quelos {
     }
 
     uint64_t Renderer::TextureGetNativeHandle(const TextureHandle handle) {
+        return s_RendererContext->TextureGetNativeHandle(handle);
+    }
+
+    uint64_t Renderer::TextureGetNativeHandle(const TextureViewHandle handle) {
         return s_RendererContext->TextureGetNativeHandle(handle);
     }
 

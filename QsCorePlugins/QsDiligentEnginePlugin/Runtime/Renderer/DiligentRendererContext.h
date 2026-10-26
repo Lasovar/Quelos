@@ -58,7 +58,7 @@ namespace Quelos {
 
     struct QTextureData {
         ITexture* Texture = nullptr;
-        TextureSpecification Specification;
+        TextureSpec Specification;
         Vec<Pair<TextureViewHandle, bool>> TextureViews{Allocator::Persistent}; // Handle + IsDefaultView
     };
 
@@ -249,15 +249,16 @@ namespace Quelos {
         CreateUniformBuffer(const std::string& name, UniformBufferType uniformType, uint32_t count) override;
         void SetUniformData(UniformBufferHandle uniformBufferHandle, const void* data, uint32_t count) override;
         void Destroy(UniformBufferHandle uniformBufferHandle) override;
-        TextureHandle CreateTexture(const TextureSpecification& spec) override;
-        TextureHandle CreateTexture(const TextureSpecification& spec, BufferView data) override;
-        TextureHandle CreateTexture(const TextureSpecification& spec, const std::filesystem::path& path) override;
+        TextureHandle CreateTexture(const TextureSpec& spec) override;
+        TextureHandle CreateTexture(const TextureSpec& spec, BufferView data) override;
+        TextureHandle CreateTexture(const TextureSpec& spec, const std::filesystem::path& path) override;
 
         bool TextureIsVFlipped() override;
         void TextureResize(TextureHandle textureHandle, uint32_t width, uint32_t height) override;
 
-        const TextureSpecification* GetSpecification(TextureHandle textureHandle) override;
+        const TextureSpec* GetSpecification(TextureHandle textureHandle) override;
         uint64_t TextureGetNativeHandle(TextureHandle textureHandle) override;
+        uint64_t TextureGetNativeHandle(TextureViewHandle textureViewHandle) override;
 
         TextureHandle GetTexture(TextureViewHandle textureView) override;
 

@@ -11,7 +11,7 @@ namespace Quelos {
     };
 
     struct ClearValue {
-        ImageFormat Format = ImageFormat::None;
+        TextureFormat Format = TextureFormat::None;
         Color Color;
         DepthStencilClearValue DepthStencil;
     };

@@ -42,7 +42,7 @@ namespace QuelosEditor {
     };
 
     template <>
-    struct SetMaterialProperty<SoftRef<Texture2D>> {
+    struct SetMaterialProperty<SoftRef<Texture>> {
         AssetRef<Material> MaterialAsset;
         uint64_t PropertyOffset = 0;
 
@@ -61,7 +61,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture2D>(After));
+            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture>(After));
         }
 
         void Revert() const {
@@ -69,7 +69,7 @@ namespace QuelosEditor {
                 return;
             }
 
-            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture2D>(Before));
+            MaterialAsset.Get().SetProperty(PropertyOffset, SoftRef<Texture>(Before));
         }
     };
 

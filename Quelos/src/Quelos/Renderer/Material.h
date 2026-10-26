@@ -11,7 +11,7 @@ namespace Quelos {
         float3,
         float4,
         Color,
-        SoftRef<Texture2D>
+        SoftRef<Texture>
     >;
 
     class QS_API Material : public Asset {
@@ -96,7 +96,7 @@ namespace Quelos {
             case MaterialPropertyType::Int3:
             case MaterialPropertyType::Int4:
             case MaterialPropertyType::Texture2D:
-                EnsureType<SoftRef<Texture2D>>(propertyValue);
+                EnsureType<SoftRef<Texture>>(propertyValue);
                 break;
             case MaterialPropertyType::UInt:
             case MaterialPropertyType::UInt2:

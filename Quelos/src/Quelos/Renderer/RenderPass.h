@@ -51,7 +51,7 @@ namespace Quelos {
     };
 
     struct RenderPassAttachmentSpec {
-        ImageFormat Format = ImageFormat::None;
+        TextureFormat Format = TextureFormat::None;
         uint8_t SampleCount = 1;
         AttachmentLoadOp LoadOp = AttachmentLoadOp::Load;
         AttachmentStoreOp StoreOp = AttachmentStoreOp::Store;

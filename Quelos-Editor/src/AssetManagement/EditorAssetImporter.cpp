@@ -8,7 +8,7 @@ namespace QuelosEditor {
     using namespace Quelos;
 
     static HashMap<AssetType, EditorAssetImporterConfig> s_EditorAssetLoaders{Allocator::Persistent};
-    static HashSet<AssetTypeID> s_NoSidecar{{GetAssetTypeID<Scene>()}, Allocator::Persistent};
+    static HashSet<AssetTypeID> s_NoSidecar{Allocator::Persistent};
 
     void EditorAssetImporter::RegisterAssetImporter(const EditorAssetImporterConfig& config) {
         s_EditorAssetLoaders[config.Type] = config;

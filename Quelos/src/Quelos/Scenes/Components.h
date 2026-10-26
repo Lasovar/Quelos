@@ -122,7 +122,7 @@ namespace Quelos {
     };
 
     struct QS_API SpriteRenderer {
-        AssetRef<Texture2D> Texture;
+        AssetRef<Texture> Texture;
 
         template <typename TArchive>
         static void Serialize(TArchive& archive, SpriteRenderer& data) {

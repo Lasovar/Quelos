@@ -477,7 +477,7 @@ namespace QuelosEditor {
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
 
         AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
-        RegisterType<Texture2D>();
+        RegisterType<Texture>();
     }
 
     void EditorAssetManager::Initialize() {

@@ -75,42 +75,42 @@ namespace QuelosEditor {
 
         // TODO: Editor Scene view renderer
 
-        TextureSpecification idDesc;
+        TextureSpec idDesc;
         idDesc.Name = "ActorIDBuffer";
         idDesc.Type = TextureType::Texture2D;
         idDesc.Width = 1;
         idDesc.Height = 1;
-        idDesc.Format = ImageFormat::R32UInt;
+        idDesc.Format = TextureFormat::R32UInt;
         idDesc.BindFlags = Bind::RenderTarget;
         idDesc.Usage = Usage::Default;
 
         m_IDTexture = Renderer::CreateTexture(idDesc);
 
-        TextureSpecification stagingDesc = idDesc;
+        TextureSpec stagingDesc = idDesc;
         stagingDesc.Usage = Usage::Staging;
         stagingDesc.BindFlags = Bind::None;
         stagingDesc.CpuAccessFlags = CpuAccess::Read;
         m_IDStagingTexture = Renderer::CreateTexture(stagingDesc);
 
-        TextureSpecification idDepthSpec;
+        TextureSpec idDepthSpec;
         idDepthSpec.Name = "ActorIDDepth";
         idDepthSpec.Type = TextureType::Texture2D;
         idDepthSpec.Width = 1;
         idDepthSpec.Height = 1;
-        idDepthSpec.Format = ImageFormat::Depth32Float;
+        idDepthSpec.Format = TextureFormat::Depth32Float;
         idDepthSpec.BindFlags = Bind::DepthStencil;
         idDepthSpec.Usage = Usage::Default;
         m_IDDepthTexture = Renderer::CreateTexture(idDepthSpec);
 
         RenderPassAttachmentSpec idAttachments[2];
-        idAttachments[0].Format = ImageFormat::R32UInt;
+        idAttachments[0].Format = TextureFormat::R32UInt;
         idAttachments[0].SampleCount = 1;
         idAttachments[0].LoadOp = AttachmentLoadOp::Clear;
         idAttachments[0].StoreOp = AttachmentStoreOp::Store;
         idAttachments[0].InitialState = ResourceState::RenderTarget;
         idAttachments[0].FinalState = ResourceState::CopySource;
 
-        idAttachments[1].Format = ImageFormat::Depth32Float;
+        idAttachments[1].Format = TextureFormat::Depth32Float;
         idAttachments[1].SampleCount = 1;
         idAttachments[1].LoadOp = AttachmentLoadOp::Clear;
         idAttachments[1].StoreOp = AttachmentStoreOp::Discard;
@@ -329,12 +329,12 @@ namespace QuelosEditor {
 
             if (m_SceneViewportPanel.SelectRequest().Resolve()) {
                 ClearValue idClearValues[2];
-                idClearValues[0].Format = ImageFormat::R32UInt;
+                idClearValues[0].Format = TextureFormat::R32UInt;
 
                 float clearAsFloat = 0.0f;
                 idClearValues[0].Color = {clearAsFloat};
 
-                idClearValues[1].Format = ImageFormat::Depth32Float;
+                idClearValues[1].Format = TextureFormat::Depth32Float;
                 idClearValues[1].DepthStencil.Depth = 0.0f;
 
                 BeginRenderPassAttribs attribs;
@@ -586,14 +586,14 @@ namespace QuelosEditor {
 
         // FULL MASK
         {
-            TextureSpecification fullMaskMSAASpec;
-            fullMaskMSAASpec.Format = ImageFormat::R8UNorm;
+            TextureSpec fullMaskMSAASpec;
+            fullMaskMSAASpec.Format = TextureFormat::R8UNorm;
             fullMaskMSAASpec.SampleCount = SampleCount::x4;
             fullMaskMSAASpec.BindFlags = Bind::RenderTarget;
             m_FullMaskMSAATexture = Renderer::CreateTexture(fullMaskMSAASpec);
 
-            TextureSpecification fullMaskResolvedSpec;
-            fullMaskResolvedSpec.Format = ImageFormat::R8UNorm;
+            TextureSpec fullMaskResolvedSpec;
+            fullMaskResolvedSpec.Format = TextureFormat::R8UNorm;
             fullMaskResolvedSpec.SampleCount = SampleCount::x1;
             fullMaskResolvedSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
 
@@ -605,14 +605,14 @@ namespace QuelosEditor {
 
             RenderPassAttachmentSpec fullMaskAttachments[2];
 
-            fullMaskAttachments[0].Format = ImageFormat::R8UNorm;
+            fullMaskAttachments[0].Format = TextureFormat::R8UNorm;
             fullMaskAttachments[0].SampleCount = 4;
             fullMaskAttachments[0].LoadOp = AttachmentLoadOp::Clear;
             fullMaskAttachments[0].StoreOp = AttachmentStoreOp::Store;
             fullMaskAttachments[0].InitialState = ResourceState::RenderTarget;
             fullMaskAttachments[0].FinalState = ResourceState::RenderTarget;
 
-            fullMaskAttachments[1].Format = ImageFormat::R8UNorm;
+            fullMaskAttachments[1].Format = TextureFormat::R8UNorm;
             fullMaskAttachments[1].SampleCount = 1;
             fullMaskAttachments[1].LoadOp = AttachmentLoadOp::Clear;
             fullMaskAttachments[1].StoreOp = AttachmentStoreOp::Store;
@@ -690,15 +690,15 @@ namespace QuelosEditor {
         // VISIBLE MASK
         {
             // MSAA mask
-            TextureSpecification visibleMaskSpec;
-            visibleMaskSpec.Format = ImageFormat::R8UNorm;
+            TextureSpec visibleMaskSpec;
+            visibleMaskSpec.Format = TextureFormat::R8UNorm;
             visibleMaskSpec.SampleCount = SampleCount::x4;
             visibleMaskSpec.BindFlags = Bind::RenderTarget;
             m_VisibleMaskMSAATexture = Renderer::CreateTexture(visibleMaskSpec);
 
             // Resolved 1x mask, used by composite shader
-            TextureSpecification visibleMaskResolvedSpec;
-            visibleMaskResolvedSpec.Format = ImageFormat::R8UNorm;
+            TextureSpec visibleMaskResolvedSpec;
+            visibleMaskResolvedSpec.Format = TextureFormat::R8UNorm;
             visibleMaskResolvedSpec.SampleCount = SampleCount::x1;
             visibleMaskResolvedSpec.BindFlags = Bind::RenderTarget | Bind::ShaderResource;
 
@@ -710,14 +710,14 @@ namespace QuelosEditor {
 
             RenderPassAttachmentSpec visibleMaskAttachments[3];
 
-            visibleMaskAttachments[0].Format = ImageFormat::R8UNorm;
+            visibleMaskAttachments[0].Format = TextureFormat::R8UNorm;
             visibleMaskAttachments[0].SampleCount = 4;
             visibleMaskAttachments[0].LoadOp = AttachmentLoadOp::Clear;
             visibleMaskAttachments[0].StoreOp = AttachmentStoreOp::Store;
             visibleMaskAttachments[0].InitialState = ResourceState::RenderTarget;
             visibleMaskAttachments[0].FinalState = ResourceState::RenderTarget;
 
-            visibleMaskAttachments[1].Format = ImageFormat::R8UNorm;
+            visibleMaskAttachments[1].Format = TextureFormat::R8UNorm;
             visibleMaskAttachments[1].SampleCount = 1;
             visibleMaskAttachments[1].LoadOp = AttachmentLoadOp::Clear;
             visibleMaskAttachments[1].StoreOp = AttachmentStoreOp::Store;
@@ -725,7 +725,7 @@ namespace QuelosEditor {
             visibleMaskAttachments[1].FinalState = ResourceState::ShaderResource;
 
             // SHARED scene depth, read-only, load existing values, don't clear/write
-            visibleMaskAttachments[2].Format = ImageFormat::Depth32Float;
+            visibleMaskAttachments[2].Format = TextureFormat::Depth32Float;
             visibleMaskAttachments[2].SampleCount = 4;
             visibleMaskAttachments[2].LoadOp = AttachmentLoadOp::Load;
             visibleMaskAttachments[2].StoreOp = AttachmentStoreOp::Store;
@@ -824,7 +824,7 @@ namespace QuelosEditor {
 
         // Composite Pass
         RenderPassAttachmentSpec compositeAttachment;
-        compositeAttachment.Format = ImageFormat::RGBA8UNorm;
+        compositeAttachment.Format = TextureFormat::RGBA8UNorm;
         compositeAttachment.SampleCount = 1;
         compositeAttachment.LoadOp = AttachmentLoadOp::Load; // reads+writes scene color
         compositeAttachment.StoreOp = AttachmentStoreOp::Store;
@@ -975,7 +975,7 @@ namespace QuelosEditor {
         BeginRenderPassAttribs passAttribs{};
 
         ClearValue clearValues[2];
-        clearValues[0].Format = ImageFormat::R8UNorm;
+        clearValues[0].Format = TextureFormat::R8UNorm;
         clearValues[0].Color = {0};
 
         clearValues[1] = {};

@@ -3,6 +3,8 @@
 //
 
 #pragma once
+
+#include "SidecarHandler.hpp"
 #include "Quelos/AssetManager/AssetMetadata.h"
 #include "Quelos/AssetManager/AssetRegistry.h"
 #include "Quelos/Core/Buffer.h"
@@ -40,6 +42,26 @@ namespace QuelosEditor {
         AssetID AddSubAsset(std::string_view stableName, const AssetType& type);
         AssetID AddSubAsset(std::string_view stableName, AssetID subAssetId, const AssetType& type);
 
+        template <typename T>
+        Optional<T> Settings() {
+            Optional<T> settings;
+            if (!m_SidecarReader) {
+                Expected<SidecarReader, String> r = SidecarHandler::ReadSidecar(m_Asset.Type.GetName(), m_Asset.FilePath);
+
+                if (!r) {
+                    QS_ERROR_TAGGED("Failed to read sidecar's settings: {}", r.error());
+                    return settings;
+                }
+
+                m_SidecarReader = std::move(*r);
+            }
+
+            settings.emplace();
+            m_SidecarReader->ReadSettings(*settings);
+
+            return settings;
+        }
+
     private:
         const AssetMetadata& m_Asset;
         AssetRegistry& m_Registry;
@@ -47,5 +69,6 @@ namespace QuelosEditor {
         /// Generated artifacts path relative to the `Library` directory
         Vec<String> m_Artifacts;
         Vec<AssetMetadata> m_SubAssets;
+        Optional<SidecarReader> m_SidecarReader;
     };
 }

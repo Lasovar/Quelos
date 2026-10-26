@@ -7,52 +7,54 @@ namespace Quelos {
         return Renderer::TextureGetNativeHandle(*this);
     }
 
-    Texture2D::Texture2D(const TextureSpecification& spec, const BufferView data) {
+    Texture::Texture(const TextureSpec& spec, const BufferView data) {
         m_Handle = Renderer::CreateTexture(spec, data);
     }
 
-    Texture2D::~Texture2D() {
+    Texture::~Texture() {
         Renderer::Destroy(m_Handle);
     }
 
-    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec) {
-        return CreateShared<Texture2D>(Renderer::CreateTexture(spec));
-    }
+    void Texture::Resize(const uint2& size) const {
+        QS_CORE_ASSERT(
+            Renderer::GetSpecification(m_Handle)->Type == TextureType::Texture2D,
+            "Incompatible texture type for Texture::Resize(uint2)"
+        );
 
-    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec, const BufferView data) {
-        return CreateShared<Texture2D>(Renderer::CreateTexture(spec, data));
-    }
-
-    SharedPtr<Texture2D> Texture2D::Create(const TextureSpecification& spec, const OsPath& texturePath) {
-        return CreateShared<Texture2D>(Renderer::CreateTexture(spec, texturePath));
-    }
-
-    void Texture2D::Resize(const uint2& size) const {
         Renderer::TextureResize(m_Handle, size.x, size.y);
     }
 
-    void Texture2D::Resize(const uint32_t width, const uint32_t height) const {
+    void Texture::Resize(const uint32_t width, const uint32_t height) const {
+        QS_CORE_ASSERT(
+            Renderer::GetSpecification(m_Handle)->Type == TextureType::Texture2D,
+            "Incompatible texture type for Texture::Resize(uint32_t,uint32_t)"
+        );
+
         Renderer::TextureResize(m_Handle, width, height);
     }
 
-    ImageFormat Texture2D::GetFormat() const {
+    TextureFormat Texture::GetFormat() const {
         return Renderer::GetSpecification(m_Handle)->Format;
     }
 
-    uint32_t Texture2D::GetWidth() const {
+    uint32_t Texture::GetWidth() const {
         return Renderer::GetSpecification(m_Handle)->Width;
     }
 
-    uint32_t Texture2D::GetHeight() const {
+    uint32_t Texture::GetHeight() const {
         return Renderer::GetSpecification(m_Handle)->Height;
     }
 
-    uint2 Texture2D::GetSize() const {
-        const TextureSpecification* data = Renderer::GetSpecification(m_Handle);
+    uint2 Texture::GetSize() const {
+        const TextureSpec* data = Renderer::GetSpecification(m_Handle);
         return {data->Width, data->Height};
     }
 
-    bool Texture2D::IsVFlipped() const {
+    bool Texture::IsVFlipped() const {
         return Renderer::TextureIsVFlipped();
+    }
+
+    TextureType Texture::GetType() const {
+        return Renderer::GetSpecification(m_Handle)->Type;
     }
 }
