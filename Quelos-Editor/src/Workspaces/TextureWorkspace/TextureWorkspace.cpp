@@ -71,59 +71,15 @@ namespace QuelosEditor {
 
         m_PreviewFB = Renderer::CreateFrameBuffer(frameBufferSpec);
 
-        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
-        const AssetMetadata& shaderMetadata = *assetManager->GetAssetMetadata("Assets/shaders/texture_preview.slang");
-
-        m_PreviewShader = AssetRef<GraphicsShader>(shaderMetadata.Handle);
-        GraphicsShader& shader = m_PreviewShader.Get();
-        const GraphicsShaderPass& passInfo = *shader.GetShaderPass("Preview");
-
-        GraphicsPipelineStateCreateInfo psoCI;
-        psoCI.Name = "PreviewPSO";
-        psoCI.VertexShader = passInfo.Pipelines[0].VertexShader;
-        psoCI.FragmentShader = passInfo.Pipelines[0].FragmentShader;
-        psoCI.Spec.Type = PipelineType::Graphics;
-
-        psoCI.GraphicsPipeline.RenderPass = m_PreviewRP;
-        psoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::None;
-        psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
-
-        ShaderResourceVariableSpec vars[] = {
-            { "_SourceTexture", ShaderType::Fragment, ShaderResourceVariableType::Mutable },
-        };
-
-        psoCI.Spec.ResourceLayout.Variables = vars;
-
-        SamplerSpec samplerSpec;
-        samplerSpec.WrapU = textureSpec.SamplerWrap;
-        samplerSpec.WrapV = textureSpec.SamplerWrap;
-        samplerSpec.MinFilter = textureSpec.SamplerFilter;
-        samplerSpec.MagFilter = textureSpec.SamplerFilter;
-        samplerSpec.MipFilter = textureSpec.SamplerFilter;
-
-        ImmutableSamplerSpec immutableSamplers[1];
-        immutableSamplers[0].SamplerOrTextureName = "_SourceTexture";
-        immutableSamplers[0].Specification = samplerSpec;
-        immutableSamplers[0].ShaderStages = ShaderType::Fragment;
-
-        psoCI.Spec.ResourceLayout.ImmutableSamplers = immutableSamplers;
-
-        m_PreviewPSO = Renderer::CreatePipelineState(psoCI);
-        shader.AddPipelineState(m_PreviewPSO);
-
-        m_PreviewSRB = Renderer::CreateShaderResourceBinding(m_PreviewPSO, true);
-        Renderer::BindVariableByName(
-            ShaderType::Fragment,
-            m_PreviewSRB,
-            "_SourceTexture",
-            m_TextureSRV,
-            SetShaderResourceFlag::None
-        );
-
-        m_RedrawPreview = true;
+        CreatePSO();
     }
 
     void TextureWorkspace::Tick(float) {
+        if (!Renderer::IsAlive(m_PreviewPSO)) {
+            Renderer::Destroy(m_PreviewSRB);
+            CreatePSO();
+        }
+
         if (m_NeedResize.Resolve()) {
             m_ViewportSize = m_ViewportNewSize;
 
@@ -229,11 +185,70 @@ namespace QuelosEditor {
         m_NeedResize = true;
     }
 
+    void TextureWorkspace::CreatePSO() {
+        const TextureSpec& textureSpec = m_Texture.Get().GetSpec();
+
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
+        const AssetMetadata& shaderMetadata = *assetManager->GetAssetMetadata("Assets/shaders/texture_preview.slang");
+
+        m_PreviewShader = AssetRef<GraphicsShader>(shaderMetadata.Handle);
+        GraphicsShader& shader = m_PreviewShader.Get();
+        const GraphicsShaderPass& passInfo = *shader.GetShaderPass("Preview");
+
+        GraphicsPipelineStateCreateInfo psoCI;
+        psoCI.Name = "PreviewPSO";
+        psoCI.VertexShader = passInfo.Pipelines[0].VertexShader;
+        psoCI.FragmentShader = passInfo.Pipelines[0].FragmentShader;
+        psoCI.Spec.Type = PipelineType::Graphics;
+
+        psoCI.GraphicsPipeline.RenderPass = m_PreviewRP;
+        psoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::None;
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = false;
+
+        ShaderResourceVariableSpec vars[] = {
+            { "_SourceTexture", ShaderType::Fragment, ShaderResourceVariableType::Mutable },
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec samplerSpec;
+        samplerSpec.WrapU = textureSpec.SamplerWrap;
+        samplerSpec.WrapV = textureSpec.SamplerWrap;
+        samplerSpec.MinFilter = textureSpec.SamplerFilter;
+        samplerSpec.MagFilter = textureSpec.SamplerFilter;
+        samplerSpec.MipFilter = textureSpec.SamplerFilter;
+
+        ImmutableSamplerSpec immutableSamplers[1];
+        immutableSamplers[0].SamplerOrTextureName = "_SourceTexture";
+        immutableSamplers[0].Specification = samplerSpec;
+        immutableSamplers[0].ShaderStages = ShaderType::Fragment;
+
+        psoCI.Spec.ResourceLayout.ImmutableSamplers = immutableSamplers;
+
+        m_PreviewPSO = Renderer::CreatePipelineState(psoCI);
+        shader.AddPipelineState(m_PreviewPSO);
+
+        m_PreviewSRB = Renderer::CreateShaderResourceBinding(m_PreviewPSO, true);
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            m_PreviewSRB,
+            "_SourceTexture",
+            m_TextureSRV,
+            SetShaderResourceFlag::None
+        );
+
+        m_RedrawPreview = true;
+    }
+
+    void TextureWorkspace::ReleasePSO() const {
+        Renderer::Destroy(m_PreviewSRB);
+        Renderer::Destroy(m_PreviewPSO);
+    }
+
     void TextureWorkspace::OnEvent(Event&) {}
 
     TextureWorkspace::~TextureWorkspace() {
-        Renderer::Destroy(m_PreviewSRB);
-        Renderer::Destroy(m_PreviewPSO);
+        ReleasePSO();
         Renderer::Destroy(m_PreviewFB);
         Renderer::Destroy(m_PreviewRP);
         Renderer::Destroy(m_PreviewTexture);

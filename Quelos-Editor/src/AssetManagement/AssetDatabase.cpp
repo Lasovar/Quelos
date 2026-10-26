@@ -313,6 +313,43 @@ ON CONFLICT (AssetID) DO UPDATE SET
         return m_Database.Execute("COMMIT;");
     }
 
+    Expected<Optional<SourceRecord>, String> AssetDatabase::LoadSourceRecord(const AssetID& assetId, std::pmr::memory_resource* memoryResource) const {
+        auto query = m_Database.CreateStatement(R"(
+        SELECT AssetTypeName, SourceSize, SourceModTime, SourceHash, ImporterVersion, MetaSize, MetaModTime, MetaHash
+        FROM Assets
+        WHERE AssetID IS ?;)"
+        );
+
+        if (!query) {
+            return Unexpected(std::move(query).error());
+        }
+
+        if (auto r = query->BindAll(assetId); !r) {
+            return Unexpected(String(FormatTemp("Failed to bind asset id: {}", r.error()), Allocator::Persistent));
+        }
+
+        auto row = query->Step();
+        if (!row) {
+            return Unexpected(std::move(row).error());
+        }
+
+        if (!*row) {
+            return None;
+        }
+
+        return Optional(SourceRecord {
+            .ID = assetId,
+            .TypeName = query->GetText(0, memoryResource).value_or(String{}),
+            .Size = query->GetOptionalInt(1),
+            .ModTime = query->GetOptionalInt(2),
+            .Hash = query->GetHash(3),
+            .ImporterVersion = query->GetOptionalInt(4),
+            .MetaSize = query->GetOptionalInt(5),
+            .MetaModTime = query->GetOptionalInt(6),
+            .MetaHash = query->GetHash(7),
+        });
+    }
+
     Expected<HashMap<String, SourceRecord>, String> AssetDatabase::LoadSourceRecords(
         std::pmr::memory_resource* memoryResource
     ) const {

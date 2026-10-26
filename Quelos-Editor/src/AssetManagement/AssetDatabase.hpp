@@ -81,6 +81,8 @@ namespace QuelosEditor {
         [[nodiscard]] Expected<void, String> CommitImport(const ImportResult& record) const;
         [[nodiscard]] Expected<void, String> MoveAsset(const AssetID& id, std::string_view oldPath, std::string_view newPath) const;
 
+
+        [[nodiscard]] Expected<Optional<SourceRecord>, String> LoadSourceRecord(const AssetID& assetId, std::pmr::memory_resource* memoryResource) const;
         [[nodiscard]] Expected<HashMap<String, SourceRecord>, String> LoadSourceRecords(std::pmr::memory_resource* memoryResource) const;
         [[nodiscard]] Expected<Vec<AssetMetadata>, String> LoadAssets(std::pmr::memory_resource* memoryResource) const;
         [[nodiscard]] Expected<Vec<Pair<AssetID, String>>, String> LoadAllArtifacts(std::pmr::memory_resource* memoryResource) const;

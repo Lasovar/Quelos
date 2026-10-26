@@ -172,6 +172,134 @@ namespace QuelosEditor {
         return None;
     }
 
+    struct DirectoryEntryStamp {
+        String RelativePath;
+        int64_t Size = 0;
+        int64_t ModTime = 0;
+    };
+
+    static Vec<DirectoryEntryStamp> ListDirectory(const OsPath& dir, const Allocator allocator) {
+        Vec<DirectoryEntryStamp> entries(allocator);
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(dir, ec);
+             it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+            if (ec) {
+                ec.clear();
+                continue;
+            }
+
+            if (!it->is_regular_file(ec) || ec) {
+                ec.clear();
+                continue;
+            }
+
+            // TODO: if (IsIgnoredFile(it->path())) continue;   // sidecars, editor temp/swap files, .DS_Store
+
+            const int64_t size = static_cast<int64_t>(it->file_size(ec));
+            const int64_t modTime = it->last_write_time(ec).time_since_epoch().count();
+            if (ec) {
+                ec.clear();
+                continue;
+            }
+
+            entries.emplace_back(
+                String(it->path().lexically_relative(dir).generic_string(), allocator),
+                size,
+                modTime
+            );
+        }
+
+        // Directory iteration order is unspecified; sorting makes the hash deterministic
+        std::ranges::sort(entries, {}, &DirectoryEntryStamp::RelativePath);
+        return entries;
+    }
+
+    static uint64_t HashListing(const Span<const DirectoryEntryStamp> entries) {
+        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
+        XXH3_64bits_reset(state.get());
+
+        for (const auto& e : entries) {
+            XXH3_64bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
+            XXH3_64bits_update(state.get(), &e.Size, sizeof(e.Size));
+            XXH3_64bits_update(state.get(), &e.ModTime, sizeof(e.ModTime));
+        }
+
+        return XXH3_64bits_digest(state.get());
+    }
+
+    static Optional<Hash128> HashDirectoryContents(const OsPath& dir, const Span<const DirectoryEntryStamp> entries) {
+        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
+        XXH3_128bits_reset(state.get());
+        for (const auto& e : entries) {
+            XXH3_128bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
+            auto fileHash = Hash::File((dir / e.RelativePath.view()).generic_string());
+            if (!fileHash) return {};                 // vanished or locked mid-hash
+            XXH3_128bits_update(state.get(), &*fileHash, sizeof(*fileHash));
+        }
+
+        XXH128_canonical_t canonical;
+        XXH128_canonicalFromHash(&canonical, XXH3_128bits_digest(state.get()));
+
+        Hash128 result;
+        static_assert(sizeof(result) == sizeof(canonical));
+        std::memcpy(&result, &canonical, sizeof(result));
+
+        return { result };
+    }
+
+    static Optional<SidecarStamp> StatSidecar(const OsPath& assetPath) {
+        const OsPath metaPath = SidecarHandler::GetSidecarPath(assetPath);
+        std::error_code ec;
+        const auto size = std::filesystem::file_size(metaPath, ec);
+        if (ec) {
+            return None;
+        }
+
+        const auto time = std::filesystem::last_write_time(metaPath, ec);
+        if (ec) {
+            return None;
+        }
+
+        return SidecarStamp{
+            .Size = static_cast<int64_t>(size),
+            .ModTime = time.time_since_epoch().count(),
+        };
+    }
+
+    static Optional<ScannedSource> StatSource(
+        const OsPath& absolute,
+        const std::string_view relativePath,
+        const bool usesSidecar,
+        const AllocatorType allocator
+    ) {
+        ScannedSource src{ .Path = String(relativePath, allocator) };
+
+        if (std::error_code ec; std::filesystem::is_directory(absolute, ec)) {
+            const auto listing = ListDirectory(absolute, Allocator::Frame);
+            src.ModTime = static_cast<int64_t>(HashListing(listing));
+            for (const auto& entry : listing) {
+                src.Size += entry.Size;
+            }
+        }
+        else {
+            src.Size = static_cast<int64_t>(std::filesystem::file_size(absolute, ec));
+            if (ec) {
+                return None;
+            }
+
+            src.ModTime = std::filesystem::last_write_time(absolute, ec).time_since_epoch().count();
+            if (ec) {
+                return None;
+            }
+        }
+
+        if (usesSidecar) {
+            src.Meta = StatSidecar(absolute);
+        }
+
+        return src;
+    }
+
     void EditorAssetManager::FlushReimportQueue() {
         if (m_ReimportQueue.empty()) [[likely]] {
             return;
@@ -200,10 +328,55 @@ namespace QuelosEditor {
             return;
         }
 
+        HashSet<AssetID> checked(Allocator::Frame); // an asset can get several events per batch (source + .qmeta)
         HashSet<AssetID> changed(Allocator::Frame);
+        Vec<SourceStamp> stampUpdates(Allocator::Frame);
+
         for (const std::string& path : m_ProcessingPaths) {
-            if (const Optional<AssetID> owner = ResolveOwningAsset(path)) {
+            const Optional<AssetID> owner = ResolveOwningAsset(path);
+            if (!owner || !checked.insert(*owner).second) {
+                continue;
+            }
+
+            const AssetMetadata* meta = GetAssetMetadata(*owner);
+            const OsPath absolute = Project::GetProjectPath() / std::string_view(meta->FilePath);
+            const Optional<ScannedSource> src =
+                StatSource(absolute, meta->FilePath, EditorAssetImporter::IsUsingSidecar(meta->Type), Allocator::Frame);
+            if (!src) {
+                continue;   // gone or locked mid-save; a later event or the refresh handles it
+            }
+
+            const auto record = m_Database.LoadSourceRecord(*owner, GetAllocator(Allocator::Frame));
+            if (!record || !*record) {
+                if (!record) {
+                    QS_ERROR_TAGGED("Failed to load source record: {}", record.error());
+                }
+
+                changed.insert(*owner);   // never imported, or unreadable: import to be safe
+                continue;
+            }
+
+            switch (CheckSource(**record, *src)) {
+            case SourceCheck::Unchanged:
+                break;
+            case SourceCheck::StampOnly:
+                stampUpdates.emplace_back(
+                    *owner,
+                    src->Size,
+                    src->ModTime,
+                    src->Meta ? Optional(src->Meta->Size) : None,
+                    src->Meta ? Optional(src->Meta->ModTime) : None
+                );
+                break;
+            case SourceCheck::NeedsReimport:
                 changed.insert(*owner);
+                break;
+            }
+        }
+
+        if (!stampUpdates.empty()) {
+            if (auto r = m_Database.UpdateSourceStamps(stampUpdates); !r) {
+                QS_WARN_TAGGED("Failed to update source stamps: {}", r.error());
             }
         }
 
@@ -703,81 +876,6 @@ namespace QuelosEditor {
         }
     }
 
-    struct DirectoryEntryStamp {
-        String RelativePath;
-        int64_t Size = 0;
-        int64_t ModTime = 0;
-    };
-
-    static Vec<DirectoryEntryStamp> ListDirectory(const OsPath& dir, const Allocator allocator) {
-        Vec<DirectoryEntryStamp> entries(allocator);
-        std::error_code ec;
-        for (auto it = std::filesystem::recursive_directory_iterator(dir, ec);
-             it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
-            if (ec) {
-                ec.clear();
-                continue;
-            }
-
-            if (!it->is_regular_file(ec) || ec) {
-                ec.clear();
-                continue;
-            }
-
-            // TODO: if (IsIgnoredFile(it->path())) continue;   // sidecars, editor temp/swap files, .DS_Store
-
-            const int64_t size = static_cast<int64_t>(it->file_size(ec));
-            const int64_t modTime = it->last_write_time(ec).time_since_epoch().count();
-            if (ec) {
-                ec.clear();
-                continue;
-            }
-
-            entries.emplace_back(
-                String(it->path().lexically_relative(dir).generic_string(), allocator),
-                size,
-                modTime
-            );
-        }
-
-        // Directory iteration order is unspecified; sorting makes the hash deterministic
-        std::ranges::sort(entries, {}, &DirectoryEntryStamp::RelativePath);
-        return entries;
-    }
-
-    static uint64_t HashListing(const Span<const DirectoryEntryStamp> entries) {
-        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
-        XXH3_64bits_reset(state.get());
-
-        for (const auto& e : entries) {
-            XXH3_64bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
-            XXH3_64bits_update(state.get(), &e.Size, sizeof(e.Size));
-            XXH3_64bits_update(state.get(), &e.ModTime, sizeof(e.ModTime));
-        }
-
-        return XXH3_64bits_digest(state.get());
-    }
-
-    static Optional<Hash128> HashDirectoryContents(const OsPath& dir, const Span<const DirectoryEntryStamp> entries) {
-        const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
-        XXH3_128bits_reset(state.get());
-        for (const auto& e : entries) {
-            XXH3_128bits_update(state.get(), e.RelativePath.data(), e.RelativePath.size() + 1);
-            auto fileHash = Hash::File((dir / e.RelativePath.view()).generic_string());
-            if (!fileHash) return {};                 // vanished or locked mid-hash
-            XXH3_128bits_update(state.get(), &*fileHash, sizeof(*fileHash));
-        }
-
-        XXH128_canonical_t canonical;
-        XXH128_canonicalFromHash(&canonical, XXH3_128bits_digest(state.get()));
-
-        Hash128 result;
-        static_assert(sizeof(result) == sizeof(canonical));
-        std::memcpy(&result, &canonical, sizeof(result));
-
-        return { result };
-    }
-
     void EditorAssetManager::ReimportWithDependents(const HashSet<AssetID>& changed) {
         static constexpr auto Tag = QS_FUNCTION_TAG;
 
@@ -785,7 +883,7 @@ namespace QuelosEditor {
             return;
         }
 
-        static auto GetRootAsset = [&](const AssetID id) -> AssetID {
+        auto GetRootAsset = [&](const AssetID id) -> AssetID {
             auto* metadata = GetAssetMetadata(id);
             if (!metadata) {
                 return {};
@@ -858,7 +956,7 @@ namespace QuelosEditor {
 
                 AssetID target = GetRootAsset(assetId);
 
-                if (assetId == target) {
+                if (target == id) {
                     continue;
                 }
 
@@ -883,10 +981,6 @@ namespace QuelosEditor {
             );
         }
 
-        for (const auto idIndex : sorted.Order) {
-            Reimport(graph.Nodes[idIndex]);
-        }
-
         static constexpr auto DependentsOf = [](const DependencyGraph& graph, uint32_t node) -> Span<const uint32_t> {
             const uint32_t begin = graph.Offsets[node];
             const uint32_t end   = graph.Offsets[node + 1];
@@ -907,25 +1001,6 @@ namespace QuelosEditor {
                 failed[d] = true;
             }
         }
-    }
-
-    static Optional<SidecarStamp> StatSidecar(const OsPath& assetPath) {
-        const OsPath metaPath = SidecarHandler::GetSidecarPath(assetPath);
-        std::error_code ec;
-        const auto size = std::filesystem::file_size(metaPath, ec);
-        if (ec) {
-            return None;
-        }
-
-        const auto time = std::filesystem::last_write_time(metaPath, ec);
-        if (ec) {
-            return None;
-        }
-
-        return SidecarStamp{
-            .Size = static_cast<int64_t>(size),
-            .ModTime = time.time_since_epoch().count(),
-        };
     }
 
     void EditorAssetManager::RefreshAssetDatabase() {
@@ -1209,6 +1284,7 @@ namespace QuelosEditor {
 
             if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
                 pool.ReleaseAt(pool.Data, assetHandle);
+                QS_TRACE_TAGGED("Asset (id: {}, path: {}) reloaded", assetId.ToFormattedString(), metadata->FilePath);
                 return Import(pool, assetHandle, *metadata);
             }
         }
@@ -1301,8 +1377,16 @@ namespace QuelosEditor {
             return false;
         }
 
-        Optional<int64_t> sidecarSize = 0;
-        Optional<int64_t> sidecarModTime = 0;
+        ImportContext ctx(*meta, m_AssetRegistry, GetAllocator(Allocator::Frame));
+        if (!EditorAssetImporter::Import(ctx)) {
+            QS_ERROR_TAG("EditorAssetManager::Reimport", "Import failed for '{}'", meta->FilePath);
+            DeleteArtifacts(ctx.GetArtifacts());
+
+            return false;
+        }
+
+        Optional<int64_t> sidecarSize = None;
+        Optional<int64_t> sidecarModTime = None;
         Optional<Hash128> sidecarHash;
 
         if (EditorAssetImporter::IsUsingSidecar(meta->Type)) {
@@ -1321,14 +1405,6 @@ namespace QuelosEditor {
             }
 
             sidecarHash = Hash::File(sidecarPath.generic_string());
-        }
-
-        ImportContext ctx(*meta, m_AssetRegistry, GetAllocator(Allocator::Frame));
-        if (!EditorAssetImporter::Import(ctx)) {
-            QS_ERROR_TAG("EditorAssetManager::Reimport", "Import failed for '{}'", meta->FilePath);
-            DeleteArtifacts(ctx.GetArtifacts());
-
-            return false;
         }
 
         // Artifacts from the previous import that this one didn't produce
@@ -1365,6 +1441,8 @@ namespace QuelosEditor {
         }
 
         SyncSubAssetsToRegistry(assetId, ctx.GetSubAssets());
+
+        QS_TRACE_TAGGED("Asset (id: {}, path: {}) reimported", assetId.ToFormattedString(), meta->FilePath);
 
         // Hot reload loaded asset
         if (m_LoadedAssets.contains(assetId)) {

@@ -20,6 +20,8 @@ namespace QuelosEditor {
 
     private:
         void QueueResize(float width, float height);
+        void CreatePSO();
+        void ReleasePSO() const;
     private:
         AssetRef<GraphicsShader> m_PreviewShader;
         float m_TextureAspectRatio = 0.0f;

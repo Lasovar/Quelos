@@ -1092,12 +1092,13 @@ namespace Quelos {
     ShaderResourceBindingHandle DiligentRendererContext::CreateShaderResourceBinding(
         PipelineStateHandle pipelineStateHandle, bool initStaticResources
     ) {
-        Handle<ShaderResourceBinding> handle = m_ShaderResourceBindingTable.Emplace();
+        const Handle<ShaderResourceBinding> handle = m_ShaderResourceBindingTable.Emplace();
         IShaderResourceBinding** slot = m_ShaderResourceBindingTable.At(handle);
 
         QS_CORE_ASSERT(slot);
 
-        IPipelineState* pipelineState = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
+        const PipelineStateData* pipelineStateData = m_PipelineStateTable.At(pipelineStateHandle);
+        IPipelineState* pipelineState = pipelineStateData->PSO;
         pipelineState->CreateShaderResourceBinding(slot, initStaticResources);
 
         return handle;
@@ -1273,7 +1274,7 @@ namespace Quelos {
         if (!slot) [[unlikely]] {
             QS_CORE_ERROR_TAG(
                 "DiligentRendererContext",
-                "Failed to find shader resource binding in slot ({},{})",
+                "[Destroy(ShaderResourceBindingHandle)] Failed to find shader resource binding in slot ({},{})",
                 shaderResourceBindingHandle.Index(),
                 shaderResourceBindingHandle.Generation()
             );
