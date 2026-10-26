@@ -109,6 +109,7 @@ namespace QuelosEditor {
         psoCI.Spec.ResourceLayout.ImmutableSamplers = immutableSamplers;
 
         m_PreviewPSO = Renderer::CreatePipelineState(psoCI);
+        shader.AddPipelineState(m_PreviewPSO);
 
         m_PreviewSRB = Renderer::CreateShaderResourceBinding(m_PreviewPSO, true);
         Renderer::BindVariableByName(
