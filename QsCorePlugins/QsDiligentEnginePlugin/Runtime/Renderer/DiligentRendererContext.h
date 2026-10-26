@@ -281,6 +281,7 @@ namespace Quelos {
         void Bind(TextureHandle textureHandle) override;
 
         void Destroy(TextureHandle textureHandle) override;
+        void Destroy(TextureViewHandle textureViewHandle) override;
 
         // Render Pass
         RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec) override;

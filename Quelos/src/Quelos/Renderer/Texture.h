@@ -103,6 +103,7 @@ namespace Quelos {
         [[nodiscard]] TextureType GetType() const;
 
         [[nodiscard]] TextureHandle GetHandle() const { return m_Handle; }
+        [[nodiscard]] const TextureSpec& GetSpec() const;
 
         static const AssetType& GetStaticType() {
             static AssetType s_AssetType = Quelos::GetAssetType<Texture>();

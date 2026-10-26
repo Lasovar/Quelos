@@ -386,6 +386,7 @@ namespace Quelos {
 
         virtual void Bind(TextureHandle textureHandle) = 0;
         virtual void Destroy(TextureHandle textureHandle) = 0;
+        virtual void Destroy(TextureViewHandle fenceHandle) = 0;
 
         // Render Pass
         virtual RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec) = 0;

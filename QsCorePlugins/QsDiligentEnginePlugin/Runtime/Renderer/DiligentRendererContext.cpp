@@ -1577,6 +1577,38 @@ namespace Quelos {
         m_TextureTable.Erase(textureHandle);
     }
 
+    void DiligentRendererContext::Destroy(const TextureViewHandle textureViewHandle) {
+        const TextureViewData* slot = m_TextureViewTable.At(textureViewHandle);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Destroy(TextureViewHandle) Failed to get texture view at handle ({},{})",
+                textureViewHandle.Index(), textureViewHandle.Generation()
+            );
+
+            return;
+        }
+
+        QTextureData* textureData = m_TextureTable.At(slot->Texture);
+        if (!slot) [[unlikely]] {
+            QS_CORE_ERROR_TAG(
+                "DiligentRendererContext",
+                "Destroy(TextureViewHandle) Failed to get texture at handle ({},{})",
+                slot->Texture.Index(), slot->Texture.Generation()
+            );
+
+            return;
+        }
+
+        erase_if(textureData->TextureViews, [textureViewHandle](const auto& t) {
+            return t.first == textureViewHandle;
+        });
+
+        slot->TextureView->Release();
+
+        m_TextureViewTable.Erase(textureViewHandle);
+    }
+
     RenderPassHandle DiligentRendererContext::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
         const Handle<RenderPass> handle = m_RenderPassTable.Emplace();
         RenderPassData* slot = m_RenderPassTable.At(handle);

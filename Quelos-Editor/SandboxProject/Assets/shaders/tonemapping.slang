@@ -45,9 +45,6 @@ float3 PBRNeutral(float3 color) {
 }
 
 // c already saturated, so no pow() on negatives
-float3 LinearToSRGB(float3 c) {
-    return select(c <= 0.0031308, c * 12.92, 1.055 * pow(c, 1.0 / 2.4) - 0.055);
-}
 
 [SceneColor] Texture2D<float4> _SceneColor;
 

@@ -54,10 +54,10 @@ namespace Quelos {
 
         switch (channels) {
         case 3:
-            textureSpecs.Format = TextureFormat::RGB;
+            textureSpecs.Format = TextureFormat::SRGB;
             break;
         case 4:
-            textureSpecs.Format = TextureFormat::RGBA8Typeless;
+            textureSpecs.Format = TextureFormat::SRGBA;
             break;
         default:
             QS_CORE_ERROR_TAG(

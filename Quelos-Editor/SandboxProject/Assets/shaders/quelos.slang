@@ -100,3 +100,7 @@ static const uint k_MaxSamplers = 4;
 
 __extern_cpp Texture2D g_Textures[k_MaxTextures];
 __extern_cpp SamplerState g_Textures_sampler;
+
+float3 LinearToSRGB(float3 c) {
+    return select(c <= 0.0031308, c * 12.92, 1.055 * pow(c, 1.0 / 2.4) - 0.055);
+}

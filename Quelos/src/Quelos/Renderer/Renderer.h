@@ -179,6 +179,7 @@ namespace Quelos {
 
         static void Bind(TextureHandle textureHandle);
         static void Destroy(TextureHandle textureHandle);
+        static void Destroy(TextureViewHandle textureViewHandle);
 
         // Render Pass
         static RenderPassHandle CreateRenderPass(const RenderPassSpec& renderPassSpec);

@@ -418,6 +418,10 @@ namespace Quelos {
         s_RendererContext->Destroy(textureHandle);
     }
 
+    void Renderer::Destroy(const TextureViewHandle textureViewHandle) {
+        s_RendererContext->Destroy(textureViewHandle);
+    }
+
     RenderPassHandle Renderer::CreateRenderPass(const RenderPassSpec& renderPassSpec) {
         return s_RendererContext->CreateRenderPass(renderPassSpec);
     }

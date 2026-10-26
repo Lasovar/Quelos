@@ -57,4 +57,8 @@ namespace Quelos {
     TextureType Texture::GetType() const {
         return Renderer::GetSpecification(m_Handle)->Type;
     }
+
+    const TextureSpec& Texture::GetSpec() const {
+        return *Renderer::GetSpecification(m_Handle);
+    }
 }
