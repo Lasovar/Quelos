@@ -8,6 +8,7 @@
 #include "Quelos/Utility/FileSystem.h"
 
 #include "imgui_internal.h"
+#include "Quelos/ImGui/imgui_zoomable_image.h"
 #include "AssetManagement/EditorAssetManager.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -43,7 +44,7 @@ namespace QuelosEditor {
 
         RenderPassAttachmentSpec attachmentSpec;
         attachmentSpec.Format = TextureFormat::RGBA8UNorm;
-        attachmentSpec.LoadOp = AttachmentLoadOp::Clear;
+        attachmentSpec.LoadOp = AttachmentLoadOp::Discard;
         attachmentSpec.StoreOp = AttachmentStoreOp::Store;
         attachmentSpec.SampleCount = 1;
         attachmentSpec.InitialState = ResourceState::RenderTarget;
@@ -83,6 +84,7 @@ namespace QuelosEditor {
         if (m_NeedResize.Resolve()) {
             m_ViewportSize = m_ViewportNewSize;
 
+            /*
             Renderer::TextureResize(m_PreviewTexture, m_ViewportSize.x, m_ViewportSize.y);
             Renderer::FrameBufferResize(m_PreviewFB, m_ViewportSize.x, m_ViewportSize.y);
 
@@ -96,6 +98,7 @@ namespace QuelosEditor {
                 m_TextureSRV,
                 SetShaderResourceFlag::None
             );
+            */
 
             m_RedrawPreview = true;
         }
@@ -104,11 +107,6 @@ namespace QuelosEditor {
             BeginRenderPassAttribs attribs;
             attribs.RenderPassHandle = m_PreviewRP;
             attribs.FrameBufferHandle = m_PreviewFB;
-            ClearValue clearValue[1] = {
-                { .Format = TextureFormat::RGBA8UNorm, .Color = Color::Red() }
-            };
-
-            attribs.ClearColors = clearValue;
 
             Renderer::BindPipelineState(m_PreviewPSO);
             Renderer::CommitShaderResources(m_PreviewSRB, ResourceStateTransitionMode::Transition);
@@ -130,7 +128,6 @@ namespace QuelosEditor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
         if (UI::Begin("Preview", m_WorkspaceID, m_WorkspaceClass, nullptr, flags) && m_Texture) {
             float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
 
             const ImVec2 regionOffset = ImGui::GetCursorPos(); // includes tab bar
             const ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -156,20 +153,20 @@ namespace QuelosEditor {
                     QueueResize(fitted.x, fitted.y);
                 }
 
-                ImGui::SetCursorPos(centered);
-                ImGui::Image(
+                static ImGuiImage::State state{ .maintainAspectRatio = true };
+                float2 size = m_Texture.Get().GetSize();
+                ImGuiImage::Zoomable(
                     m_PreviewTexture.GetNativeHandle(),
-                    {m_ViewportSize.x, m_ViewportSize.y},
+                    {size.x, size.y},
                     {uv.x, uv.y},
-                    {uv.z, uv.w}
+                    {uv.z, uv.w},
+                    &state
                 );
 
                 const ImVec2 winPos = ImGui::GetWindowPos();
                 m_ViewportBounds[0] = {winPos.x + centered.x, winPos.y + centered.y};
                 m_ViewportBounds[1] = {m_ViewportBounds[0].x + fitted.x, m_ViewportBounds[0].y + fitted.y};
             }
-
-            ImGui::PopStyleVar();
         }
         UI::End();
 
