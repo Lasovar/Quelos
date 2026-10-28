@@ -43,7 +43,7 @@ namespace QuelosEditor {
         bool IsUsingSidecar(AssetTypeID assetTypeId);
         bool IsAssetSupported(std::string_view path);
         const AssetType& GetAssetType(std::string_view path);
-        bool LoadAsset(const LoadContext& loadContext);
+        bool LoadAsset(LoadContext& loadContext);
         
         // Editor-only metadata handling
         AssetID ReadAssetHandle(std::string_view assetPath);

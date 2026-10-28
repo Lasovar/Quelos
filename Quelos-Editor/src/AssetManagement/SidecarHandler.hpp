@@ -6,6 +6,7 @@
 
 #include "Quelos/AssetManager/Asset.h"
 #include "Quelos/Utility/Optional.hpp"
+#include "Quelos/Utility/Expected.hpp"
 #include "Quelos/Serialization/QuelArchive.h"
 
 namespace QuelosEditor {
@@ -18,12 +19,12 @@ namespace QuelosEditor {
         {
             m_Writer.Write(Serialization::SectionEvent{ assetTypeName });
             m_Writer.CloseSection();
-            m_Writer.WriteField("assetId", assetId.ToFormattedString());
+            m_Writer.WriteField("assetId", Serialization::UnquotedString { assetId.ToFormattedString() } );
             m_Writer.WriteField("importerVersion", importerVersion);
         }
 
         template <SerializableWith<Serialization::QuelWriteArchive> T>
-        void StoreSettings(const T& t) {
+        void StoreSettings(T& t) {
             m_Writer.Write(Serialization::SectionEvent { "Settings" });
             m_Writer.CloseSection();
 
@@ -58,6 +59,8 @@ namespace QuelosEditor {
             T::Serialize(m_Archive, t);
         }
 
+        [[nodiscard]] Serialization::QuelAutoReadArchive& GetReadArchive() { return m_Archive; }
+
     private:
         uint32_t m_ImporterVersion = 0;
         AssetID m_AssetId;
@@ -76,5 +79,19 @@ namespace QuelosEditor {
 
         Expected<void, String> WriteSidecar(std::string_view assetRelativePath, const SidecarWriter& sidecarWriter);
         Expected<SidecarReader, String> ReadSidecar(std::string_view assetTypeName, std::string_view assetRelativePath);
+
+        template <typename T>
+        Expected<void, String> WriteSettings(const std::string_view assetTypeName, const std::string_view assetRelativePath, T& settings) {
+            auto sidecarReaderResult = ReadSidecar(assetTypeName, assetRelativePath);
+            if (!sidecarReaderResult) {
+                return std::move(sidecarReaderResult).transform([](auto&&) {});
+            }
+
+            const auto& sidecarReader = *sidecarReaderResult;
+            SidecarWriter writer(assetTypeName, sidecarReader.GetAssetID(), sidecarReader.GetImporterVersion());
+            writer.StoreSettings(settings);
+
+            return WriteSidecar(assetRelativePath, writer);
+        }
     }
 }

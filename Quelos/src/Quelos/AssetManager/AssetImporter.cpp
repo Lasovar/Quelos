@@ -24,7 +24,7 @@ namespace Quelos {
         return it->second.Type;
     }
 
-    bool AssetImporter::LoadAsset(const LoadContext& loadContext) {
+    bool AssetImporter::LoadAsset(LoadContext& loadContext) {
         QS_PROFILE_SCOPED_N("AssetImporter::ImportAsset");
 
         const auto it = s_AssetLoaders.find(loadContext.GetAssetMetadata().Type);

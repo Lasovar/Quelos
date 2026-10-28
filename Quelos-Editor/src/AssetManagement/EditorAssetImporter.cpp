@@ -53,7 +53,7 @@ namespace QuelosEditor {
         return AssetImporter::GetAssetType(path);
     }
 
-    bool EditorAssetImporter::LoadAsset(const LoadContext& loadContext) {
+    bool EditorAssetImporter::LoadAsset(LoadContext& loadContext) {
         const auto it = s_EditorAssetLoaders.find(loadContext.GetAssetMetadata().Type);
         if (it == s_EditorAssetLoaders.end()) {
             return AssetImporter::LoadAsset(loadContext);

@@ -1,3 +1,8 @@
 [Quelos.Texture]
 assetId = a3898c4b-5f88-4faf-8797-5bdc05d1aaa3
 importerVersion = 0
+
+[Settings]
+filter = Linear
+wrap = Border
+compression = Normal

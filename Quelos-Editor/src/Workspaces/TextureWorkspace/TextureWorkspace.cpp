@@ -17,8 +17,9 @@ using namespace magic_enum::bitwise_operators;
 namespace QuelosEditor {
     TextureWorkspace::TextureWorkspace(UndoSystem& undoSystem, const AssetMetadata& metadata)
         : Workspace(std::string(FS::Filename(metadata.FilePath)), undoSystem),
+          m_Asset(metadata),
           m_Texture(metadata.Handle),
-          m_PropertiesPanel(undoSystem, m_Texture)
+          m_PropertiesPanel(undoSystem, m_Asset, m_Texture)
     {
         m_WorkspaceNameHash = metadata.Handle.ToString(Allocator::Persistent);
         m_WorkspaceID = ImHashStr(FormatTemp("{}_TextureDockspace", m_WorkspaceName));

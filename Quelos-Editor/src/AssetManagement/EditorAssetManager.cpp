@@ -324,6 +324,9 @@ namespace QuelosEditor {
         }
 
         if (fullRefresh) {
+            // TODO: Might be worth thinking about a more optimized version
+            // Instead of refreshing the whole asset tree
+            // Like tracking the moved/deleted/added files only, through file watcher events
             RefreshAssetDatabase();   // covers the modified files too
             return;
         }
@@ -407,7 +410,29 @@ namespace QuelosEditor {
             return false;
         }
 
-        if (!EditorAssetImporter::LoadAsset(LoadContext(metadata, slotData))) {
+
+        Optional<SidecarReader> sidecarReader;
+        if (EditorAssetImporter::IsUsingSidecar(metadata.Type)) {
+            auto sidecarResult= SidecarHandler::ReadSidecar(
+                metadata.Type.GetName(),
+                metadata.FilePath
+            );
+
+            if (sidecarResult) {
+                sidecarReader = std::move(*sidecarResult);
+            } else {
+                QS_ERROR_TAGGED(
+                    "Failed to read sidecar for asset '{}': {}",
+                    metadata.FilePath, sidecarResult.error()
+                );
+            }
+        }
+
+        LoadContext loadContext = sidecarReader
+                                      ? LoadContext(metadata, sidecarReader->GetReadArchive(), slotData)
+                                      : LoadContext(metadata, slotData);
+
+        if (!EditorAssetImporter::LoadAsset(loadContext)) {
             QS_CORE_ERROR_TAG(
                 "EditorAssetManager::Acquire",
                 "Failed to load asset with handle {}, path: '{}'",
@@ -1222,8 +1247,8 @@ namespace QuelosEditor {
             if (rec.MetaModTime != meta.ModTime || rec.MetaSize != meta.Size) {
                 absolutePath = Project::GetProjectPath() / src.Path.view();
 
-                const auto hashResult = Hash::File(absolutePath->generic_string());
-                if (hashResult != rec.Hash) {
+                const auto hashResult = Hash::File(SidecarHandler::GetSidecarPath(*absolutePath).generic_string());
+                if (hashResult != rec.MetaHash) {
                     return SourceCheck::NeedsReimport;
                 }
 

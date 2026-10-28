@@ -18,7 +18,7 @@ namespace Quelos {
         return s_ImportableExtensions.find(FS::Extension(path)) != s_ImportableExtensions.end();
     }
 
-    bool TextureImporter::ImportTexture2D(const LoadContext& loadContext) {
+    bool TextureImporter::ImportTexture2D(LoadContext& loadContext) {
         const auto& metadata = loadContext.GetAssetMetadata();
         int width, height, channels;
 
@@ -47,10 +47,17 @@ namespace Quelos {
         // SIZE * CHANNELS not sure if it's sufficient
         Buffer dataBuffer = Buffer::Adopt(data, width * height * channels, stbi_image_free);
 
+        auto settings = loadContext.Settings<TextureSettings>();
+
         TextureSpec textureSpecs;
         textureSpecs.Width = width;
         textureSpecs.Height = height;
         textureSpecs.BindFlags = Bind::ShaderResource;
+
+        if (settings) {
+            textureSpecs.SamplerFilter = settings->Filter;
+            textureSpecs.SamplerWrap = settings->Wrap;
+        }
 
         switch (channels) {
         case 3:

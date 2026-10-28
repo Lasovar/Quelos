@@ -26,6 +26,7 @@ namespace QuelosEditor {
         AssetRef<GraphicsShader> m_PreviewShader;
         float m_TextureAspectRatio = 0.0f;
 
+        AssetMetadata m_Asset;
         AssetRef<Texture> m_Texture;
         TextureViewHandle m_TextureSRV;
         TextureHandle m_PreviewTexture;
