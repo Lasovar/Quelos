@@ -339,6 +339,10 @@ namespace Quelos {
         }
     }
 
+    bool SDLWindow::IsFocused() const {
+        return SDL_GetWindowFlags(m_SDLWindow) & SDL_WINDOW_INPUT_FOCUS;
+    }
+
     uint32_t SDLWindow::GetWidth() const { return m_Specifications.Width; }
 
     uint32_t SDLWindow::GetHeight() const {

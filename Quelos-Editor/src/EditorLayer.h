@@ -56,6 +56,7 @@ namespace QuelosEditor {
         ProjectSerializer m_ProjectSerializer;
 
         SharedPtr<EditorAssetManager> m_EditorAssetManager;
+        SharedPtr<Window> m_Window;
 
         ImGuiWindowClass m_EditorLayerClass;
         UndoSystem m_UndoSystem{};

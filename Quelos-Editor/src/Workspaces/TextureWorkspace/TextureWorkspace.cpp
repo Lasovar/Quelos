@@ -74,6 +74,27 @@ namespace QuelosEditor {
         m_PreviewFB = Renderer::CreateFrameBuffer(frameBufferSpec);
 
         CreatePSO();
+
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
+        m_ListenerHandle = assetManager->AddReloadListener(metadata.Handle, [&] {
+            const auto& newTexture = m_Texture.Get();
+            m_TextureSRV = Renderer::TextureGetDefaultView(newTexture.GetHandle(), TextureViewType::ShaderResource);
+            const float2 newTextureSize = newTexture.GetSize();
+            m_TextureAspectRatio = newTextureSize.x / newTextureSize.y;
+
+            Renderer::Destroy(m_PreviewSRB);
+
+            m_PreviewSRB = Renderer::CreateShaderResourceBinding(m_PreviewPSO, true);
+            Renderer::BindVariableByName(
+                ShaderType::Fragment,
+                m_PreviewSRB,
+                "_SourceTexture",
+                m_TextureSRV,
+                SetShaderResourceFlag::None
+            );
+
+            m_RedrawPreview = true;
+        });
     }
 
     void TextureWorkspace::Tick(float) {
@@ -246,6 +267,7 @@ namespace QuelosEditor {
     void TextureWorkspace::OnEvent(Event&) {}
 
     TextureWorkspace::~TextureWorkspace() {
+        SharedAs<EditorAssetManager>(Project::GetAssetManager())->RemoveReloadListener(m_Asset.Handle, m_ListenerHandle);
         ReleasePSO();
         Renderer::Destroy(m_PreviewFB);
         Renderer::Destroy(m_PreviewRP);

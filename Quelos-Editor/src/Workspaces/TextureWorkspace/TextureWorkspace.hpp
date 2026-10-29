@@ -8,6 +8,8 @@
 #include "Workspaces/Workspace.h"
 
 namespace QuelosEditor {
+    class ReloadListener;
+
     class TextureWorkspace : public Workspace {
     public:
         TextureWorkspace(UndoSystem& undoSystem, const AssetMetadata& metadata);
@@ -28,6 +30,7 @@ namespace QuelosEditor {
 
         AssetMetadata m_Asset;
         AssetRef<Texture> m_Texture;
+        Handle<ReloadListener> m_ListenerHandle;
         TextureViewHandle m_TextureSRV;
         TextureHandle m_PreviewTexture;
         TextureViewHandle m_PreviewRTV;

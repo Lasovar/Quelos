@@ -7,6 +7,7 @@
 
 #include "efsw/FileWatcherGeneric.hpp"
 #include "Quelos/Utility/Request.h"
+#include "Quelos/Utility/SlotMap.h"
 #include "SQLite/SQLite.hpp"
 
 namespace QuelosEditor {
@@ -17,6 +18,8 @@ namespace QuelosEditor {
         StampOnly = 1,
         NeedsReimport = 2
     };
+
+    struct ReloadListener;
 
     class EditorAssetManager : public AssetManagerBase, efsw::FileWatchListener {
     public:
@@ -44,7 +47,7 @@ namespace QuelosEditor {
         Optional<AssetID> ResolveOwningAsset(std::string_view absolutePath) const;
 
         void FlushReimportQueue();
-        void ProcessFileEvents();
+        void ProcessFileEvents(float deltaTime);
 
         Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, std::pmr::polymorphic_allocator<> allocator);
         Vec<AssetID> ProcessAssetRegistration(std::string_view assetPath, AllocatorType allocatorType);
@@ -53,6 +56,21 @@ namespace QuelosEditor {
         requires (std::is_base_of_v<Asset, T>)
         void RegisterType() {
             m_AssetPools[T::GetStaticType()] = UntypedAssetPool::Create<T>(T::GetStaticType().GetName());
+        }
+
+        Handle<ReloadListener> AddReloadListener(const AssetID& assetId, std::function<void()> onAssetReloaded) {
+            auto& resourceTable = m_AssetReloadEventListeners[assetId];
+            return resourceTable.Emplace(std::move(onAssetReloaded));
+        }
+
+        bool RemoveReloadListener(const AssetID& assetId, const Handle<ReloadListener> reloadListener) {
+            const auto it = m_AssetReloadEventListeners.find(assetId);
+            if (it == m_AssetReloadEventListeners.end()) {
+                return false;
+            }
+
+            it->second.Erase(reloadListener);
+            return true;
         }
 
         void* TryGet(const UntypedAssetHandle handle) override {
@@ -120,9 +138,13 @@ namespace QuelosEditor {
         HashMap<efsw::WatchID, AssetID> m_WatchedAssets{Allocator::Persistent};
 
         std::atomic<bool> m_HasFileEvents = false;
+        // A short buffer before the events are flushed
+        float m_AccumulateEventsTimer = 0.0f;
+        bool m_RequestProcessFileEvents = false;
         std::mutex m_FileEventsMutex;
         Vec<std::string> m_ModifiedPaths{Allocator::Persistent};
         Vec<std::string> m_ProcessingPaths{Allocator::Persistent};
+        HashMap<AssetID, ResourceTable<std::function<void()>, ReloadListener>> m_AssetReloadEventListeners{Allocator::Persistent};
         bool m_RequestFullRefresh;
 
         HashSet<AssetID> m_ReimportQueue;

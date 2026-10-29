@@ -35,6 +35,7 @@ namespace QuelosEditor {
 
     void EditorLayer::OnAttach() {
         s_Instance = this;
+    	m_Window = Application::Get().GetWindow();
 
         m_ProjectSerializer = ProjectSerializer(
             Application::Get().GetApplicationPath() / "../../Quelos-Editor/SandboxProject");
@@ -82,8 +83,10 @@ namespace QuelosEditor {
 
         FlushOpenAssetWorkspace();
 
-        m_EditorAssetManager->ProcessFileEvents();
-        m_EditorAssetManager->FlushReimportQueue();
+    	if (m_Window->IsFocused()) {
+    		m_EditorAssetManager->ProcessFileEvents(deltaTime);
+    		m_EditorAssetManager->FlushReimportQueue();
+    	}
     }
 
     void EditorLayer::ImGuiRender() {

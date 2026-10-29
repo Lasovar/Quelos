@@ -309,10 +309,23 @@ namespace QuelosEditor {
         m_ReimportQueue.clear();
     }
 
-    void EditorAssetManager::ProcessFileEvents() {
-        if (!m_HasFileEvents.exchange(false, std::memory_order_acquire)) {
+    void EditorAssetManager::ProcessFileEvents(float deltaTime) {
+        if (m_HasFileEvents.exchange(false, std::memory_order_acquire)) {
+            m_AccumulateEventsTimer = 0.3f;
+            m_RequestProcessFileEvents = true;
             return;
         }
+
+        if (m_AccumulateEventsTimer > 0.0f) {
+            m_AccumulateEventsTimer -= deltaTime;
+            return;
+        }
+
+        if (!m_RequestProcessFileEvents) {
+            return;
+        }
+
+        m_RequestProcessFileEvents = true;
 
         m_ProcessingPaths.clear();
 
@@ -1310,7 +1323,17 @@ namespace QuelosEditor {
             if (const auto pool = poolIt->second; pool.IsValid(pool.Data, assetHandle)) {
                 pool.ReleaseAt(pool.Data, assetHandle);
                 QS_TRACE_TAGGED("Asset (id: {}, path: {}) reloaded", assetId.ToFormattedString(), metadata->FilePath);
-                return Import(pool, assetHandle, *metadata);
+                if (!Import(pool, assetHandle, *metadata)) {
+                    return false;
+                }
+
+                if (const auto it = m_AssetReloadEventListeners.find(assetId); it != m_AssetReloadEventListeners.end()) {
+                    for (auto handle : it->second.Foreach()) {
+                        std::invoke(handle.get());
+                    }
+                }
+
+                return true;
             }
         }
 

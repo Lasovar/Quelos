@@ -17,6 +17,8 @@ namespace Quelos {
 
         void SetCursorMode(CursorMode cursorMode) override;
 
+        bool IsFocused() const override;
+
         uint32_t GetWidth() const override;
         uint32_t GetHeight() const override;
 

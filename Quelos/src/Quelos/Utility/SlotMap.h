@@ -182,6 +182,15 @@ namespace Quelos {
             }
         }
 
+        Generator<Ref<TValue>> Foreach() {
+            for (size_t i = 0; i < m_Slots.size(); i++) {
+                if (m_Slots[i].Alive) {
+                    co_yield *m_Slots[i].Get();
+                }
+            }
+        }
+
+
         bool IsAlive(THandle handle) const {
             return At(handle) != nullptr;
         }
