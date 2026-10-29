@@ -5,7 +5,7 @@
 #pragma once
 
 #include "UndoSystem.h"
-#include "Quelos/AssetManager/TextureImporter.h"
+#include "AssetManagement/AssetImporters/TextureImporter.h"
 
 namespace QuelosEditor {
     class TexturePropertiesPanel {

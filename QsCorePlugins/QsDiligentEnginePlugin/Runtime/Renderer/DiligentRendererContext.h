@@ -251,6 +251,7 @@ namespace Quelos {
         void Destroy(UniformBufferHandle uniformBufferHandle) override;
         TextureHandle CreateTexture(const TextureSpec& spec) override;
         TextureHandle CreateTexture(const TextureSpec& spec, BufferView data) override;
+        TextureHandle CreateTexture(const TextureSpec& spec, Span<const TextureSubResourceData> data) override;
         TextureHandle CreateTexture(const TextureSpec& spec, const std::filesystem::path& path) override;
 
         bool TextureIsVFlipped() override;

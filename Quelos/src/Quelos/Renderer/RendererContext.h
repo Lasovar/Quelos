@@ -353,6 +353,7 @@ namespace Quelos {
         // Texture
         virtual TextureHandle CreateTexture(const TextureSpec& spec) = 0;
         virtual TextureHandle CreateTexture(const TextureSpec& spec, BufferView data) = 0;
+        virtual TextureHandle CreateTexture(const TextureSpec& spec, Span<const TextureSubResourceData> data) = 0;
         virtual TextureHandle CreateTexture(const TextureSpec& spec, const OsPath& path) = 0;
 
         virtual bool TextureIsVFlipped() = 0;

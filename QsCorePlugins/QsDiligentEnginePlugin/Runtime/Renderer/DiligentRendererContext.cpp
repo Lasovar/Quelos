@@ -1402,6 +1402,28 @@ namespace Quelos {
         return handle;
     }
 
+    TextureHandle DiligentRendererContext::CreateTexture(const TextureSpec& spec, const Span<const TextureSubResourceData> data) {
+        const Handle<Texture> handle = m_TextureTable.Emplace();
+        QTextureData* slot = m_TextureTable.At(handle);
+        slot->Specification = spec;
+
+        SmallVec<TextureSubResData, 1> subResources(Allocator::Frame);
+        for (const TextureSubResourceData& subResource : data) {
+            TextureSubResData subRes{};
+            subRes.pData = subResource.pData;
+            subRes.Stride = subResource.Stride;
+            subResources.push_back(subRes);
+        }
+
+        TextureData textureData;
+        textureData.pSubResources = subResources.data();
+        textureData.NumSubresources = subResources.size();
+
+        TextureUtil::CreateTexture(m_pDevice, *slot, &textureData);
+
+        return handle;
+    }
+
     TextureHandle DiligentRendererContext::CreateTexture(
         const TextureSpec& spec,
         const std::filesystem::path& path

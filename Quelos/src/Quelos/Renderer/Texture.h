@@ -73,6 +73,11 @@ namespace Quelos {
         uint32_t MipLevels = 1;
     };
 
+    struct TextureSubResourceData {
+        const void* pData = nullptr;
+        uint64_t Stride = 0;
+    };
+
     class Texture;
 
     struct QS_API TextureHandle : Handle<Texture> {
@@ -84,6 +89,7 @@ namespace Quelos {
 
     class QS_API Texture : public Asset {
     public:
+        Texture(const TextureSpec& spec, Span<const TextureSubResourceData> data);
         Texture(const TextureSpec& spec, BufferView data);
         Texture(const TextureHandle& textureHandle) : m_Handle(textureHandle) {}
 

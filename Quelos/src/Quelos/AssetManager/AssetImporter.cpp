@@ -1,7 +1,6 @@
 #include "qspch.h"
 #include "AssetImporter.h"
 
-#include "TextureImporter.h"
 #include "magic_enum/magic_enum.hpp"
 
 #include "Quelos/Core/Profiling.h"

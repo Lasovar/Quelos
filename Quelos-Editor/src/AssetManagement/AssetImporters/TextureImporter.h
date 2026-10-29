@@ -1,11 +1,17 @@
 #pragma once
 
-#include "AssetImporter.h"
-#include "AssetMetadata.h"
+#include "Quelos/AssetManager/AssetImporter.h"
+#include "Quelos/AssetManager/AssetMetadata.h"
+#include "AssetManagement/EditorAssetImporter.h"
 #include "Quelos/Renderer/Texture.h"
 
-namespace Quelos {
+namespace QuelosEditor {
     struct TextureSettings {
+        enum class Usage {
+            Default,
+            Normal
+        };
+
         enum class CompressionQuality {
             None,
             Low,
@@ -13,9 +19,11 @@ namespace Quelos {
             High
         };
 
-        TextureType Type = TextureType::Texture2D;
+        Usage Usage = Usage::Default;
         FilterMode Filter = FilterMode::Linear;
         WrapMode Wrap = WrapMode::Repeat;
+        bool IsSRGB = true;
+        bool FlipGreen = false;
         CompressionQuality Compression = CompressionQuality::None;
 
         template <typename Archive>
@@ -29,9 +37,15 @@ namespace Quelos {
     namespace TextureImporter {
         QS_API bool ImportTexture2D(LoadContext& loadContext);
         QS_API bool IsAssetSupported(std::string_view path);
+        QS_API bool Import(ImportContext& importContext);
 
-        inline AssetImporterConfig GetImporterConfig() {
-            return {Texture::GetStaticType(), ImportTexture2D, IsAssetSupported};
+        inline EditorAssetImporterConfig GetImporterConfig() {
+            return {
+                .Type = Texture::GetStaticType(),
+                .LoadAsset = ImportTexture2D,
+                .IsAssetSupported = IsAssetSupported,
+                .ImportAsset = Import,
+            };
         }
     }
 }

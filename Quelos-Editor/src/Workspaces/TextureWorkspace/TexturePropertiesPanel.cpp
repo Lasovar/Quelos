@@ -40,7 +40,7 @@ namespace QuelosEditor {
         if (UI::Begin("Properties", dockspaceID, windowClass)) {
             static constexpr auto textureTypes = magic_enum::enum_names<TextureType>();
 
-            if (UI::EditEnum("Texture Type", m_Settings.Type)) {
+            if (UI::EditEnum("Usage", m_Settings.Usage)) {
                 m_IsPendingChanges = true;
             }
 

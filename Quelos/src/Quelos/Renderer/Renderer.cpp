@@ -351,6 +351,10 @@ namespace Quelos {
         return s_RendererContext->CreateTexture(spec, data);
     }
 
+    TextureHandle Renderer::CreateTexture(const TextureSpec& spec, const Span<const TextureSubResourceData> data) {
+        return s_RendererContext->CreateTexture(spec, data);
+    }
+
     TextureHandle Renderer::CreateTexture(const TextureSpec& spec, const OsPath& path) {
         return s_RendererContext->CreateTexture(spec, path);
     }

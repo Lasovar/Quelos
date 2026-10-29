@@ -10,7 +10,7 @@
 #include "AssetImporters/MaterialImporter.h"
 #include "AssetImporters/ShaderImporter.h"
 #include "Quelos/AssetManager/AssetRegistryExtensions.h"
-#include "Quelos/AssetManager/TextureImporter.h"
+#include "AssetImporters/TextureImporter.h"
 #include "Quelos/ImGui/ImGuiUI.h"
 #include "Quelos/Project/Project.h"
 #include "Quelos/Serialization/Serializer.h"
@@ -687,7 +687,7 @@ namespace QuelosEditor {
 
         AssetImporter::RegisterAssetImporter(SceneImporter::GetImporterConfig());
 
-        AssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
+        EditorAssetImporter::RegisterAssetImporter(TextureImporter::GetImporterConfig());
         RegisterType<Texture>();
     }
 

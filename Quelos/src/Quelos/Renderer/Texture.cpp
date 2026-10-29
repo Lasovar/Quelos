@@ -7,6 +7,10 @@ namespace Quelos {
         return Renderer::TextureGetNativeHandle(*this);
     }
 
+    Texture::Texture(const TextureSpec& spec, const Span<const TextureSubResourceData> data) {
+        m_Handle = Renderer::CreateTexture(spec, data);
+    }
+
     Texture::Texture(const TextureSpec& spec, const BufferView data) {
         m_Handle = Renderer::CreateTexture(spec, data);
     }
