@@ -74,8 +74,18 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (auto* texture = std::get_if<SoftRef<Texture>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
+                    SoftRef<Texture>* texture = nullptr;
+                    bool isNormalMap = false;
+                    if (auto* texture2d = std::get_if<Texture2DProperty>(&values[propertyIndex])) {
+                        texture = &texture2d->Value;
+                        isNormalMap = false;
+                    } else if (auto* normalMap = std::get_if<NormalMapProperty>(&values[propertyIndex])) {
+                        texture = &normalMap->Value;
+                        isNormalMap = true;
+                    }
+
+                    if (texture) {
+                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get(), isNormalMap);
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,
@@ -128,8 +138,18 @@ namespace Quelos {
 
                 for (uint32_t propertyIndex = 0; propertyIndex < specs.size(); propertyIndex++) {
                     // Specialization for textures
-                    if (auto* texture = std::get_if<SoftRef<Texture>>(&values[propertyIndex])) {
-                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get());
+                    SoftRef<Texture>* texture = nullptr;
+                    bool isNormalMap = false;
+                    if (auto* texture2d = std::get_if<Texture2DProperty>(&values[propertyIndex])) {
+                        texture = &texture2d->Value;
+                        isNormalMap = false;
+                    } else if (auto* normalMap = std::get_if<NormalMapProperty>(&values[propertyIndex])) {
+                        texture = &normalMap->Value;
+                        isNormalMap = true;
+                    }
+
+                    if (texture) {
+                        uint32_t textureId = m_TextureRegistry.GetID(texture->Get(), isNormalMap);
 
                         std::memcpy(
                             materials + i * m_MaterialSize + specs[propertyIndex].Offset,
@@ -255,6 +275,19 @@ namespace Quelos {
         m_MagentaTexture = Renderer::CreateTexture(magentaSpec, std::as_bytes(Span64(&magentaColor, 1)));
 
         Renderer::TransitionResource(m_MagentaTexture, ResourceState::ShaderResource);
+
+        static constexpr byte flatNormal[2] = { byte{128}, byte{128} };   // RG8_UNORM, 1x1, 1 mip
+        TextureSpec normalSpec;
+        normalSpec.Name = "FlatNormal";
+        normalSpec.BindFlags = Bind::ShaderResource;
+        normalSpec.Width = 1;
+        normalSpec.Height = 1;
+        normalSpec.Format = TextureFormat::RG8UNorm;
+        normalSpec.SampleCount = SampleCount::x1;
+        normalSpec.Type = TextureType::Texture2D;
+
+        m_FlatNormalTexture = Renderer::CreateTexture(normalSpec, Span64(flatNormal, sizeof(flatNormal)));
+        Renderer::TransitionResource(m_FlatNormalTexture, ResourceState::ShaderResource);
 
         // Depth Render Pass
         RenderPassAttachmentSpec depthPassAttachment[2];
@@ -1260,7 +1293,7 @@ namespace Quelos {
             ).first->second;
 
             MaterialRegistry& materialRegistry = pipelineInfo.MaterialRegistry;
-            materialRegistry.GetTextureRegistry().Init(m_WhiteTexture, m_MagentaTexture);
+            materialRegistry.GetTextureRegistry().Init(m_WhiteTexture, m_MagentaTexture, m_FlatNormalTexture);
             uint32_t materialId = materialRegistry.Add(meshRenderer.Material);
 
             for (WeakPipelineData& weakPipelineData : pipelineInfo.Pipelines) {
@@ -1860,8 +1893,9 @@ namespace Quelos {
         }
 
         Renderer::Destroy(m_RenderPass);
-        Renderer::Destroy(m_WhiteTexture);
+        Renderer::Destroy(m_FlatNormalTexture);
         Renderer::Destroy(m_MagentaTexture);
+        Renderer::Destroy(m_WhiteTexture);
 
         Renderer::Destroy(m_ShadowRenderPass);
     }

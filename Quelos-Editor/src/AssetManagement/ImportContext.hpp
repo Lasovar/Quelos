@@ -13,6 +13,8 @@
 namespace QuelosEditor {
     using namespace Quelos;
 
+    AssetID DeriveSubAssetID(const AssetID& parent, std::string_view name);
+
     class ImportContext {
     public:
         ImportContext(const AssetMetadata& asset, AssetRegistry& registry, std::pmr::memory_resource* memoryResource)

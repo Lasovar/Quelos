@@ -190,7 +190,7 @@ namespace QuelosEditor {
     }
 
 
-    bool TextureImporter::ImportTexture2D(LoadContext& loadContext) {
+    bool TextureImporter::Load(LoadContext& loadContext) {
         const auto blob = loadContext.ReadArtifact("TextureData");
         if (!blob) {
             return false;
@@ -233,7 +233,7 @@ namespace QuelosEditor {
         }
 
         auto* texture = new(loadContext.GetLoadSlot()) Texture(textureSpecs, subRes);
-        texture->SetAssetID(loadContext.GetAssetMetadata().Handle);
+        texture->SetAssetID(loadContext.GetAssetMetadata().ID);
 
         return true;
     }
@@ -278,7 +278,6 @@ namespace QuelosEditor {
         const auto& metadata = importContext.GetAssetMetadata();
 
         const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
-        stbi_set_flip_vertically_on_load(1);
         Optional<Cooker::ImageF> result = LoadImageF(assetPath.string().c_str(), &GetFrameAllocator());
 
         if (!result) {

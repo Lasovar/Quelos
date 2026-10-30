@@ -65,7 +65,7 @@ namespace Quelos {
         }
 
         std::erase_if(m_AssetMetadata, [&assetHandle](const Pair<AssetID, AssetMetadata>& metadata) {
-            return metadata.second.ParentId == assetHandle;
+            return metadata.second.ParentID == assetHandle;
         });
 
         m_AssetMetadata.erase(it);

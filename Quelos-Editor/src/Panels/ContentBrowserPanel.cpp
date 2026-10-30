@@ -47,7 +47,7 @@ namespace QuelosEditor {
         // Though could just be the debugger not updating properly
         namePath += FS::Extension(asset.Metadata.FilePath);
 
-        if (auto r = m_AssetManager->RenameAsset(asset.Metadata.Handle, namePath); !r) {
+        if (auto r = m_AssetManager->RenameAsset(asset.Metadata.ID, namePath); !r) {
             QS_CORE_ERROR_TAGGED("Failed to rename asset to {}: {}", newName, r.error());
             return;
         }
@@ -73,26 +73,26 @@ namespace QuelosEditor {
 
         if (ImGui::BeginPopupContextItem("AssetContext")) {
             if (ImGui::MenuItem(FormatTemp("{} {}", ICON_FA_TRASH, "Delete"))) {
-                m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.Handle);
+                m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.ID);
                 m_QueueDirectoryTreeRebuild = true;
 
                 // TODO: delete from file system
             }
 
             if (ImGui::MenuItem("Rename")) {
-                StartAssetRename(asset.Name, asset.Metadata.Handle);
+                StartAssetRename(asset.Name, asset.Metadata.ID);
             }
 
             if (!asset.IsImportable && ImGui::MenuItem("Remove from registry")) {
-                if (asset.Metadata.Handle) {
-                    m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.Handle);
+                if (asset.Metadata.ID) {
+                    m_AssetManager->RemoveAssetFromRegistry(asset.Metadata.ID);
                     m_QueueDirectoryTreeRebuild = true;
                 }
             }
 
             if (!asset.IsImportable && ImGui::MenuItem("Reimport")) {
-                if (asset.Metadata.Handle) {
-                    m_AssetManager->QueueReimport(asset.Metadata.Handle);
+                if (asset.Metadata.ID) {
+                    m_AssetManager->QueueReimport(asset.Metadata.ID);
                     m_QueueDirectoryTreeRebuild = true;
                 }
             }
@@ -120,14 +120,14 @@ namespace QuelosEditor {
         if (!asset.IsImportable && ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload(
                 asset.Metadata.Type.GetName().c_str(),
-                &asset.Metadata.Handle, sizeof(AssetID)
+                &asset.Metadata.ID, sizeof(AssetID)
             );
 
             ImGui::TextUnformatted(asset.Name.c_str());
             ImGui::EndDragDropSource();
         }
 
-        if (!asset.IsImportable && m_RenamingAsset == asset.Metadata.Handle) {
+        if (!asset.IsImportable && m_RenamingAsset == asset.Metadata.ID) {
             ImGui::SetNextItemWidth(80.0f);
 
             if (ImGui::InputText(

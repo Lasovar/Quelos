@@ -5,13 +5,22 @@
 #include "Quelos/AssetManager/SoftRef.h"
 
 namespace Quelos {
+    struct Texture2DProperty {
+        SoftRef<Texture> Value;
+    };
+
+    struct NormalMapProperty {
+        SoftRef<Texture> Value;
+    };
+
     using MaterialPropertyValue = std::variant<
         float,
         float2,
         float3,
         float4,
         Color,
-        SoftRef<Texture>
+        Texture2DProperty,
+        NormalMapProperty
     >;
 
     class QS_API Material : public Asset {
@@ -91,13 +100,18 @@ namespace Quelos {
                 EnsureType<Color>(propertyValue);
                 break;
             }
+            case MaterialPropertyType::Texture2D: {
+                EnsureType<Texture2DProperty>(propertyValue);
+                break;
+            }
+            case MaterialPropertyType::NormalMap: {
+                EnsureType<NormalMapProperty>(propertyValue);
+                break;
+            }
             case MaterialPropertyType::Int:
             case MaterialPropertyType::Int2:
             case MaterialPropertyType::Int3:
             case MaterialPropertyType::Int4:
-            case MaterialPropertyType::Texture2D:
-                EnsureType<SoftRef<Texture>>(propertyValue);
-                break;
             case MaterialPropertyType::UInt:
             case MaterialPropertyType::UInt2:
             case MaterialPropertyType::UInt3:

@@ -264,6 +264,7 @@ target_link_libraries(Quelos-Editor
         efsw-static
         slang
         sqlite3
+        stb_image
 )
 
 if (WIN32)

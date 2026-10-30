@@ -20,7 +20,7 @@ namespace QuelosEditor {
 
     AssetID EditorAssetManager::AddAssetToRegistry(const std::string_view assetPath) {
         if (const AssetMetadata* metadata = m_AssetRegistry.GetAssetMetadata(assetPath)) {
-            return metadata->Handle;
+            return metadata->ID;
         }
 
         OsPath asset(assetPath);
@@ -114,7 +114,7 @@ namespace QuelosEditor {
 
         for (const auto& additionalAsset : additionalAssets) {
             if (auto r = m_Database.RegisterAsset(
-                additionalAsset.Handle,
+                additionalAsset.ID,
                 additionalAsset.FilePath,
                 additionalAsset.Type.GetName(),
                 mainAsset
@@ -129,7 +129,7 @@ namespace QuelosEditor {
             }
 
             subAssets.push_back(additionalAsset);
-            registeredAssets.push_back(additionalAsset.Handle);
+            registeredAssets.push_back(additionalAsset.ID);
         }
 
         SyncSubAssetsToRegistry(mainAsset, subAssets);
@@ -163,7 +163,7 @@ namespace QuelosEditor {
         // A file inside a directory asset belongs to that directory
         while (!path.empty() && FS::IsInsideDirectory(path, "Assets")) {
             if (const AssetMetadata* meta = GetAssetMetadata(path); meta && !meta->IsSubAsset()) {
-                return meta->Handle;
+                return meta->ID;
             }
 
             path = FS::Parent(path);
@@ -402,7 +402,7 @@ namespace QuelosEditor {
     bool EditorAssetManager::Import(
         const UntypedAssetPool& pool, UntypedAssetHandle assetHandle, const AssetMetadata& metadata
     ) {
-        const AssetID assetId = metadata.Handle;
+        const AssetID assetId = metadata.ID;
         void* slotData = pool.GetSlotData(pool.Data, assetHandle);
 
         if (metadata.IsSubAsset()) {
@@ -416,7 +416,7 @@ namespace QuelosEditor {
                 "EditorAssetManager::Acquire",
                 "Failed to resolve sub-asset {} with parent {}",
                 assetId.ToString(),
-                metadata.ParentId.ToString()
+                metadata.ParentID.ToString()
             );
 
             pool.DestroyAt(pool.Data, assetHandle);
@@ -649,7 +649,7 @@ namespace QuelosEditor {
         // registry
         it->second.FilePath = newPath;
         for (auto& child : assets | std::views::values) {
-            if (child.ParentId != handle) {
+            if (child.ParentID != handle) {
                 continue;
             }
 
@@ -741,7 +741,7 @@ namespace QuelosEditor {
         assets.reserve(rows->size());
 
         for (const AssetMetadata& row : *rows) {
-            assets[row.Handle] = row;
+            assets[row.ID] = row;
         }
 
         QS_INFO_TAG(Tag, "Loaded {} assets from the database!", assets.size());
@@ -890,14 +890,14 @@ namespace QuelosEditor {
         HashSet<AssetID> stale(Allocator::Frame);
 
         for (const auto& [id, meta] : assets) {
-            if (meta.ParentId == parentId) {
+            if (meta.ParentID == parentId) {
                 stale.insert(id);
             }
         }
 
         for (const AssetMetadata& sub : produced) {
-            stale.erase(sub.Handle);
-            assets[sub.Handle] = sub;
+            stale.erase(sub.ID);
+            assets[sub.ID] = sub;
         }
 
         // Children no longer produced by the source
@@ -927,7 +927,7 @@ namespace QuelosEditor {
                 return {};
             }
 
-            return metadata->ParentId ? metadata->ParentId : id;
+            return metadata->ParentID ? metadata->ParentID : id;
         };
 
         HashSet<AssetID> withDependents = changed.clone(Allocator::Frame);
@@ -982,7 +982,7 @@ namespace QuelosEditor {
                                 return {};
                             }
 
-                            return md->Handle;
+                            return md->ID;
                         }
                     },
                     dependency
@@ -1498,7 +1498,7 @@ namespace QuelosEditor {
         }
 
         for (const auto& [childId, metadata] : m_AssetRegistry.GetAssetsMetadata()) {
-            if (metadata.ParentId == assetId && m_LoadedAssets.contains(childId)) {
+            if (metadata.ParentID == assetId && m_LoadedAssets.contains(childId)) {
                 Reload(childId);
             }
         }

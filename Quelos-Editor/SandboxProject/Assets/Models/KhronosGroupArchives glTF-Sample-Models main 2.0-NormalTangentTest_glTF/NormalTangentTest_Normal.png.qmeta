@@ -1,0 +1,10 @@
+[Quelos.Texture]
+assetId = a01d04c1-98cc-40a3-b175-3fd4f5067cb8
+importerVersion = 0
+
+[Settings]
+usage = Normal
+filter = Linear
+wrap = Repeat
+IsSRGB = 1
+compression = None

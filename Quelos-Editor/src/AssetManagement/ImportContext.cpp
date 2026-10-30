@@ -11,7 +11,7 @@
 #include "Quelos/Utility/QuelosUtil.h"
 
 namespace QuelosEditor {
-    static AssetID DeriveSubAssetID(const AssetID& parent, const std::string_view name) {
+    AssetID DeriveSubAssetID(const AssetID& parent, const std::string_view name) {
         static_assert(sizeof(AssetID) == 16 && std::is_trivially_copyable_v<AssetID>);
 
         const UniquePtr<XXH3_state_t, decltype(&XXH3_freeState)> state(XXH3_createState(), &XXH3_freeState);
@@ -50,12 +50,12 @@ namespace QuelosEditor {
             return;
         }
         
-        m_Dependencies.push_back(metadata->Handle);
+        m_Dependencies.push_back(metadata->ID);
     }
 
     Expected<void, String> ImportContext::WriteArtifact(std::string_view name, const BufferView data) {
         const OsPath& libraryPath = Project::GetLibraryPath();
-        String assetId = m_Asset.Handle.ToString(Allocator::Frame);
+        String assetId = m_Asset.ID.ToString(Allocator::Frame);
         m_Artifacts.emplace_back(FormatTemp("Artifacts/{}{}/{}/{}", assetId[0], assetId[1], assetId, name));
         const OsPath targetPath = libraryPath / m_Artifacts.back().view();
 
@@ -71,7 +71,7 @@ namespace QuelosEditor {
     }
 
     AssetID ImportContext::AddSubAsset(const std::string_view stableName, const AssetType& type) {
-        return AddSubAsset(stableName, DeriveSubAssetID(m_Asset.Handle, stableName), type);
+        return AddSubAsset(stableName, DeriveSubAssetID(m_Asset.ID, stableName), type);
     }
 
     AssetID ImportContext::AddSubAsset(std::string_view stableName, AssetID subAssetId, const AssetType& type) {
@@ -79,7 +79,7 @@ namespace QuelosEditor {
             subAssetId,
             FormatTemp("{}/{}", m_Asset.FilePath, stableName),
             type,
-            m_Asset.Handle
+            m_Asset.ID
         );
 
         return subAssetId;

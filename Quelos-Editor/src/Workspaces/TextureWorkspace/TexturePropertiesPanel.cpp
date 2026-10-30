@@ -5,6 +5,7 @@
 #include "TexturePropertiesPanel.hpp"
 
 #include "EditorUI.h"
+#include "AssetManagement/EditorAssetManager.h"
 #include "AssetManagement/SidecarHandler.hpp"
 
 namespace QuelosEditor {
@@ -46,17 +47,13 @@ namespace QuelosEditor {
 
             ImGui::Spacing();
 
-            if (UI::EditEnum("Filter Mode", m_Settings.Filter)) {
-                m_IsPendingChanges = true;
-            }
-            if (UI::EditEnum("Wrap Mode", m_Settings.Wrap)) {
-                m_IsPendingChanges = true;
-            }
+            m_IsPendingChanges |= UI::EditEnum("Filter Mode", m_Settings.Filter);
+            m_IsPendingChanges |= UI::EditEnum("Wrap Mode", m_Settings.Wrap);
+
+            m_IsPendingChanges |= ImGui::Checkbox("Is sRGB", &m_Settings.IsSRGB);
 
             ImGui::Spacing();
-            if (UI::EditEnum("Compression Quality", m_Settings.Compression)) {
-                m_IsPendingChanges = true;
-            }
+            m_IsPendingChanges |= UI::EditEnum("Compression Quality", m_Settings.Compression);
 
             ImGui::Spacing();
 
@@ -68,6 +65,7 @@ namespace QuelosEditor {
             if (ImGui::Button("Save")) {
                 if (auto r = SidecarHandler::WriteSettings(m_Asset.Type.GetName(), m_Asset.FilePath, m_Settings)) {
                     m_IsPendingChanges = false;
+                    SharedAs<EditorAssetManager>(Project::GetAssetManager())->QueueReimport(m_Asset.ID);
                 } else {
                     QS_ERROR_TAGGED("Failed to write texture settings: {}", r.error());
                 }

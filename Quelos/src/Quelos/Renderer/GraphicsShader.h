@@ -16,7 +16,7 @@ namespace Quelos {
         Float, Float2, Float3, Float4,
         Color, // a float4 with a [Color] Attribute
         Int, Int2, Int3, Int4,
-        Texture2D,
+        Texture2D, NormalMap, // a uint with a [Texture2D], [NormalMap] attributes respectively
         UInt,
         UInt2, UInt3, UInt4
     };
@@ -37,11 +37,13 @@ namespace Quelos {
         case MaterialPropertyType::Int4:    return 4 * 4;
 
         case MaterialPropertyType::Texture2D:
+        case MaterialPropertyType::NormalMap:
         case MaterialPropertyType::UInt:    return 4;
 
         case MaterialPropertyType::UInt2:   return 4 * 2;
         case MaterialPropertyType::UInt3:   return 4 * 3;
         case MaterialPropertyType::UInt4:   return 4 * 4;
+            break;
         }
 
         return 0;

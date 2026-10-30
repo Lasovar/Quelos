@@ -18,10 +18,10 @@ namespace QuelosEditor {
     TextureWorkspace::TextureWorkspace(UndoSystem& undoSystem, const AssetMetadata& metadata)
         : Workspace(std::string(FS::Filename(metadata.FilePath)), undoSystem),
           m_Asset(metadata),
-          m_Texture(metadata.Handle),
+          m_Texture(metadata.ID),
           m_PropertiesPanel(undoSystem, m_Asset, m_Texture)
     {
-        m_WorkspaceNameHash = metadata.Handle.ToString(Allocator::Persistent);
+        m_WorkspaceNameHash = metadata.ID.ToString(Allocator::Persistent);
         m_WorkspaceID = ImHashStr(FormatTemp("{}_TextureDockspace", m_WorkspaceName));
 
         Texture& texture = m_Texture.Get();
@@ -76,7 +76,7 @@ namespace QuelosEditor {
         CreatePSO();
 
         const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
-        m_ListenerHandle = assetManager->AddReloadListener(metadata.Handle, [&] {
+        m_ListenerHandle = assetManager->AddReloadListener(metadata.ID, [&] {
             const auto& newTexture = m_Texture.Get();
             m_TextureSRV = Renderer::TextureGetDefaultView(newTexture.GetHandle(), TextureViewType::ShaderResource);
             const float2 newTextureSize = newTexture.GetSize();
@@ -176,10 +176,12 @@ namespace QuelosEditor {
                 }
 
                 static ImGuiImage::State state{ .maintainAspectRatio = true };
-                float2 size = m_Texture.Get().GetSize();
+                Texture& texture = m_Texture.Get();
+                const TextureSpec& spec = texture.GetSpec();
                 ImGuiImage::Zoomable(
-                    m_PreviewTexture.GetNativeHandle(),
-                    {size.x, size.y},
+                    spec.Format == TextureFormat::SRGBA ?
+                    m_PreviewTexture.GetNativeHandle() : texture.GetHandle().GetNativeHandle(),
+                    {static_cast<float>(spec.Width), static_cast<float>(spec.Height)},
                     {uv.x, uv.y},
                     {uv.z, uv.w},
                     &state
@@ -210,7 +212,7 @@ namespace QuelosEditor {
         const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
         const AssetMetadata& shaderMetadata = *assetManager->GetAssetMetadata("Assets/shaders/texture_preview.slang");
 
-        m_PreviewShader = AssetRef<GraphicsShader>(shaderMetadata.Handle);
+        m_PreviewShader = AssetRef<GraphicsShader>(shaderMetadata.ID);
         GraphicsShader& shader = m_PreviewShader.Get();
         const GraphicsShaderPass& passInfo = *shader.GetShaderPass("Preview");
 
@@ -267,7 +269,7 @@ namespace QuelosEditor {
     void TextureWorkspace::OnEvent(Event&) {}
 
     TextureWorkspace::~TextureWorkspace() {
-        SharedAs<EditorAssetManager>(Project::GetAssetManager())->RemoveReloadListener(m_Asset.Handle, m_ListenerHandle);
+        SharedAs<EditorAssetManager>(Project::GetAssetManager())->RemoveReloadListener(m_Asset.ID, m_ListenerHandle);
         ReleasePSO();
         Renderer::Destroy(m_PreviewFB);
         Renderer::Destroy(m_PreviewRP);

@@ -18,23 +18,26 @@ namespace Quelos {
 
     class TextureRegistry {
     public:
-        void Init(const TextureHandle whiteTexture, const TextureHandle magentaTexture) {
+        void Init(const TextureHandle whiteTexture, const TextureHandle magentaTexture, const TextureHandle flatNormalTexture) {
             m_WhiteTexture = whiteTexture;
             m_MagentaTexture = magentaTexture;
+            m_FlatNormalTexture = flatNormalTexture;
+
             std::ranges::fill(m_TextureArray, m_MagentaTexture.GetNativeHandle());
             m_TextureArray[k_MaxTextures - 1] = m_WhiteTexture.GetNativeHandle();
+            m_TextureArray[k_MaxTextures - 2] = m_FlatNormalTexture.GetNativeHandle();
             m_IsDirty = true;
         }
 
-        uint32_t GetID(const AssetRef<Texture>& textureHandle) {
+        uint32_t GetID(const AssetRef<Texture>& textureHandle, const bool isNormalMap) {
             if (!textureHandle) {
-                return k_MaxTextures - 1;
+                return isNormalMap ? k_MaxTextures - 2 : k_MaxTextures - 1;
             }
 
-            if (m_Textures.size() >= k_MaxTextures - 1) {
+            if (m_Textures.size() >= k_MaxTextures - 2) {
                 // TODO: More data about which pipeline/material/texture lost would be nice
                 QS_CORE_WARN_TAG("TextureRegistry", "TextureRegistry is full!");
-                return k_MaxTextures - 1;
+                return isNormalMap ? k_MaxTextures - 2 : k_MaxTextures - 1;
             }
 
             const uint64_t nativeHandle = textureHandle.Get().GetHandle().GetNativeHandle();
@@ -61,13 +64,14 @@ namespace Quelos {
             return id;
         }
 
-        bool IsDirty() const { return m_IsDirty; }
         void SetDirty(const bool value) { m_IsDirty = value; }
-        Span32<const uint64_t> GetTextureViews() { return m_TextureArray; }
-        Span32<const uint64_t> GetTextureViews() const { return m_TextureArray; }
+        [[nodiscard]] bool IsDirty() const { return m_IsDirty; }
+
+        [[nodiscard]] Span32<const uint64_t> GetTextureViews() { return m_TextureArray; }
+        [[nodiscard]] Span32<const uint64_t> GetTextureViews() const { return m_TextureArray; }
 
         void UpdateTexturesArray() {
-            for (uint32_t i = 0; i < m_Textures.size() && i < k_MaxTextures - 1; i++) {
+            for (uint32_t i = 0; i < m_Textures.size() && i < k_MaxTextures - 2; i++) {
                 m_TextureArray[i] = m_Textures[i].Get().GetHandle().GetNativeHandle();
             }
         }
@@ -76,6 +80,7 @@ namespace Quelos {
         Vec<AssetRef<Texture>> m_Textures{Allocator::Persistent};
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
+        TextureHandle m_FlatNormalTexture;
         std::array<uint64_t, k_MaxTextures> m_TextureArray = {};
 
         bool m_IsDirty = false;
@@ -363,6 +368,7 @@ namespace Quelos {
 
         TextureHandle m_WhiteTexture;
         TextureHandle m_MagentaTexture;
+        TextureHandle m_FlatNormalTexture;
 
         ResourceRef<RenderPass> m_DepthPrepass;
 

@@ -65,7 +65,7 @@ namespace Quelos {
     // (Maybe Utility::ReadFile itself handles doing that)
     Optional<Buffer> LoadContext::ReadArtifact(std::string_view name) const {
         const OsPath& libraryPath = Project::GetLibraryPath();
-        String assetId = m_Metadata.Handle.ToString(Allocator::Frame);
+        String assetId = m_Metadata.ID.ToString(Allocator::Frame);
         const OsPath targetPath = libraryPath / FormatTemp("Artifacts/{}{}/{}/{}", assetId[0], assetId[1], assetId, name);
 
         Buffer data = Utility::ReadFile(targetPath, false);

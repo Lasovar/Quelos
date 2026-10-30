@@ -65,6 +65,12 @@ struct ColorAttribute {}
 [__AttributeUsage(_AttributeTargets.Var)]
 struct Texture2DAttribute {}
 
+// Allows you to indicate that a uint is a normal map
+// Allows the reflection system to show proper asset pickers in the editor for the field
+// usage: [NormalMap] uint _NormalMap;
+[__AttributeUsage(_AttributeTargets.Var)]
+struct NormalMapAttribute {}
+
 // Allows you to request a scene color to be bound to this variable
 // usage: [SceneColor] Texture2D<float4> _SceneColor;
 [__AttributeUsage(_AttributeTargets.Var)]

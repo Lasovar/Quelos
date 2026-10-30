@@ -367,6 +367,10 @@ namespace QuelosEditor {
                     if (!strcmp(attributeName, "Texture2D")) {
                         return MaterialPropertyType::Texture2D;
                     }
+
+                    if (!strcmp(attributeName, "NormalMap")) {
+                        return MaterialPropertyType::NormalMap;
+                    }
                 }
 
                 return MaterialPropertyType::Float;
@@ -773,7 +777,7 @@ namespace QuelosEditor {
             // The issue metadata right now always returns a GraphicsShader for the type
             if (!isComputeShader) {
                 auto* shader = new(loadContext.GetLoadSlot()) GraphicsShader(createInfo);
-                shader->SetAssetID(metadata.Handle);
+                shader->SetAssetID(metadata.ID);
             } else {
                 ComputeShaderCreateInfo computeShaderCreateInfo;
                 computeShaderCreateInfo.Name = FS::Stem(metadata.FilePath);
@@ -798,7 +802,7 @@ namespace QuelosEditor {
                 }
 
                 auto* shader = new(loadContext.GetLoadSlot()) ComputeShader(computeShaderCreateInfo);
-                shader->SetAssetID(metadata.Handle);
+                shader->SetAssetID(metadata.ID);
             }
 
             return true;
@@ -812,7 +816,7 @@ namespace QuelosEditor {
         bool Import(ImportContext& importContext) {
             ShaderMetadata shaderMetadata;
             const AssetMetadata& metadata = importContext.GetAssetMetadata();
-            shaderMetadata.AssetId = metadata.Handle;
+            shaderMetadata.AssetId = metadata.ID;
 
             Optional<ShaderCompilationResult> compilationResult = CompileShader(metadata.FilePath);
 

@@ -10,10 +10,10 @@
 
 namespace QuelosEditor {
     MaterialWorkspace::MaterialWorkspace(UndoSystem& undoSystem, const AssetMetadata& metadata)
-        : Workspace(std::string(FS::Filename(metadata.FilePath)), undoSystem), m_Material(metadata.Handle),
+        : Workspace(std::string(FS::Filename(metadata.FilePath)), undoSystem), m_Material(metadata.ID),
           m_PropertiesPanel(undoSystem, m_Material)
     {
-        m_WorkspaceNameHash = metadata.Handle.ToString();
+        m_WorkspaceNameHash = metadata.ID.ToString();
         m_WorkspaceID = ImHashStr(FormatTemp("{}_MaterialDockspace", m_WorkspaceName));
     }
 

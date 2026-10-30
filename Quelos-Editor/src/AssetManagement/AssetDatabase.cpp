@@ -96,7 +96,7 @@ ON CONFLICT (AssetID) DO UPDATE SET
 
         HashSet<AssetID> produced(Allocator::Frame);
         for (const AssetMetadata& sub : record.SubAssets) {
-            produced.insert(sub.Handle);
+            produced.insert(sub.ID);
         }
 
         Vec<AssetID> stale(Allocator::Frame);
@@ -139,7 +139,7 @@ ON CONFLICT (AssetID) DO UPDATE SET
         }
 
         for (const AssetMetadata& sub : record.SubAssets) {
-            if (auto r = upsertChild->BindAll(sub.Handle,
+            if (auto r = upsertChild->BindAll(sub.ID,
                                               sub.FilePath,
                                               sub.Type.GetName(),
                                               record.ID

@@ -404,7 +404,7 @@ namespace QuelosEditor {
                 continue;
             }
 
-            if (const auto workspaceIt = m_Workspaces.find(metadata.Handle); workspaceIt != m_Workspaces.end()) {
+            if (const auto workspaceIt = m_Workspaces.find(metadata.ID); workspaceIt != m_Workspaces.end()) {
                 workspaceIt->second->Focus();
                 continue;
             }
@@ -421,7 +421,7 @@ namespace QuelosEditor {
             }
 
             workspace->Focus();
-            m_Workspaces.emplace(metadata.Handle, std::move(workspace));
+            m_Workspaces.emplace(metadata.ID, std::move(workspace));
         }
 
         m_OpenAssetWorkspaceRequests.clear();

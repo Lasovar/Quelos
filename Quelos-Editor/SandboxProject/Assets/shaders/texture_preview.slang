@@ -13,7 +13,7 @@ struct VSOut {
 VSOut VSMain(uint vertexID : SV_VertexID) {
     VSOut o;
     o.UV = float2((vertexID << 1) & 2, vertexID & 2);
-    o.Position = float4(o.UV * float2(2.0) - float2(1.0), 0.0, 1.0);
+    o.Position = float4(o.UV * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
     return o;
 }
 

@@ -204,17 +204,34 @@ namespace QuelosEditor {
                 case MaterialPropertyType::Int4:
                 case MaterialPropertyType::UInt:
                 case MaterialPropertyType::Texture2D: {
-                    const auto& value = material.GetProperty<SoftRef<Texture>>(materialProperty.Offset);
+                    const auto* value = material.GetProperty<Texture2DProperty>(materialProperty.Offset);
                     if (!value) {
                         break;
                     }
 
-                    AssetID assetId = value->GetAssetID();
+                    AssetID assetId = value->Value.GetAssetID();
                     if (UI::EditAsset<Texture>(materialProperty.Name, assetId)) {
-                        m_UndoSystem.Push<SetMaterialProperty<SoftRef<Texture>>>(
+                        m_UndoSystem.Push<SetMaterialPropertyTexture<Texture2DProperty>>(
                             m_Material,
                             materialProperty.Offset,
-                            value->GetAssetID(),
+                            value->Value.GetAssetID(),
+                            assetId
+                        );
+                    }
+                    break;
+                }
+                case MaterialPropertyType::NormalMap: {
+                    const auto* value = material.GetProperty<NormalMapProperty>(materialProperty.Offset);
+                    if (!value) {
+                        break;
+                    }
+
+                    AssetID assetId = value->Value.GetAssetID();
+                    if (UI::EditAsset<Texture>(materialProperty.Name, assetId)) {
+                        m_UndoSystem.Push<SetMaterialPropertyTexture<NormalMapProperty>>(
+                            m_Material,
+                            materialProperty.Offset,
+                            value->Value.GetAssetID(),
                             assetId
                         );
                     }

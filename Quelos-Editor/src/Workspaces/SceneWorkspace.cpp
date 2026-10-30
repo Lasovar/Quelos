@@ -17,7 +17,7 @@ namespace QuelosEditor {
           m_InspectorPanel(*this, undoSystem),
           m_EntityHierarchyPanel(*this, undoSystem)
     {
-        m_WorkspaceNameHash = assetMetadata.Handle.ToString();
+        m_WorkspaceNameHash = assetMetadata.ID.ToString();
         ComponentRegistry::RegisterBuiltinTypes(m_EditorWorld);
         ComponentRegistry::RegisterBuiltinTypes(m_RuntimeWorld);
 
@@ -31,7 +31,7 @@ namespace QuelosEditor {
         m_EditorWorld.import<LocalToWorldTransformSystem>();
         m_RuntimeWorld.import<LocalToWorldTransformSystem>();
 
-        m_EditorScene = SceneImporter::ImportScene(assetMetadata.Handle, assetMetadata, m_EditorWorld);
+        m_EditorScene = SceneImporter::ImportScene(assetMetadata.ID, assetMetadata, m_EditorWorld);
         m_ActiveScene = m_EditorScene;
 
         m_InspectorPanel.SetScene(m_ActiveScene);

@@ -132,7 +132,7 @@ namespace QuelosEditor {
             MaterialMetadata& materialMetadata = *materialMetadataResult;
 
             Material* material = new(loadContext.GetLoadSlot()) Material();
-            material->SetAssetID(assetMetadata.Handle);
+            material->SetAssetID(assetMetadata.ID);
             material->SetShader(materialMetadata.ShaderId);
 
             for (const MaterialPropertySpec& materialProperty : material->GetMaterialProperties()) {

@@ -23,8 +23,16 @@ namespace QuelosEditor {
             Material::EnsureType(materialProperty.Type, materialProperty.Value);
 
             std::visit(
-                [&](auto& value) {
-                    archive.Value(value);
+                Overloaded{
+                    [&](Texture2DProperty& value) {
+                        archive.Value(value.Value);
+                    },
+                    [&](NormalMapProperty& value) {
+                        archive.Value(value.Value);
+                    },
+                    [&](auto& value) {
+                        archive.Value(value);
+                    }
                 },
                 materialProperty.Value
             );

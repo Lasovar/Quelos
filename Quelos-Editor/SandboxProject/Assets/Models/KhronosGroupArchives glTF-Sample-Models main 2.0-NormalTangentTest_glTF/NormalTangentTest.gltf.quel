@@ -1,0 +1,6 @@
+[Model]
+handle = a8dab2f4-a827-4330-81fd-00c0be30c14a
+
+[Mesh]
+handle = 6e9d11cf-1a7e-8f75-8715-e7929f037c76
+name = "NormalTangentTest_low"

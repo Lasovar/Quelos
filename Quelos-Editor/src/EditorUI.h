@@ -183,7 +183,7 @@ namespace QuelosEditor {
                     !results.empty() &&
                     !ImGui::IsAnyItemHovered())
                 {
-                    value = results[selectedIndex].Metadata->Handle;
+                    value = results[selectedIndex].Metadata->ID;
                     changed = true;
 
                     ImGui::CloseCurrentPopup();
@@ -193,7 +193,7 @@ namespace QuelosEditor {
                     const bool selected = selectedIndex == i;
 
                     if (ImGui::Selectable(FormatTemp("{}", FS::Filename(results[i].Name)), selected)) {
-                        value = results[i].Metadata->Handle;
+                        value = results[i].Metadata->ID;
                         changed = true;
 
                         ImGui::CloseCurrentPopup();

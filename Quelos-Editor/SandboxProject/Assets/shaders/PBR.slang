@@ -5,7 +5,7 @@ import quelos.brdf;
 [Material]
 struct Material {
     [Texture2D] uint32_t BaseColor;
-    [Texture2D] uint32_t NormalMap;
+    [NormalMap] uint32_t NormalMap;
     [Texture2D] uint32_t MetallicRoughness; // G = roughness, B = metallic
     [Texture2D] uint32_t AOTexIdx;
     [Color] float4 BaseColorFactor;
@@ -46,6 +46,12 @@ struct FragmentOut {
     float4 color : SV_Target0;
 }
 
+float3 SampleNormalTS(Texture2D t, SamplerState s, float2 uv) {
+    float2 xy = t.Sample(s, uv).rg * 2.0 - 1.0;
+    float z = sqrt(saturate(1.0 - dot(xy, xy)));
+    return float3(xy, z);
+}
+
 [shader("fragment")]
 [Pass("GBuffer")]
 FragmentOut fragmentMain(VertexOut input) {
@@ -68,10 +74,8 @@ FragmentOut fragmentMain(VertexOut input) {
 
     float ao = g_Textures[material.AOTexIdx].Sample(g_Textures_sampler, uv).r;
 
-    // Normal mapping TODO: make it so normal maps have a placeholder texture
-    /*float3 tangentNormal = g_Textures[material.NormalMap]
-                        .Sample(g_Textures_sampler, input.uv).rgb * 2.0 - 1.0;*/
-    float3 tangentNormal = float3(0.5, 0.5, 1.0) * 2.0 - 1.0;
+    // Normal mapping
+    float3 tangentNormal = SampleNormalTS(g_Textures[material.NormalMap], g_Textures_sampler, input.uv);
 
     float3x3 TBN = float3x3(normalize(input.Tangent),
                              normalize(input.Bitangent),

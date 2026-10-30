@@ -147,7 +147,7 @@ namespace QuelosEditor {
         HashMap<AssetID, ResourceTable<std::function<void()>, ReloadListener>> m_AssetReloadEventListeners{Allocator::Persistent};
         bool m_RequestFullRefresh;
 
-        HashSet<AssetID> m_ReimportQueue;
+        HashSet<AssetID> m_ReimportQueue{Allocator::Persistent};
 
         efsw::WatchID m_WatchID{};
     };
