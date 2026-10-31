@@ -14,7 +14,7 @@ VertexOut vertex(VertexIn input, uint instanceID: SV_InstanceID) {
     float4 worldPos = float4(input.position, 1.0);
 
     InstanceData instance = Instances[instanceID];
-    output.position = mul(mul(worldPos, instance.Transform), global.viewProj);
+    output.position = mul(mul(worldPos, instance.Transform), global.ViewProj);
     output.normal = mul(input.normal, (float3x3)instance.Transform);
     output.uv = input.texcoord0;
     output.instanceID = instanceID;

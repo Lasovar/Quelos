@@ -1,14 +1,24 @@
 #include "qspch.h"
+#include "ShaderImporter.h"
 
 #include "stb_image.h"
+#include "AssetManagement/EditorAssetManager.h"
+
+#include "magic_enum/magic_enum.hpp"
+#include "Quelos/Renderer/ComputeShader.h"
+using namespace magic_enum::bitwise_operators;
+
 #include "Quelos/Core/Buffer.h"
 #include "Quelos/Project/Project.h"
 
 #include "TextureImporter.h"
 
 #include "Quelos/Renderer/Renderer.h"
+#include "Quelos/Renderer/RenderResource.h"
 
 namespace QuelosEditor {
+    using namespace Quelos;
+
     static float1 SRGBToLinear(const float1& c) {
         return math::all(c <= float1(0.04045f)) ? c / 12.92f : math::pow((c + 0.055f) / 1.055f, 2.4f);
     }
@@ -158,7 +168,7 @@ namespace QuelosEditor {
     bool TextureImporter::IsAssetSupported(const std::string_view path) {
         static HashSet<std::string_view> s_ImportableExtensions = {
             {
-                ".png", ".jpeg"
+                ".png", ".jpeg", ".hdr"
             },
             AllocatorType::Persistent
         };
@@ -191,48 +201,179 @@ namespace QuelosEditor {
 
 
     bool TextureImporter::Load(LoadContext& loadContext) {
-        const auto blob = loadContext.ReadArtifact("TextureData");
-        if (!blob) {
-            return false;
-        }
-
-        Serialization::BinaryReader reader(*blob);
-        auto header = reader.Read<CookedTextureHeader>();
-        if (!header || header->Magic != k_TextureMagic || header->Version != k_TextureVersion) {
-            return false;
-        }
-
-        Vec<CookedMip> mips(header->MipLevels, Allocator::Frame);
-        for (CookedMip& mip : mips) {
-            auto mipData = reader.Read<CookedMip>();
-            if (!mipData) {
+        const AssetMetadata& metadata = loadContext.GetAssetMetadata();
+        if (FS::Extension(metadata.FilePath) != ".hdr") {
+            const auto blob = loadContext.ReadArtifact("TextureData");
+            if (!blob) {
                 return false;
             }
 
-            mip = *mipData;
+            Serialization::BinaryReader reader(*blob);
+            auto header = reader.Read<CookedTextureHeader>();
+            if (!header || header->Magic != k_TextureMagic || header->Version != k_TextureVersion) {
+                return false;
+            }
+
+            Vec<CookedMip> mips(header->MipLevels, Allocator::Frame);
+            for (CookedMip& mip : mips) {
+                auto mipData = reader.Read<CookedMip>();
+                if (!mipData) {
+                    return false;
+                }
+
+                mip = *mipData;
+            }
+
+            Vec<TextureSubResourceData> subRes(header->MipLevels, Allocator::Frame);
+            for (uint32_t i = 0; i < header->MipLevels; ++i) {
+                subRes[i].pData  = blob->data() + mips[i].Offset;
+                subRes[i].Stride = mips[i].RowPitch;
+            }
+
+            TextureSpec textureSpecs;
+            textureSpecs.Name = FS::Filename(loadContext.GetAssetMetadata().FilePath);
+            textureSpecs.Width = header->Width;
+            textureSpecs.Height = header->Height;
+            textureSpecs.Format = static_cast<TextureFormat>(header->Format);
+            textureSpecs.ArraySize = header->ArraySize;
+            textureSpecs.MipLevels = header->MipLevels;
+            textureSpecs.BindFlags = Bind::ShaderResource;
+
+            if (const Optional<TextureSettings> settings = loadContext.Settings<TextureSettings>()) {
+                textureSpecs.SamplerFilter = settings->Filter;
+                textureSpecs.SamplerWrap = settings->Wrap;
+            }
+
+            auto* texture = new(loadContext.GetLoadSlot()) Texture(textureSpecs, subRes);
+            texture->SetAssetID(loadContext.GetAssetMetadata().ID);
+
+            return true;
         }
 
-        Vec<TextureSubResourceData> subRes(header->MipLevels, Allocator::Frame);
-        for (uint32_t i = 0; i < header->MipLevels; ++i) {
-            subRes[i].pData  = blob->data() + mips[i].Offset;
-            subRes[i].Stride = mips[i].RowPitch;
+        // ENVIRONMENT TEXTURES
+        stbi_set_flip_vertically_on_load_thread(0);
+        int w, h, comp;
+        const OsPath assetPath = Project::GetProjectPath() / metadata.FilePath;
+        float* pixels = stbi_loadf(assetPath.string().c_str(), &w, &h, &comp, 4);
+        if (!pixels) {
+            QS_ERROR_TAGGED("Failed to load HDR '{}': {}", metadata.FilePath, stbi_failure_reason());
+            return false;
         }
 
-        TextureSpec textureSpecs;
-        textureSpecs.Name = FS::Filename(loadContext.GetAssetMetadata().FilePath);
-        textureSpecs.Width = header->Width;
-        textureSpecs.Height = header->Height;
-        textureSpecs.Format = static_cast<TextureFormat>(header->Format);
-        textureSpecs.ArraySize = header->ArraySize;
-        textureSpecs.MipLevels = header->MipLevels;
-        textureSpecs.BindFlags = Bind::ShaderResource;
+        TextureSpec eqSPec;
+        eqSPec.Name = "Equirect";
+        eqSPec.Type = TextureType::Texture2D;
+        eqSPec.Width = w;
+        eqSPec.Height = h;
+        eqSPec.Format = TextureFormat::RGBA32Float;
+        eqSPec.Usage = Usage::Immutable;
+        eqSPec.BindFlags = Bind::ShaderResource;
 
-        if (const Optional<TextureSettings> settings = loadContext.Settings<TextureSettings>()) {
-            textureSpecs.SamplerFilter = settings->Filter;
-            textureSpecs.SamplerWrap = settings->Wrap;
-        }
+        TextureHandle equirect = Renderer::CreateTexture(
+            eqSPec,
+            Span64(reinterpret_cast<byte*>(pixels), static_cast<uint64_t>(w) * h * 4 * sizeof(float))
+        );
 
-        auto* texture = new(loadContext.GetLoadSlot()) Texture(textureSpecs, subRes);
+        stbi_image_free(pixels);
+
+        TextureSpec cubeSpec;
+        cubeSpec.Name      = "EnvCube";
+        cubeSpec.Type      = TextureType::TextureCube;
+        cubeSpec.Width     = 1024;
+        cubeSpec.Height    = 1024;
+        cubeSpec.ArraySize = 6;
+        cubeSpec.MipLevels = 0; // full chain, filled by GenerateMips
+        cubeSpec.Format    = TextureFormat::RGBA16Float;
+        cubeSpec.BindFlags = Bind::ShaderResource | Bind::UnorderedAccess;
+        cubeSpec.MiscFlags = MiscTextureFlags::GenerateMips;
+
+        TextureHandle cube = Renderer::CreateTexture(cubeSpec);
+
+        TextureViewSpec viewSpec;
+        viewSpec.ViewType = TextureViewType::UnorderedAccess;
+        viewSpec.TextureType = TextureType::Texture2DArray;
+        viewSpec.Format = TextureFormat::RGBA16Float;
+        viewSpec.MostDetailedMip = 0;
+        viewSpec.NumMipLevels = 1;
+        viewSpec.FirstArraySlice = 0;
+        viewSpec.NumArraySlices = 6;
+
+        TextureViewHandle cubeUAV = Renderer::TextureCreateView(cube, viewSpec);
+
+        const auto& assetManager = SharedAs<EditorAssetManager>(Project::GetAssetManager());
+        alignas(ComputeShader) byte computeStorage[sizeof(ComputeShader)]{};
+        ComputeShader* computeShader = std::launder(reinterpret_cast<ComputeShader*>(computeStorage));
+
+        const AssetMetadata* computeMetadata = assetManager->GetAssetMetadata("Assets/shaders/environment_filtering.slang");
+        ShaderImporter::Load(LoadContext(*computeMetadata, computeShader));
+
+        ComputePipelineStateCreateInfo psoCI;
+        psoCI.ComputeShader = computeShader->GetShader();
+        psoCI.Spec.Type = PipelineType::Compute;
+
+        constexpr ShaderResourceVariableSpec vars[2] = {
+            {"_Equirect", ShaderType::Compute, ShaderResourceVariableType::Mutable},
+            {"_OutCube", ShaderType::Compute, ShaderResourceVariableType::Mutable},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec samplerSpec;
+        samplerSpec.MinFilter = FilterMode::Linear;
+        samplerSpec.MagFilter = FilterMode::Linear;
+        samplerSpec.MipFilter = FilterMode::Linear;
+        samplerSpec.WrapU = WrapMode::Repeat;
+        samplerSpec.WrapV = WrapMode::Clamp;
+        samplerSpec.WrapW = WrapMode::Clamp;
+
+        ImmutableSamplerSpec immutableSamplerSpec[1] {
+            {
+                .ShaderStages = ShaderType::Compute,
+                .SamplerOrTextureName = "_Equirect",
+                .Specification = samplerSpec,
+            }
+        };
+
+        psoCI.Spec.ResourceLayout.ImmutableSamplers = immutableSamplerSpec;
+
+        PipelineStateHandle pso = Renderer::CreatePipelineState(psoCI);
+        ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pso, true);
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            srb,
+            "_Equirect",
+            Renderer::TextureGetDefaultView(equirect, TextureViewType::ShaderResource),
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            srb,
+            "_OutCube",
+            cubeUAV,
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindPipelineState(pso);
+        Renderer::CommitShaderResources(srb, ResourceStateTransitionMode::Transition);
+
+        const auto& threadGroupSize = computeShader->GetThreadGroupSize();
+        DispatchComputeAttribs dispatch;
+        dispatch.ThreadGroupCountX = (1024 + threadGroupSize[0]) / threadGroupSize[0];
+        dispatch.ThreadGroupCountY = (1024 + threadGroupSize[1]) / threadGroupSize[1];
+        dispatch.ThreadGroupCountZ = 6;
+        Renderer::DispatchCompute(dispatch);
+
+        Renderer::Destroy(srb);
+        Renderer::Destroy(pso);
+        std::destroy_at(computeShader);
+
+        Renderer::Destroy(cubeUAV);
+        Renderer::Destroy(equirect);
+
+        Renderer::GenerateMips(Renderer::TextureGetDefaultView(cube, TextureViewType::ShaderResource));
+
+        auto* texture = new(loadContext.GetLoadSlot()) Texture(cube);
         texture->SetAssetID(loadContext.GetAssetMetadata().ID);
 
         return true;
@@ -295,65 +436,70 @@ namespace QuelosEditor {
             return false;
         }
 
-        Cooker::MipChain chain;
-        TextureFormat format = TextureFormat::SRGBA;
-        switch (settings->Usage) {
-        case TextureSettings::Usage::Default:
-            chain = Cooker::CookColor(std::move(*result), settings->IsSRGB, &GetFrameAllocator());
-            format = settings->IsSRGB ? TextureFormat::SRGBA : TextureFormat::RGBA8UNorm;
-            break;
-        case TextureSettings::Usage::Normal:
-            chain = Cooker::CookNormal(std::move(*result), settings->FlipGreen, &GetFrameAllocator());
-            format = TextureFormat::RG8UNorm;
-            break;
-        default:
-            return false;
+        if (FS::Extension(metadata.FilePath) != ".hdr") {
+            Cooker::MipChain chain;
+            TextureFormat format = TextureFormat::SRGBA;
+            switch (settings->Usage) {
+            case TextureSettings::Usage::Default:
+                chain = Cooker::CookColor(std::move(*result), settings->IsSRGB, &GetFrameAllocator());
+                format = settings->IsSRGB ? TextureFormat::SRGBA : TextureFormat::RGBA8UNorm;
+                break;
+            case TextureSettings::Usage::Normal:
+                chain = Cooker::CookNormal(std::move(*result), settings->FlipGreen, &GetFrameAllocator());
+                format = TextureFormat::RG8UNorm;
+                break;
+            default:
+                return false;
+            }
+
+            const CookedTextureHeader header {
+                .Format = static_cast<uint32_t>(format),
+                .Width = chain[0].Width,
+                .Height = chain[0].Height,
+                .MipLevels = chain.size(),
+                .ArraySize = 1,
+            };
+
+            const uint32_t channels = format == TextureFormat::RG8UNorm ? 2 : 4;
+            const uint32_t mipLevels = chain.size();
+
+            uint64_t offset = AlignUp(sizeof(CookedTextureHeader) + sizeof(CookedMip) * mipLevels, 16);
+            Vec<CookedMip> mips(&GetFrameAllocator());
+            for (const Cooker::MipLevel& mipLevel : chain) {
+                const uint64_t size = Cooker::size(mipLevel.Width, mipLevel.Height, channels);
+                mips.push_back({
+                    .Offset = offset,
+                    .Size = Cooker::size(mipLevel.Width, mipLevel.Height, channels),
+                    .Width = mipLevel.Width,
+                    .Height = mipLevel.Height,
+                    .RowPitch = mipLevel.Width * channels,
+                });
+
+                offset = AlignUp(offset + size, 16);
+            }
+
+            Vec64<byte> buffer(Allocator::Persistent);
+            Serialization::BinaryWriter writer(buffer);
+
+            writer.Write(header);
+            for (const CookedMip& mip : mips) {
+                writer.Write(mip);
+            }
+
+            for (uint32_t i = 0; i < mipLevels; ++i) {
+                PadTo(buffer, mips[i].Offset);
+                Cooker::Quantize(chain[i], channels, buffer);
+            }
+
+            if (auto r = importContext.WriteArtifact("TextureData", buffer); !r) {
+                QS_ERROR_TAGGED("Failed to write texture data artifact: {}", r.error());
+                return false;
+            }
+
+            return true;
+        } else {
+            // TODO: Cook
+            return true;
         }
-
-        const CookedTextureHeader header {
-            .Format = static_cast<uint32_t>(format),
-            .Width = chain[0].Width,
-            .Height = chain[0].Height,
-            .MipLevels = chain.size(),
-            .ArraySize = 1,
-        };
-
-        const uint32_t channels = format == TextureFormat::RG8UNorm ? 2 : 4;
-        const uint32_t mipLevels = chain.size();
-
-        uint64_t offset = AlignUp(sizeof(CookedTextureHeader) + sizeof(CookedMip) * mipLevels, 16);
-        Vec<CookedMip> mips(&GetFrameAllocator());
-        for (const Cooker::MipLevel& mipLevel : chain) {
-            const uint64_t size = Cooker::size(mipLevel.Width, mipLevel.Height, channels);
-            mips.push_back({
-                .Offset = offset,
-                .Size = Cooker::size(mipLevel.Width, mipLevel.Height, channels),
-                .Width = mipLevel.Width,
-                .Height = mipLevel.Height,
-                .RowPitch = mipLevel.Width * channels,
-            });
-
-            offset = AlignUp(offset + size, 16);
-        }
-
-        Vec64<byte> buffer(Allocator::Persistent);
-        Serialization::BinaryWriter writer(buffer);
-
-        writer.Write(header);
-        for (const CookedMip& mip : mips) {
-            writer.Write(mip);
-        }
-
-        for (uint32_t i = 0; i < mipLevels; ++i) {
-            PadTo(buffer, mips[i].Offset);
-            Cooker::Quantize(chain[i], channels, buffer);
-        }
-
-        if (auto r = importContext.WriteArtifact("TextureData", buffer); !r) {
-            QS_ERROR_TAGGED("Failed to write texture data artifact: {}", r.error());
-            return false;
-        }
-
-        return true;
     }
 }

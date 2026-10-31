@@ -691,6 +691,70 @@ namespace Quelos {
         m_ToneMappingPSO = Renderer::CreatePipelineState(psoCI);
     }
 
+    void WorldRenderer::SetSkyboxShader(const GraphicsShader* skyboxShader, AssetRef<Texture> skyBoxTexture) {
+        GraphicsPipelineStateCreateInfo psoCI;
+        psoCI.Name = "SkyboxPSO";
+        const GraphicsShaderPass* pass = skyboxShader->GetShaderPass("Skybox");
+        psoCI.VertexShader = pass->Pipelines[0].VertexShader;
+        psoCI.FragmentShader = pass->Pipelines[0].FragmentShader;
+        psoCI.Spec.Type = PipelineType::Graphics;
+
+        psoCI.GraphicsPipeline.RenderPass = m_RenderPass;
+
+        psoCI.GraphicsPipeline.RasterizerSpec.CullMode = CullMode::None;
+        psoCI.GraphicsPipeline.RasterizerSpec.ScissorEnabled = false;
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthEnable = true;
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthWriteEnable = false;
+        psoCI.GraphicsPipeline.DepthStencilSpec.DepthFunc = ComparisonFunc::GreaterEqual;
+        psoCI.GraphicsPipeline.SampleSpec.Count = SampleCount::x4;
+
+        ShaderResourceVariableSpec vars[] = {
+            { "_SkyTexture", ShaderType::Fragment, ShaderResourceVariableType::Mutable },
+            { "global", ShaderType::Fragment, ShaderResourceVariableType::Static },
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec skySampler;
+        skySampler.MinFilter = FilterMode::Linear;
+        skySampler.MagFilter = FilterMode::Linear;
+        skySampler.MipFilter = FilterMode::Linear;
+        skySampler.WrapU = WrapMode::Clamp;
+        skySampler.WrapV = WrapMode::Clamp;
+        skySampler.WrapW = WrapMode::Clamp;
+
+        ImmutableSamplerSpec samplers[1];
+        samplers[0].SamplerOrTextureName = "_SkyTexture";
+        samplers[0].Specification = skySampler;
+        samplers[0].ShaderStages = ShaderType::Fragment;
+
+        psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
+
+        m_SkyboxPSO = Renderer::CreatePipelineState(psoCI);
+        Renderer::BindStaticVariableByName(
+            m_SkyboxPSO,
+            ShaderType::Fragment,
+            "global",
+            m_GlobalBuffer
+        );
+
+        m_SkyboxSRB = Renderer::CreateShaderResourceBinding(m_SkyboxPSO, true);
+        const TextureHandle skybox = skyBoxTexture.Get().GetHandle();
+        Renderer::BindVariableByName(
+            ShaderType::Fragment,
+            m_SkyboxSRB,
+            "_SkyTexture",
+            Renderer::TextureGetDefaultView(skybox, TextureViewType::ShaderResource),
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::TransitionResource(skybox, ResourceState::ShaderResource);
+
+        uint2 skyboxSize = skyBoxTexture.Get().GetSize();
+        m_SkyboxWidth = skyboxSize.x;
+        m_SkyboxHeight = skyboxSize.y;
+    }
+
     void WorldRenderer::CreatePerViewResources(
         const UniquePtr<WorldRendererView>& view,
         const MaterialRegistry& materialRegistry,
@@ -1412,7 +1476,9 @@ namespace Quelos {
 
         Globals globals{};
         globals.ViewProjection = viewProjection;
-        globals.CameraPosition = float4(renderViewParams.CameraPosition, 0);
+        globals.InverseViewProjection = invViewProj;
+        globals.CameraPosition = renderViewParams.CameraPosition;
+        globals.EnvironmentIntensity = 1.0f;
 
         m_DirectionalLightQuery.each([&](const WorldTransform& transform, const DirectionalLight& directionalLight) {
             lightDirection = transform.Value[2].xyz;
@@ -1820,6 +1886,15 @@ namespace Quelos {
             }
         }
 
+        // Skybox
+        Renderer::BindPipelineState(m_SkyboxPSO);
+        Renderer::CommitShaderResources(m_SkyboxSRB, ResourceStateTransitionMode::None);
+
+        DrawAttribs skyboxDraw;
+        skyboxDraw.NumVertices = 3;
+        Renderer::Draw(skyboxDraw);
+
+
         Renderer::EndRenderPass();
 
         // Tone Mapping
@@ -1898,5 +1973,8 @@ namespace Quelos {
         Renderer::Destroy(m_WhiteTexture);
 
         Renderer::Destroy(m_ShadowRenderPass);
+
+        Renderer::Destroy(m_SkyboxPSO);
+        Renderer::Destroy(m_SkyboxSRB);
     }
 }

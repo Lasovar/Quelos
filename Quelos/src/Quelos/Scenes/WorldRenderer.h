@@ -170,10 +170,12 @@ namespace Quelos {
         float IlluminanceLux;
     };
 
-    struct QS_API alignas(16) Globals {
+    struct QS_API Globals {
         pfloat4x4 ViewProjection;
+        pfloat4x4 InverseViewProjection;
         DirectionalLightData DirectionalLightData;
-        pfloat4 CameraPosition;
+        pfloat3 CameraPosition;
+        pfloat1 EnvironmentIntensity;
     };
 
     constexpr uint32_t k_NumCascades = 4;
@@ -304,6 +306,8 @@ namespace Quelos {
 
         void SetToneMappingShader(const GraphicsShader* toneMappingShader);
 
+        void SetSkyboxShader(const GraphicsShader* skyboxShader, AssetRef<Texture> skybox);
+
         [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
 
@@ -409,6 +413,11 @@ namespace Quelos {
 
         ResourceRef<RenderPass> m_ToneMappingRenderPass;
         ResourceRef<PipelineStateObject> m_ToneMappingPSO;
+
+        PipelineStateHandle m_SkyboxPSO;
+        ShaderResourceBindingHandle m_SkyboxSRB;
+        uint32_t m_SkyboxWidth = 0;
+        uint32_t m_SkyboxHeight = 0;
 
         flecs::entity m_WorldRendererPipeline;
     };

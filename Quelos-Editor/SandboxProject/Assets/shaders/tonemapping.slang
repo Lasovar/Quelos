@@ -29,7 +29,7 @@ float3 PBRNeutral(float3 color) {
     const float startCompression = 0.8 - 0.04;
     const float desaturation     = 0.15;
 
-    float x      = min(color.r, min(color.g, color.b));
+    float x = min(color.r, min(color.g, color.b));
     float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
     color -= offset;
 

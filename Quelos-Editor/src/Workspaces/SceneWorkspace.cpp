@@ -205,6 +205,14 @@ namespace QuelosEditor {
                       .each([](const flecs::iter& it, size_t, LocalTransform& transform) {
                           transform.Rotation = math::mul(transform.Rotation, quaternion::rotation_y(it.delta_time()));
                       });
+
+        const AssetMetadata* skyboxShaderMetadata = assetManager->GetAssetMetadata("Assets/shaders/skybox.slang");
+        ShaderImporter::Load(LoadContext(*skyboxShaderMetadata, GetSkyboxShader()));
+
+        auto* hdrMetadata = assetManager->GetAssetMetadata("Assets/Textures/HDRIs/qwantani_dusk_2_puresky_4k.hdr");
+        m_SkyboxTexture = AssetRef<Texture>(hdrMetadata->ID);
+
+        m_WorldRenderer.SetSkyboxShader(GetSkyboxShader(), m_SkyboxTexture);
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {

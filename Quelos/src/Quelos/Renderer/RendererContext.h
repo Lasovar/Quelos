@@ -18,6 +18,30 @@
 #include "ShaderResourceBinding.h"
 
 namespace Quelos {
+    struct Viewport {
+        /// X coordinate of the left boundary of the viewport.
+        float TopLeftX = 0.0f;
+
+        /// Y coordinate of the top boundary of the viewport.
+
+        /// When defining a viewport, DirectX convention is used:
+        /// window coordinate systems originates in the LEFT TOP corner
+        /// of the screen with Y axis pointing down.
+        float TopLeftY = 0.0f;
+
+        /// Viewport width.
+        float Width = 0.0f;
+
+        /// Viewport Height.
+        float Height = 0.0f;
+
+        /// Minimum depth of the viewport. Ranges between 0 and 1.
+        float MinDepth = 0.0f;
+
+        /// Maximum depth of the viewport. Ranges between 0 and 1.
+        float MaxDepth = 1.0f;
+    };
+
     enum class DrawFlags : uint8_t {
         /// No flags.
         None = 0u,
@@ -234,6 +258,8 @@ namespace Quelos {
             const float4x4& projection
         ) = 0;
 
+        virtual void SetViewports(Span<const Viewport> viewports, uint32_t width, uint32_t height) = 0;
+
         virtual void BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) = 0;
         virtual void EndRenderPass() = 0;
 
@@ -369,6 +395,7 @@ namespace Quelos {
         virtual TextureViewHandle TextureCreateView(TextureHandle texture, TextureViewSpec textureViewSpec) = 0;
 
         virtual void CopyTexture(const CopyTextureAttribs& copyAttribs) = 0;
+        virtual void GenerateMips(TextureViewHandle textureViewHandle) = 0;
 
         virtual void MapTextureSubresource(
             TextureHandle textureHandle,

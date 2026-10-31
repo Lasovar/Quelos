@@ -23,7 +23,7 @@ VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     float4 worldPos = float4(input.position, 1.0);
 
     InstanceData instance = Instances[instanceID];
-    output.position = mul(mul(worldPos, instance.Transform), global.viewProj);
+    output.position = mul(mul(worldPos, instance.Transform), global.ViewProj);
     output.normal = mul(input.normal, (float3x3)instance.Transform);
     output.uv = input.texcoord0;
     output.instanceID = instanceID;
@@ -78,13 +78,13 @@ OutlineVSOut OutlineVS(VertexIn input, uint instanceID: SV_InstanceID) {
     float3 worldPos = mul(float4(input.position, 1.0), instance.Transform).xyz;
     float3 worldSmoothNormal = normalize(mul(input.SmoothNormal, (float3x3)instance.Transform));
 
-    float4 clipPos = mul(float4(worldPos, 1.0), global.viewProj);
+    float4 clipPos = mul(float4(worldPos, 1.0), global.ViewProj);
     float width = Materials[instance.MaterialID].OutlineWidth;
 
     worldPos += worldSmoothNormal * width * clipPos.w;
 
     OutlineVSOut output;
-    output.Position = mul(float4(worldPos, 1.0), global.viewProj);
+    output.Position = mul(float4(worldPos, 1.0), global.ViewProj);
     output.InstanceID = instanceID;
     return output;
 }

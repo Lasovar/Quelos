@@ -40,10 +40,68 @@ namespace Quelos {
         Depth = Depth24Stencil8,
     };
 
+    constexpr uint32_t BytesPerPixel(const TextureFormat format) {
+        switch (format) {
+        case TextureFormat::R8UNorm:
+        case TextureFormat::R8UInt:                   return 1;
+        case TextureFormat::R16UInt:
+        case TextureFormat::RG8UNorm:                 return 2;
+        case TextureFormat::R32UInt:
+        case TextureFormat::R32Float:
+        case TextureFormat::RG16Float:
+        case TextureFormat::RGBA8Typeless:
+        case TextureFormat::RGBA8UNorm:
+        case TextureFormat::RGBA8SNorm:
+        case TextureFormat::B10R11G11Float:
+        case TextureFormat::SRGBA:
+        case TextureFormat::Depth32Float:
+        case TextureFormat::Depth24Stencil8:          return 4;
+        case TextureFormat::RG32Float:
+        case TextureFormat::RGBA16Float:
+        case TextureFormat::Depth32FloatStencil8UInt: return 8;   // D32_S8X24
+        case TextureFormat::RGBA32Float:              return 16;
+
+        case TextureFormat::RGB:
+        case TextureFormat::SRGB:
+        case TextureFormat::None:
+        default:
+            QS_ASSERT(false, "BytesPerPixel: unhandled TextureFormat");
+            return 0;
+        }
+    }
+
     enum class QS_API TextureType {
         Texture2D,
         Texture2DArray,
         TextureCube
+    };
+
+    enum class QS_API MiscTextureFlags : uint8_t {
+        /// No special flags are set
+        None = 0u,
+
+        /// Allow automatic mipmap generation with IDeviceContext::GenerateMips()
+
+        /// \note A texture must be created with BIND_RENDER_TARGET bind flag.
+        GenerateMips = 1u << 0,
+
+        /// The texture will be used as a transient framebuffer attachment.
+
+        /// Memoryless textures may only be used within a render pass in a framebuffer;
+        /// the corresponding subpass load operation must be CLEAR or DISCARD, and the
+        /// subpass store operation must be DISCARD.
+        Memoryless = 1u << 1,
+
+        /// For sparse textures, allow binding the same memory range in different texture
+        /// regions or in different sparse textures.
+        SparseAliasing = 1u << 2,
+
+        /// The texture will be used as an intermediate render target for rendering with
+        /// texture-based variable rate shading.
+        /// Requires SHADING_RATE_CAP_FLAG_SUBSAMPLED_RENDER_TARGET capability.
+        ///
+        /// \note  Copy operations are not supported for subsampled textures.
+        Subsampled = 1u << 3
     };
 
     struct QS_API TextureSpec {
@@ -71,6 +129,9 @@ namespace Quelos {
 
         /// Specify 0 to create full mipmap chain.
         uint32_t MipLevels = 1;
+
+        /// Miscellaneous flags, see Diligent::MISC_TEXTURE_FLAGS for details.
+        MiscTextureFlags MiscFlags = MiscTextureFlags::None;
     };
 
     struct TextureSubResourceData {

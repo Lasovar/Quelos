@@ -177,5 +177,11 @@ namespace QuelosEditor {
         GraphicsShader* GetToneMappingShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_ToneMappingShaderStorage)); }
         [[nodiscard]] const GraphicsShader* GetToneMappingShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_ToneMappingShaderStorage)); }
         alignas(GraphicsShader) byte m_ToneMappingShaderStorage[sizeof(GraphicsShader)]{};
+
+        // TODO: Move to render pass declaration
+        GraphicsShader* GetSkyboxShader() { return std::launder(reinterpret_cast<GraphicsShader*>(m_SkyboxShaderStorage)); }
+        [[nodiscard]] const GraphicsShader* GetSkyboxShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_SkyboxShaderStorage)); }
+        alignas(GraphicsShader) byte m_SkyboxShaderStorage[sizeof(GraphicsShader)]{};
+        AssetRef<Texture> m_SkyboxTexture;
     };
 }

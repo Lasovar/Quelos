@@ -78,14 +78,14 @@ struct SceneColorAttribute {}
 
 __extern_cpp struct DirectionalLightData {
     float4 Direction;
-    float3 Color;
-    float IlluminanceLux;
+    float4 ColorAndIlluminanceLux; // Color xyz, IlluninanceLux w
 }
 
 __extern_cpp struct GlobalUniforms {
-    float4x4 viewProj;
+    float4x4 ViewProj;
+    float4x4 InvViewProj;
     DirectionalLightData Sun;
-    float4 CameraPosition;
+    float4 CameraPositionAndEnvIntensity; // CameraPosition xyz, EnvironmentIntensity z
 };
 
 // Data accessed per instance from the Instances StructuredBuffer with SV_InstanceID

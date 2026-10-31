@@ -142,6 +142,7 @@ namespace Quelos {
         void Reset(uint32_t width, uint32_t height) override;
 
         void StartSceneRender(const float4x4& view, const float4x4& projection) override;
+        void SetViewports(Span<const Viewport> viewports, uint32_t width, uint32_t height) override;
 
         void BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) override;
         void EndRenderPass() override;
@@ -267,6 +268,7 @@ namespace Quelos {
         TextureViewHandle TextureCreateView(TextureHandle texture, TextureViewSpec textureViewSpec) override;
 
         void CopyTexture(const CopyTextureAttribs& copyAttribs) override;
+        void GenerateMips(TextureViewHandle shaderResourceView) override;
 
         void MapTextureSubresource(
             TextureHandle textureHandle,

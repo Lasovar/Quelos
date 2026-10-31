@@ -9,7 +9,8 @@ namespace QuelosEditor {
     struct TextureSettings {
         enum class Usage {
             Default,
-            Normal
+            Normal,
+            Environment
         };
 
         enum class CompressionQuality {

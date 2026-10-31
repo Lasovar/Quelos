@@ -466,7 +466,7 @@ namespace Quelos {
             return static_cast<USAGE>(usage);
         }
 
-        constexpr MISC_BUFFER_FLAGS GetMiscFlags(MiscGpuBufferFlags miscFlags) {
+        constexpr MISC_BUFFER_FLAGS GetMiscBufferFlags(MiscGpuBufferFlags miscFlags) {
             return static_cast<MISC_BUFFER_FLAGS>(miscFlags);
         }
 
@@ -634,8 +634,12 @@ namespace Quelos {
             return static_cast<SET_SHADER_RESOURCE_FLAGS>(flags);
         }
 
-        constexpr FENCE_TYPE GetFenceType(FenceType type) {
+        static constexpr FENCE_TYPE GetFenceType(FenceType type) {
             return static_cast<FENCE_TYPE>(type);
+        }
+
+        constexpr static MISC_TEXTURE_FLAGS GetMiscTextureFlags(MiscTextureFlags miscFlags) {
+            return static_cast<MISC_TEXTURE_FLAGS>(miscFlags);
         }
     }
 
@@ -666,6 +670,7 @@ namespace Quelos {
             textureDesc.CPUAccessFlags = Utils::GetCPUAccessFlags(spec.CpuAccessFlags);
             textureDesc.ArraySize = spec.ArraySize;
             textureDesc.MipLevels = spec.MipLevels;
+            textureDesc.MiscFlags = Utils::GetMiscTextureFlags(spec.MiscFlags);
 
             device->CreateTexture(textureDesc, data, &textureData.Texture);
         }
@@ -963,6 +968,22 @@ namespace Quelos {
         }*/
     }
 
+    void DiligentRendererContext::SetViewports(const Span<const Viewport> viewports, const uint32_t width, const uint32_t height) {
+        SmallVec<Diligent::Viewport, 1> dViewports;
+        for (const auto& viewport : viewports) {
+            dViewports.emplace_back(
+                viewport.TopLeftX,
+                viewport.TopLeftY,
+                viewport.Width,
+                viewport.Height,
+                viewport.MinDepth,
+                viewport.MaxDepth
+            );
+        }
+
+        m_pImmediateContext->SetViewports(dViewports.size(), dViewports.data(), width, height);
+    }
+
     void DiligentRendererContext::BeginRenderPass(const BeginRenderPassAttribs& beginRenderPassAttrib) {
         SmallVec<OptimizedClearValue, 2> clearValues(Allocator::Frame);
         clearValues.reserve(beginRenderPassAttrib.ClearColors.size());
@@ -1001,7 +1022,7 @@ namespace Quelos {
         desc.Name = slot->Name.c_str();
         desc.BindFlags = Utils::GetBindFlags(bufferSpec.BindFlags);
         desc.CPUAccessFlags = Utils::GetCPUAccessFlags(bufferSpec.CpuAccessFlags);
-        desc.MiscFlags = Utils::GetMiscFlags(bufferSpec.MiscFlags);
+        desc.MiscFlags = Utils::GetMiscBufferFlags(bufferSpec.MiscFlags);
         desc.Usage = Utils::GetUsage(bufferSpec.Usage);
         desc.Mode = Utils::GetBufferMode(bufferSpec.Mode);
         desc.Size = bufferSpec.Size;
@@ -1391,7 +1412,7 @@ namespace Quelos {
 
         TextureSubResData subRes{};
         subRes.pData = data.data();
-        subRes.Stride = spec.Width * 4; // 4 bytes per pixel (RGBA)
+        subRes.Stride = static_cast<uint64_t>(spec.Width) * BytesPerPixel(spec.Format);
 
         TextureData textureData;
         textureData.pSubResources = &subRes;
@@ -1546,6 +1567,20 @@ namespace Quelos {
         copy.SrcTextureTransitionMode = Utils::GetResourceStateTransition(copyAttribs.SourceTransitionMode);
         copy.DstTextureTransitionMode = Utils::GetResourceStateTransition(copyAttribs.DestinationTransitionMode);
         m_pImmediateContext->CopyTexture(copy);
+    }
+
+    void DiligentRendererContext::GenerateMips(const TextureViewHandle shaderResourceView) {
+        const TextureViewData* slot = m_TextureViewTable.At(shaderResourceView);
+        if (!slot) {
+            QS_CORE_ERROR_TAGGED(
+                "Failed to get texture view slot at handle ({},{})!",
+                shaderResourceView.Index(), shaderResourceView.Generation()
+            );
+
+            return;
+        }
+
+        m_pImmediateContext->GenerateMips(slot->TextureView);
     }
 
     void DiligentRendererContext::MapTextureSubresource(

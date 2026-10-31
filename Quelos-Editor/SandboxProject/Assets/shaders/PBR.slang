@@ -29,7 +29,7 @@ VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
     float4 worldPos = float4(input.position, 1.0);
 
     InstanceData instance = Instances[instanceID];
-    output.position = mul(mul(worldPos, instance.Transform), global.viewProj);
+    output.position = mul(mul(worldPos, instance.Transform), global.ViewProj);
     float3x3 t = (float3x3)instance.Transform;
     output.normal = mul(input.normal, t);
     output.Tangent = mul(input.tangent, t);
@@ -82,7 +82,7 @@ FragmentOut fragmentMain(VertexOut input) {
                              normalize(input.normal));
     float3 N = normalize(mul(tangentNormal, TBN));
 
-    float3 V = normalize(global.CameraPosition.xyz - input.position.xyz);
+    float3 V = normalize(global.CameraPositionAndEnvIntensity.xyz - input.position.xyz);
     float3 L = normalize(-global.Sun.Direction.xyz);
     float3 H = normalize(V + L);
 
@@ -103,7 +103,7 @@ FragmentOut fragmentMain(VertexOut input) {
     );
 
     float shadow = clamp(GetShadowMask(input.position), 0.3, 1.0);
-    float3 sunRadiance = global.Sun.Color * global.Sun.IlluminanceLux;
+    float3 sunRadiance = global.Sun.ColorAndIlluminanceLux.xyz * global.Sun.ColorAndIlluminanceLux.w;
 
     float3 Lo = brdf * sunRadiance * NdotL * shadow;
 

@@ -36,9 +36,14 @@ namespace Quelos {
         static bool HomogenousDepth();
 
         static void StartFrame();
+
+        static void SetViewports(Span<const Viewport> viewports, uint32_t width, uint32_t height);
+
         static void StartSceneRender(const float4x4& view, const float4x4& projection);
+
         static void BeginRenderPass(const BeginRenderPassAttribs& attribs);
         static void EndRenderPass();
+
         static void EndFrame();
 
         static void SubmitMesh(const MeshRenderer& mesh, const WorldTransform& transform);
@@ -162,6 +167,7 @@ namespace Quelos {
         static TextureViewHandle TextureCreateView(TextureHandle textureHandle, const TextureViewSpec& textureViewSpec);
 
         static void CopyTexture(const CopyTextureAttribs& copy);
+        static void GenerateMips(TextureViewHandle shaderResourceView);
 
         static void MapTextureSubresource(
             TextureHandle textureHandle,

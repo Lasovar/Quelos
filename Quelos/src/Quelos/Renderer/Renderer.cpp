@@ -90,6 +90,10 @@ namespace Quelos {
         s_RendererContext->StartFrame();
     }
 
+    void Renderer::SetViewports(const Span<const Viewport> viewports, const uint32_t width, const uint32_t height) {
+        s_RendererContext->SetViewports(viewports, width, height);
+    }
+
     void Renderer::StartSceneRender(const float4x4& view, const float4x4& projection) {
         s_RendererContext->StartSceneRender(view, projection);
 
@@ -393,6 +397,10 @@ namespace Quelos {
 
     void Renderer::CopyTexture(const CopyTextureAttribs& copy) {
         s_RendererContext->CopyTexture(copy);
+    }
+
+    void Renderer::GenerateMips(const TextureViewHandle shaderResourceView) {
+        s_RendererContext->GenerateMips(shaderResourceView);
     }
 
     void Renderer::MapTextureSubresource(
