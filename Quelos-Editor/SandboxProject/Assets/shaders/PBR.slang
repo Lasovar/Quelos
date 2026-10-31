@@ -1,6 +1,7 @@
 import quelos;
 import quelos.lighting;
-import quelos.brdf;
+import quelos.surface;
+import quelos.shading;
 
 [Material]
 struct Material {
@@ -92,24 +93,26 @@ FragmentOut fragmentMain(VertexOut input) {
     float NdotH = saturate(dot(N, H));
     float LdotH = saturate(dot(L, H));
 
-    float3 brdf = EvaluateBRDF(
+    SurfaceData surfaceData = MakeSurface(
         albedo,
         metallic,
         roughness,
-        NdotL,
-        NdotV,
-        NdotH,
-        LdotH
+        N,
+        V,
+        ao
     );
 
-    float shadow = clamp(GetShadowMask(input.position), 0.3, 1.0);
-    float3 sunRadiance = global.Sun.ColorAndIlluminanceLux.xyz * global.Sun.ColorAndIlluminanceLux.w;
+    float shadow = saturate(GetShadowMask(input.position));
+    float3 sunRadiance = global.Sun.ColorAndIlluminanceLux.xyz
+            * global.Sun.ColorAndIlluminanceLux.w
+            * shadow;
 
-    float3 Lo = brdf * sunRadiance * NdotL * shadow;
-
-    // TODO: Placeholder ambient
-    float3 ambient = albedo * ao * 0.03;
-    float3 colorHDR = Lo + ambient;
+    float3 colorHDR = ShadeSurface(
+        surfaceData,
+        global.Sun.Direction.xyz,
+        sunRadiance,
+        global.CameraPositionAndEnvIntensity.w
+    );
 
     output.color = float4(colorHDR, 1.0f);
 

@@ -1,3 +1,5 @@
+import surface;
+
 static const float k_Pi = 3.14159265359;
 
 float D_GGX(float NdotH, float alpha) {
@@ -43,31 +45,18 @@ float Fr_DisneyDiffuse(
    return lightScatter * viewScatter * energyFactor;
 }
 
-// Standard metallic-workflow Cook-Torrance, returns outgoing radiance
-float3 EvaluateBRDF(
-    float3 albedo,
-    float metallic,
-    float roughness,
-    float NdotL,
-    float NdotV,
-    float NdotH,
-    float LdotH
-) {
-    float alpha = max(roughness * roughness, 0.0045);
+float3 EvaluateDirect(SurfaceData s, float3 L, float3 radiance) {
+    float3 H     = normalize(s.V + L);
+    float  NdotL = saturate(dot(s.N, L));
+    float  NdotH = saturate(dot(s.N, H));
+    float  LdotH = saturate(dot(L, H));
 
-    float3 F0 = lerp(float3(0.04), albedo, metallic);
-    float3 F90 = float3(1.0);
+    float  D   = D_GGX(NdotH, s.Alpha);
+    float  Vis = V_SmithGGXCorrelated(NdotL, s.NdotV, s.Alpha);
+    float3 F   = F_Schlick(s.F0, s.F90, LdotH);
+    float3 Fr  = D * Vis * F / k_Pi;
+    float3 Fd  = s.DiffuseColor * Fr_DisneyDiffuse(s.NdotV, NdotL, LdotH, s.Roughness) / k_Pi;
 
-    float3 diffuseColor = albedo * (1.0 - metallic);
-
-    // Specular BRDF
-    float D = D_GGX(NdotH, alpha);
-    float Vis = V_SmithGGXCorrelated(NdotL, NdotV, alpha);
-    float3 F = F_Schlick(F0, F90.r, LdotH);
-    float3 Fr = D * Vis * F / k_Pi;
-
-    // Diffuse BRDF
-    float3 Fd = diffuseColor * (Fr_DisneyDiffuse(NdotV, NdotL, LdotH, roughness) / k_Pi);
-
-    return Fd + Fr;
+    return (Fd + Fr) * radiance * NdotL;
 }
+

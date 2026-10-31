@@ -182,6 +182,10 @@ namespace Quelos {
             std::string_view name,
             GpuBufferViewHandle gpuBufferViewHandle
         ) override;
+        void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle, ShaderType shaderType, std::string_view name,
+            TextureViewHandle textureViewHandle
+        );
 
         void BindPipelineState(PipelineStateHandle pipelineStateHandle) override;
 

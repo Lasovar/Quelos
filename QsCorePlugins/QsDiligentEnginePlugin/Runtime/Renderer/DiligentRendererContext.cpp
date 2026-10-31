@@ -2363,6 +2363,29 @@ namespace Quelos {
         }
     }
 
+    void DiligentRendererContext::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle,
+        const ShaderType shaderType,
+        std::string_view name,
+        const TextureViewHandle textureViewHandle
+    ) {
+        IPipelineState* pso = m_PipelineStateTable.At(pipelineStateHandle)->PSO;
+
+        QS_CORE_ASSERT(pso, "Pipeline state object is nullptr!");
+
+        IShaderResourceVariable* resourceVariable = pso->GetStaticVariableByName(
+            Utils::GetShaderType(shaderType),
+            FormatTemp("{}", name)
+        );
+
+        if (resourceVariable) {
+            resourceVariable->Set(
+                m_TextureViewTable.At(textureViewHandle)->TextureView,
+                SET_SHADER_RESOURCE_FLAG_NONE
+            );
+        }
+    }
+
     void DiligentRendererContext::BindPipelineState(const PipelineStateHandle pipelineStateHandle) {
         PipelineStateData* slot = m_PipelineStateTable.At(pipelineStateHandle);
         if (!slot) [[unlikely]] {

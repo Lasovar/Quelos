@@ -691,7 +691,7 @@ namespace Quelos {
         m_ToneMappingPSO = Renderer::CreatePipelineState(psoCI);
     }
 
-    void WorldRenderer::SetSkyboxShader(const GraphicsShader* skyboxShader, AssetRef<Texture> skyBoxTexture) {
+    void WorldRenderer::SetSkyboxShader(const GraphicsShader* skyboxShader, const AssetRef<Texture>& skyboxTexture) {
         GraphicsPipelineStateCreateInfo psoCI;
         psoCI.Name = "SkyboxPSO";
         const GraphicsShaderPass* pass = skyboxShader->GetShaderPass("Skybox");
@@ -739,7 +739,9 @@ namespace Quelos {
         );
 
         m_SkyboxSRB = Renderer::CreateShaderResourceBinding(m_SkyboxPSO, true);
-        const TextureHandle skybox = skyBoxTexture.Get().GetHandle();
+        m_SkyboxTexture = skyboxTexture;
+        Texture& texture = skyboxTexture.Get();
+        const TextureHandle skybox = texture.GetHandle();
         Renderer::BindVariableByName(
             ShaderType::Fragment,
             m_SkyboxSRB,
@@ -750,9 +752,137 @@ namespace Quelos {
 
         Renderer::TransitionResource(skybox, ResourceState::ShaderResource);
 
-        uint2 skyboxSize = skyBoxTexture.Get().GetSize();
+        m_SkyboxSRV = Renderer::TextureGetDefaultView(skybox, TextureViewType::ShaderResource);
+
+        uint2 skyboxSize = texture.GetSize();
         m_SkyboxWidth = skyboxSize.x;
         m_SkyboxHeight = skyboxSize.y;
+    }
+
+    void WorldRenderer::SetDfgLutComputeShader(const ComputeShader* dfgLutCompute) {
+        TextureSpec spec;
+        spec.Name = "DFG LUT";
+        spec.Type = TextureType::Texture2D;
+        spec.Format = TextureFormat::RGBA16Float;
+        spec.BindFlags = Bind::ShaderResource | Bind::UnorderedAccess;
+        spec.Width = 128;
+        spec.Height = 128;
+
+        m_DfgLutTexture = Renderer::CreateTexture(spec);
+        m_DfgLutSRV = Renderer::TextureGetDefaultView(m_DfgLutTexture, TextureViewType::ShaderResource);
+        const TextureViewHandle dfgLutUAV = Renderer::TextureGetDefaultView(m_DfgLutTexture, TextureViewType::UnorderedAccess);
+
+        ComputePipelineStateCreateInfo psoCI;
+        psoCI.ComputeShader = dfgLutCompute->GetShader();
+        psoCI.Spec.Type = PipelineType::Compute;
+
+        ShaderResourceVariableSpec vars[] = {
+            {"_OutDFG", ShaderType::Compute, ShaderResourceVariableType::Mutable},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        PipelineStateHandle pso = Renderer::CreatePipelineState(psoCI);
+        ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pso, true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            srb,
+            "_OutDFG",
+            dfgLutUAV,
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindPipelineState(pso);
+        Renderer::CommitShaderResources(srb, ResourceStateTransitionMode::Transition);
+
+        DispatchComputeAttribs attribs;
+        attribs.ThreadGroupCountX = 16;
+        attribs.ThreadGroupCountY = 16;
+        attribs.ThreadGroupCountZ = 1;
+
+        Renderer::DispatchCompute(attribs);
+
+        Renderer::Destroy(srb);
+        Renderer::Destroy(pso);
+    }
+
+    void WorldRenderer::SetIrradianceCubeShader(const ComputeShader* irradianceCubeCompute) {
+        TextureSpec spec;
+        spec.Name = "IrradianceCube";
+        spec.Type = TextureType::TextureCube;
+        spec.Format = TextureFormat::RGBA16Float;
+        spec.BindFlags = Bind::ShaderResource | Bind::UnorderedAccess;
+        spec.Width = 32;
+        spec.Height = 32;
+        spec.ArraySize = 6;
+        spec.MipLevels = 1;
+
+        m_IrradianceCubeTexture = Renderer::CreateTexture(spec);
+        m_IrradianceCubeSRV = Renderer::TextureGetDefaultView(m_IrradianceCubeTexture, TextureViewType::ShaderResource);
+        const TextureViewHandle irradianceCubeUAV = Renderer::TextureGetDefaultView(
+            m_IrradianceCubeTexture,
+            TextureViewType::UnorderedAccess
+        );
+
+        ComputePipelineStateCreateInfo psoCI;
+        psoCI.ComputeShader = irradianceCubeCompute->GetShader();
+        psoCI.Spec.Type = PipelineType::Compute;
+
+        ShaderResourceVariableSpec vars[] = {
+            {"_EnvCube", ShaderType::Compute, ShaderResourceVariableType::Mutable},
+            {"_OutIrradiance", ShaderType::Compute, ShaderResourceVariableType::Mutable},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec cubeSampler;
+        cubeSampler.MinFilter = FilterMode::Linear;
+        cubeSampler.MagFilter = FilterMode::Linear;
+        cubeSampler.MipFilter = FilterMode::Linear;
+        cubeSampler.WrapU = WrapMode::Clamp;
+        cubeSampler.WrapV = WrapMode::Clamp;
+        cubeSampler.WrapW = WrapMode::Clamp;
+
+        ImmutableSamplerSpec samplers[1];
+        samplers[0].SamplerOrTextureName = "_EnvCube";
+        samplers[0].Specification = cubeSampler;
+        samplers[0].ShaderStages = ShaderType::Compute;
+
+        psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
+
+        PipelineStateHandle pso = Renderer::CreatePipelineState(psoCI);
+        ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pso, true);
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            srb,
+            "_EnvCube",
+            m_SkyboxSRV,
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindVariableByName(
+            ShaderType::Compute,
+            srb,
+            "_OutIrradiance",
+            irradianceCubeUAV,
+            SetShaderResourceFlag::None
+        );
+
+        Renderer::BindPipelineState(pso);
+        Renderer::CommitShaderResources(srb, ResourceStateTransitionMode::Transition);
+
+        const auto& threadSize = irradianceCubeCompute->GetThreadGroupSize();
+        DispatchComputeAttribs attribs;
+        attribs.ThreadGroupCountX = 32 / threadSize[0];
+        attribs.ThreadGroupCountY = 32 / threadSize[1];
+        attribs.ThreadGroupCountZ = 6;
+
+        Renderer::DispatchCompute(attribs);
+
+        Renderer::Destroy(srb);
+        Renderer::Destroy(pso);
     }
 
     void WorldRenderer::CreatePerViewResources(
@@ -1251,6 +1381,7 @@ namespace Quelos {
             Vec<WeakPipelineData> worldPipelines(Allocator::Frame);
 
             bool hasShadowMaps = false;
+            bool hasIrradianceCube = false;
             for (const GraphicsShaderPipelineData& pipelineData : shaderPass->Pipelines) {
                 GraphicsPipelineStateCreateInfo pipelineStateCreateInfo;
 
@@ -1292,7 +1423,7 @@ namespace Quelos {
 
                 pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
-                SmallVec<ShaderResourceVariableSpec, 5> vars = {
+                SmallVec<ShaderResourceVariableSpec, 7> vars = {
                     {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                     {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
                 };
@@ -1312,7 +1443,7 @@ namespace Quelos {
                 samplerSpec.MagFilter = FilterMode::Linear;
                 samplerSpec.MipFilter = FilterMode::Linear;
 
-                SmallVec<ImmutableSamplerSpec, 2> immutableSamplers;
+                SmallVec<ImmutableSamplerSpec, 4> immutableSamplers;
                 immutableSamplers.emplace_back();
                 immutableSamplers[0].SamplerOrTextureName = "g_Textures";
                 immutableSamplers[0].Specification = samplerSpec;
@@ -1332,12 +1463,52 @@ namespace Quelos {
                     hasShadowMaps = true;
                 }
 
+                if (std::ranges::contains(shaderPass->Variables, "_Irradiance")) {
+                    vars.emplace_back("_Irradiance", ShaderType::Fragment, ShaderResourceVariableType::Static);
+                    vars.emplace_back("_InDFG", ShaderType::Fragment, ShaderResourceVariableType::Static);
+
+                    samplerSpec.MinFilter = FilterMode::Linear;
+                    samplerSpec.MagFilter = FilterMode::Linear;
+                    samplerSpec.MipFilter = FilterMode::Linear;
+                    samplerSpec.WrapW = WrapMode::Clamp;
+                    samplerSpec.WrapV = WrapMode::Clamp;
+                    samplerSpec.WrapU = WrapMode::Clamp;
+
+                    ImmutableSamplerSpec immSampler;
+                    immSampler.Specification = samplerSpec;
+                    immSampler.ShaderStages = ShaderType::Fragment;
+
+                    immSampler.SamplerOrTextureName = "_Irradiance";
+                    immutableSamplers.push_back(immSampler);
+
+                    immSampler.SamplerOrTextureName = "_InDFG";
+                    immutableSamplers.push_back(immSampler);
+
+                    hasIrradianceCube = true;
+                }
+
                 pipelineStateCreateInfo.Spec.ResourceLayout.Variables = vars;
                 pipelineStateCreateInfo.Spec.ResourceLayout.ImmutableSamplers = immutableSamplers;
 
                 PipelineStateHandle pipelineStateHandle = Renderer::CreatePipelineState(pipelineStateCreateInfo);
 
                 Renderer::BindStaticVariableByName(pipelineStateHandle, ShaderType::Vertex, "global", m_GlobalBuffer);
+
+                if (hasIrradianceCube) {
+                    Renderer::BindStaticVariableByName(
+                        pipelineStateHandle,
+                        ShaderType::Fragment,
+                        "_Irradiance",
+                        m_IrradianceCubeSRV
+                    );
+
+                    Renderer::BindStaticVariableByName(
+                        pipelineStateHandle,
+                        ShaderType::Fragment,
+                        "_InDFG",
+                        m_DfgLutSRV
+                    );
+                }
 
                 worldPipelines.emplace_back(
                     pipelineStateHandle,
@@ -1347,6 +1518,7 @@ namespace Quelos {
                     hasShadowMaps,
                     false
                 );
+
                 shader.AddPipelineState(pipelineStateHandle);
             }
 
@@ -1973,6 +2145,10 @@ namespace Quelos {
         Renderer::Destroy(m_WhiteTexture);
 
         Renderer::Destroy(m_ShadowRenderPass);
+
+        Renderer::Destroy(m_IrradianceCubeTexture);
+
+        Renderer::Destroy(m_DfgLutTexture);
 
         Renderer::Destroy(m_SkyboxPSO);
         Renderer::Destroy(m_SkyboxSRB);

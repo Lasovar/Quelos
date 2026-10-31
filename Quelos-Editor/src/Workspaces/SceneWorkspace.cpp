@@ -5,6 +5,7 @@
 #include "imgui_internal.h"
 #include "AssetManagement/AssetImporters/SceneImporter.h"
 #include "AssetManagement/AssetImporters/ShaderImporter.h"
+#include "Quelos/ImGui/imgui_zoomable_image.h"
 #include "Quelos/Scenes/SceneSnapshot.h"
 
 using namespace magic_enum::bitwise_operators;
@@ -213,6 +214,14 @@ namespace QuelosEditor {
         m_SkyboxTexture = AssetRef<Texture>(hdrMetadata->ID);
 
         m_WorldRenderer.SetSkyboxShader(GetSkyboxShader(), m_SkyboxTexture);
+
+        const AssetMetadata* dfgLutMetadata = assetManager->GetAssetMetadata("Assets/shaders/dfg_lut.slang");
+        ShaderImporter::Load(LoadContext(*dfgLutMetadata, GetDfgLutShader()));
+        m_WorldRenderer.SetDfgLutComputeShader(GetDfgLutShader());
+
+        const AssetMetadata* irradianceCubeMetadata = assetManager->GetAssetMetadata("Assets/shaders/irradiance_cube.slang");
+        ShaderImporter::Load(LoadContext(*irradianceCubeMetadata, GetIrradianceCubeShader()));
+        m_WorldRenderer.SetIrradianceCubeShader(GetIrradianceCubeShader());
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {
@@ -459,24 +468,13 @@ namespace QuelosEditor {
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
 
         /*
-        if (ImGui::Begin("ShadowMask")) {
-            float nearFar[2];
-            nearFar[0] = m_SceneViewportPanel.GetWorldRendererView()->LastMinNDC;
-            nearFar[1] = m_SceneViewportPanel.GetWorldRendererView()->LastMaxNDC;
-
-            ImGui::DragFloat2("Near/Far", nearFar, 1, 0, 0, "%.4f", ImGuiSliderFlags_ReadOnly);
+        if (ImGui::Begin("DFG LUT")) {
             if (m_SceneViewportPanel.ShouldDraw()) {
                 float4 uv(0.0f, 0.0f, 1.0f, 1.0f);
 
-                auto size = m_SceneViewportPanel.GetViewportSize();
-                float aspectRatio = size.x / size.y;
-                ImVec2 availableSize = ImGui::GetContentRegionAvail();
-                size.x = availableSize.x;
-                size.y = availableSize.x / aspectRatio;
-
-                ImGui::Image(
-                    TextureHandle(m_SceneViewportPanel.GetWorldRendererView()->ShadowMask.GetHandle()).GetNativeHandle(),
-                    {size.x, size.y},
+                ImGuiImage::Zoomable(
+                    Renderer::TextureGetNativeHandle(m_WorldRenderer.GetDfgLutSRV()),
+                    {128, 128},
                     {uv.x, uv.y},
                     {uv.z, uv.w}
                 );

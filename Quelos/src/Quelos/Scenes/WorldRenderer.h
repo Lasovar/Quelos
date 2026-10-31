@@ -306,7 +306,9 @@ namespace Quelos {
 
         void SetToneMappingShader(const GraphicsShader* toneMappingShader);
 
-        void SetSkyboxShader(const GraphicsShader* skyboxShader, AssetRef<Texture> skybox);
+        void SetSkyboxShader(const GraphicsShader* skyboxShader, const AssetRef<Texture>& skyboxTexture);
+        void SetDfgLutComputeShader(const ComputeShader* dfgLutCompute);
+        void SetIrradianceCubeShader(const ComputeShader* irradianceCubeCompute);
 
         [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
@@ -416,8 +418,16 @@ namespace Quelos {
 
         PipelineStateHandle m_SkyboxPSO;
         ShaderResourceBindingHandle m_SkyboxSRB;
+        AssetRef<Texture> m_SkyboxTexture;
+        TextureViewHandle m_SkyboxSRV;
         uint32_t m_SkyboxWidth = 0;
         uint32_t m_SkyboxHeight = 0;
+
+        TextureHandle m_DfgLutTexture;
+        TextureViewHandle m_DfgLutSRV;
+
+        TextureHandle m_IrradianceCubeTexture;
+        TextureViewHandle m_IrradianceCubeSRV;
 
         flecs::entity m_WorldRendererPipeline;
     };

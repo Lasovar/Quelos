@@ -183,5 +183,15 @@ namespace QuelosEditor {
         [[nodiscard]] const GraphicsShader* GetSkyboxShader() const { return std::launder(reinterpret_cast<const GraphicsShader*>(m_SkyboxShaderStorage)); }
         alignas(GraphicsShader) byte m_SkyboxShaderStorage[sizeof(GraphicsShader)]{};
         AssetRef<Texture> m_SkyboxTexture;
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] ComputeShader* GetDfgLutShader() { return std::launder(reinterpret_cast<ComputeShader*>(m_DfgLutStorage)); }
+        [[nodiscard]] const ComputeShader* GetDfgLutShader() const { return std::launder(reinterpret_cast<const ComputeShader*>(m_DfgLutStorage)); }
+        alignas(ComputeShader) byte m_DfgLutStorage[sizeof(ComputeShader)]{};
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] ComputeShader* GetIrradianceCubeShader() { return std::launder(reinterpret_cast<ComputeShader*>(m_IrradianceCubeStorage)); }
+        [[nodiscard]] const ComputeShader* GetIrradianceCubeShader() const { return std::launder(reinterpret_cast<const ComputeShader*>(m_IrradianceCubeStorage)); }
+        alignas(ComputeShader) byte m_IrradianceCubeStorage[sizeof(ComputeShader)]{};
     };
 }

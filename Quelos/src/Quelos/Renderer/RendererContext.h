@@ -304,6 +304,13 @@ namespace Quelos {
             GpuBufferViewHandle gpuBufferViewHandle
         ) = 0;
 
+        virtual void BindStaticVariableByName(
+            PipelineStateHandle pipelineStateHandle,
+            ShaderType shaderType,
+            std::string_view name,
+            TextureViewHandle textureViewHandle
+        ) = 0;
+
         virtual void BindPipelineState(PipelineStateHandle pipelineStateHandle) = 0;
 
         virtual void Destroy(PipelineStateHandle pipelineStateHandle) = 0;

@@ -175,6 +175,13 @@ namespace Quelos {
         s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, bufferViewHandle);
     }
 
+    void Renderer::BindStaticVariableByName(
+        const PipelineStateHandle pipelineStateHandle, const ShaderType shaderType, const std::string_view name,
+        const TextureViewHandle textureViewHandle
+    ) {
+        s_RendererContext->BindStaticVariableByName(pipelineStateHandle, shaderType, name, textureViewHandle);
+    }
+
     void Renderer::BindPipelineState(const PipelineStateHandle pipelineHandle) {
         s_RendererContext->BindPipelineState(pipelineHandle);
     }
