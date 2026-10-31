@@ -46,7 +46,12 @@ float3 PBRNeutral(float3 color) {
 
 // c already saturated, so no pow() on negatives
 
+struct ToneMappingData {
+    float ExposureEV;
+}
+
 [SceneColor] Texture2D<float4> _SceneColor;
+__extern_cpp ConstantBuffer<ToneMappingData> _ToneMappingData;
 
 [shader("vertex")]
 [Pass("ToneMapping")]
@@ -59,5 +64,6 @@ float4 VSMain(uint vertexID: SV_VertexID) : SV_Position {
 [Pass("ToneMapping")]
 float4 FSMain(float4 svPos : SV_Position) : SV_Target {
     float3 hdr = _SceneColor.Load(int3(int2(svPos.xy), 0)).rgb;
-    return float4(LinearToSRGB(PBRNeutral(hdr)), 1.0);
+    hdr *= exp2(_ToneMappingData.ExposureEV);
+    return float4(LinearToSRGB(ACESFitted(hdr)), 1.0);
 }

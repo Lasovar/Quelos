@@ -394,6 +394,14 @@ namespace Quelos {
         toneMappingPassSpec.SubPasses = Span32(&toneMappingSubpass, 1);
 
         m_ToneMappingRenderPass = Renderer::CreateRenderPass(toneMappingPassSpec);
+
+        GpuBufferSpec toneMappingUBSpec;
+        toneMappingUBSpec.Name = "ToneMappingData";
+        toneMappingUBSpec.Size = sizeof(ToneMappingData);
+        toneMappingUBSpec.Usage = Usage::Default;
+        toneMappingUBSpec.BindFlags = Bind::UniformBuffer;
+
+        m_ToneMappingDataBuffer = Renderer::CreateBuffer(toneMappingUBSpec, {});
     }
 
     void WorldRenderer::SetWorld(const flecs::world& world) {
@@ -689,6 +697,12 @@ namespace Quelos {
         psoCI.Spec.ResourceLayout.Variables = vars;
 
         m_ToneMappingPSO = Renderer::CreatePipelineState(psoCI);
+        Renderer::BindStaticVariableByName(
+            m_ToneMappingPSO.GetHandle(),
+            ShaderType::Fragment,
+            "_ToneMappingData",
+            m_ToneMappingDataBuffer.GetHandle()
+        );
     }
 
     void WorldRenderer::SetSkyboxShader(const GraphicsShader* skyboxShader, const AssetRef<Texture>& skyboxTexture) {
@@ -880,6 +894,90 @@ namespace Quelos {
         attribs.ThreadGroupCountZ = 6;
 
         Renderer::DispatchCompute(attribs);
+
+        Renderer::Destroy(srb);
+        Renderer::Destroy(pso);
+    }
+
+    void WorldRenderer::SetPrefilteredCubeShader(const ComputeShader* prefilteredCubeShader) {
+        static constexpr uint32_t k_PrefilterBaseSize = 256;
+        static constexpr uint32_t k_PrefilterMipCount = 6;
+
+        TextureSpec spec;
+        spec.Name = "PrefilteredCube";
+        spec.Type = TextureType::TextureCube;
+        spec.Format = TextureFormat::RGBA16Float;
+        spec.BindFlags = Bind::ShaderResource | Bind::UnorderedAccess;
+        spec.Width = k_PrefilterBaseSize;
+        spec.Height = k_PrefilterBaseSize;
+        spec.ArraySize = k_PrefilterMipCount;
+        spec.MipLevels = 6;
+
+        m_PrefilteredCubeTexture = Renderer::CreateTexture(spec);
+        m_PrefilteredCubeSRV = Renderer::TextureGetDefaultView(m_PrefilteredCubeTexture, TextureViewType::ShaderResource);
+
+        ComputePipelineStateCreateInfo psoCI;
+        psoCI.ComputeShader = prefilteredCubeShader->GetShader();
+        psoCI.Spec.Type = PipelineType::Compute;
+
+        ShaderResourceVariableSpec vars[] = {
+            {"_EnvCube", ShaderType::Compute, ShaderResourceVariableType::Static},
+            {"_OutPrefiltered", ShaderType::Compute, ShaderResourceVariableType::Dynamic},
+        };
+
+        psoCI.Spec.ResourceLayout.Variables = vars;
+
+        SamplerSpec cubeSampler;
+        cubeSampler.MinFilter = FilterMode::Linear;
+        cubeSampler.MagFilter = FilterMode::Linear;
+        cubeSampler.MipFilter = FilterMode::Linear;
+        cubeSampler.WrapU = WrapMode::Clamp;
+        cubeSampler.WrapV = WrapMode::Clamp;
+        cubeSampler.WrapW = WrapMode::Clamp;
+
+        ImmutableSamplerSpec samplers[1];
+        samplers[0].SamplerOrTextureName = "_EnvCube";
+        samplers[0].Specification = cubeSampler;
+        samplers[0].ShaderStages = ShaderType::Compute;
+
+        psoCI.Spec.ResourceLayout.ImmutableSamplers = samplers;
+
+        const PipelineStateHandle pso = Renderer::CreatePipelineState(psoCI);
+
+        Renderer::BindStaticVariableByName(
+            pso,
+            ShaderType::Compute,
+            "_EnvCube",
+            m_SkyboxSRV
+        );
+
+        const ShaderResourceBindingHandle srb = Renderer::CreateShaderResourceBinding(pso, true);
+
+        for (uint32_t mip = 0; mip < k_PrefilterMipCount; ++mip) {
+            TextureViewSpec uav;
+            uav.ViewType = TextureViewType::UnorderedAccess;
+            uav.TextureType = TextureType::Texture2DArray;
+            uav.Format = TextureFormat::RGBA16Float;
+            uav.MostDetailedMip = mip;
+            uav.NumMipLevels = 1;
+            uav.FirstArraySlice = 0;
+            uav.NumArraySlices = 6;
+
+            TextureViewHandle mipUAV = Renderer::TextureCreateView(m_PrefilteredCubeTexture, uav);
+
+            Renderer::BindVariableByName(ShaderType::Compute, srb, "_OutPrefiltered", mipUAV, SetShaderResourceFlag::None);
+            Renderer::BindPipelineState(pso);
+            Renderer::CommitShaderResources(srb, ResourceStateTransitionMode::Transition);
+
+            const uint32_t size = k_PrefilterBaseSize >> mip;
+            DispatchComputeAttribs d;
+            d.ThreadGroupCountX = (size + 7) / 8;
+            d.ThreadGroupCountY = (size + 7) / 8;
+            d.ThreadGroupCountZ = 6;
+            Renderer::DispatchCompute(d);
+
+            Renderer::Destroy(mipUAV);
+        }
 
         Renderer::Destroy(srb);
         Renderer::Destroy(pso);
@@ -1423,7 +1521,7 @@ namespace Quelos {
 
                 pipelineStateCreateInfo.GraphicsPipeline.InputLayout.LayoutElements = Vertex::GetLayoutElements();
 
-                SmallVec<ShaderResourceVariableSpec, 7> vars = {
+                SmallVec<ShaderResourceVariableSpec, 8> vars = {
                     {"global", ShaderType::VertexAndFragment, ShaderResourceVariableType::Static},
                     {"Instances", ShaderType::VertexAndFragment, ShaderResourceVariableType::Mutable},
                 };
@@ -1443,7 +1541,7 @@ namespace Quelos {
                 samplerSpec.MagFilter = FilterMode::Linear;
                 samplerSpec.MipFilter = FilterMode::Linear;
 
-                SmallVec<ImmutableSamplerSpec, 4> immutableSamplers;
+                SmallVec<ImmutableSamplerSpec, 5> immutableSamplers;
                 immutableSamplers.emplace_back();
                 immutableSamplers[0].SamplerOrTextureName = "g_Textures";
                 immutableSamplers[0].Specification = samplerSpec;
@@ -1466,6 +1564,7 @@ namespace Quelos {
                 if (std::ranges::contains(shaderPass->Variables, "_Irradiance")) {
                     vars.emplace_back("_Irradiance", ShaderType::Fragment, ShaderResourceVariableType::Static);
                     vars.emplace_back("_InDFG", ShaderType::Fragment, ShaderResourceVariableType::Static);
+                    vars.emplace_back("_InPrefilteredMap", ShaderType::Fragment, ShaderResourceVariableType::Static);
 
                     samplerSpec.MinFilter = FilterMode::Linear;
                     samplerSpec.MagFilter = FilterMode::Linear;
@@ -1482,6 +1581,9 @@ namespace Quelos {
                     immutableSamplers.push_back(immSampler);
 
                     immSampler.SamplerOrTextureName = "_InDFG";
+                    immutableSamplers.push_back(immSampler);
+
+                    immSampler.SamplerOrTextureName = "_InPrefilteredMap";
                     immutableSamplers.push_back(immSampler);
 
                     hasIrradianceCube = true;
@@ -1507,6 +1609,13 @@ namespace Quelos {
                         ShaderType::Fragment,
                         "_InDFG",
                         m_DfgLutSRV
+                    );
+
+                    Renderer::BindStaticVariableByName(
+                        pipelineStateHandle,
+                        ShaderType::Fragment,
+                        "_InPrefilteredMap",
+                        m_PrefilteredCubeSRV
                     );
                 }
 
@@ -1650,7 +1759,7 @@ namespace Quelos {
         globals.ViewProjection = viewProjection;
         globals.InverseViewProjection = invViewProj;
         globals.CameraPosition = renderViewParams.CameraPosition;
-        globals.EnvironmentIntensity = 1.0f;
+        globals.EnvironmentIntensity = renderViewParams.EnvironmentIntensity;
 
         m_DirectionalLightQuery.each([&](const WorldTransform& transform, const DirectionalLight& directionalLight) {
             lightDirection = transform.Value[2].xyz;
@@ -2071,6 +2180,16 @@ namespace Quelos {
 
         // Tone Mapping
         {
+            ToneMappingData data {
+                .ExposureEV = renderViewParams.ExposureEV
+            };
+
+            Renderer::UpdateBuffer(
+                m_ToneMappingDataBuffer.GetHandle(),
+                0,
+                Span(reinterpret_cast<byte*>(&data), sizeof(data))
+            );
+
             Renderer::BindPipelineState(m_ToneMappingPSO.GetHandle());
             Renderer::CommitShaderResources(view.ToneMappingSRB.GetHandle(), ResourceStateTransitionMode::Transition);
 

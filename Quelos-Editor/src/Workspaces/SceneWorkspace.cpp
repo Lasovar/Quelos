@@ -222,6 +222,10 @@ namespace QuelosEditor {
         const AssetMetadata* irradianceCubeMetadata = assetManager->GetAssetMetadata("Assets/shaders/irradiance_cube.slang");
         ShaderImporter::Load(LoadContext(*irradianceCubeMetadata, GetIrradianceCubeShader()));
         m_WorldRenderer.SetIrradianceCubeShader(GetIrradianceCubeShader());
+
+        const AssetMetadata* prefilteredCubeMetadata = assetManager->GetAssetMetadata("Assets/shaders/prefiltered_cube.slang");
+        ShaderImporter::Load(LoadContext(*prefilteredCubeMetadata, GetPrefilteredCubeShader()));
+        m_WorldRenderer.SetPrefilteredCubeShader(GetPrefilteredCubeShader());
     }
 
     void SceneWorkspace::SetSelectEntity(const Entity entity) {
@@ -336,7 +340,9 @@ namespace QuelosEditor {
                 .CameraPosition = m_EditorCamera.GetPosition(),
                 .SceneColorClear = {0.2667f, 0.2000f, 0.3333f, 1.0000f},
                 .NearClip = m_EditorCamera.GetNearClip(),
-                .FarClip = m_EditorCamera.GetFarClip()
+                .FarClip = m_EditorCamera.GetFarClip(),
+                .EnvironmentIntensity = m_EnvironmentIntensity,
+                .ExposureEV = m_ExposureEV
             };
 
             m_WorldRenderer.Render(
@@ -450,10 +456,11 @@ namespace QuelosEditor {
                 m_ActiveScene->OnViewportResized(m_GameViewportPanel.GetViewportSize());
             }
 
-            m_WorldRenderer.Render(
-                m_GameViewportPanel.GetWorldRendererView(),
-                m_ActiveScene->GetRenderViewParams()
-            );
+            RenderViewParams renderViewParams = m_ActiveScene->GetRenderViewParams();
+            renderViewParams.EnvironmentIntensity = m_EnvironmentIntensity;
+            renderViewParams.ExposureEV = m_ExposureEV;
+
+            m_WorldRenderer.Render(m_GameViewportPanel.GetWorldRendererView(), renderViewParams);
         }
 
         if (m_SceneViewportPanel.ShouldDraw() || m_GameViewportPanel.ShouldDraw()) {
@@ -466,6 +473,12 @@ namespace QuelosEditor {
 
         m_SceneViewportPanel.SetFrame(m_SelectedEntity, m_EditorCamera.GetViewMatrix(), m_EditorCamera.GetProjection());
         m_SceneViewportPanel.OnImGuiRender(m_WorkspaceID, m_WorkspaceClass);
+
+        if (UI::Begin("Environment", m_WorkspaceID, m_WorkspaceClass)) {
+            ImGui::DragFloat("Environment Intensity", &m_EnvironmentIntensity, 0.01f);
+            ImGui::SliderFloat("ExposureEV", &m_ExposureEV, -6, 6);
+        }
+        UI::End();
 
         /*
         if (ImGui::Begin("DFG LUT")) {

@@ -22,15 +22,29 @@ Material GetMaterial(uint instanceId) {
     return Materials[Instances[instanceId].MaterialID];
 }
 
+struct VOut {
+    float4 position : SV_Position;
+    float3 normal : NORMAL;
+    float3 Tangent : TANGENT;
+    float3 Bitangent : BITANGENT;
+    float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;
+    uint instanceID : SV_InstanceID;
+};
+
 [Pass("GBuffer")]
 [shader("vertex")]
-VertexOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
-    VertexOut output;
+VOut vertexMain(VertexIn input, uint instanceID : SV_InstanceID) {
+    VOut output;
 
-    float4 worldPos = float4(input.position, 1.0);
+    float4 objectPos = float4(input.position, 1.0);
 
     InstanceData instance = Instances[instanceID];
-    output.position = mul(mul(worldPos, instance.Transform), global.ViewProj);
+    float4 world = mul(objectPos, instance.Transform);
+
+    output.worldPos = world.xyz;
+    output.position = mul(world, global.ViewProj);
+
     float3x3 t = (float3x3)instance.Transform;
     output.normal = mul(input.normal, t);
     output.Tangent = mul(input.tangent, t);
@@ -55,7 +69,7 @@ float3 SampleNormalTS(Texture2D t, SamplerState s, float2 uv) {
 
 [shader("fragment")]
 [Pass("GBuffer")]
-FragmentOut fragmentMain(VertexOut input) {
+FragmentOut fragmentMain(VOut input) {
     FragmentOut output;
 
     Material material = GetMaterial(input.instanceID);
@@ -76,14 +90,14 @@ FragmentOut fragmentMain(VertexOut input) {
     float ao = g_Textures[material.AOTexIdx].Sample(g_Textures_sampler, uv).r;
 
     // Normal mapping
-    float3 tangentNormal = SampleNormalTS(g_Textures[material.NormalMap], g_Textures_sampler, input.uv);
+    float3 tangentNormal = SampleNormalTS(g_Textures[material.NormalMap], g_Textures_sampler, uv);
 
     float3x3 TBN = float3x3(normalize(input.Tangent),
                              normalize(input.Bitangent),
                              normalize(input.normal));
-    float3 N = normalize(mul(tangentNormal, TBN));
 
-    float3 V = normalize(global.CameraPositionAndEnvIntensity.xyz - input.position.xyz);
+    float3 N = normalize(mul(tangentNormal, TBN));
+    float3 V = normalize(global.CameraPositionAndEnvIntensity.xyz - input.worldPos);
     float3 L = normalize(-global.Sun.Direction.xyz);
     float3 H = normalize(V + L);
 

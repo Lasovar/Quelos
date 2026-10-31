@@ -82,6 +82,9 @@ namespace QuelosEditor {
         flecs::world m_RuntimeWorld;
         Vec<SelectionCallback> m_OnSelectionChangedCallbacks{Allocator::Persistent};
 
+        float m_EnvironmentIntensity = 1.0f;
+        float m_ExposureEV = -1.2f;
+
         SceneState m_SceneState = SceneState::Edit;
         bool m_IsScenePaused = false;
         PRequest<bool> m_PauseRequest;
@@ -193,5 +196,10 @@ namespace QuelosEditor {
         [[nodiscard]] ComputeShader* GetIrradianceCubeShader() { return std::launder(reinterpret_cast<ComputeShader*>(m_IrradianceCubeStorage)); }
         [[nodiscard]] const ComputeShader* GetIrradianceCubeShader() const { return std::launder(reinterpret_cast<const ComputeShader*>(m_IrradianceCubeStorage)); }
         alignas(ComputeShader) byte m_IrradianceCubeStorage[sizeof(ComputeShader)]{};
+
+        // TODO: Move to render pass declaration
+        [[nodiscard]] ComputeShader* GetPrefilteredCubeShader() { return std::launder(reinterpret_cast<ComputeShader*>(m_PrefilteredCubeStorage)); }
+        [[nodiscard]] const ComputeShader* GetPrefilteredCubeShader() const { return std::launder(reinterpret_cast<const ComputeShader*>(m_PrefilteredCubeStorage)); }
+        alignas(ComputeShader) byte m_PrefilteredCubeStorage[sizeof(ComputeShader)]{};
     };
 }

@@ -196,6 +196,10 @@ namespace Quelos {
         pfloat4 LightDirection;
     };
 
+    struct QS_API alignas(16) ToneMappingData {
+        pfloat1 ExposureEV;
+    };
+
     struct QS_API alignas(16) InstanceData {
         pfloat4x4 Transform;
         uint32_t MaterialId;
@@ -286,6 +290,9 @@ namespace Quelos {
         Color SceneColorClear;
         float NearClip = 0.0f;
         float FarClip = 0.0f;
+
+        float EnvironmentIntensity = 1.0f;
+        float ExposureEV = -1.2f;
     };
 
     class QS_API WorldRenderer {
@@ -309,6 +316,7 @@ namespace Quelos {
         void SetSkyboxShader(const GraphicsShader* skyboxShader, const AssetRef<Texture>& skyboxTexture);
         void SetDfgLutComputeShader(const ComputeShader* dfgLutCompute);
         void SetIrradianceCubeShader(const ComputeShader* irradianceCubeCompute);
+        void SetPrefilteredCubeShader(const ComputeShader* prefilteredCubeShader);
 
         [[nodiscard]] const WorldRendererView* CreateView(std::string_view name, Extent2D size);
         void ResizeView(const WorldRendererView* worldRendererView, Extent2D size) const;
@@ -415,6 +423,7 @@ namespace Quelos {
 
         ResourceRef<RenderPass> m_ToneMappingRenderPass;
         ResourceRef<PipelineStateObject> m_ToneMappingPSO;
+        ResourceRef<GpuBuffer> m_ToneMappingDataBuffer;
 
         PipelineStateHandle m_SkyboxPSO;
         ShaderResourceBindingHandle m_SkyboxSRB;
@@ -428,6 +437,9 @@ namespace Quelos {
 
         TextureHandle m_IrradianceCubeTexture;
         TextureViewHandle m_IrradianceCubeSRV;
+
+        TextureHandle m_PrefilteredCubeTexture;
+        TextureViewHandle m_PrefilteredCubeSRV;
 
         flecs::entity m_WorldRendererPipeline;
     };

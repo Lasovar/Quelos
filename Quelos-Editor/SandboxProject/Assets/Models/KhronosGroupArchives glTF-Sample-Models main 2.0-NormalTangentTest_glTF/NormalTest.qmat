@@ -5,7 +5,7 @@ shader = b2d9aff7-2764-43d8-997f-bcb7c1da8e97
 @properties
 BaseColor = (Texture2D,9246c422-4b87-4284-94d7-9e6cbc98f54a)
 NormalMap = (NormalMap,a01d04c1-98cc-40a3-b175-3fd4f5067cb8)
-MetallicRoughness = (Texture2D,null)
+MetallicRoughness = (Texture2D,f7f3ef7d-f0e2-4180-b2e5-1075ae738fe7)
 AOTexIdx = (Texture2D,null)
 BaseColorFactor = (Color,(1,1,1,1))
 MetallicFactor = (Float,1)

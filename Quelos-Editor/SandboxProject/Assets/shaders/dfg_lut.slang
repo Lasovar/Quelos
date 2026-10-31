@@ -6,14 +6,6 @@ __extern_cpp RWTexture2D<float4> _OutDFG;
 
 static const uint k_SampleCount = 1024;
 
-// Tangent space, N = +Z
-float3 ImportanceSampleGGX(float2 xi, float alpha) {
-    float phi      = 2.0 * float.getPi() * xi.x;
-    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (alpha * alpha - 1.0) * xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    return float3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
-}
-
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
